@@ -605,7 +605,7 @@ export default function LandingPage() {
                 </button>
               ))}
             </div>
-            <button className="btn-primary" style={{ padding: "0.65rem 1.5rem", fontSize: "0.9rem" }} onClick={() => scrollTo("cta")}>Get Started</button>
+            <button className="btn-primary" style={{ padding: "0.65rem 1.5rem", fontSize: "0.9rem" }} onClick={() => window.location.href = "/auth"}>Get Started</button>
           </div>
         </div>
       </nav>
@@ -656,7 +656,7 @@ export default function LandingPage() {
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 1.4, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
               style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-              <button className="btn-primary" onClick={() => scrollTo("cta")}>Start your journey →</button>
+              <button className="btn-primary" onClick={() => window.location.href = "/auth"}>Start your journey →</button>
               <button className="btn-ghost" onClick={() => scrollTo("how-it-works")}>See how it works</button>
             </motion.div>
           </div>
@@ -708,7 +708,7 @@ export default function LandingPage() {
             <p style={{ color: "#475569", fontSize: "1.1rem", lineHeight: 1.75, marginBottom: "2.75rem" }}>
               Join thousands of students who stopped stressing and started planning.
             </p>
-            <button className="btn-primary" style={{ fontSize: "1.05rem", padding: "1rem 2.5rem" }}>
+            <button className="btn-primary" style={{ fontSize: "1.05rem", padding: "1rem 2.5rem" }} onClick={() => window.location.href = "/auth"}>
               Start your voice onboarding →
             </button>
             <div style={{ marginTop: "1.35rem", display: "flex", justifyContent: "center", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
