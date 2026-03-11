@@ -53,13 +53,38 @@ export default function AuthPage() {
 
     try {
       if (isSignUp) {
-        const { error: err } = await supabase.auth.signUp({ email, password });
-        if (err) throw err;
+        const { data, error: err } = await supabase.auth.signUp({ email, password });
+        if (err) {
+          const msg = err.message?.toLowerCase() ?? "";
+          if (msg.includes("password")) {
+            setError("Password must be at least 6 characters.");
+          } else if (msg.includes("email")) {
+            setError("Please enter a valid email address.");
+          } else {
+            setError(err.message);
+          }
+          return;
+        }
+        // Supabase silently succeeds for duplicate emails when confirmation is on —
+        // but returns a user with an empty identities array
+        if (!data.user || data.user.identities?.length === 0) {
+          setError("already-exists");
+          return;
+        }
         setConfirmed(true);
       } else {
-        const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-        if (err) throw err;
-        window.location.href = "/onboarding";
+        const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+        if (err) {
+          setError("Incorrect email or password. Please try again.");
+          return;
+        }
+        // Smart redirect: skip onboarding if already completed
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", data.user.id)
+          .single();
+        window.location.href = profile?.onboarding_completed ? "/scorecard" : "/onboarding";
       }
     } catch (err) {
       setError(err.message ?? "Something went wrong. Please try again.");
@@ -358,8 +383,29 @@ export default function AuthPage() {
                     padding: "0.75rem 1rem",
                   }}>
                     <p style={{ color: "#dc2626", fontSize: "0.875rem", lineHeight: 1.5 }}>
-                      {error}
+                      {error === "already-exists"
+                        ? "An account with this email already exists."
+                        : error}
                     </p>
+                    {error === "already-exists" && (
+                      <button
+                        onClick={toggle}
+                        style={{
+                          marginTop: "0.375rem",
+                          background: "none",
+                          border: "none",
+                          padding: 0,
+                          color: "#1d4ed8",
+                          fontSize: "0.875rem",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                          textUnderlineOffset: 2,
+                        }}
+                      >
+                        Sign in instead →
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               )}
