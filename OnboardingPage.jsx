@@ -4,10 +4,6 @@ import { useConversation } from "@elevenlabs/react";
 import Anthropic from "@anthropic-ai/sdk";
 import { supabase } from "./lib/supabase.js";
 
-const anthropic = new Anthropic({
-  apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
-  dangerouslyAllowBrowser: true,
-});
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
 
@@ -863,6 +859,11 @@ export default function OnboardingPage() {
         .join("\n");
 
       // Call Claude API directly
+      const anthropic = new Anthropic({
+        apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
+        dangerouslyAllowBrowser: true,
+      });
+
       const message = await anthropic.messages.create({
         model: "claude-sonnet-4-6",
         max_tokens: 1024,
@@ -889,7 +890,13 @@ ${transcriptText}`,
 
       const responseText =
         message.content[0].type === "text" ? message.content[0].text : "";
-      const profile = JSON.parse(responseText);
+
+      // Extract JSON even if Claude added surrounding text
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("Could not extract profile from conversation. Please try a longer conversation.");
+      }
+      const profile = JSON.parse(jsonMatch[0]);
 
       // Save to Supabase
       const { error: updateError } = await supabase
