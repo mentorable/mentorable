@@ -778,7 +778,7 @@ export default function ScorecardPage() {
                 </button>
 
                 <button
-                  onClick={() => { window.location.href = "/roadmap"; }}
+                  onClick={() => { window.location.href = "/profile-setup"; }}
                   style={{
                     display: "inline-flex", alignItems: "center", gap: "0.5rem",
                     padding: "0.675rem 1.2rem",
