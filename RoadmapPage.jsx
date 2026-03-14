@@ -403,15 +403,18 @@ export default function RoadmapPage() {
         if (!authUser) { window.location.href = "/auth"; return; }
         setUser(authUser);
 
-        // Profile check
-        const { data: profile } = await supabase
+        // Profile check — use maybeSingle to avoid 406 when profile row doesn't exist yet
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("onboarding_completed, grade_level")
           .eq("id", authUser.id)
-          .single();
+          .maybeSingle();
 
-        if (!profile?.onboarding_completed) { window.location.href = "/onboarding"; return; }
-        if (!profile?.grade_level) { window.location.href = "/profile-setup"; return; }
+        console.log("[roadmap] profile check:", { profile, profileError });
+
+        if (!profile) { window.location.href = "/onboarding"; return; }
+        if (!profile.onboarding_completed) { window.location.href = "/onboarding"; return; }
+        if (!profile.grade_level) { window.location.href = "/profile-setup"; return; }
 
         // Load existing active roadmap (use limit+order to avoid 406 on multiple rows)
         const { data: roadmapRows } = await supabase
