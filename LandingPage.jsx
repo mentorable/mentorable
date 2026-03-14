@@ -332,8 +332,8 @@ function FadeIn({ children, delay = 0, style }) {
 const FAQS = [
   { q: "How long does the onboarding take?", a: "About 5–8 minutes. It's a conversation, not a test. You'll talk with Mentorable like you'd talk to a mentor who genuinely wants to understand you." },
   { q: "Is Mentorable free?", a: "We offer a free tier that includes your full scorecard and initial roadmap. Full personalization, weekly check-ins, and ongoing AI guidance are available on our paid plan." },
-  { q: "How does Mentorable personalize my roadmap?", a: "We combine your voice conversation, profile data, and real-time job market signals to generate a roadmap unique to you — not a template pulled from a database." },
-  { q: "Is my data private?", a: "Yes. We never share your data with anyone. We only store your grade level and general region — never your full name or school name." },
+  { q: "How does Mentorable personalize my roadmap?", a: "We combine your voice conversation, profile data, and real-time job market signals to generate a roadmap unique to you, not a template pulled from a database." },
+  { q: "Is my data private?", a: "Yes. We never share your data with anyone. We only store your grade level and general region, never your full name or school name." },
   { q: "Can my school counselor or parents see my results?", a: "Only if you choose to share them. Your roadmap belongs to you, and you control who sees it." },
 ];
 
@@ -425,7 +425,7 @@ const FEATURES = [
   { icon: <IconMap size={36} color="#1d4ed8" sw={1.5}/>, title: "Dynamic Roadmaps", desc: "Step-by-step paths that update as your goals evolve." },
   { icon: <IconTrending size={36} color="#1d4ed8" sw={1.5}/>, title: "Real-Time Market Data", desc: "Roadmaps backed by actual job market trends, not guesswork." },
   { icon: <IconBell size={36} color="#1d4ed8" sw={1.5}/>, title: "Weekly Career Pulse", desc: "Stay on track with weekly check-ins and opportunity alerts." },
-  { icon: <IconMessage size={36} color="#1d4ed8" sw={1.5}/>, title: "AI Chat Guidance", desc: "Ask anything, anytime. Mentorable always has your full context — goals, strengths, and roadmap — in every response.", wide: true },
+  { icon: <IconMessage size={36} color="#1d4ed8" sw={1.5}/>, title: "AI Chat Guidance", desc: "Ask anything, anytime. Mentorable always has your full context: goals, strengths, and roadmap, in every response.", wide: true },
 ];
 const BENTO_DIRS = [
   { x: -30, y: 0 }, { x: -30, y: 0 }, { x: 30, y: 0 },
@@ -649,7 +649,7 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.2, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
               style={{ color: "#64748b", fontSize: "1.125rem", lineHeight: 1.78, marginBottom: "2.5rem", maxWidth: 480 }}>
-              Mentorable listens to your story, maps your strengths, and builds a career roadmap that's actually yours — not a template.
+              Mentorable listens to your story, maps your strengths, and builds a career roadmap that's actually yours. Not a template.
             </motion.p>
 
             <motion.div

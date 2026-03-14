@@ -181,7 +181,7 @@ function IntroPhase({ onStart, loading }) {
           }}
         >
           Have a 5–8 minute conversation with your AI guide. Just talk naturally
-          — there are no right or wrong answers.
+          There are no right or wrong answers.
         </p>
 
         {/* Info pills */}
