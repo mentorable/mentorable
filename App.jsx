@@ -1,14 +1,34 @@
+import { useState, useEffect } from "react";
 import LandingPage from "./LandingPage.jsx";
 import AuthPage from "./AuthPage.jsx";
 import OnboardingPage from "./OnboardingPage.jsx";
 import ScorecardPage from "./ScorecardPage.jsx";
 import RoadmapPage from "./RoadmapPage.jsx";
+import TaskDetailPage from "./components/task/TaskDetailPage.jsx";
 
 export default function App() {
-  const path = window.location.pathname;
+  const [path, setPath] = useState(() => window.location.pathname);
+
+  useEffect(() => {
+    const onPop = () => setPath(window.location.pathname);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  const navigate = (newPath) => {
+    window.history.pushState({}, "", newPath);
+    setPath(newPath);
+  };
+
   if (path === "/auth") return <AuthPage />;
   if (path === "/onboarding") return <OnboardingPage />;
   if (path === "/scorecard") return <ScorecardPage />;
-  if (path === "/roadmap") return <RoadmapPage />;
+
+  const taskMatch = path.match(/^\/roadmap\/task\/([^/]+)$/);
+  if (taskMatch) {
+    return <TaskDetailPage taskId={taskMatch[1]} navigate={navigate} />;
+  }
+  if (path === "/roadmap") return <RoadmapPage navigate={navigate} />;
+
   return <LandingPage />;
 }

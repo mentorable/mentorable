@@ -1,89 +1,29 @@
 import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PhaseHeader from "./PhaseHeader.jsx";
-import TaskCard from "./TaskCard.jsx";
+import MilestoneIcon from "./MilestoneIcon.jsx";
+import PathLine from "./PathLine.jsx";
+import { getTaskType } from "../../lib/taskType.js";
 
-// Group tasks by week_number, sorted ascending
-function groupByWeek(tasks) {
-  const map = {};
-  (tasks || []).forEach((t) => {
-    const w = t.week_number || 1;
-    if (!map[w]) map[w] = [];
-    map[w].push(t);
+// All tasks from all phases in order (for path line completed %)
+function getAllTasksOrdered(phases) {
+  const list = [];
+  (phases || []).forEach((phase) => {
+    const tasks = (phase.tasks || []).slice().sort((a, b) => (a.week_number || 1) - (b.week_number || 1) || (a.created_at || "").localeCompare(b.created_at || ""));
+    tasks.forEach((t) => list.push({ ...t, phaseId: phase.id, phase }));
   });
-  return Object.entries(map)
-    .sort(([a], [b]) => Number(a) - Number(b))
-    .map(([week, tasks]) => ({ week: Number(week), tasks }));
+  return list;
 }
 
-// Find the current active week in a phase (lowest week with incomplete tasks)
-function findCurrentWeek(phase) {
-  if (phase.status !== "active") return null;
-  const tasks = phase.tasks || [];
-  const incomplete = tasks.filter(
-    (t) => t.status !== "completed" && t.status !== "skipped"
-  );
-  if (incomplete.length === 0) return null;
-  return Math.min(...incomplete.map((t) => t.week_number || 1));
-}
-
-// Checkpoint diamond component
-function CheckpointDiamond({ status }) {
-  const colors = {
-    completed: { bg: "#6366f1", border: "#4f46e5", dot: "white" },
-    active:    { bg: "#ffffff", border: "#6366f1", dot: "#6366f1" },
-    locked:    { bg: "#f8fafc", border: "#cbd5e1", dot: "#cbd5e1" },
-  };
-  const c = colors[status] || colors.locked;
-
-  return (
-    <motion.div
-      animate={status === "active" ? { scale: [1, 1.15, 1] } : {}}
-      transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-      style={{
-        width: 28,
-        height: 28,
-        background: c.bg,
-        border: `2.5px solid ${c.border}`,
-        borderRadius: "4px",
-        transform: "rotate(45deg)",
-        flexShrink: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: status === "active" ? `0 0 0 4px ${c.border}20` : "none",
-      }}
-    >
-      {status === "completed" && (
-        <div style={{ transform: "rotate(-45deg)" }}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={c.dot} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        </div>
-      )}
-    </motion.div>
-  );
-}
-
-// Week circle node on the line
-function WeekNode({ week, status }) {
-  const colors = {
-    done:    { bg: "#6366f1", border: "#4f46e5" },
-    current: { bg: "#ffffff", border: "#6366f1" },
-    future:  { bg: "#f8fafc", border: "#cbd5e1" },
-  };
-  const c = colors[status] || colors.future;
-
-  return (
-    <div style={{
-      width: 14,
-      height: 14,
-      borderRadius: "50%",
-      background: c.bg,
-      border: `2px solid ${c.border}`,
-      flexShrink: 0,
-    }} />
-  );
+function isTaskLocked(task, phase, allTasksInPhase) {
+  if (phase.status === "locked") return true;
+  const idx = allTasksInPhase.findIndex((t) => t.id === task.id);
+  if (idx <= 0) return false;
+  for (let i = 0; i < idx; i++) {
+    const t = allTasksInPhase[i];
+    if (t.status !== "completed" && t.status !== "skipped") return true;
+  }
+  return false;
 }
 
 export default function RoadmapPath({
@@ -93,19 +33,14 @@ export default function RoadmapPath({
   onTaskFlagNotForMe,
   onPhaseComplete,
   generatingNextPhase,
+  navigate,
 }) {
-  const activePhase = useMemo(
-    () => (phases || []).find((p) => p.status === "active"),
-    [phases]
+  const allTasks = useMemo(() => getAllTasksOrdered(phases), [phases]);
+  const completedCount = useMemo(
+    () => allTasks.filter((t) => t.status === "completed" || t.status === "skipped").length,
+    [allTasks]
   );
-
-  const currentWeekByPhase = useMemo(() => {
-    const map = {};
-    (phases || []).forEach((p) => {
-      map[p.id] = findCurrentWeek(p);
-    });
-    return map;
-  }, [phases]);
+  const completedPct = allTasks.length ? (completedCount / allTasks.length) * 100 : 0;
 
   if (!phases || phases.length === 0) {
     return (
@@ -117,220 +52,120 @@ export default function RoadmapPath({
 
   return (
     <div style={{ position: "relative", width: "100%", paddingBottom: "120px" }}>
-      {/* Vertical line */}
-      <div style={{
-        position: "absolute",
-        top: 0,
-        bottom: 0,
-        left: "31px",
-        width: "3px",
-        background: "linear-gradient(180deg, #6366f1 0%, #c7d2fe 60%, #e2e8f0 100%)",
-        borderRadius: "9999px",
-        zIndex: 0,
-      }} />
+      <PathLine completedPct={completedPct} />
 
-      {/* Phases */}
       {phases.map((phase, phaseIdx) => {
-        const isCompleted = phase.status === "completed";
-        const isActive = phase.status === "active";
         const isLocked = phase.status === "locked";
-        const currentWeek = currentWeekByPhase[phase.id];
-        const weekGroups = groupByWeek(phase.tasks || []);
-
-        const checkpointStatus = isCompleted ? "completed" : isActive ? "active" : "locked";
+        const phaseTasks = (phase.tasks || []).slice().sort(
+          (a, b) => (a.week_number || 1) - (b.week_number || 1) || (a.created_at || "").localeCompare(b.created_at || "")
+        );
+        const completedInPhase = phaseTasks.filter(
+          (t) => t.status === "completed" || t.status === "skipped"
+        ).length;
+        const totalInPhase = phaseTasks.length;
 
         return (
           <div key={phase.id} style={{ position: "relative" }}>
-            {/* Phase checkpoint diamond + header */}
+            {/* Phase divider */}
             <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: phaseIdx * 0.08, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: phaseIdx * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "1rem",
                 marginBottom: "1.25rem",
                 position: "relative",
                 zIndex: 1,
               }}
             >
-              {/* Diamond on the line */}
-              <div style={{
-                width: "64px",
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                paddingTop: "0.2rem",
-              }}>
-                <CheckpointDiamond status={checkpointStatus} />
-              </div>
-
-              {/* Phase header card — full width to the right */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {isLocked ? (
-                  // Locked phase — show minimal locked card
-                  <div style={{
-                    background: "#f8fafc",
-                    border: "1.5px dashed #e2e8f0",
-                    borderRadius: "1rem",
-                    padding: "1rem 1.25rem",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.75rem",
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                    <div>
-                      <p style={{
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
-                        fontWeight: 700,
-                        fontSize: "0.875rem",
-                        color: "#94a3b8",
-                        margin: 0,
-                      }}>
-                        Phase {phase.phase_number}{phase.title ? ` · ${phase.title}` : ""}
-                      </p>
-                      <p style={{ fontSize: "0.75rem", color: "#cbd5e1", margin: "0.1rem 0 0 0" }}>
-                        Complete the current phase to unlock
-                      </p>
-                    </div>
+              {isLocked ? (
+                <div style={{
+                  background: "rgba(30, 45, 74, 0.5)",
+                  border: "1.5px dashed #1E2D4A",
+                  borderRadius: "1rem",
+                  padding: "1rem 1.25rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  <div>
+                    <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: "0.875rem", color: "#64748B", margin: 0 }}>
+                      Phase {phase.phase_number}{phase.title ? ` — ${phase.title}` : ""}
+                    </p>
+                    <p style={{ fontSize: "0.75rem", color: "#64748B", margin: "0.1rem 0 0 0" }}>
+                      Complete the current phase to unlock
+                    </p>
                   </div>
-                ) : (
-                  <PhaseHeader phase={phase} currentWeek={currentWeek} />
-                )}
-              </div>
+                </div>
+              ) : (
+                <PhaseHeader
+                  phase={phase}
+                  currentWeek={null}
+                  completedMilestones={completedInPhase}
+                  totalMilestones={totalInPhase}
+                />
+              )}
             </motion.div>
 
-            {/* Week groups — only for non-locked phases */}
-            {!isLocked && weekGroups.map(({ week, tasks: weekTasks }, weekIdx) => {
-              // All weeks in an active phase are visible (not locked)
-              // Only the NEXT PHASE is locked, not the next week
-              const allWeekDone = weekTasks.every(
-                (t) => t.status === "completed" || t.status === "skipped"
-              );
-              const weekStatus = isCompleted || allWeekDone ? "done" : "current";
-
-              const isCurrentWeek = weekStatus === "current";
-              const isFutureWeek = false; // weeks within a phase are never locked
+            {/* Milestones — alternating left/right */}
+            {!isLocked && phaseTasks.map((task, taskIdx) => {
+              const locked = isTaskLocked(task, phase, phaseTasks);
+              const isActive =
+                task.status === "in_progress" ||
+                (task.status === "not_started" && !locked);
+              const taskType = getTaskType(task, { phaseTasks, taskIndex: taskIdx });
+              const side = taskIdx % 2 === 0 ? "left" : "right";
 
               return (
                 <motion.div
-                  key={week}
+                  key={task.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
-                    delay: phaseIdx * 0.08 + weekIdx * 0.05,
+                    delay: phaseIdx * 0.06 + taskIdx * 0.04,
                     duration: 0.35,
                     ease: [0.22, 1, 0.36, 1],
                   }}
                   style={{
                     display: "flex",
-                    alignItems: "flex-start",
-                    gap: "1rem",
-                    marginBottom: "1rem",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginBottom: "1.25rem",
                     position: "relative",
                     zIndex: 1,
                   }}
                 >
-                  {/* Week node + label */}
-                  <div style={{
-                    width: "64px",
-                    flexShrink: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    paddingTop: "0.6rem",
-                    gap: "0.25rem",
-                  }}>
-                    <WeekNode week={week} status={weekStatus} />
-                    <span style={{
-                      fontSize: "0.6rem",
-                      fontWeight: 700,
-                      letterSpacing: "0.05em",
-                      color: isCurrentWeek ? "#6366f1" : "#94a3b8",
-                      textTransform: "uppercase",
-                      textAlign: "center",
-                      lineHeight: 1.2,
-                    }}>
-                      W{week}
-                    </span>
-                  </div>
-
-                  {/* Tasks */}
-                  <div style={{
-                    flex: 1,
-                    minWidth: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.625rem",
-                    position: "relative",
-                  }}>
-                    {/* Blur overlay for future weeks */}
-                    {isFutureWeek && (
-                      <div style={{
-                        position: "absolute",
-                        inset: "-0.25rem",
-                        borderRadius: "1rem",
-                        backdropFilter: "blur(3px)",
-                        WebkitBackdropFilter: "blur(3px)",
-                        background: "rgba(248,250,252,0.6)",
-                        zIndex: 2,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        pointerEvents: "none",
-                      }}>
-                        <div style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.4rem",
-                          background: "rgba(255,255,255,0.9)",
-                          borderRadius: "9999px",
-                          padding: "0.3rem 0.75rem",
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                        }}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                          </svg>
-                          <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#6366f1" }}>
-                            Week {week} — unlocks after current week
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {weekTasks.map((task) => {
-                      const taskCompleted = task.status === "completed";
-                      return (
-                        <TaskCard
-                          key={task.id}
-                          task={task}
-                          isLocked={isFutureWeek}
-                          isCompleted={taskCompleted}
-                          onComplete={() => onTaskComplete && onTaskComplete(task.id, phase.id)}
-                          onFlagNotForMe={() => onTaskFlagNotForMe && onTaskFlagNotForMe(task.id, phase.id)}
-                        />
-                      );
-                    })}
+                  <div
+                    style={{
+                      flex: 1,
+                      maxWidth: "50%",
+                      display: "flex",
+                      justifyContent: side === "left" ? "flex-end" : "flex-start",
+                      paddingRight: side === "left" ? 24 : 0,
+                      paddingLeft: side === "right" ? 24 : 0,
+                    }}
+                  >
+                    <MilestoneIcon
+                      task={task}
+                      taskType={taskType}
+                      isLocked={locked}
+                      isActive={isActive}
+                      navigate={navigate}
+                      index={taskIdx}
+                    />
                   </div>
                 </motion.div>
               );
             })}
 
-            {/* Spacing between phases */}
-            {phaseIdx < phases.length - 1 && (
-              <div style={{ height: "1rem" }} />
-            )}
+            {phaseIdx < phases.length - 1 && <div style={{ height: "0.5rem" }} />}
           </div>
         );
       })}
 
-      {/* Generating next phase spinner node */}
       <AnimatePresence>
         {generatingNextPhase && (
           <motion.div
@@ -339,73 +174,35 @@ export default function RoadmapPath({
             exit={{ opacity: 0, y: 8 }}
             style={{
               display: "flex",
+              justifyContent: "center",
               alignItems: "center",
-              gap: "1rem",
               position: "relative",
               zIndex: 1,
               marginTop: "1rem",
             }}
           >
-            {/* Pulsing spinner node on line */}
-            <div style={{
-              width: "64px",
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              paddingTop: "0.25rem",
-            }}>
-              <motion.div
-                animate={{ scale: [1, 1.25, 1], opacity: [0.6, 1, 0.6] }}
-                transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  background: "rgba(99,102,241,0.15)",
-                  border: "2.5px dashed #6366f1",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  style={{ animation: "rp-spin 1s linear infinite" }}
-                >
-                  <circle cx="12" cy="12" r="10" stroke="rgba(99,102,241,0.3)" strokeWidth="3" />
-                  <path d="M12 2a10 10 0 0 1 10 10" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-              </motion.div>
-            </div>
-
-            {/* Generating label */}
-            <div style={{
-              flex: 1,
-              background: "rgba(99,102,241,0.06)",
-              border: "1.5px dashed #c7d2fe",
-              borderRadius: "1rem",
-              padding: "1rem 1.25rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-            }}>
-              <motion.span
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-                style={{
-                  fontSize: "0.875rem",
-                  fontWeight: 600,
-                  color: "#6366f1",
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                }}
-              >
-                Generating your next phase...
-              </motion.span>
-            </div>
+            <motion.div
+              animate={{ scale: [1, 1.25, 1], opacity: [0.6, 1, 0.6] }}
+              transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: "rgba(59, 130, 246, 0.2)",
+                border: "2.5px dashed #3B82F6",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ animation: "rp-spin 1s linear infinite" }}>
+                <circle cx="12" cy="12" r="10" stroke="rgba(59,130,246,0.3)" strokeWidth="3" />
+                <path d="M12 2a10 10 0 0 1 10 10" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" />
+              </svg>
+            </motion.div>
+            <span style={{ marginLeft: 12, fontSize: "0.875rem", fontWeight: 600, color: "#3B82F6" }}>
+              Generating your next phase...
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
