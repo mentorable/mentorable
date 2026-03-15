@@ -1,11 +1,17 @@
 import { motion } from "framer-motion";
 
-export default function PhaseHeader({ phase, currentWeek }) {
+export default function PhaseHeader({ phase, currentWeek, completedMilestones, totalMilestones }) {
   if (!phase) return null;
 
+  const useMilestones = typeof completedMilestones === "number" && typeof totalMilestones === "number" && totalMilestones > 0;
   const completedWeeks = currentWeek ? currentWeek - 1 : 0;
   const totalWeeks = phase.duration_weeks || 4;
-  const progressPct = Math.min(100, Math.round((completedWeeks / totalWeeks) * 100));
+  const progressPct = useMilestones
+    ? Math.min(100, Math.round((completedMilestones / totalMilestones) * 100))
+    : Math.min(100, Math.round((completedWeeks / totalWeeks) * 100));
+  const progressLabel = useMilestones
+    ? `${completedMilestones}/${totalMilestones} milestones`
+    : `${completedWeeks}/${totalWeeks} weeks`;
 
   const statusColors = {
     completed: { bar: "#10b981", bg: "#d1fae5", text: "#059669" },
@@ -107,7 +113,7 @@ export default function PhaseHeader({ phase, currentWeek }) {
               Progress
             </span>
             <span style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>
-              {completedWeeks}/{totalWeeks} weeks
+              {progressLabel}
             </span>
           </div>
           <div style={{

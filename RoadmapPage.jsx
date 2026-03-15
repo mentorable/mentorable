@@ -339,7 +339,9 @@ function ErrorScreen({ message }) {
 }
 
 // ─── RoadmapPage ──────────────────────────────────────────────────────────────
-export default function RoadmapPage() {
+const STORAGE_KEY_LAST_TASK = "mentorable_roadmap_last_task";
+
+export default function RoadmapPage({ navigate }) {
   const [user, setUser] = useState(null);
   const [roadmap, setRoadmap] = useState(null);
   const [phases, setPhases] = useState([]);
@@ -469,7 +471,18 @@ export default function RoadmapPage() {
         setRoadmap(existingRoadmap);
 
         // Load phases + tasks
-        const phasesData = await loadPhases(existingRoadmap.id);
+        let phasesData = await loadPhases(existingRoadmap.id);
+        // Sync phase status if all tasks completed (e.g. user completed last task on task detail page)
+        for (const ph of phasesData || []) {
+          if (ph.status !== "active") continue;
+          const tasks = ph.tasks || [];
+          if (tasks.length === 0) continue;
+          const allDone = tasks.every((t) => t.status === "completed" || t.status === "skipped");
+          if (allDone) {
+            await supabase.from("roadmap_phases").update({ status: "completed" }).eq("id", ph.id);
+            phasesData = phasesData.map((p) => (p.id === ph.id ? { ...p, status: "completed" } : p));
+          }
+        }
         setPhases(phasesData);
 
         // Load confidence history (last 5)
@@ -491,6 +504,20 @@ export default function RoadmapPage() {
 
     init();
   }, [loadPhases]);
+
+  // ── Scroll to last viewed task when returning from task detail ─────────────────
+  useEffect(() => {
+    if (loading || !phases?.length) return;
+    const taskId = sessionStorage.getItem(STORAGE_KEY_LAST_TASK);
+    if (!taskId) return;
+    sessionStorage.removeItem(STORAGE_KEY_LAST_TASK);
+    const el = document.querySelector(`[data-task-id="${taskId}"]`);
+    if (el) {
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }, [loading, phases?.length]);
 
   // ── Task: complete ───────────────────────────────────────────────────────────
   const completeTask = useCallback(async (taskId, phaseId) => {
@@ -852,6 +879,7 @@ export default function RoadmapPage() {
                   onTaskFlagNotForMe={flagNotForMe}
                   onPhaseComplete={() => {}}
                   generatingNextPhase={generatingNextPhase}
+                  navigate={navigate}
                 />
               </div>
             </div>
