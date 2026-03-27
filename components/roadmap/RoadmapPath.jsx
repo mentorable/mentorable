@@ -4,6 +4,7 @@ import PhaseHeader from "./PhaseHeader.jsx";
 import MilestoneIcon from "./MilestoneIcon.jsx";
 import PathLine from "./PathLine.jsx";
 import { getTaskType } from "../../lib/taskType.js";
+import Spinner from "../common/Spinner.jsx";
 
 // All tasks from all phases in order (for path line completed %)
 function getAllTasksOrdered(phases) {
@@ -195,10 +196,7 @@ export default function RoadmapPath({
                 justifyContent: "center",
               }}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ animation: "rp-spin 1s linear infinite" }}>
-                <circle cx="12" cy="12" r="10" stroke="rgba(59,130,246,0.3)" strokeWidth="3" />
-                <path d="M12 2a10 10 0 0 1 10 10" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" />
-              </svg>
+              <Spinner size={12} color="#3B82F6" />
             </motion.div>
             <span style={{ marginLeft: 12, fontSize: "0.875rem", fontWeight: 600, color: "#3B82F6" }}>
               Generating your next phase...
@@ -207,9 +205,6 @@ export default function RoadmapPath({
         )}
       </AnimatePresence>
 
-      <style>{`
-        @keyframes rp-spin { to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   );
 }

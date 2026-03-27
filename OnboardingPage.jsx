@@ -3,30 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useConversation } from "@elevenlabs/react";
 import Anthropic from "@anthropic-ai/sdk";
 import { supabase } from "./lib/supabase.js";
-
+import Spinner from "./components/common/Spinner.jsx";
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
-
-// ─── Spinner ──────────────────────────────────────────────────────────────────
-function Spinner({ size = 20, color = "white" }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      style={{ animation: "ob-spin 0.75s linear infinite", flexShrink: 0 }}
-    >
-      <circle cx="12" cy="12" r="10" stroke={`${color}44`} strokeWidth="3" />
-      <path
-        d="M12 2a10 10 0 0 1 10 10"
-        stroke={color}
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 // ─── Logo ─────────────────────────────────────────────────────────────────────
 function Logo() {
@@ -274,7 +253,7 @@ function IntroPhase({ onStart, loading }) {
               letterSpacing: "-0.01em",
             }}
           >
-            {loading ? <Spinner size={18} /> : <MicIcon size={18} />}
+            {loading ? <Spinner size={18} color="#ffffff" /> : <MicIcon size={18} />}
             {loading ? "Connecting..." : "Start Conversation"}
           </button>
         </div>
@@ -506,7 +485,7 @@ function ProcessingPhase() {
             borderRadius: "50%",
             border: "3px solid rgba(59,130,246,0.18)",
             borderTopColor: "#3b82f6",
-            animation: "ob-spin 1s linear infinite",
+            animation: "spinner-rotate 1s linear infinite",
           }}
         />
         <div
@@ -957,10 +936,6 @@ ${transcriptText}`,
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        @keyframes ob-spin {
-          to { transform: rotate(360deg); }
-        }
 
         @keyframes ob-glow {
           0%, 100% { opacity: 0.85; transform: scale(1); }

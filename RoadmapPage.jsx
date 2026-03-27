@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
+import Spinner from "./components/common/Spinner.jsx";
 import RoadmapPath from "./components/roadmap/RoadmapPath.jsx";
 import ConfidenceMeter from "./components/roadmap/ConfidenceMeter.jsx";
 import ConfidencePanel from "./components/roadmap/ConfidencePanel.jsx";
@@ -107,27 +108,6 @@ function MountainBackground() {
         </svg>
       </div>
     </div>
-  );
-}
-
-// ─── Spinner ──────────────────────────────────────────────────────────────────
-function Spinner({ size = 20, color = "white" }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      style={{ animation: "rmp-spin 0.75s linear infinite", flexShrink: 0 }}
-    >
-      <circle cx="12" cy="12" r="10" stroke={`${color}44`} strokeWidth="3" />
-      <path
-        d="M12 2a10 10 0 0 1 10 10"
-        stroke={color}
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-    </svg>
   );
 }
 
@@ -785,7 +765,6 @@ export default function RoadmapPage({ navigate }) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        @keyframes rmp-spin { to { transform: rotate(360deg); } }
       `}</style>
 
       {/* Background */}

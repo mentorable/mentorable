@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mentorable Animation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #FAFAFA;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+    }
+
+    .container {
+      position: relative;
+      width: 800px;
+      height: 600px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .text-container {
+      position: absolute;
+      top: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+    }
+
+    h1 {
+      font-size: 84px;
+      font-weight: 500;
+      color: #2A2B2E;
+      margin: 0;
+      letter-spacing: -2px;
+    }
+
+    svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 15;
+      overflow: visible;
+    }
+
+    .line {
+      stroke: #E5E7EB;
+      stroke-width: 12;
+      stroke-linecap: round;
+      fill: none;
+    }
+
+    .dot {
+      fill: #2563EB;
+      filter: url(#glow);
+    }
+
+    .final-text-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+      pointer-events: none;
+    }
+
+    #final-text {
+      font-size: 80px;
+      font-weight: 600;
+      color: #FFFFFF;
+      margin: 0;
+      letter-spacing: -2.5px;
+      text-align: center;
+      line-height: 1.1;
+      max-width: 1200px;
+      padding: 0 40px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="main-container">
+    <div class="text-container">
+      <h1 id="brand-text">mentorable</h1>
+    </div>
+
+    <svg viewBox="0 0 800 600">
+      <defs>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+
+      <!-- Paths -->
+      <path id="path1" d="M 400 380 C 350 440, 200 460, 120 550" class="line"/>
+      <path id="path2" d="M 400 380 C 400 450, 400 500, 400 600" class="line"/>
+      <path id="path3" d="M 400 380 C 450 440, 600 460, 680 550" class="line"/>
+
+      <!-- THREE dots used for EVERYTHING: loading wave, merge, AND path exploration -->
+      <circle id="dot1" cx="370" cy="310" r="8" class="dot"/>
+      <circle id="dot2" cx="400" cy="310" r="8" class="dot"/>
+      <circle id="dot3" cx="430" cy="310" r="8" class="dot"/>
+    </svg>
+  </div>
+
+  <div class="final-text-container">
+    <h1 id="final-text"></h1>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/MotionPathPlugin.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/TextPlugin.min.js"></script>
+  <script>
+    gsap.registerPlugin(MotionPathPlugin, TextPlugin);
+
+    // Setup stroke dash for SVG lines
+    document.querySelectorAll('.line').forEach(line => {
+      const length = line.getTotalLength();
+      line.style.strokeDasharray = length;
+      line.style.strokeDashoffset = length;
+    });
+
+    const tl = gsap.timeline();
+
+    // Init
+    gsap.set("#brand-text", { y: 20, opacity: 0 });
+    gsap.set(".dot", { scale: 0, opacity: 0, transformOrigin: "50% 50%" });
+    gsap.set(".line", { opacity: 0 });
+
+    // 1. Text fades in and rises
+    tl.to("#brand-text", { y: 0, opacity: 1, duration: 1.5, ease: "power2.out" }, 0.5);
+
+    // 2. Dots appear
+    tl.to(".dot", { scale: 1, opacity: 1, duration: 0.4, stagger: 0.1, ease: "back.out(1.5)" }, 1.5);
+
+    // 3. Dots wave (thinking) — using SVG attr for y bounce
+    tl.to("#dot1", { attr: { cy: 300 }, scale: 1.2, duration: 0.5, yoyo: true, repeat: 3, ease: "sine.inOut" }, 2.0);
+    tl.to("#dot2", { attr: { cy: 300 }, scale: 1.2, duration: 0.5, yoyo: true, repeat: 3, ease: "sine.inOut" }, 2.15);
+    tl.to("#dot3", { attr: { cy: 300 }, scale: 1.2, duration: 0.5, yoyo: true, repeat: 3, ease: "sine.inOut" }, 2.3);
+
+    // 4. All three dots smoothly merge to the center node (400, 380) — single continuous motion
+    tl.to("#dot1", { attr: { cx: 400, cy: 380 }, scale: 1, duration: 0.5, ease: "power3.inOut" }, 4.4);
+    tl.to("#dot2", { attr: { cx: 400, cy: 380 }, scale: 1, duration: 0.5, ease: "power3.inOut" }, 4.4);
+    tl.to("#dot3", { attr: { cx: 400, cy: 380 }, scale: 1, duration: 0.5, ease: "power3.inOut" }, 4.4);
+
+    // Rest at center for ~0.5s, then lines and paths begin
+
+    // 5. Lines draw outward
+    tl.set(".line", { opacity: 1 }, 5.4);
+    tl.to(".line", { strokeDashoffset: 0, duration: 2, ease: "power2.inOut" }, 5.4);
+
+    // 6. The SAME three dots now travel along the paths — no handoff needed!
+    tl.to("#dot1", {
+      duration: 3.5,
+      ease: "power2.inOut",
+      motionPath: { path: "#path1", align: "#path1", alignOrigin: [0.5, 0.5] }
+    }, 5.9);
+
+    tl.to("#dot2", {
+      duration: 3.8,
+      ease: "power2.inOut",
+      motionPath: { path: "#path2", align: "#path2", alignOrigin: [0.5, 0.5] }
+    }, 5.9);
+
+    tl.to("#dot3", {
+      duration: 3.2,
+      ease: "power2.inOut",
+      motionPath: { path: "#path3", align: "#path3", alignOrigin: [0.5, 0.5] }
+    }, 5.9);
+
+    // 7. Highlight path3, fade others
+    tl.to("#path1, #path2, #dot1, #dot2", { opacity: 0, duration: 1, ease: "power2.inOut" }, 9.2);
+    tl.to("#path3", { stroke: "#2563EB", strokeWidth: 16, duration: 1, ease: "power2.inOut" }, 9.2);
+
+    // 8. Zoom into dot3 until it fills the screen
+    tl.set("svg", { zIndex: 20 }, 9.8);
+    tl.set("#dot3", { filter: "none" }, 9.8);
+
+    tl.to("#dot3", { 
+      scale: 400, 
+      duration: 2, 
+      ease: "power2.in",
+      transformOrigin: "center center"
+    }, 9.8);
+    
+    // Body background backstop
+    tl.to("body, html", { backgroundColor: "#2563EB", duration: 0.1 }, 11.7);
+    tl.to(".text-container, #path1, #path2, #path3", { opacity: 0, duration: 0.1 }, 11.7);
+
+    // 9. Type out final text
+    tl.to("#final-text", {
+      text: "Ready to start your journey?",
+      duration: 2.2,
+      ease: "power1.inOut"
+    }, 12.2);
+
+    // 10. Fade out to transparent
+    tl.to("#final-text", { opacity: 0, duration: 1.5, ease: "power2.inOut" }, 15.7);
+    tl.to("svg", { opacity: 0, duration: 1.5, ease: "power2.inOut" }, 15.7);
+    tl.to("body, html", { backgroundColor: "transparent", duration: 1.5, ease: "power2.inOut" }, 15.7);
+
+  </script>
+</body>
+</html>

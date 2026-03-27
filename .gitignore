@@ -4,6 +4,9 @@ dist/
 .env.local
 *.local
 
+# Supabase CLI temp files
+supabase/.temp/
+
 # AI development artifacts
-CLAUDE.md
+.claude/
 sample_screenshots/
