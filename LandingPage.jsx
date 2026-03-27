@@ -14,7 +14,7 @@ const BG3   = "#ffffff";
 const FG    = "#0b1340";
 const FG2   = "#1e3a8a";
 const FG3   = "#64748b";
-const P     = "#2563eb";
+const P     = "#1e40af";
 const B3    = "#3b82f6";
 const B4    = "#60a5fa";
 const GRAD  = "linear-gradient(135deg,#1d4ed8,#60a5fa)";
@@ -39,8 +39,11 @@ const HERO_VIDEO_MP4  = "https://cdn.prod.website-files.com/68acbc076b672f730e0c
 const HERO_POSTER     = "https://cdn.prod.website-files.com/68acbc076b672f730e0c77b9%2F68bb73e8d95f81619ab0f106_Clouds1-poster-00001.jpg";
 
 // ─── Section gradient bridge ───────────────────────────────────────────────────
-const SG = ({ from, to, h = 180 }) => (
-  <div style={{ height: h, background: `linear-gradient(to bottom,${from},${to})`, flexShrink: 0, pointerEvents: "none" }}/>
+const SG = ({ from, to, h = 180, mid }) => (
+  <div style={{ height: h, background: mid
+    ? `linear-gradient(to bottom,${from},${mid} 55%,${to})`
+    : `linear-gradient(to bottom,${from},${to})`,
+    flexShrink: 0, pointerEvents: "none" }}/>
 );
 
 // ─── Typing cycle ──────────────────────────────────────────────────────────────
@@ -89,8 +92,8 @@ function FeatureScrollBox({ children, style = {} }) {
     target: ref,
     offset: ["0 1", "1 0"]
   });
-  const scale = useTransform(scrollYProgress, [0, 0.4, 0.6, 1], [0.65, 1.04, 1.04, 0.65]);
-  const opacity = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0.15, 1, 1, 0.15]);
+  const scale = useTransform(scrollYProgress, [0, 0.25, 0.75, 1], [0.97, 1, 1, 0.97]);
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.75, 1, 1, 0.75]);
   return (
     <motion.div ref={ref} style={{ scale, opacity, ...style }}>
       {children}
@@ -298,7 +301,7 @@ function ScoreVisual() {
         <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} overflow="visible">
           <defs>
             <linearGradient id="rfill3" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#2563eb" stopOpacity="0.55"/>
+              <stop offset="0%" stopColor="#1e40af" stopOpacity="0.55"/>
               <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.08"/>
             </linearGradient>
             <linearGradient id="rstroke3" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -374,7 +377,7 @@ function ScoreVisual() {
         <div style={{fontFamily:SANS,fontWeight:700,fontSize:"0.65rem",color:FG3,
           letterSpacing:"0.13em",textTransform:"uppercase",marginBottom:"1rem"}}>Top Career Matches</div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {[["Software Engineer",88,"#2563eb"],["Product Designer",82,"#7c3aed"],["UX Researcher",76,"#0891b2"]].map(([m,s,col],i)=>(
+          {[["Software Engineer",88,"#1e40af"],["Product Designer",82,"#7c3aed"],["UX Researcher",76,"#0891b2"]].map(([m,s,col],i)=>(
             <div key={m} style={{background:"white",border:`1px solid ${BDR2}`,borderRadius:12,
               padding:"0.75rem 1rem",boxShadow:`0 2px 12px rgba(37,99,235,0.07)`}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
@@ -409,17 +412,15 @@ function PhoneMilestone({ status="not_started", type="pencil", side="left" }) {
   };
   const icon = status==="completed" ? "check" : status==="locked" ? "lock" : type;
   return (
-    <div style={{position:"relative",width:32,height:32,flexShrink:0,willChange:"transform"}}>
+    <div style={{position:"relative",width:32,height:32,flexShrink:0}}>
       {/* Back (status color, rotated) */}
       <div style={{position:"absolute",inset:0,borderRadius:7,background:back,
         transform:"rotate(8deg)",transformOrigin:"100% 100%",
-        backfaceVisibility:"hidden",WebkitBackfaceVisibility:"hidden",
         boxShadow:"3px -3px 5px hsla(223,10%,10%,0.22)"}}/>
       {/* Front (frosted glass) */}
       <div style={{position:"absolute",inset:0,borderRadius:7,
         background:"rgba(255,255,255,0.22)",
         boxShadow:"0 0 0 1.2px rgba(255,255,255,0.28) inset",
-        backfaceVisibility:"hidden",WebkitBackfaceVisibility:"hidden",
         display:"flex",alignItems:"center",justifyContent:"center"}}>
         <svg width="14" height="14" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
           {icons[icon]}
@@ -443,13 +444,13 @@ function RoadmapCard() {
   return (
     <div ref={ref} style={{position:"relative",display:"flex",justifyContent:"center",
       alignItems:"center",padding:"3rem 0 1rem"}}>
-      {/* Large ambient blooms */}
+      {/* Large ambient blooms (without CSS filters to prevent GPU checkerboarding) */}
       <div style={{position:"absolute",width:520,height:400,borderRadius:"50%",
-        background:"radial-gradient(ellipse,rgba(99,102,241,0.35) 0%,rgba(37,99,235,0.12) 45%,transparent 70%)",
-        filter:"blur(60px)",pointerEvents:"none",top:"10%",zIndex:0}}/>
+        background:"radial-gradient(ellipse,rgba(99,102,241,0.2),transparent 65%)",
+        pointerEvents:"none",top:"10%",zIndex:0}}/>
       <div style={{position:"absolute",width:280,height:280,right:"5%",bottom:"5%",borderRadius:"50%",
-        background:"radial-gradient(circle,rgba(37,99,235,0.2) 0%,transparent 65%)",
-        filter:"blur(40px)",pointerEvents:"none",zIndex:0}}/>
+        background:"radial-gradient(circle,rgba(37,99,235,0.1),transparent 65%)",
+        pointerEvents:"none",zIndex:0}}/>
 
       {/* iPhone — steep Origin Finance angle: rotateX≈38, rotateY≈-8, gentle free-float */}
       <motion.div
@@ -464,25 +465,25 @@ function RoadmapCard() {
         }}
         style={{
           transformPerspective:1100,
-          willChange:"transform",
           position:"relative",zIndex:1,
           width:290,
           borderRadius:52,
-          border:"11px solid #1c1c1e",
-          outline:"1.5px solid rgba(255,255,255,0.08)",
-          background:"#000",
+          background:"#1c1c1e",
           boxShadow:[
-            "0 100px 180px rgba(0,0,0,0.8)",
-            "0 0 0 1px rgba(255,255,255,0.05)",
-            "0 0 130px rgba(99,102,241,0.32)",
-            "0 0 260px rgba(37,99,235,0.14)",
-          ].join(","),
-          overflow:"hidden",
-          contain:"layout paint style",
+            "0 20px 60px rgba(0,0,0,0.5)",
+            "0 0 0 1.5px rgba(255,255,255,0.08)"
+          ].join(",")
+        }}>
+
+        {/* Screen/Bezel wrapper — NO mask needed, inner corners are manually rounded */}
+        <div style={{
+          borderRadius:52,
+          border:"11px solid #1c1c1e",
+          background:"#000"
         }}>
 
         {/* Status bar — Dynamic Island */}
-        <div style={{height:52,background:"#000",position:"relative"}}>
+        <div style={{height:52,background:"#000",position:"relative",borderTopLeftRadius:41,borderTopRightRadius:41}}>
           <div style={{position:"absolute",top:10,left:"50%",transform:"translateX(-50%)",
             width:110,height:28,borderRadius:999,background:"#000",
             border:"1px solid rgba(255,255,255,0.07)"}}/>
@@ -506,16 +507,16 @@ function RoadmapCard() {
         </div>
 
         {/* App screen — exact RoadmapPage background */}
-        <div style={{height:540,position:"relative",overflow:"hidden",isolation:"isolate",
+        <div style={{height:540,position:"relative",overflow:"hidden",
           background:"linear-gradient(180deg,#1e1b4b 0%,#312e81 25%,#6366f1 50%,#c7d2fe 70%,#f8fafc 100%)"}}>
-          {/* Stars */}
+          {/* Stars — opacity only, no scale (scale creates per-star compositor layers) */}
           {[{t:"3%",l:"8%"},{t:"7%",l:"22%"},{t:"2%",l:"48%"},{t:"5%",l:"65%"},{t:"9%",l:"80%"},{t:"13%",l:"40%"},{t:"16%",l:"88%"}].map((s,i)=>(
-            <motion.div key={i} animate={{opacity:[0.15,0.85,0.15],scale:[1,1.6,1]}}
+            <motion.div key={i} animate={{opacity:[0.15,0.85,0.15]}}
               transition={{duration:2+i*0.45,repeat:Infinity,delay:i*0.3}}
               style={{position:"absolute",top:s.t,left:s.l,width:2,height:2,borderRadius:"50%",
-                background:"#fff",boxShadow:"0 0 4px rgba(255,255,255,0.8)"}}/>
+                background:"rgba(255,255,255,0.8)"}}/>
           ))}
-          {/* Mountain silhouettes — exact RoadmapPage layers */}
+          {/* Mountain silhouettes — flattened to avoid texture tearing on scale */}
           <div style={{position:"absolute",bottom:0,left:0,right:0,height:"26%",zIndex:1}}>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{width:"100%",height:"100%",display:"block"}}>
               {MTN.map((m,i)=><polygon key={i} points={m.points} fill={m.color} opacity={m.opacity}/>)}
@@ -555,10 +556,10 @@ function RoadmapCard() {
 
           {/* Phase 1 header card — exact PhaseHeader style: #1e1b4b bg */}
           <motion.div
-            initial={{opacity:0,y:-8}} animate={iv?{opacity:1,y:0}:{}}
+            initial={{opacity:0}} animate={iv?{opacity:1}:{}}
             transition={{duration:0.5,delay:0.3}}
             style={{position:"absolute",top:44,left:8,right:8,zIndex:3,
-              background:"#1e1b4b",borderRadius:10,padding:"8px 10px",overflow:"hidden"}}>
+              background:"#1e1b4b",borderRadius:10,padding:"8px 10px"}}>
             {/* Gradient overlay like actual PhaseHeader */}
             <div style={{position:"absolute",inset:0,borderRadius:10,
               background:"linear-gradient(135deg,rgba(99,102,241,0.18) 0%,transparent 70%)",pointerEvents:"none"}}/>
@@ -581,9 +582,10 @@ function RoadmapCard() {
                 <span style={{fontSize:"0.44rem",color:"rgba(255,255,255,0.5)",fontWeight:600}}>3/6 milestones</span>
               </div>
               <div style={{height:4,background:"rgba(255,255,255,0.1)",borderRadius:999,overflow:"hidden"}}>
-                <motion.div initial={{width:0}} animate={iv?{width:"50%"}:{}}
+                <motion.div initial={{scaleX:0}} animate={iv?{scaleX:0.5}:{}}
                   transition={{duration:0.8,delay:0.5,ease:[0.22,1,0.36,1]}}
-                  style={{height:"100%",background:"linear-gradient(90deg,#6366f1,#818cf8)",borderRadius:999}}/>
+                  style={{height:"100%",width:"100%",background:"linear-gradient(90deg,#6366f1,#818cf8)",
+                    borderRadius:999,transformOrigin:"0% 50%",willChange:"transform"}}/>
               </div>
             </div>
           </motion.div>
@@ -595,7 +597,7 @@ function RoadmapCard() {
 
           {/* Milestones — alternating left/right of center path */}
           {/* Milestones — icon + label on same side, label always outside icon (away from path) */}
-          <div style={{position:"absolute",top:152,left:0,right:0,zIndex:3,overflow:"hidden"}}>
+          <div style={{position:"absolute",top:152,left:0,right:0,zIndex:3}}>
             {milestones.map((m,i)=>{
               const side = i%2===0 ? "left" : "right";
               const labelColor = m.status==="completed"  ? "rgba(74,222,128,0.95)"
@@ -613,7 +615,7 @@ function RoadmapCard() {
               );
               return (
                 <motion.div key={i}
-                  initial={{opacity:0,x:side==="left"?-12:12}} animate={iv?{opacity:1,x:0}:{}}
+                  initial={{opacity:0}} animate={iv?{opacity:1}:{}}
                   transition={{duration:0.4,delay:0.5+i*0.1}}
                   style={{display:"flex",alignItems:"center",marginBottom:10}}>
                   {/* Left half: for side=left show [label · icon] flush right; else empty */}
@@ -636,10 +638,9 @@ function RoadmapCard() {
             initial={{opacity:0}} animate={iv?{opacity:1}:{}}
             transition={{duration:0.5,delay:1.2}}
             style={{position:"absolute",bottom:62,left:8,right:8,zIndex:3,
-              background:"rgba(255,255,255,0.88)",
-              border:"1.5px dashed rgba(99,102,241,0.5)",
+              background:"rgba(255,255,255,0.94)",
+              border:"1.5px solid rgba(99,102,241,0.25)",
               borderRadius:10,padding:"7px 10px",
-              backdropFilter:"blur(6px)",
               boxShadow:"0 2px 12px rgba(99,102,241,0.12)",
               display:"flex",alignItems:"center",gap:6}}>
             <div style={{width:18,height:18,borderRadius:5,background:"rgba(99,102,241,0.08)",
@@ -656,8 +657,10 @@ function RoadmapCard() {
         </div>
 
         {/* Home indicator */}
-        <div style={{height:20,background:"#000",display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{height:20,background:"#000",display:"flex",alignItems:"center",justifyContent:"center",borderBottomLeftRadius:41,borderBottomRightRadius:41}}>
           <div style={{width:100,height:4,borderRadius:999,background:"rgba(255,255,255,0.18)"}}/>
+        </div>
+        
         </div>
       </motion.div>
     </div>
@@ -1026,71 +1029,51 @@ export default function LandingPage() {
 
       {/* ── HERO ──────────────────────────────────────────────────────────────── */}
       <section
-        style={{position:"relative",minHeight:"100vh",display:"flex",flexDirection:"column",
-          alignItems:"center",justifyContent:"center",padding:"8rem 2.5rem 5rem",
-          textAlign:"center",overflow:"hidden",background:BG}}>
-        {/* Origin Finance's cinematic clouds video */}
-        <video autoPlay loop muted playsInline poster={HERO_POSTER}
-          style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",
-            zIndex:0,opacity:0.88}}>
-          <source src={HERO_VIDEO_WEBM} type="video/webm"/>
-          <source src={HERO_VIDEO_MP4}  type="video/mp4"/>
-        </video>
-        {/* Gradient overlay — deep dark top, fades to soft blue-white at very bottom */}
-        <div style={{position:"absolute",inset:0,zIndex:1,
-          background:"linear-gradient(to bottom,rgba(5,3,28,0.85) 0%,rgba(8,15,55,0.75) 42%,rgba(20,45,110,0.5) 68%,rgba(180,210,255,0.22) 88%,rgba(244,248,255,0) 100%)"}}/>
-        {/* Blue ambient orbs */}
-        {[{w:400,h:400,t:"10%",l:"5%",o:0.14},{w:280,h:280,t:"60%",l:"78%",o:0.11}].map((o,i)=>(
-          <motion.div key={i} style={{position:"absolute",width:o.w,height:o.h,borderRadius:"50%",
-            background:"radial-gradient(circle,rgba(37,99,235,1) 0%,transparent 70%)",
-            filter:"blur(55px)",top:o.t,left:o.l,zIndex:1,opacity:o.o}}
-            animate={{scale:[1,1.25,1],opacity:[o.o,o.o*1.8,o.o]}}
-            transition={{duration:7+i*3,repeat:Infinity,ease:"easeInOut"}}/>
-        ))}
-        {/* Hero content — revealed when page fades in after intro */}
-        <div style={{position:"relative",zIndex:2,display:"flex",flexDirection:"column",alignItems:"center"}}>
+        style={{position:"relative",minHeight:"100vh",display:"flex",alignItems:"center",
+          overflow:"hidden",
+          background:"linear-gradient(to bottom, #163380 0%, #2350b8 50%, #4a7ad4 100%)"}}>
+        {/* Left — content */}
+        <div style={{flex:"0 0 55%",display:"flex",flexDirection:"column",justifyContent:"center",
+          padding:"clamp(5rem,8vw,8rem) clamp(2rem,4vw,4rem) 5rem clamp(4rem,10vw,11rem)"}}>
           <FadeUp>
             <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"6px 14px",
-              border:"1px solid rgba(255,255,255,0.24)",borderRadius:999,marginBottom:"2rem",
-              background:"rgba(255,255,255,0.08)",backdropFilter:"blur(12px)"}}>
+              border:"1px solid rgba(255,255,255,0.18)",borderRadius:999,marginBottom:"2rem",
+              background:"rgba(255,255,255,0.06)",backdropFilter:"blur(12px)",alignSelf:"flex-start"}}>
               <div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 8px #22c55e"}}/>
-              <span style={{fontFamily:SANS,fontSize:"0.72rem",color:"rgba(255,255,255,0.85)"}}>AI-powered career guidance for high schoolers</span>
+              <span style={{fontFamily:SANS,fontSize:"0.78rem",color:"rgba(255,255,255,0.8)"}}>AI-powered career guidance for high schoolers</span>
             </div>
           </FadeUp>
           <FadeUp delay={0.05}>
-            <h1 style={{margin:"0 0 1.5rem",maxWidth:760,letterSpacing:"-0.025em"}}>
-              <motion.span
-                initial={{opacity:0,y:24}} animate={{opacity:1,y:0}}
-                transition={{duration:0.7,ease:[0.22,1,0.36,1]}}
-                style={{
-                  fontFamily:SANS, fontWeight:700,
-                  fontSize:"clamp(3.8rem,8vw,7rem)", lineHeight:1.0,
-                  background:"linear-gradient(135deg,#ffffff 0%,#93c5fd 55%,#60a5fa 100%)",
-                  WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
-                  backgroundClip:"text", display:"block",
-                  filter:"drop-shadow(0 0 40px rgba(147,197,253,0.45))",
-                }}>Own your future.</motion.span>
+            <h1 style={{margin:"0 0 1.5rem",letterSpacing:"-0.03em"}}>
+              <span style={{
+                fontFamily:SANS, fontWeight:700,
+                fontSize:"clamp(4rem,7vw,7.5rem)", lineHeight:0.97,
+                background:"linear-gradient(135deg,#ffffff 0%,#93c5fd 55%,#60a5fa 100%)",
+                WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
+                backgroundClip:"text", display:"block",
+                filter:"drop-shadow(0 0 35px rgba(147,197,253,0.95)) drop-shadow(0 0 80px rgba(96,165,250,0.6)) drop-shadow(0 0 120px rgba(37,99,235,0.35))",
+              }}>Own your future.</span>
             </h1>
           </FadeUp>
           <FadeUp delay={0.12}>
-            <p style={{fontFamily:SANS,fontWeight:500,fontSize:"1.2rem",color:"rgba(255,255,255,0.88)",
-              lineHeight:1.75,maxWidth:560,margin:"0 0 0.6rem"}}>
+            <p style={{fontFamily:SANS,fontWeight:500,fontSize:"1.3rem",color:"rgba(255,255,255,0.85)",
+              lineHeight:1.75,maxWidth:520,margin:"0 0 0.7rem"}}>
               Mentorable is your personal AI career mentor.
             </p>
-            <p style={{fontFamily:SANS,fontWeight:400,fontSize:"0.97rem",color:"rgba(255,255,255,0.5)",
-              lineHeight:1.9,maxWidth:520,margin:"0 0 2.75rem"}}>
+            <p style={{fontFamily:SANS,fontWeight:400,fontSize:"1.05rem",color:"rgba(255,255,255,0.48)",
+              lineHeight:1.9,maxWidth:480,margin:"0 0 2.75rem"}}>
               Discover your strengths, get a personalized roadmap, and take action — all from a 2-minute voice conversation.
             </p>
           </FadeUp>
           <FadeUp delay={0.2}>
-            <div style={{display:"flex",alignItems:"center",gap:"1rem",flexWrap:"wrap",justifyContent:"center"}}>
+            <div style={{display:"flex",alignItems:"center",gap:"1rem",flexWrap:"wrap"}}>
               <GlowBtn onClick={()=>go("/auth")}>Get Started <ArrowRight color="#fff"/></GlowBtn>
               <motion.button
                 onClick={()=>document.getElementById("hiw")?.scrollIntoView({behavior:"smooth"})}
                 whileHover={{background:"rgba(255,255,255,0.18)",borderColor:"rgba(255,255,255,0.5)"}}
                 style={{fontFamily:SANS,fontSize:"0.9rem",fontWeight:600,color:"#fff",
-                  background:"rgba(255,255,255,0.1)",
-                  border:"1.5px solid rgba(255,255,255,0.32)",borderRadius:999,
+                  background:"rgba(255,255,255,0.08)",
+                  border:"1.5px solid rgba(255,255,255,0.28)",borderRadius:999,
                   padding:"0.82rem 1.75rem",cursor:"pointer",
                   display:"inline-flex",alignItems:"center",gap:8,
                   backdropFilter:"blur(10px)",transition:"background 0.2s,border-color 0.2s"}}>
@@ -1099,16 +1082,17 @@ export default function LandingPage() {
             </div>
           </FadeUp>
         </div>
-        <motion.div animate={{y:[0,9,0],opacity:[0.35,0.75,0.35]}} transition={{duration:2.2,repeat:Infinity}}
-          style={{position:"absolute",bottom:"2.5rem",left:"50%",transform:"translateX(-50%)",zIndex:2}}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
-          </svg>
-        </motion.div>
+
+        {/* Right — placeholder for product image */}
+        <div style={{flex:1,alignSelf:"stretch",display:"flex",alignItems:"center",justifyContent:"center",
+          borderLeft:"1px solid rgba(255,255,255,0.04)"}}>
+          {/* Product image / mockup goes here */}
+        </div>
+
       </section>
 
-      {/* hero → light — sky-blue bridge */}
-      <SG from="rgba(190,215,255,0.55)" to={BG} h={160}/>
+      {/* hero → light — dark navy fades to page bg */}
+      <SG from="#4a7ad4" mid="#b8cff5" to={BG} h={280}/>
 
       {/* ── SIMPLIFY YOUR JOURNEY ─────────────────────────────────────────────── */}
       <section id="hiw" style={{padding:"4rem 2.5rem 7rem",background:BG}}>
@@ -1416,15 +1400,15 @@ export default function LandingPage() {
       </section>
 
       {/* light → footer — dramatic multi-stop gradient */}
-      <div style={{height:280,background:"linear-gradient(to bottom,#f4f8ff 0%,rgba(180,210,255,0.6) 22%,rgba(26,63,150,0.55) 55%,rgba(14,28,80,0.88) 78%,#0b1340 100%)",pointerEvents:"none",flexShrink:0}}/>
+      <div style={{height:280,background:"linear-gradient(to bottom,#f4f8ff 0%,rgba(180,210,255,0.6) 22%,rgba(26,63,150,0.35) 55%,rgba(30,64,175,0.55) 78%,#1e40af 100%)",pointerEvents:"none",flexShrink:0}}/>
 
       {/* ── FOOTER ───────────────────────────────────────────────────────────── */}
-      <footer style={{padding:"4rem 2.5rem 2rem",background:"#0b1340",color:"#fff"}}>
+      <footer style={{padding:"4rem 2.5rem 2rem",background:"#1e40af",color:"#fff"}}>
         <div style={{maxWidth:1100,margin:"0 auto"}}>
           <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",gap:"3rem",marginBottom:"3rem"}}>
             <div>
               <div style={{fontFamily:SANS,fontWeight:700,fontSize:"1.05rem",color:"#fff",marginBottom:"0.75rem",letterSpacing:"-0.03em"}}>mentorable</div>
-              <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.8rem",color:"rgba(255,255,255,0.4)",lineHeight:1.85,maxWidth:240}}>
+              <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.8rem",color:"rgba(255,255,255,0.6)",lineHeight:1.85,maxWidth:240}}>
                 AI-powered career guidance for high school students.
               </p>
             </div>
@@ -1434,28 +1418,28 @@ export default function LandingPage() {
               {heading:"Company",links:["Careers","Contact","Privacy Policy","Terms"]},
             ].map(col=>(
               <div key={col.heading}>
-                <div style={{fontFamily:SANS,fontSize:"0.68rem",fontWeight:700,color:"rgba(255,255,255,0.28)",
+                <div style={{fontFamily:SANS,fontSize:"0.68rem",fontWeight:700,color:"rgba(255,255,255,0.5)",
                   textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:"1rem"}}>{col.heading}</div>
                 <div style={{display:"flex",flexDirection:"column",gap:11}}>
                   {col.links.map(l=>(
-                    <button key={l} style={{fontFamily:SANS,fontSize:"0.82rem",color:"rgba(255,255,255,0.48)",
+                    <button key={l} style={{fontFamily:SANS,fontSize:"0.82rem",color:"rgba(255,255,255,0.72)",
                       background:"transparent",border:"none",cursor:"pointer",textAlign:"left",padding:0,transition:"color 0.2s"}}
                       onMouseEnter={e=>e.currentTarget.style.color="#fff"}
-                      onMouseLeave={e=>e.currentTarget.style.color="rgba(255,255,255,0.48)"}>{l}</button>
+                      onMouseLeave={e=>e.currentTarget.style.color="rgba(255,255,255,0.72)"}>{l}</button>
                   ))}
                 </div>
               </div>
             ))}
           </div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-            paddingTop:"2rem",borderTop:"1px solid rgba(255,255,255,0.06)"}}>
-            <div style={{fontFamily:SANS,fontSize:"0.75rem",color:"rgba(255,255,255,0.25)"}}>©2025 Mentorable Inc. All rights reserved.</div>
+            paddingTop:"2rem",borderTop:"1px solid rgba(255,255,255,0.18)"}}>
+            <div style={{fontFamily:SANS,fontSize:"0.75rem",color:"rgba(255,255,255,0.55)"}}>©2025 Mentorable Inc. All rights reserved.</div>
             <div style={{display:"flex",gap:"1.5rem"}}>
               {["X","LinkedIn","Instagram"].map(s=>(
-                <button key={s} style={{fontFamily:SANS,fontSize:"0.75rem",color:"rgba(255,255,255,0.3)",
+                <button key={s} style={{fontFamily:SANS,fontSize:"0.75rem",color:"rgba(255,255,255,0.6)",
                   background:"transparent",border:"none",cursor:"pointer",transition:"color 0.2s"}}
                   onMouseEnter={e=>e.currentTarget.style.color="#fff"}
-                  onMouseLeave={e=>e.currentTarget.style.color="rgba(255,255,255,0.3)"}>{s}</button>
+                  onMouseLeave={e=>e.currentTarget.style.color="rgba(255,255,255,0.6)"}>{s}</button>
               ))}
             </div>
           </div>
