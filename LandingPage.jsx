@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useInView, useScroll, useTransform } from "framer-motion";
 import { VoicePoweredOrb } from "./components/common/VoicePoweredOrb";
-import gsap from "gsap";
-import { MotionPathPlugin } from "gsap/MotionPathPlugin";
-import { TextPlugin } from "gsap/TextPlugin";
 
 // ─── Tokens ────────────────────────────────────────────────────────────────────
 const SANS  = "'Space Grotesk', Arial, sans-serif";
@@ -845,153 +842,6 @@ const RESPONSES=[
   {r:"Tracking ahead of schedule. Your scorecard improved 12 points since onboarding and your engagement is in the top 20% of students.",tags:["Score: 92/100","+12 since start","Top 20%"]},
 ];
 
-// Module-level flag: resets on every page load/refresh, persists within SPA navigation
-let _introPlayed = false;
-
-// ─── Intro Animation ───────────────────────────────────────────────────────────
-function IntroAnimation({ onComplete }) {
-  const wrapperRef   = useRef(null);
-  const bgRef        = useRef(null);
-  const textContRef  = useRef(null);
-  const brandRef     = useRef(null);
-  const svgRef       = useRef(null);
-  const path1Ref     = useRef(null);
-  const path2Ref     = useRef(null);
-  const path3Ref     = useRef(null);
-  const dot1Ref      = useRef(null);
-  const dot2Ref      = useRef(null);
-  const dot3Ref      = useRef(null);
-  const finalTextRef = useRef(null);
-  const onCompleteRef = useRef(onComplete);
-  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
-
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    gsap.registerPlugin(MotionPathPlugin, TextPlugin);
-
-    let tl;
-
-    // Defer one rAF so SVG is fully laid out and getTotalLength() works
-    const rafId = requestAnimationFrame(() => {
-      const paths = [path1Ref.current, path2Ref.current, path3Ref.current];
-      paths.forEach(p => {
-        const len = p.getTotalLength();
-        gsap.set(p, { strokeDasharray: len, strokeDashoffset: len, opacity: 0 });
-      });
-
-      // Initial states
-      gsap.set(brandRef.current, { y: 20, opacity: 0 });
-      gsap.set([dot1Ref.current, dot2Ref.current, dot3Ref.current], {
-        scale: 0, opacity: 0, transformOrigin: "50% 50%"
-      });
-
-      tl = gsap.timeline({
-        onComplete: () => {
-          document.body.style.overflow = "";
-          onCompleteRef.current?.();
-        }
-      });
-      tl.timeScale(1.5);
-
-      // 1. Brand text rises in
-      tl.to(brandRef.current, { y: 0, opacity: 1, duration: 1.5, ease: "power2.out" }, 0.5);
-
-      // 2. Dots appear
-      tl.to([dot1Ref.current, dot2Ref.current, dot3Ref.current], {
-        scale: 1, opacity: 1, duration: 0.4, stagger: 0.1, ease: "back.out(1.5)"
-      }, 1.5);
-
-      // 3. Thinking wave — bounce using SVG attr cy
-      const d1 = dot1Ref.current, d2 = dot2Ref.current, d3 = dot3Ref.current;
-      tl.to(d1, { attr: { cy: 300 }, duration: 0.35, yoyo: true, repeat: 5, ease: "sine.inOut" }, 2.0);
-      tl.to(d2, { attr: { cy: 300 }, duration: 0.35, yoyo: true, repeat: 5, ease: "sine.inOut" }, 2.12);
-      tl.to(d3, { attr: { cy: 300 }, duration: 0.35, yoyo: true, repeat: 5, ease: "sine.inOut" }, 2.24);
-
-      // 4. All dots merge to center node (400, 380)
-      tl.to(d1, { attr: { cx: 400, cy: 380 }, duration: 0.55, ease: "power3.inOut" }, 4.4);
-      tl.to(d2, { attr: { cx: 400, cy: 380 }, duration: 0.55, ease: "power3.inOut" }, 4.4);
-      tl.to(d3, { attr: { cx: 400, cy: 380 }, duration: 0.55, ease: "power3.inOut" }, 4.4);
-
-      // 5. Lines draw outward
-      tl.to(paths, { strokeDashoffset: 0, opacity: 1, duration: 1.8, ease: "power2.inOut" }, 5.3);
-
-      // 6. Dots travel along paths
-      tl.to(d1, { duration: 3.5, ease: "power2.inOut", motionPath: { path: path1Ref.current, align: path1Ref.current, alignOrigin: [0.5, 0.5] } }, 5.8);
-      tl.to(d2, { duration: 3.8, ease: "power2.inOut", motionPath: { path: path2Ref.current, align: path2Ref.current, alignOrigin: [0.5, 0.5] } }, 5.8);
-      tl.to(d3, { duration: 3.2, ease: "power2.inOut", motionPath: { path: path3Ref.current, align: path3Ref.current, alignOrigin: [0.5, 0.5] } }, 5.8);
-
-      // 7. Highlight path3, fade others
-      tl.to([path1Ref.current, path2Ref.current, d1, d2], { opacity: 0, duration: 0.9, ease: "power2.inOut" }, 9.2);
-      tl.to(path3Ref.current, { stroke: "#2563EB", strokeWidth: 16, duration: 0.9, ease: "power2.inOut" }, 9.2);
-
-      // 8. Zoom dot3 to fill screen — use attr r instead of scale (SVG-safe)
-      tl.to(d3, { attr: { r: 3200 }, duration: 2, ease: "power2.in" }, 9.8);
-
-      // Make bg blue at the same moment as the dot fills screen
-      tl.to(bgRef.current, { backgroundColor: "#2563EB", duration: 0.15 }, 11.5);
-      tl.to([textContRef.current, path1Ref.current, path2Ref.current, path3Ref.current], { opacity: 0, duration: 0.1 }, 11.5);
-
-      // 9. Final typed message
-      tl.to(finalTextRef.current, { text: "Ready to start your journey?", duration: 2.2, ease: "power1.inOut" }, 12.0);
-
-      // 10. Fade everything out
-      tl.to(finalTextRef.current, { opacity: 0, duration: 1.2, ease: "power2.inOut" }, 15.2);
-      tl.to(svgRef.current, { opacity: 0, duration: 1.2, ease: "power2.inOut" }, 15.2);
-      tl.to(wrapperRef.current, { opacity: 0, duration: 1.2, ease: "power2.inOut" }, 15.2);
-    });
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      document.body.style.overflow = "";
-      tl?.kill();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <div ref={wrapperRef} style={{
-      position: "fixed", inset: 0, zIndex: 99999,
-      display: "flex", justifyContent: "center", alignItems: "center",
-      pointerEvents: "all"
-    }}>
-      {/* Solid background */}
-      <div ref={bgRef} style={{ position: "absolute", inset: 0, backgroundColor: "#FAFAFA", zIndex: 1 }} />
-
-      {/* Centered stage */}
-      <div style={{ position: "relative", width: 800, height: 600, zIndex: 5 }}>
-        <div ref={textContRef} style={{ position: "absolute", top: 180, left: 0, right: 0, display: "flex", justifyContent: "center", alignItems: "center", zIndex: 10 }}>
-          <h1 ref={brandRef} style={{ fontFamily: "'Inter', Arial, sans-serif", fontSize: 84, fontWeight: 500, color: "#2A2B2E", margin: 0, letterSpacing: "-2px" }}>mentorable</h1>
-        </div>
-
-        <svg ref={svgRef} viewBox="0 0 800 600" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 15, overflow: "visible" }}>
-          <defs>
-            <filter id="anim-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-
-          <path ref={path1Ref} d="M 400 380 C 350 440, 200 460, 120 550" fill="none" stroke="#E5E7EB" strokeWidth="12" strokeLinecap="round"/>
-          <path ref={path2Ref} d="M 400 380 C 400 450, 400 500, 400 600" fill="none" stroke="#E5E7EB" strokeWidth="12" strokeLinecap="round"/>
-          <path ref={path3Ref} d="M 400 380 C 450 440, 600 460, 680 550" fill="none" stroke="#E5E7EB" strokeWidth="12" strokeLinecap="round"/>
-
-          <circle ref={dot1Ref} cx="370" cy="310" r="8" fill="#2563EB" filter="url(#anim-glow)"/>
-          <circle ref={dot2Ref} cx="400" cy="310" r="8" fill="#2563EB" filter="url(#anim-glow)"/>
-          <circle ref={dot3Ref} cx="430" cy="310" r="8" fill="#2563EB" filter="url(#anim-glow)"/>
-        </svg>
-      </div>
-
-      {/* Final message */}
-      <div style={{ position: "fixed", inset: 0, display: "flex", justifyContent: "center", alignItems: "center", zIndex: 50, pointerEvents: "none" }}>
-        <h1 ref={finalTextRef} style={{ fontFamily: "'Inter', Arial, sans-serif", fontSize: 80, fontWeight: 600, color: "#FFFFFF", margin: 0, letterSpacing: "-2.5px", textAlign: "center", lineHeight: 1.1, maxWidth: 1200, padding: "0 40px" }}></h1>
-      </div>
-    </div>
-  );
-}
-
 // ─── Landing page ──────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const go=p=>{ window.history.pushState({},""  ,p); window.dispatchEvent(new PopStateEvent("popstate")); };
@@ -1004,11 +854,8 @@ export default function LandingPage() {
   const [savedIdx, setSavedIdx] = useState(0);
   useEffect(() => { if(matchedIdx >= 0) setSavedIdx(matchedIdx); }, [matchedIdx]);
   const cur = RESPONSES[savedIdx];
-  const [showIntro, setShowIntro] = useState(() => !_introPlayed);
-
   return (
     <div style={{background:BG,minHeight:"100vh",color:FG,fontFamily:SANS,fontSize:16,lineHeight:"150%",overflowX:"hidden"}}>
-      {showIntro && <IntroAnimation onComplete={() => { _introPlayed = true; window.scrollTo(0, 0); setShowIntro(false); }} />}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
         html,body{overflow-x:hidden;max-width:100%;overflow-anchor:none;}
