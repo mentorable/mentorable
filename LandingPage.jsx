@@ -4,6 +4,7 @@ import gsap from "gsap";
 import { MotionPathPlugin } from "gsap/MotionPathPlugin";
 import { TextPlugin } from "gsap/TextPlugin";
 import { VoicePoweredOrb } from "./components/common/VoicePoweredOrb";
+import HeroVisual from "./components/HeroVisual";
 
 // ─── Tokens ────────────────────────────────────────────────────────────────────
 const SANS  = "'Space Grotesk', Arial, sans-serif";
@@ -650,7 +651,7 @@ function RoadmapCard() {
               </svg>
             </div>
             <div>
-              <div style={{fontFamily:"system-ui,sans-serif",fontWeight:700,fontSize:"0.52rem",color:"#4338ca"}}>Phase 2 — Skills Building</div>
+              <div style={{fontFamily:"system-ui,sans-serif",fontWeight:700,fontSize:"0.52rem",color:"#4338ca"}}>Phase 2: Skills Building</div>
               <div style={{fontSize:"0.44rem",color:"#6366f1",marginTop:1,fontWeight:500}}>Complete Phase 1 to unlock</div>
             </div>
           </motion.div>
@@ -672,9 +673,9 @@ function DataFlow() {
   const ref=useRef(null); const iv=useInView(ref,{once:true,margin:"-60px"});
   const steps=[
     {n:1,stat:"2 min",sub:"voice interview",title:"Voice Onboarding",desc:"Our AI listens to your 2-minute voice interview and extracts your profile, values, and career instincts automatically."},
-    {n:2,stat:"92",sub:"avg score",title:"Skill Scorecard",desc:"See your 5-axis skill radar, top career path matches, and personalized strengths — all from your voice data."},
+    {n:2,stat:"92",sub:"avg score",title:"Skill Scorecard",desc:"See your 5-axis skill radar, top career path matches, and personalized strengths, all drawn from your voice data."},
     {n:3,stat:"4",sub:"phases",title:"Adaptive Roadmap",desc:"Phase-by-phase milestones generated from your unique scorecard, updated as you hit goals and grow."},
-    {n:4,stat:"24/7",sub:"availability",title:"AI Guidance",desc:"Ask anything, anytime. Every answer is grounded in your personal data — not generic advice."},
+    {n:4,stat:"24/7",sub:"availability",title:"AI Guidance",desc:"Ask anything, anytime. Every answer is grounded in your personal data, not generic advice."},
   ];
   const NODE_X=[125,375,625,875];
   const ARCS=[
@@ -774,14 +775,6 @@ function Navbar() {
       transition:"all 0.35s"}}>
       <div style={{fontFamily:SANS,fontWeight:700,fontSize:"1.05rem",letterSpacing:"-0.03em",flexShrink:0,
         color:sc?FG:"#fff",transition:"color 0.35s"}}>mentorable</div>
-      <div style={{display:"flex",alignItems:"center",gap:"2rem",flex:1}}>
-        {["Features","How it works","Roadmap"].map(l=>(
-          <button key={l} style={{fontFamily:SANS,fontSize:"0.85rem",fontWeight:400,
-            color:sc?FG3:"rgba(255,255,255,0.72)",background:"transparent",border:"none",cursor:"pointer",transition:"color 0.2s"}}
-            onMouseEnter={e=>e.currentTarget.style.color=sc?FG:"#fff"}
-            onMouseLeave={e=>e.currentTarget.style.color=sc?"#64748b":"rgba(255,255,255,0.72)"}>{l}</button>
-        ))}
-      </div>
       <div style={{display:"flex",alignItems:"center",gap:"1.25rem"}}>
         {sc?(
           <><PlainBtn onClick={()=>go("/auth")}>Log In</PlainBtn>
@@ -840,7 +833,7 @@ function Galaxy() {
 // ─── Ask Anything response data ────────────────────────────────────────────────
 const RESPONSES=[
   {r:"Based on your creativity (91%) and problem-solving (88%), your top fits are Software Engineer, Product Designer, and UX Researcher.",tags:["Creativity: 91%","Problem Solving: 88%","Technical: 78%"]},
-  {r:"Your voice interview flagged strong leadership instincts. Lead with project outcomes — admissions teams respond to students who started things.",tags:["Communication: 76%","Self-Starter","Leadership: 64%"]},
+  {r:"Your voice interview flagged strong leadership instincts. Lead with project outcomes. Admissions teams respond to students who started things.",tags:["Communication: 76%","Self-Starter","Leadership: 64%"]},
   {r:"You're 2 milestones from finishing Phase 1. Reaching out to one mentor this month pushes your confidence score above 80.",tags:["Phase 1: 50%","Confidence: 72%","2 tasks left"]},
   {r:"Tracking ahead of schedule. Your scorecard improved 12 points since onboarding and your engagement is in the top 20% of students.",tags:["Score: 92/100","+12 since start","Top 20%"]},
 ];
@@ -979,7 +972,10 @@ export default function LandingPage() {
   const [savedIdx, setSavedIdx] = useState(0);
   useEffect(() => { if(matchedIdx >= 0) setSavedIdx(matchedIdx); }, [matchedIdx]);
   const cur = RESPONSES[savedIdx];
-  const [showIntro, setShowIntro] = useState(() => !_introPlayed);
+  const [showIntro, setShowIntro] = useState(false); // disabled — set to () => !_introPlayed to re-enable
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+  const [showVisual, setShowVisual] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setShowVisual(true), 600); return () => clearTimeout(t); }, []);
 
   return (
     <div style={{background:BG,minHeight:"100vh",color:FG,fontFamily:SANS,fontSize:16,lineHeight:"150%",overflowX:"hidden"}}>
@@ -1008,61 +1004,97 @@ export default function LandingPage() {
           overflow:"hidden",
           background:"linear-gradient(to bottom, #163380 0%, #2350b8 50%, #4a7ad4 100%)"}}>
         {/* Left — content */}
-        <div style={{flex:"0 0 55%",display:"flex",flexDirection:"column",justifyContent:"center",
-          padding:"clamp(5rem,8vw,8rem) clamp(2rem,4vw,4rem) 5rem clamp(4rem,10vw,11rem)"}}>
-          <FadeUp>
-            <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"6px 14px",
+        <div style={{flex:"0 0 55%",position:"relative",zIndex:1,pointerEvents:"none",display:"flex",flexDirection:"column",justifyContent:"center",
+          padding:"clamp(5rem,8vw,8rem) clamp(2rem,4vw,4rem) 5rem clamp(2rem,6vw,7rem)"}}>
+          {/* Badge */}
+          <motion.div
+            initial={{ x: -50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            style={{willChange:"transform, opacity"}}
+            style={{display:"inline-flex",alignItems:"center",gap:8,padding:"6px 14px",
               border:"1px solid rgba(255,255,255,0.18)",borderRadius:999,marginBottom:"2rem",
               background:"rgba(255,255,255,0.06)",backdropFilter:"blur(12px)",alignSelf:"flex-start"}}>
-              <div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 8px #22c55e"}}/>
-              <span style={{fontFamily:SANS,fontSize:"0.78rem",color:"rgba(255,255,255,0.8)"}}>AI-powered career guidance for high schoolers</span>
-            </div>
-          </FadeUp>
-          <FadeUp delay={0.05}>
-            <h1 style={{margin:"0 0 1.5rem",letterSpacing:"-0.03em"}}>
-              <span style={{
-                fontFamily:SANS, fontWeight:700,
-                fontSize:"clamp(4rem,7vw,7.5rem)", lineHeight:0.97,
-                background:"linear-gradient(135deg,#ffffff 0%,#93c5fd 55%,#60a5fa 100%)",
-                WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
-                backgroundClip:"text", display:"block",
-                filter:"drop-shadow(0 0 35px rgba(147,197,253,0.95)) drop-shadow(0 0 80px rgba(96,165,250,0.6)) drop-shadow(0 0 120px rgba(37,99,235,0.35))",
-              }}>Own your future.</span>
-            </h1>
-          </FadeUp>
-          <FadeUp delay={0.12}>
-            <p style={{fontFamily:SANS,fontWeight:500,fontSize:"1.3rem",color:"rgba(255,255,255,0.85)",
+            <div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 8px #22c55e"}}/>
+            <span style={{fontFamily:SANS,fontSize:"0.78rem",color:"rgba(255,255,255,0.8)"}}>AI-powered career guidance for high schoolers</span>
+          </motion.div>
+
+          {/* Heading — zooms in from large */}
+          <motion.h1
+            initial={{ scale: 1.18, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 1.1, delay: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            style={{margin:"0 0 1.5rem",letterSpacing:"-0.03em",willChange:"transform, opacity"}}>
+            <span style={{
+              fontFamily:SANS, fontWeight:700,
+              fontSize:"clamp(4rem,7vw,7.5rem)", lineHeight:0.97,
+              background:"linear-gradient(135deg,#ffffff 0%,#93c5fd 55%,#60a5fa 100%)",
+              WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
+              backgroundClip:"text", display:"block",
+              filter:"drop-shadow(0 0 35px rgba(147,197,253,0.95)) drop-shadow(0 0 80px rgba(96,165,250,0.6)) drop-shadow(0 0 120px rgba(37,99,235,0.35))",
+            }}>Own your future.</span>
+          </motion.h1>
+
+          {/* Subtitle */}
+          <motion.p
+            initial={{ y: 28, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            style={{fontFamily:SANS,fontWeight:500,fontSize:"1.3rem",color:"rgba(255,255,255,0.85)",
               lineHeight:1.75,maxWidth:520,margin:"0 0 0.7rem"}}>
-              Mentorable is your personal AI career mentor.
-            </p>
-            <p style={{fontFamily:SANS,fontWeight:400,fontSize:"1.05rem",color:"rgba(255,255,255,0.48)",
+            Mentorable is your personal AI career mentor.
+          </motion.p>
+          <motion.p
+            initial={{ y: 28, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.72, ease: [0.16, 1, 0.3, 1] }}
+            style={{fontFamily:SANS,fontWeight:400,fontSize:"1.05rem",color:"rgba(255,255,255,0.48)",
               lineHeight:1.9,maxWidth:480,margin:"0 0 2.75rem"}}>
-              Discover your strengths, get a personalized roadmap, and take action — all from a 2-minute voice conversation.
-            </p>
-          </FadeUp>
-          <FadeUp delay={0.2}>
-            <div style={{display:"flex",alignItems:"center",gap:"1rem",flexWrap:"wrap"}}>
-              <GlowBtn onClick={()=>go("/auth")}>Get Started <ArrowRight color="#fff"/></GlowBtn>
-              <motion.button
-                onClick={()=>document.getElementById("hiw")?.scrollIntoView({behavior:"smooth"})}
-                whileHover={{background:"rgba(255,255,255,0.18)",borderColor:"rgba(255,255,255,0.5)"}}
-                style={{fontFamily:SANS,fontSize:"0.9rem",fontWeight:600,color:"#fff",
-                  background:"rgba(255,255,255,0.08)",
-                  border:"1.5px solid rgba(255,255,255,0.28)",borderRadius:999,
-                  padding:"0.82rem 1.75rem",cursor:"pointer",
-                  display:"inline-flex",alignItems:"center",gap:8,
-                  backdropFilter:"blur(10px)",transition:"background 0.2s,border-color 0.2s"}}>
-                How it works <ArrowUpRight color="rgba(255,255,255,0.85)"/>
-              </motion.button>
-            </div>
-          </FadeUp>
+            Discover your strengths, get a personalized roadmap, and take action. All from a 2-minute voice conversation.
+          </motion.p>
+
+          {/* Buttons */}
+          <motion.div
+            initial={{ y: 35, opacity: 0, scale: 0.96 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7, delay: 0.88, ease: [0.34, 1.56, 0.64, 1] }}
+            style={{display:"flex",alignItems:"center",gap:"1rem",flexWrap:"wrap",pointerEvents:"auto",willChange:"transform, opacity"}}>
+            <GlowBtn onClick={()=>go("/auth")}>Get Started <ArrowRight color="#fff"/></GlowBtn>
+            <motion.button
+              onClick={()=>document.getElementById("hiw")?.scrollIntoView({behavior:"smooth"})}
+              whileHover={{background:"rgba(255,255,255,0.18)",borderColor:"rgba(255,255,255,0.5)"}}
+              style={{fontFamily:SANS,fontSize:"0.9rem",fontWeight:600,color:"#fff",
+                background:"rgba(255,255,255,0.08)",
+                border:"1.5px solid rgba(255,255,255,0.28)",borderRadius:999,
+                padding:"0.82rem 1.75rem",cursor:"pointer",
+                display:"inline-flex",alignItems:"center",gap:8,
+                backdropFilter:"blur(10px)",transition:"background 0.2s,border-color 0.2s"}}>
+              How it works <ArrowUpRight color="rgba(255,255,255,0.85)"/>
+            </motion.button>
+          </motion.div>
         </div>
 
-        {/* Right — placeholder for product image */}
-        <div style={{flex:1,alignSelf:"stretch",display:"flex",alignItems:"center",justifyContent:"center",
-          borderLeft:"1px solid rgba(255,255,255,0.04)"}}>
-          {/* Product image / mockup goes here */}
+        {/* Right — 3D Hero Visual (deferred to avoid competing with entrance animations) */}
+        <div style={{flex:"0 0 45%",height:"100vh",overflow:"visible",pointerEvents:"none"}}>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: showVisual ? 1 : 0 }}
+            transition={{ duration: 2.0, ease: "easeOut" }}
+            style={{ width:"100%", height:"100%" }}>
+            {showVisual && <HeroVisual />}
+          </motion.div>
         </div>
+
+        {/* Scroll indicator */}
+        <motion.div
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+          style={{position:"absolute",bottom:"2.5rem",left:"50%",transform:"translateX(-50%)",
+            pointerEvents:"none",opacity:0.6}}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </motion.div>
 
       </section>
 
@@ -1072,12 +1104,12 @@ export default function LandingPage() {
       {/* ── SIMPLIFY YOUR JOURNEY ─────────────────────────────────────────────── */}
       <section id="hiw" style={{padding:"4rem 2.5rem 7rem",background:BG}}>
         <div style={{maxWidth:1100,margin:"0 auto"}}>
-          <FadeUp style={{marginBottom:"5rem",maxWidth:580}}>
+          <FadeUp style={{marginBottom:"5rem",maxWidth:580,transform:"translateY(3rem)"}}>
             <Heading italic="Simplify" rest="your journey." size="clamp(2.8rem,5vw,4rem)"/>
           </FadeUp>
           {[
             {tag:"VOICE ONBOARDING",title:"Know yourself.",
-              desc:"Talk for two minutes. Our AI listens for signals that forms and surveys miss — extracting your values, passions, and working style with precision.",
+              desc:"Talk for two minutes. Our AI listens for signals that forms and surveys miss, extracting your values, passions, and working style with precision.",
               items:["Interests and passions","Work style and values","Career curiosity and goals","Communication patterns"],
               visual:<VoiceBlob/>,
               bg:"linear-gradient(135deg,#f0f9ff 0%,#dbeafe 55%,#f0f9ff 100%)"},
@@ -1179,7 +1211,7 @@ export default function LandingPage() {
             <Heading italic="Ask" rest="anything." size="clamp(2.8rem,5vw,4rem)" light/>
             <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.95rem",
               color:"rgba(255,255,255,0.48)",lineHeight:1.95,maxWidth:480,marginTop:"1.1rem"}}>
-              Every answer is grounded in your personal scorecard, roadmap, and real-world progress — not generic advice.
+              Every answer is grounded in your personal scorecard, roadmap, and real-world progress. Not generic advice.
             </p>
           </FadeUp>
           <FadeUp delay={0.1}>
@@ -1276,7 +1308,7 @@ export default function LandingPage() {
               <Heading italic="Grow" rest="your potential." size="clamp(2.4rem,4vw,3.2rem)"/>
               <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.95rem",color:FG3,
                 lineHeight:1.95,marginTop:"1.25rem",maxWidth:360}}>
-                Mentorable AI synthesizes your voice interview, scorecard, and real-world progress to guide you toward any career domain — and many more beyond these eight.
+                Mentorable AI synthesizes your voice interview, scorecard, and real-world progress to guide you toward any career domain, and many more beyond these eight.
               </p>
               <button onClick={()=>go("/auth")}
                 style={{fontFamily:SANS,fontSize:"0.72rem",fontWeight:700,letterSpacing:"0.1em",
@@ -1304,7 +1336,7 @@ export default function LandingPage() {
             <Heading italic="Plan" rest="your path." size="clamp(2.8rem,5vw,4rem)"/>
             <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.95rem",color:FG3,
               lineHeight:1.95,maxWidth:500,marginTop:"1.1rem"}}>
-              Model your future — from college applications to first jobs — and see how every action moves you closer to your goals.
+              Model your future, from college applications to first jobs, and see how every action moves you closer to your goals.
             </p>
           </FadeUp>
           <DataFlow/>
