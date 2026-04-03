@@ -1,751 +1,1455 @@
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useInView } from "framer-motion";
+import { motion, AnimatePresence, useInView, useScroll, useTransform } from "framer-motion";
+import gsap from "gsap";
+import { MotionPathPlugin } from "gsap/MotionPathPlugin";
+import { TextPlugin } from "gsap/TextPlugin";
+import { VoicePoweredOrb } from "./components/common/VoicePoweredOrb";
+import HeroVisual from "./components/HeroVisual";
 
-// ─── SVG Icons ─────────────────────────────────────────────────────────────
-const Svg = ({ size = 24, color = "#1d4ed8", sw = 1.5, children }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-    stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-    {children}
-  </svg>
+// ─── Tokens ────────────────────────────────────────────────────────────────────
+const SANS  = "'Space Grotesk', Arial, sans-serif";
+const SERIF = "'DM Serif Display', Georgia, serif";
+const BG    = "#f4f8ff";
+const BG2   = "#e8f0ff";
+const BG3   = "#ffffff";
+const FG    = "#0b1340";
+const FG2   = "#1e3a8a";
+const FG3   = "#64748b";
+const P     = "#1e40af";
+const B3    = "#3b82f6";
+const B4    = "#60a5fa";
+const GRAD  = "linear-gradient(135deg,#1d4ed8,#60a5fa)";
+const BDR   = "rgba(37,99,235,0.18)";
+const BDR2  = "rgba(37,99,235,0.07)";
+const SH    = "0 4px 32px rgba(37,99,235,0.12),0 1px 4px rgba(0,0,0,0.05)";
+const SH_LG = "0 20px 60px rgba(37,99,235,0.28),0 4px 20px rgba(0,0,0,0.1)";
+const DARK  = "#1a3f96";
+
+// Roadmap phone mockup mountain data
+const MTN = [
+  {opacity:0.25,color:"#312e81",points:"0,100 8,72 16,80 24,65 32,75 42,58 52,68 60,55 70,62 80,50 88,58 96,46 100,52 100,100"},
+  {opacity:0.35,color:"#4338ca",points:"0,100 5,78 12,85 20,70 30,80 38,63 48,72 57,60 65,68 73,55 82,63 90,52 100,58 100,100"},
+  {opacity:0.5, color:"#4f46e5",points:"0,100 6,82 14,88 22,75 32,84 40,68 50,76 59,65 68,72 76,60 85,68 93,57 100,62 100,100"},
+  {opacity:0.65,color:"#6366f1",points:"0,100 4,87 10,92 18,80 28,88 36,73 46,80 55,70 63,77 72,65 80,73 88,63 96,68 100,72 100,100"},
+  {opacity:0.8, color:"#818cf8",points:"0,100 3,90 9,94 16,84 24,90 32,77 42,84 50,75 58,80 66,70 74,76 82,67 90,73 97,68 100,74 100,100"},
+];
+
+// Origin Finance's hero video (used as placeholder — replace with own asset)
+const HERO_VIDEO_WEBM = "https://cdn.prod.website-files.com/68acbc076b672f730e0c77b9%2F68bb73e8d95f81619ab0f106_Clouds1-transcode.webm";
+const HERO_VIDEO_MP4  = "https://cdn.prod.website-files.com/68acbc076b672f730e0c77b9%2F68bb73e8d95f81619ab0f106_Clouds1-transcode.mp4";
+const HERO_POSTER     = "https://cdn.prod.website-files.com/68acbc076b672f730e0c77b9%2F68bb73e8d95f81619ab0f106_Clouds1-poster-00001.jpg";
+
+// ─── Section gradient bridge ───────────────────────────────────────────────────
+const SG = ({ from, to, h = 180, mid }) => (
+  <div style={{ height: h, background: mid
+    ? `linear-gradient(to bottom,${from},${mid} 55%,${to})`
+    : `linear-gradient(to bottom,${from},${to})`,
+    flexShrink: 0, pointerEvents: "none" }}/>
 );
-const IconMic = (p) => <Svg {...p}><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></Svg>;
-const IconBarChart = (p) => <Svg {...p}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></Svg>;
-const IconMap = (p) => <Svg {...p}><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></Svg>;
-const IconTrending = (p) => <Svg {...p}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></Svg>;
-const IconBell = (p) => <Svg {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></Svg>;
-const IconMessage = (p) => <Svg {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></Svg>;
-const IconLightbulb = (p) => <Svg {...p}><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></Svg>;
-const IconUsers = (p) => <Svg {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Svg>;
-const IconZap = (p) => <Svg {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></Svg>;
-const IconNavigation = (p) => <Svg {...p}><polygon points="3 11 22 2 13 21 11 13 3 11"/></Svg>;
-const IconStar = (p) => <Svg {...p}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></Svg>;
 
-// ─── Topographic Background (4 paths, more visible) ───────────────────────
-const TOPO = [
-  "M -200 130 C 150 70, 420 180, 750 110 C 1080 40, 1280 150, 1650 95 C 1850 65, 2050 110, 2300 85",
-  "M -200 240 C 120 175, 380 280, 720 210 C 1060 140, 1260 255, 1630 200 C 1830 170, 2030 210, 2300 190",
-  "M -200 350 C 160 285, 430 390, 770 320 C 1110 250, 1310 360, 1680 305 C 1880 275, 2080 315, 2300 295",
-  "M -200 460 C 130 395, 400 500, 740 430 C 1080 360, 1280 470, 1650 415 C 1850 385, 2050 425, 2300 405",
+// ─── Typing cycle ──────────────────────────────────────────────────────────────
+const CHAT_STRINGS = [
+  "What career paths match my strengths?",
+  "How do I stand out in college applications?",
+  "What should I focus on this semester?",
+  "Am I on track to reach my goals?",
 ];
 
-function TopoBg() {
-  return (
-    <div style={{
-      position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none",
-      maskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 65%, transparent 100%)",
-      WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 65%, transparent 100%)",
-    }}>
-      <motion.svg
-        width="100%" height="100%"
-        viewBox="0 0 1440 600"
-        preserveAspectRatio="xMidYMid slice"
-        animate={{ x: [0, -20, 0] }}
-        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        style={{ position: "absolute", inset: 0 }}
-      >
-        {TOPO.map((d, i) => (
-          <path key={i} d={d} fill="none" stroke="rgba(147,197,253,1)" strokeWidth="1.5"
-            opacity={0.35 - i * 0.02} />
-        ))}
-      </motion.svg>
-    </div>
-  );
+function useTypingCycle(strings, { typeSpeed=72, backSpeed=48, backDelay=4500, startDelay=600 } = {}) {
+  const [text, setText]   = useState("");
+  const [idx,  setIdx]    = useState(0);
+  const [phase, setPhase] = useState("start");
+  useEffect(() => {
+    const full = strings[idx];
+    if (phase === "start")    { const t = setTimeout(() => setPhase("typing"), startDelay); return () => clearTimeout(t); }
+    if (phase === "typing")   {
+      if (text.length < full.length) { const t = setTimeout(() => setText(full.slice(0, text.length + 1)), typeSpeed); return () => clearTimeout(t); }
+      const t = setTimeout(() => setPhase("deleting"), backDelay); return () => clearTimeout(t);
+    }
+    if (phase === "deleting") {
+      if (text.length > 0) { const t = setTimeout(() => setText(s => s.slice(0, -1)), backSpeed); return () => clearTimeout(t); }
+      setIdx(i => (i + 1) % strings.length); setPhase("typing");
+    }
+  }, [text, phase, idx, strings, typeSpeed, backSpeed, backDelay, startDelay]);
+  return text;
 }
 
-// ─── Radar Chart ─────────────────────────────────────────────────────────
-const AXES = ["Problem Solving", "Communication", "Creativity", "Leadership", "Technical"];
-const SCORES = [0.85, 0.72, 0.90, 0.65, 0.78];
-
-function polarToCart(angle, r, cx, cy) {
-  const rad = (angle - 90) * (Math.PI / 180);
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-}
-function buildPath(scores, r, cx, cy) {
-  return scores.map((s, i) => {
-    const pt = polarToCart((360 / scores.length) * i, s * r, cx, cy);
-    return `${i === 0 ? "M" : "L"} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`;
-  }).join(" ") + " Z";
-}
-function buildPoly(scores, r, cx, cy) {
-  return scores.map((s, i) => {
-    const pt = polarToCart((360 / scores.length) * i, s * r, cx, cy);
-    return `${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
-  }).join(" ");
-}
-
-function RadarChart({ size = 200 }) {
-  const cx = size / 2, cy = size / 2;
-  const R = size * 0.37;
+// ─── FadeUp ────────────────────────────────────────────────────────────────────
+function FadeUp({ children, delay = 0, style = {} }) {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true });
-  const rings = [0.25, 0.5, 0.75, 1];
-
+  const iv  = useInView(ref, { once: true, margin: "-50px" });
   return (
-    <svg ref={ref} width={size} height={size} viewBox={`0 0 ${size} ${size}`} overflow="visible">
-      <defs>
-        <linearGradient id="rfill" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.60"/>
-          <stop offset="100%" stopColor="#6366f1" stopOpacity="0.60"/>
-        </linearGradient>
-      </defs>
-      {rings.map(r => (
-        <polygon key={r} points={buildPoly([r,r,r,r,r], R, cx, cy)}
-          fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1"
-          strokeDasharray={r < 1 ? "2 3" : "none"} />
-      ))}
-      {AXES.map((_, i) => {
-        const pt = polarToCart((360/AXES.length)*i, R, cx, cy);
-        return <line key={i} x1={cx} y1={cy} x2={pt.x} y2={pt.y} stroke="rgba(255,255,255,0.08)" strokeWidth="1"/>;
-      })}
-      <motion.polygon points={buildPoly(SCORES, R, cx, cy)} fill="url(#rfill)"
-        initial={{ opacity: 0 }} animate={inView ? { opacity: 1 } : {}}
-        transition={{ duration: 0.7, delay: 1.0 }} />
-      <motion.path d={buildPath(SCORES, R, cx, cy)} fill="none"
-        stroke="#60a5fa" strokeWidth="2.5" strokeLinejoin="round"
-        initial={{ pathLength: 0 }} animate={inView ? { pathLength: 1 } : {}}
-        transition={{ duration: 1.3, ease: [0.22, 1, 0.36, 1] }} />
-      {SCORES.map((s, i) => {
-        const pt = polarToCart((360/SCORES.length)*i, s*R, cx, cy);
-        return (
-          <g key={i}>
-            <motion.circle cx={pt.x} cy={pt.y} r="10" fill="rgba(96,165,250,0.15)"
-              initial={{ scale: 0 }} animate={inView ? { scale: [0, 1] } : {}}
-              transition={{ delay: 1.3 + i*0.08, duration: 0.3 }}
-              className="pulse-glow"
-              style={{ animationDelay: `${i*0.45}s`, transformOrigin: `${pt.x}px ${pt.y}px`, transformBox: "fill-box" }} />
-            <motion.circle cx={pt.x} cy={pt.y} r="5"
-              fill="#60a5fa"
-              initial={{ scale: 0, opacity: 0 }}
-              animate={inView ? { scale: 1, opacity: 1 } : {}}
-              transition={{ delay: 1.25 + i*0.08, type: "spring", bounce: 0.55 }}
-              style={{ filter: "drop-shadow(0 0 8px rgba(96,165,250,0.9))", transformOrigin: `${pt.x}px ${pt.y}px`, transformBox: "fill-box" }} />
-          </g>
-        );
-      })}
-      {AXES.map((label, i) => {
-        const pt = polarToCart((360/AXES.length)*i, R + 18, cx, cy);
-        return (
-          <text key={i} x={pt.x} y={pt.y} textAnchor="middle" dominantBaseline="middle"
-            fontSize="7.5" fill="rgba(148,163,184,0.8)" fontFamily="system-ui">{label}</text>
-        );
-      })}
-    </svg>
+    <motion.div ref={ref} initial={{ opacity: 0 }} animate={iv ? { opacity: 1 } : {}}
+      transition={{ duration: 0.8, delay, ease: [0.22, 1, 0.36, 1] }} style={style}>
+      {children}
+    </motion.div>
   );
 }
 
-// ─── Score Counter ────────────────────────────────────────────────────────
-function ScoreCounter({ target = 92, duration = 1600, delay = 500 }) {
-  const [val, setVal] = useState(0);
-  useEffect(() => {
-    const t = setTimeout(() => {
-      let start = null;
-      function step(ts) {
-        if (!start) start = ts;
-        const p = Math.min((ts - start) / duration, 1);
-        setVal(Math.round((1 - Math.pow(1 - p, 3)) * target));
-        if (p < 1) requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
-    }, delay);
-    return () => clearTimeout(t);
-  }, [target, duration, delay]);
-  return <>{val}</>;
+// ─── FeatureScrollBox ────────────────────────────────────────────────────────
+function FeatureScrollBox({ children, style = {} }) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["0 1", "1 0"]
+  });
+  const scale = useTransform(scrollYProgress, [0, 0.25, 0.75, 1], [0.97, 1, 1, 0.97]);
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.75, 1, 1, 0.75]);
+  return (
+    <motion.div ref={ref} style={{ scale, opacity, ...style }}>
+      {children}
+    </motion.div>
+  );
 }
 
-// ─── Stat Tile (dark variant for dark card) ───────────────────────────────
-function StatTile({ label, score, delay = 0 }) {
-  const [filled, setFilled] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setFilled(true), delay + 800);
-    return () => clearTimeout(t);
-  }, [delay]);
-  const barColor = score >= 80 ? "#22c55e" : score >= 60 ? "#3b82f6" : "#f59e0b";
+// ─── Stagger ───────────────────────────────────────────────────────────────────
+function Stagger({ children, style = {}, className }) {
+  const ref = useRef(null);
+  const iv  = useInView(ref, { once: true, margin: "-80px" });
   return (
-    <div style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "0.7rem 0.875rem" }}>
-      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginBottom: "0.25rem", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-        {label}
+    <motion.div ref={ref} className={className} style={style}
+      variants={{ hidden:{}, show:{ transition:{ staggerChildren:0.1 }}}}
+      initial="hidden" animate={iv ? "show" : "hidden"}>
+      {children}
+    </motion.div>
+  );
+}
+const iV = { hidden:{ opacity:0 }, show:{ opacity:1, transition:{ duration:0.6, ease:[0.22,1,0.36,1] }}};
+
+// ─── Buttons ───────────────────────────────────────────────────────────────────
+function GradBtn({ children, onClick, style = {} }) {
+  return (
+    <motion.button onClick={onClick} whileHover={{ scale:1.04, boxShadow:`0 16px 48px rgba(37,99,235,0.6),0 0 0 2px rgba(96,165,250,0.35)` }}
+      whileTap={{ scale:0.97 }}
+      style={{ fontFamily:SANS, fontSize:"0.875rem", fontWeight:600, color:"#fff",
+        background:GRAD, border:"none", borderRadius:999, padding:"0.85rem 2rem", cursor:"pointer",
+        display:"inline-flex", alignItems:"center", gap:8,
+        boxShadow:`0 6px 28px rgba(37,99,235,0.42)`, transition:"background 0.3s", ...style }}>
+      {children}
+    </motion.button>
+  );
+}
+
+function GlowBtn({ children, onClick }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div style={{ position:"relative", display:"inline-flex" }}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
+      <div style={{ position:"absolute", inset:-1, borderRadius:999, overflow:"hidden", pointerEvents:"none" }}>
+        <motion.div animate={{ rotate:[0,360] }} transition={{ duration:2.5, repeat:Infinity, ease:"linear" }}
+          style={{ position:"absolute", top:"50%", left:"50%", width:"200%", height:"200%",
+            marginLeft:"-100%", marginTop:"-100%",
+            background:"conic-gradient(from 0deg at 50% 50%,rgba(255,255,255,0.6) 0deg,rgba(255,255,255,0) 60deg,rgba(255,255,255,0) 300deg,rgba(255,255,255,0.6) 360deg)" }}/>
       </div>
-      <div style={{ fontSize: "1.6rem", fontWeight: 800, color: "#f1f5f9", fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1, marginBottom: "0.45rem" }}>
-        {score}
+      <div style={{ position:"absolute", inset:0, borderRadius:999,
+        background:"radial-gradient(85% 120% at 50% 120%,rgba(255,255,255,0.25) 0%,transparent 100%)",
+        opacity: hov ? 1 : 0, transition:"opacity 0.9s", pointerEvents:"none" }}/>
+      <button onClick={onClick} style={{
+        position:"relative", fontFamily:SANS, fontSize:"0.875rem", fontWeight:600, color:"#fff",
+        background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.3)", borderRadius:999,
+        padding:"0.85rem 2rem", cursor:"pointer", display:"flex", alignItems:"center", gap:8,
+        backdropFilter:"blur(12px)" }}>
+        {children}
+      </button>
+    </div>
+  );
+}
+
+function PlainBtn({ children, onClick, color = FG3 }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{ fontFamily:SANS, fontSize:"0.875rem", fontWeight:500, color: hov ? FG : color,
+        background:"transparent", border:"none", cursor:"pointer",
+        display:"inline-flex", alignItems:"center", gap:6, transition:"color 0.2s" }}>
+      {children}
+    </button>
+  );
+}
+
+// ─── Label / Heading ───────────────────────────────────────────────────────────
+function Label({ children }) {
+  return (
+    <div style={{ display:"inline-flex", alignItems:"center", fontFamily:SANS, fontSize:"0.7rem",
+      fontWeight:700, letterSpacing:"0.16em", textTransform:"uppercase",
+      background:GRAD, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
+      backgroundClip:"text",
+      border:`1.5px solid rgba(37,99,235,0.28)`, borderRadius:999,
+      padding:"5px 16px", marginBottom:"1.25rem",
+      background2:`rgba(37,99,235,0.06)`,
+      boxShadow:"0 0 16px rgba(37,99,235,0.1)",
+      position:"relative", overflow:"hidden" }}>
+      <span style={{
+        position:"absolute",inset:0,borderRadius:999,
+        background:"linear-gradient(135deg,rgba(37,99,235,0.08),rgba(96,165,250,0.04))",
+        pointerEvents:"none"
+      }}/>
+      <span style={{
+        fontFamily:SANS, fontSize:"0.7rem", fontWeight:700, letterSpacing:"0.16em",
+        background:GRAD, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
+        backgroundClip:"text", position:"relative"
+      }}>{children}</span>
+    </div>
+  );
+}
+
+function Heading({ italic, rest, size = "3rem", light = false }) {
+  const ref = useRef(null);
+  const iv  = useInView(ref, { once: true });
+  return (
+    <h2 ref={ref} style={{ margin:0, lineHeight:1.08 }}>
+      <em style={{ fontFamily:SERIF, fontStyle:"italic", fontWeight:400, fontSize:size,
+        background: light ? "linear-gradient(135deg,#93c5fd,#fff)" : GRAD,
+        WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
+        backgroundClip:"text", display:"inline",
+        filter: light ? "none" : "drop-shadow(0 0 18px rgba(37,99,235,0.35))" }}>{italic}{" "}</em>
+      <span style={{ fontFamily:SANS, fontWeight:700, fontSize:size,
+        color: light ? "rgba(255,255,255,0.95)" : FG }}>{rest}</span>
+      <motion.div initial={{ scaleX:0 }} animate={iv ? { scaleX:1 } : {}}
+        transition={{ duration:1, delay:0.4, ease:[0.22,1,0.36,1] }}
+        style={{ height:3, width:"42%", background:GRAD, borderRadius:3, marginTop:14, originX:0,
+          boxShadow:`0 0 20px rgba(37,99,235,0.6),0 0 40px rgba(37,99,235,0.25)` }}/>
+    </h2>
+  );
+}
+
+// ─── Icons ─────────────────────────────────────────────────────────────────────
+const Svg = ({ size=18, color=FG, ch }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{ch}</svg>
+);
+const ArrowRight   = ({ color=FG, size=18 }) => <Svg size={size} color={color} ch={<><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></>}/>;
+const ArrowUpRight = ({ color=FG3 }) => <Svg size={14} color={color} ch={<><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></>}/>;
+const Star         = () => <svg width="14" height="14" viewBox="0 0 24 24" fill={P}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+const Check        = ({ color=P }) => <Svg size={14} color={color} ch={<polyline points="20 6 9 17 4 12"/>}/>;
+const Mic          = ({ color="#fff", size=22 }) => <Svg size={size} color={color} ch={<><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></>}/>;
+
+// ─── Radar helpers ─────────────────────────────────────────────────────────────
+const RA = ["Problem Solving","Communication","Creativity","Leadership","Technical"];
+const RS = [0.88, 0.76, 0.91, 0.64, 0.78];
+const rPt = (a,r,cx,cy) => { const rad=(a-90)*Math.PI/180; return {x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)}; };
+const rPoly = (sc,R,cx,cy) => sc.map((s,i)=>{ const p=rPt(360/sc.length*i,s*R,cx,cy); return `${p.x.toFixed(1)},${p.y.toFixed(1)}`; }).join(" ");
+
+
+// ─── Voice Orb (WebGL, via VoicePoweredOrb) ────────────────────────────────────
+function VoiceBlob() {
+  const [isRecording, setIsRecording] = useState(false);
+  const bars = [0.45,0.8,1,0.65,0.9,0.55,0.95,0.72,0.5,0.85,0.62,0.92,0.68,0.48,0.75];
+  return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"1.5rem"}}>
+      {/* Orb — transparent WebGL canvas, no clip/ring wrapper */}
+      <div style={{position:"relative",width:340,height:340}}>
+        <VoicePoweredOrb
+          hue={0}
+          enableVoiceControl={isRecording}
+          style={{width:"100%",height:"100%"}}
+        />
+        {/* Center mic button, floating above the transparent canvas */}
+        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",
+          display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+          <motion.button
+            onClick={() => setIsRecording(r => !r)}
+            whileHover={{scale:1.08,boxShadow:`0 0 50px rgba(37,99,235,0.8),0 0 100px rgba(37,99,235,0.35)`}}
+            whileTap={{scale:0.95}}
+            style={{width:68,height:68,borderRadius:"50%",background:GRAD,border:"none",cursor:"pointer",
+              boxShadow:`0 0 32px rgba(37,99,235,0.65),0 0 64px rgba(37,99,235,0.28)`,
+              display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <Mic size={24}/>
+          </motion.button>
+          <motion.div animate={{opacity:[0.4,1,0.4]}} transition={{duration:1.8,repeat:Infinity}}>
+            <span style={{fontFamily:SANS,fontSize:"0.58rem",color:isRecording?"#60a5fa":P,
+              letterSpacing:"0.16em",fontWeight:700}}>
+              {isRecording ? "LISTENING" : "TAP TO SPEAK"}
+            </span>
+          </motion.div>
+        </div>
       </div>
-      <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 999, height: 3, overflow: "hidden" }}>
-        <div style={{ width: filled ? `${score}%` : "0%", height: "100%", background: barColor, borderRadius: 999, transition: "width 0.9s cubic-bezier(0.4,0,0.2,1)" }} />
+      {/* Waveform */}
+      <div style={{display:"flex",gap:3,alignItems:"center",height:30}}>
+        {bars.map((h,i)=>(
+          <motion.div key={i}
+            animate={{scaleY: isRecording ? [h,h*0.18+0.05,h] : [h*0.3,h*0.08,h*0.3]}}
+            transition={{duration:0.55+i*0.055,repeat:Infinity,ease:"easeInOut",delay:i*0.036}}
+            style={{width:3.5,height:26,borderRadius:4,
+              background:`rgba(37,99,235,${h*0.65+0.15})`,
+              boxShadow:`0 0 6px rgba(37,99,235,${h*0.4})`,
+              transformOrigin:"center"}}/>
+        ))}
+      </div>
+      <div style={{fontFamily:SANS,fontSize:"0.75rem",color:FG3,fontStyle:"italic",textAlign:"center",maxWidth:300,lineHeight:1.7}}>
+        "I really enjoy solving problems and building things..."
       </div>
     </div>
   );
 }
 
-// ─── Scorecard Card (dark navy, reordered) ────────────────────────────────
-const STAT_DATA = [
-  { label: "Problem Solving", score: 88 },
-  { label: "Communication", score: 76 },
-  { label: "Creativity", score: 91 },
-  { label: "Leadership", score: 64 },
-];
-const STRENGTHS_CARD = [
-  { label: "Creative Thinker", icon: <IconLightbulb size={11} color="rgba(255,255,255,0.75)" sw={2}/> },
-  { label: "Strong Communicator", icon: <IconUsers size={11} color="rgba(255,255,255,0.75)" sw={2}/> },
-  { label: "Self-Starter", icon: <IconZap size={11} color="rgba(255,255,255,0.75)" sw={2}/> },
-];
-
-function ScorecardCard() {
+// ─── Clean Radar (ScoreVisual) — floating on light bg, no card chrome ──────────
+function ScoreVisual() {
+  const SIZE=300, cx=150, cy=150, R=104;
+  const ref=useRef(null); const iv=useInView(ref,{once:true,margin:"-50px"});
+  const avg=Math.round(RS.reduce((a,b)=>a+b,0)/RS.length*100);
   return (
-    <div style={{ position: "relative" }}>
-      {/* Dynamic shadow synced to float */}
-      <motion.div
-        animate={{ scaleX: [1, 0.75, 1], opacity: [0.30, 0.12, 0.30] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        style={{ position: "absolute", bottom: -24, left: "6%", right: "6%", height: 32, background: "rgba(59,130,246,0.25)", borderRadius: "50%", filter: "blur(24px)", pointerEvents: "none" }} />
+    <div ref={ref} style={{position:"relative",width:360,display:"flex",flexDirection:"column",alignItems:"center",gap:"1.75rem"}}>
+      {/* Ambient glow backdrop */}
+      <div style={{position:"absolute",top:"0%",left:"50%",transform:"translateX(-50%)",
+        width:340,height:340,borderRadius:"50%",
+        background:"radial-gradient(ellipse,rgba(37,99,235,0.14) 0%,rgba(99,102,241,0.06) 50%,transparent 72%)",
+        filter:"blur(32px)",pointerEvents:"none"}}/>
 
-      <motion.div
-        animate={{ y: [0, -14, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        style={{
-          width: 420,
-          background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)",
-          border: "1px solid rgba(99,102,241,0.25)",
-          borderRadius: 20,
-          boxShadow: "0 4px 6px rgba(0,0,0,0.15), 0 20px 40px rgba(59,130,246,0.18), 0 40px 80px rgba(59,130,246,0.10)",
-          overflow: "hidden",
-        }}>
-
-        {/* 1. Header: avatar + name + grade */}
-        <div style={{ padding: "28px 28px 20px", display: "flex", alignItems: "center", gap: "1rem", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ position: "relative", flexShrink: 0 }}>
-            <svg width="54" height="54" viewBox="0 0 54 54" style={{ position: "absolute", top: 0, left: 0 }}>
-              <defs>
-                <linearGradient id="aring" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#3b82f6"/>
-                  <stop offset="100%" stopColor="#6366f1"/>
-                </linearGradient>
-              </defs>
-              <circle cx="27" cy="27" r="25.5" fill="none" stroke="url(#aring)" strokeWidth="3"/>
-            </svg>
-            <div style={{ margin: "3px", width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, #1d4ed8, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800, fontSize: "1.2rem", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-              A
-            </div>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: "1.25rem", color: "#f1f5f9", fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.2 }}>Alex Chen</div>
-            <div style={{ fontSize: "0.875rem", color: "#94a3b8", marginTop: "0.2rem" }}>Grade 11 · Bay Area, CA</div>
-          </div>
-        </div>
-
-        {/* 2. Score: centered hero */}
-        <div style={{ padding: "20px 28px 16px", textAlign: "center", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ fontSize: "3.25rem", fontWeight: 900, lineHeight: 1, fontFamily: "'Plus Jakarta Sans', sans-serif", background: "linear-gradient(135deg, #3b82f6, #60a5fa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", display: "inline-block" }}>
-            <ScoreCounter target={92}/>
-            <span style={{ fontSize: "1.1rem", fontWeight: 600, WebkitTextFillColor: "#94a3b8", color: "#94a3b8" }}>/100</span>
-          </div>
-          <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "#60a5fa", textTransform: "uppercase", letterSpacing: "0.12em", marginTop: "0.35rem" }}>
-            Career Readiness Score
-          </div>
-        </div>
-
-        {/* 3. Radar chart */}
-        <div style={{ display: "flex", justifyContent: "center", padding: "16px 28px 8px" }}>
-          <RadarChart size={200}/>
-        </div>
-
-        {/* 4. Stat tiles 2×2 */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", padding: "0 28px 16px" }}>
-          {STAT_DATA.map(({ label, score }, i) => (
-            <StatTile key={label} label={label} score={score} delay={i * 100}/>
+      {/* Radar SVG — clean, light-mode */}
+      <motion.div initial={{opacity:0,scale:0.92}} animate={iv?{opacity:1,scale:1}:{}}
+        transition={{duration:0.9,ease:[0.22,1,0.36,1]}}
+        style={{position:"relative",zIndex:1}}>
+        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} overflow="visible">
+          <defs>
+            <linearGradient id="rfill3" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#1e40af" stopOpacity="0.55"/>
+              <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.08"/>
+            </linearGradient>
+            <linearGradient id="rstroke3" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#1d4ed8"/><stop offset="100%" stopColor="#93c5fd"/>
+            </linearGradient>
+            <filter id="rdglow3" x="-80%" y="-80%" width="260%" height="260%">
+              <feGaussianBlur stdDeviation="4" result="b"/>
+              <feComposite in="SourceGraphic" in2="b" operator="over"/>
+            </filter>
+            <filter id="rpolyglow3" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="9" result="b"/>
+              <feComposite in="SourceGraphic" in2="b" operator="over"/>
+            </filter>
+          </defs>
+          {/* Grid rings */}
+          {[1,0.75,0.5,0.25].map((r,ri)=>(
+            <polygon key={r} points={rPoly([r,r,r,r,r],R,cx,cy)}
+              fill={`rgba(37,99,235,${0.04+(1-r)*0.04})`}
+              stroke={`rgba(37,99,235,${0.14+ri*0.07})`}
+              strokeWidth={r===1?"1.5":"0.75"}/>
           ))}
-        </div>
+          {/* Axis lines */}
+          {RA.map((_,i)=>{ const p=rPt(360/5*i,R,cx,cy); return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="rgba(37,99,235,0.15)" strokeWidth="1"/>; })}
+          {/* Slow-rotating dashed ring */}
+          <motion.g animate={{rotate:360}} transition={{duration:28,repeat:Infinity,ease:"linear"}}
+            style={{transformOrigin:`${cx}px ${cy}px`}}>
+            <circle cx={cx} cy={cy} r={R*0.93} fill="none" stroke="rgba(96,165,250,0.22)" strokeWidth="1" strokeDasharray="4 9"/>
+          </motion.g>
+          {/* Data polygon with glow */}
+          <motion.g style={{transformOrigin:`${cx}px ${cy}px`}}
+            initial={{scale:0,opacity:0}} animate={iv?{scale:1,opacity:1}:{}}
+            transition={{duration:1.5,delay:0.3,ease:[0.22,1,0.36,1]}}>
+            <motion.polygon points={rPoly(RS,R,cx,cy)} fill="url(#rfill3)"
+              stroke="url(#rstroke3)" strokeWidth="4" strokeLinejoin="round"
+              filter="url(#rpolyglow3)"
+              animate={{opacity:[0.5,1,0.5]}} transition={{duration:3.2,repeat:Infinity}}/>
+            <polygon points={rPoly(RS,R,cx,cy)} fill="url(#rfill3)" fillOpacity="0.68"
+              stroke="url(#rstroke3)" strokeWidth="2" strokeLinejoin="round"/>
+          </motion.g>
+          {/* Data points */}
+          {RS.map((s,i)=>{
+            const p=rPt(360/5*i,s*R,cx,cy);
+            return (
+              <g key={i}>
+                <motion.circle cx={p.x} cy={p.y} r="9" fill="none" stroke="rgba(96,165,250,0.4)"
+                  animate={iv?{r:[9,20],opacity:[0.5,0]}:{}} transition={{duration:2.1,delay:1+i*0.18,repeat:Infinity}}/>
+                <motion.circle cx={p.x} cy={p.y} r="5" fill={P} stroke="#fff" strokeWidth="2"
+                  filter="url(#rdglow3)"
+                  initial={{scale:0}} animate={iv?{scale:[1,1.25,1]}:{}}
+                  transition={{duration:2.4,delay:0.9+i*0.14,repeat:Infinity}}/>
+                {iv&&(()=>{ const lp=rPt(360/5*i,s*R+22,cx,cy);
+                  return <text x={lp.x} y={lp.y} textAnchor="middle" dominantBaseline="middle"
+                    fontSize="9.5" fill={P} fontFamily={SANS} fontWeight="700">{Math.round(s*100)}%</text>; })()}
+              </g>
+            );
+          })}
+          {/* Axis labels */}
+          {RA.map((label,i)=>{ const p=rPt(360/5*i,R*1.3,cx,cy);
+            return <text key={label} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle"
+              fontSize="10.5" fill={FG3} fontFamily={SANS} fontWeight="600">{label}</text>; })}
+          {/* Center badge — white with score */}
+          <circle cx={cx} cy={cy} r={28} fill="white" stroke={BDR} strokeWidth="1.5"
+            filter="url(#rdglow3)"/>
+          <text x={cx} y={cy-5} textAnchor="middle" dominantBaseline="middle" fontSize="16" fill={P} fontFamily={SANS} fontWeight="800">{avg}</text>
+          <text x={cx} y={cy+10} textAnchor="middle" dominantBaseline="middle" fontSize="7" fill={FG3} fontFamily={SANS} fontWeight="700" letterSpacing="1">AVG</text>
+        </svg>
+      </motion.div>
 
-        {/* 5. Strengths */}
-        <div style={{ padding: "0 28px 16px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "14px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.55rem" }}>
-            <div style={{ width: 14, height: 1.5, background: "rgba(96,165,250,0.4)", borderRadius: 999 }}/>
-            <span style={{ fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.13em", textTransform: "uppercase", color: "#60a5fa" }}>Strengths</span>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-            {STRENGTHS_CARD.map(({ label, icon }) => (
-              <div key={label} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", background: "#1e3a8a", borderRadius: 999, padding: "4px 10px", fontSize: "0.72rem", fontWeight: 500, color: "white" }}>
-                {icon}{label}
+      {/* Career matches — clean light cards */}
+      <motion.div initial={{opacity:0,y:16}} animate={iv?{opacity:1,y:0}:{}}
+        transition={{duration:0.7,delay:0.5,ease:[0.22,1,0.36,1]}}
+        style={{width:"100%",position:"relative",zIndex:1}}>
+        <div style={{fontFamily:SANS,fontWeight:700,fontSize:"0.65rem",color:FG3,
+          letterSpacing:"0.13em",textTransform:"uppercase",marginBottom:"1rem"}}>Top Career Matches</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {[["Software Engineer",88,"#1e40af"],["Product Designer",82,"#7c3aed"],["UX Researcher",76,"#0891b2"]].map(([m,s,col],i)=>(
+            <div key={m} style={{background:"white",border:`1px solid ${BDR2}`,borderRadius:12,
+              padding:"0.75rem 1rem",boxShadow:`0 2px 12px rgba(37,99,235,0.07)`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
+                <span style={{fontFamily:SANS,fontSize:"0.82rem",fontWeight:600,color:FG}}>{m}</span>
+                <span style={{fontFamily:SANS,fontSize:"0.82rem",color:col,fontWeight:700}}>{s}%</span>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 6. Career Matches */}
-        <div style={{ padding: "0 28px 28px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "14px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.55rem" }}>
-            <div style={{ width: 14, height: 1.5, background: "rgba(96,165,250,0.4)", borderRadius: 999 }}/>
-            <span style={{ fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.13em", textTransform: "uppercase", color: "#60a5fa" }}>Top Matches</span>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-            {["UX Designer", "Product Manager", "Data Analyst"].map(c => (
-              <span key={c} style={{ background: "#2563eb", color: "white", borderRadius: 999, padding: "4px 12px", fontSize: "0.8rem", fontWeight: 600, boxShadow: "0 2px 8px rgba(37,99,235,0.4)" }}>{c}</span>
-            ))}
-          </div>
+              <div style={{background:`rgba(37,99,235,0.06)`,borderRadius:999,height:5,overflow:"hidden"}}>
+                <motion.div initial={{width:0}} animate={iv?{width:`${s}%`}:{}}
+                  transition={{duration:1.2,delay:0.85+i*0.15,ease:[0.22,1,0.36,1]}}
+                  style={{height:"100%",background:`linear-gradient(90deg,${col},${B4})`,borderRadius:999,
+                    boxShadow:`0 0 8px ${col}70`}}/>
+              </div>
+            </div>
+          ))}
         </div>
       </motion.div>
     </div>
   );
 }
 
-// ─── Word-by-word Animate ─────────────────────────────────────────────────
-function WordAnimate({ text, style = {}, delay = 0 }) {
-  const words = text.split(" ");
+// ─── Roadmap Phone Mockup — steep Origin Finance tilt, real roadmap UI ─────────
+// Milestone icon: inline recreation of the actual MilestoneIcon 3D button
+function PhoneMilestone({ status="not_started", type="pencil", side="left" }) {
+  const STATUS_CLR = { completed:"#22C55E", in_progress:"#3B82F6", not_started:"#1E2D4A", locked:"#0F172A", skipped:"#F97316" };
+  const back = STATUS_CLR[status] ?? STATUS_CLR.not_started;
+  const icons = {
+    video:   <path d="M8 5v14l11-7z" fill="rgba(232,237,245,0.9)"/>,
+    reading: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="rgba(232,237,245,0.9)" strokeWidth="2" fill="none" strokeLinecap="round"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="rgba(232,237,245,0.9)" strokeWidth="2" fill="none" strokeLinecap="round"/></>,
+    pencil:  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" stroke="rgba(232,237,245,0.9)" strokeWidth="2" fill="none" strokeLinecap="round"/>,
+    lock:    <><rect x="3" y="11" width="18" height="11" rx="2" stroke="#94a3b8" strokeWidth="2" fill="none"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#94a3b8" strokeWidth="2" fill="none"/></>,
+    check:   <polyline points="20 6 9 17 4 12" stroke="#fff" strokeWidth="2.5" fill="none" strokeLinecap="round"/>,
+  };
+  const icon = status==="completed" ? "check" : status==="locked" ? "lock" : type;
   return (
-    <span style={style}>
-      {words.map((w, i) => (
-        <motion.span key={i}
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: delay + i * 0.08, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          style={{ display: "inline-block", marginRight: "0.28em" }}>
-          {w}
-        </motion.span>
-      ))}
-    </span>
-  );
-}
-
-// ─── Section Label Pill ───────────────────────────────────────────────────
-function SectionLabel({ children }) {
-  return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: "linear-gradient(135deg, #eff6ff, #e0e7ff)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 999, padding: "0.28rem 0.875rem" }}>
-      <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#1d4ed8", flexShrink: 0 }}/>
-      <span style={{ fontSize: "0.66rem", fontWeight: 700, letterSpacing: "0.13em", textTransform: "uppercase", color: "#1d4ed8", fontFamily: "'Plus Jakarta Sans', sans-serif", whiteSpace: "nowrap" }}>
-        {children}
-      </span>
+    <div style={{position:"relative",width:32,height:32,flexShrink:0}}>
+      {/* Back (status color, rotated) */}
+      <div style={{position:"absolute",inset:0,borderRadius:7,background:back,
+        transform:"rotate(8deg)",transformOrigin:"100% 100%",
+        boxShadow:"3px -3px 5px hsla(223,10%,10%,0.22)"}}/>
+      {/* Front (frosted glass) */}
+      <div style={{position:"absolute",inset:0,borderRadius:7,
+        background:"rgba(255,255,255,0.22)",
+        boxShadow:"0 0 0 1.2px rgba(255,255,255,0.28) inset",
+        display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <svg width="14" height="14" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+          {icons[icon]}
+        </svg>
+      </div>
     </div>
   );
 }
 
-// ─── FadeIn ───────────────────────────────────────────────────────────────
-function FadeIn({ children, delay = 0, style }) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
+function RoadmapCard() {
+  const ref=useRef(null); const iv=useInView(ref,{once:true,margin:"-50px"});
+  // Real milestone data matching actual RoadmapPage layout
+  const milestones=[
+    {status:"completed", type:"video",    label:"Intro to Careers"},
+    {status:"completed", type:"reading",  label:"Research Fields"},
+    {status:"completed", type:"pencil",   label:"Self-Reflection"},
+    {status:"in_progress",type:"project", label:"Build Profile"},
+    {status:"not_started",type:"reading", label:"Find Mentors"},
+    {status:"locked",    type:"pencil",   label:"Set Goals"},
+  ];
   return (
-    <motion.div ref={ref} initial={{ opacity: 0, y: 22 }} animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }} style={style}>
-      {children}
-    </motion.div>
-  );
-}
+    <div ref={ref} style={{position:"relative",display:"flex",justifyContent:"center",
+      alignItems:"center",padding:"3rem 0 1rem"}}>
+      {/* Large ambient blooms (without CSS filters to prevent GPU checkerboarding) */}
+      <div style={{position:"absolute",width:520,height:400,borderRadius:"50%",
+        background:"radial-gradient(ellipse,rgba(99,102,241,0.2),transparent 65%)",
+        pointerEvents:"none",top:"10%",zIndex:0}}/>
+      <div style={{position:"absolute",width:280,height:280,right:"5%",bottom:"5%",borderRadius:"50%",
+        background:"radial-gradient(circle,rgba(37,99,235,0.1),transparent 65%)",
+        pointerEvents:"none",zIndex:0}}/>
 
-// ─── FAQ Item ─────────────────────────────────────────────────────────────
-const FAQS = [
-  { q: "How long does the onboarding take?", a: "About 5–8 minutes. It's a conversation, not a test. You'll talk with Mentorable like you'd talk to a mentor who genuinely wants to understand you." },
-  { q: "Is Mentorable free?", a: "We offer a free tier that includes your full scorecard and initial roadmap. Full personalization, weekly check-ins, and ongoing AI guidance are available on our paid plan." },
-  { q: "How does Mentorable personalize my roadmap?", a: "We combine your voice conversation, profile data, and real-time job market signals to generate a roadmap unique to you, not a template pulled from a database." },
-  { q: "Is my data private?", a: "Yes. We never share your data with anyone. We only store your grade level and general region, never your full name or school name." },
-  { q: "Can my school counselor or parents see my results?", a: "Only if you choose to share them. Your roadmap belongs to you, and you control who sees it." },
-];
+      {/* iPhone — steep Origin Finance angle: rotateX≈38, rotateY≈-8, gentle free-float */}
+      <motion.div
+        initial={{opacity:0,y:80,rotateX:58,rotateY:-14}}
+        animate={iv?{opacity:1,y:[0,-14,0],rotateX:38,rotateY:[-8,-6,-8],rotateZ:[0,0.6,0]}:{}}
+        transition={{
+          opacity:{duration:0.7,ease:[0.22,1,0.36,1]},
+          y:{duration:6,repeat:Infinity,ease:"easeInOut",delay:0.8},
+          rotateX:{duration:1.2,ease:[0.22,1,0.36,1]},
+          rotateY:{duration:7,repeat:Infinity,ease:"easeInOut",delay:0.8},
+          rotateZ:{duration:9,repeat:Infinity,ease:"easeInOut",delay:0.8},
+        }}
+        style={{
+          transformPerspective:1100,
+          position:"relative",zIndex:1,
+          width:290,
+          borderRadius:52,
+          background:"#1c1c1e",
+          boxShadow:[
+            "0 20px 60px rgba(0,0,0,0.5)",
+            "0 0 0 1.5px rgba(255,255,255,0.08)"
+          ].join(",")
+        }}>
 
-function FAQItem({ q, a }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{ borderBottom: "1px solid rgba(148,163,184,0.15)" }}>
-      <button onClick={() => setOpen(!open)}
-        style={{ width: "100%", textAlign: "left", padding: "1.75rem 0", display: "flex", alignItems: "center", justifyContent: "space-between", background: "none", border: "none", cursor: "pointer", gap: "1rem" }}>
-        <span style={{ fontWeight: 600, fontSize: "1.1875rem", color: "#0f172a", fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.4 }}>{q}</span>
-        <motion.div animate={{ rotate: open ? 45 : 0 }} transition={{ duration: 0.2 }}
-          style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", border: "1.5px solid rgba(37,99,235,0.4)", display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb", fontSize: "1.15rem", lineHeight: 1 }}>+</motion.div>
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.28, ease: "easeInOut" }} style={{ overflow: "hidden" }}>
-            <p style={{ color: "#475569", lineHeight: 1.7, paddingBottom: "1.4rem", fontSize: "1rem" }}>{a}</p>
+        {/* Screen/Bezel wrapper — NO mask needed, inner corners are manually rounded */}
+        <div style={{
+          borderRadius:52,
+          border:"11px solid #1c1c1e",
+          background:"#000"
+        }}>
+
+        {/* Status bar — Dynamic Island */}
+        <div style={{height:52,background:"#000",position:"relative",borderTopLeftRadius:41,borderTopRightRadius:41}}>
+          <div style={{position:"absolute",top:10,left:"50%",transform:"translateX(-50%)",
+            width:110,height:28,borderRadius:999,background:"#000",
+            border:"1px solid rgba(255,255,255,0.07)"}}/>
+          <span style={{position:"absolute",left:14,top:15,fontFamily:SANS,fontSize:"0.6rem",
+            fontWeight:700,color:"rgba(255,255,255,0.9)"}}>9:41</span>
+          <div style={{position:"absolute",right:13,top:15,display:"flex",gap:4,alignItems:"center"}}>
+            <svg width="13" height="10" viewBox="0 0 14 10" fill="none">
+              <rect x="0" y="6" width="2.5" height="4" rx="0.6" fill="rgba(255,255,255,0.82)"/>
+              <rect x="3.8" y="4" width="2.5" height="6" rx="0.6" fill="rgba(255,255,255,0.82)"/>
+              <rect x="7.6" y="2" width="2.5" height="8" rx="0.6" fill="rgba(255,255,255,0.82)"/>
+              <rect x="11.4" y="0" width="2.5" height="10" rx="0.6" fill="rgba(255,255,255,0.25)"/>
+            </svg>
+            <div style={{display:"flex",alignItems:"center",gap:1}}>
+              <div style={{width:20,height:10,borderRadius:3,border:"1.5px solid rgba(255,255,255,0.5)",
+                padding:"1.5px",display:"flex",alignItems:"center"}}>
+                <div style={{width:"74%",height:"100%",borderRadius:1.5,background:"rgba(255,255,255,0.85)"}}/>
+              </div>
+              <div style={{width:2,height:5,borderRadius:1,background:"rgba(255,255,255,0.35)"}}/>
+            </div>
+          </div>
+        </div>
+
+        {/* App screen — exact RoadmapPage background */}
+        <div style={{height:540,position:"relative",overflow:"hidden",
+          background:"linear-gradient(180deg,#1e1b4b 0%,#312e81 25%,#6366f1 50%,#c7d2fe 70%,#f8fafc 100%)"}}>
+          {/* Stars — opacity only, no scale (scale creates per-star compositor layers) */}
+          {[{t:"3%",l:"8%"},{t:"7%",l:"22%"},{t:"2%",l:"48%"},{t:"5%",l:"65%"},{t:"9%",l:"80%"},{t:"13%",l:"40%"},{t:"16%",l:"88%"}].map((s,i)=>(
+            <motion.div key={i} animate={{opacity:[0.15,0.85,0.15]}}
+              transition={{duration:2+i*0.45,repeat:Infinity,delay:i*0.3}}
+              style={{position:"absolute",top:s.t,left:s.l,width:2,height:2,borderRadius:"50%",
+                background:"rgba(255,255,255,0.8)"}}/>
+          ))}
+          {/* Mountain silhouettes — flattened to avoid texture tearing on scale */}
+          <div style={{position:"absolute",bottom:0,left:0,right:0,height:"26%",zIndex:1}}>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{width:"100%",height:"100%",display:"block"}}>
+              {MTN.map((m,i)=><polygon key={i} points={m.points} fill={m.color} opacity={m.opacity}/>)}
+            </svg>
+          </div>
+
+          {/* Top bar — exact match: white frosted glass, indigo wordmark, centered mode badge */}
+          <div style={{position:"absolute",top:0,left:0,right:0,zIndex:5,height:38,
+            background:"rgba(248,250,252,0.98)",
+            borderBottom:"1px solid rgba(0,0,0,0.06)",
+            display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 10px"}}>
+            {/* Left: mentorable wordmark */}
+            <div style={{display:"flex",alignItems:"center",gap:3}}>
+              <span style={{fontFamily:"system-ui,sans-serif",fontWeight:700,fontSize:"0.68rem",
+                color:"#4f46e5",letterSpacing:"-0.03em"}}>mentorable</span>
+              <div style={{width:3.5,height:3.5,borderRadius:"50%",background:"#6366f1",
+                boxShadow:"0 0 5px rgba(99,102,241,0.7)",flexShrink:0,marginBottom:1}}/>
+            </div>
+            {/* Center: mode badge */}
+            <div style={{position:"absolute",left:"50%",transform:"translateX(-50%)",
+              display:"inline-flex",alignItems:"center",gap:3,padding:"2px 7px",
+              borderRadius:999,border:"1.5px solid rgba(59,130,246,0.25)",
+              background:"rgba(59,130,246,0.06)"}}>
+              <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+              </svg>
+              <span style={{fontFamily:SANS,fontSize:"0.48rem",fontWeight:700,color:"#3b82f6"}}>Discovery Mode</span>
+            </div>
+            {/* Right: confidence meter stub */}
+            <div style={{display:"flex",alignItems:"center",gap:3}}>
+              <span style={{fontFamily:SANS,fontSize:"0.46rem",color:"#64748b",fontWeight:600}}>72%</span>
+              <div style={{width:28,height:5,borderRadius:999,background:"rgba(99,102,241,0.12)",overflow:"hidden"}}>
+                <div style={{width:"72%",height:"100%",background:"linear-gradient(90deg,#6366f1,#818cf8)",borderRadius:999}}/>
+              </div>
+            </div>
+          </div>
+
+          {/* Phase 1 header card — exact PhaseHeader style: #1e1b4b bg */}
+          <motion.div
+            initial={{opacity:0}} animate={iv?{opacity:1}:{}}
+            transition={{duration:0.5,delay:0.3}}
+            style={{position:"absolute",top:44,left:8,right:8,zIndex:3,
+              background:"#1e1b4b",borderRadius:10,padding:"8px 10px"}}>
+            {/* Gradient overlay like actual PhaseHeader */}
+            <div style={{position:"absolute",inset:0,borderRadius:10,
+              background:"linear-gradient(135deg,rgba(99,102,241,0.18) 0%,transparent 70%)",pointerEvents:"none"}}/>
+            <div style={{position:"relative",zIndex:1}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
+                <span style={{fontSize:"0.46rem",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",
+                  color:"rgba(165,180,252,0.8)"}}>Phase 1</span>
+                <span style={{fontSize:"0.46rem",fontWeight:600,color:"rgba(255,255,255,0.45)",
+                  background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",
+                  borderRadius:999,padding:"1px 5px"}}>4 weeks</span>
+              </div>
+              <div style={{fontFamily:"system-ui,sans-serif",fontWeight:700,fontSize:"0.62rem",color:"white",
+                marginBottom:2,lineHeight:1.2}}>Career Discovery</div>
+              <div style={{fontSize:"0.46rem",color:"rgba(255,255,255,0.55)",marginBottom:6,lineHeight:1.4}}>
+                Explore your strengths and interests
+              </div>
+              {/* Progress bar */}
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                <span style={{fontSize:"0.44rem",color:"rgba(255,255,255,0.4)"}}>Progress</span>
+                <span style={{fontSize:"0.44rem",color:"rgba(255,255,255,0.5)",fontWeight:600}}>3/6 milestones</span>
+              </div>
+              <div style={{height:4,background:"rgba(255,255,255,0.1)",borderRadius:999,overflow:"hidden"}}>
+                <motion.div initial={{scaleX:0}} animate={iv?{scaleX:0.5}:{}}
+                  transition={{duration:0.8,delay:0.5,ease:[0.22,1,0.36,1]}}
+                  style={{height:"100%",width:"100%",background:"linear-gradient(90deg,#6366f1,#818cf8)",
+                    borderRadius:999,transformOrigin:"0% 50%",willChange:"transform"}}/>
+              </div>
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+
+          {/* Path line — center vertical, exact PathLine colors */}
+          <div style={{position:"absolute",left:"50%",marginLeft:-1.5,top:148,bottom:60,width:3,zIndex:2,
+            background:"linear-gradient(180deg,#3B82F6 0%,#22C55E 50%,rgba(30,45,74,0.6) 50%,rgba(30,45,74,0.3) 100%)",
+            borderRadius:999}}/>
+
+          {/* Milestones — alternating left/right of center path */}
+          {/* Milestones — icon + label on same side, label always outside icon (away from path) */}
+          <div style={{position:"absolute",top:152,left:0,right:0,zIndex:3}}>
+            {milestones.map((m,i)=>{
+              const side = i%2===0 ? "left" : "right";
+              const labelColor = m.status==="completed"  ? "rgba(74,222,128,0.95)"
+                               : m.status==="in_progress"? "#ffffff"
+                               : m.status==="locked"     ? "rgba(148,163,184,0.55)"
+                               : "rgba(255,255,255,0.52)";
+              const labelEl = (
+                <span style={{
+                  fontSize:"0.54rem", fontWeight:m.status==="in_progress"?700:500,
+                  color:labelColor, lineHeight:1.25, letterSpacing:"0.01em",
+                  textShadow:m.status==="in_progress"?"0 0 8px rgba(59,130,246,0.7)":"none",
+                  maxWidth:50, flexShrink:0,
+                  textAlign:side==="left"?"right":"left",
+                }}>{m.label}</span>
+              );
+              return (
+                <motion.div key={i}
+                  initial={{opacity:0}} animate={iv?{opacity:1}:{}}
+                  transition={{duration:0.4,delay:0.5+i*0.1}}
+                  style={{display:"flex",alignItems:"center",marginBottom:10}}>
+                  {/* Left half: for side=left show [label · icon] flush right; else empty */}
+                  <div style={{width:"50%",display:"flex",justifyContent:"flex-end",
+                    alignItems:"center",paddingRight:10,gap:5}}>
+                    {side==="left" && <>{labelEl}<PhoneMilestone status={m.status} type={m.type} side={side}/></>}
+                  </div>
+                  {/* Right half: for side=right show [icon · label] flush left; else empty */}
+                  <div style={{width:"50%",display:"flex",justifyContent:"flex-start",
+                    alignItems:"center",paddingLeft:10,gap:5}}>
+                    {side==="right" && <><PhoneMilestone status={m.status} type={m.type} side={side}/>{labelEl}</>}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* Phase 2 locked card — visible on the light bottom of screen */}
+          <motion.div
+            initial={{opacity:0}} animate={iv?{opacity:1}:{}}
+            transition={{duration:0.5,delay:1.2}}
+            style={{position:"absolute",bottom:62,left:8,right:8,zIndex:3,
+              background:"rgba(255,255,255,0.94)",
+              border:"1.5px solid rgba(99,102,241,0.25)",
+              borderRadius:10,padding:"7px 10px",
+              boxShadow:"0 2px 12px rgba(99,102,241,0.12)",
+              display:"flex",alignItems:"center",gap:6}}>
+            <div style={{width:18,height:18,borderRadius:5,background:"rgba(99,102,241,0.08)",
+              border:"1px solid rgba(99,102,241,0.25)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{fontFamily:"system-ui,sans-serif",fontWeight:700,fontSize:"0.52rem",color:"#4338ca"}}>Phase 2: Skills Building</div>
+              <div style={{fontSize:"0.44rem",color:"#6366f1",marginTop:1,fontWeight:500}}>Complete Phase 1 to unlock</div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Home indicator */}
+        <div style={{height:20,background:"#000",display:"flex",alignItems:"center",justifyContent:"center",borderBottomLeftRadius:41,borderBottomRightRadius:41}}>
+          <div style={{width:100,height:4,borderRadius:999,background:"rgba(255,255,255,0.18)"}}/>
+        </div>
+        
+        </div>
+      </motion.div>
     </div>
   );
 }
 
-// ─── HOW IT WORKS ─────────────────────────────────────────────────────────
-const HOW_STEPS = [
-  { step: "01", icon: (featured) => <IconMic size={featured ? 44 : 36} color="#1d4ed8" sw={1.5}/>, title: "Talk to Mentorable", desc: "Have a 5-minute voice conversation. No forms, no checkboxes. Just a real conversation about you, your goals, and what makes you tick.", featured: true },
-  { step: "02", icon: () => <IconStar size={36} color="#1d4ed8" sw={1.5}/>, title: "See your scorecard", desc: "Get a personalized profile card showing your strengths, work style, and top career matches. Your \"wow moment.\"", featured: false },
-  { step: "03", icon: () => <IconNavigation size={36} color="#1d4ed8" sw={1.5}/>, title: "Get your roadmap", desc: "Receive a step-by-step career roadmap tailored to your goals, backed by real market data, and updated as you grow.", featured: false },
+// ─── Data flow (arc paths + animated particles) ────────────────────────────────
+function DataFlow() {
+  const ref=useRef(null); const iv=useInView(ref,{once:true,margin:"-60px"});
+  const steps=[
+    {n:1,stat:"2 min",sub:"voice interview",title:"Voice Onboarding",desc:"Our AI listens to your 2-minute voice interview and extracts your profile, values, and career instincts automatically."},
+    {n:2,stat:"92",sub:"avg score",title:"Skill Scorecard",desc:"See your 5-axis skill radar, top career path matches, and personalized strengths, all drawn from your voice data."},
+    {n:3,stat:"4",sub:"phases",title:"Adaptive Roadmap",desc:"Phase-by-phase milestones generated from your unique scorecard, updated as you hit goals and grow."},
+    {n:4,stat:"24/7",sub:"availability",title:"AI Guidance",desc:"Ask anything, anytime. Every answer is grounded in your personal data, not generic advice."},
+  ];
+  const NODE_X=[125,375,625,875];
+  const ARCS=[
+    {d:"M 125 48 Q 250 8 375 48", x1:125,mx:250,x2:375},
+    {d:"M 375 48 Q 500 8 625 48", x1:375,mx:500,x2:625},
+    {d:"M 625 48 Q 750 8 875 48", x1:625,mx:750,x2:875},
+  ];
+  return (
+    <div ref={ref} style={{position:"relative",width:"100%"}}>
+      {/* Arc connector SVG */}
+      <svg viewBox="0 0 1000 80" style={{width:"100%",height:80,overflow:"visible",display:"block",marginBottom:"1.5rem"}}>
+        <defs>
+          <linearGradient id="ag" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#1d4ed8"/><stop offset="100%" stopColor="#60a5fa"/>
+          </linearGradient>
+          <filter id="pf"><feGaussianBlur stdDeviation="3" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+        </defs>
+        {/* Static faint arcs */}
+        {ARCS.map((a,i)=><path key={i} d={a.d} fill="none" stroke="rgba(37,99,235,0.1)" strokeWidth="2"/>)}
+        {/* Animated drawing arcs */}
+        {ARCS.map((a,i)=>(
+          <motion.path key={i} d={a.d} fill="none" stroke="url(#ag)" strokeWidth="2.5"
+            filter="url(#pf)"
+            initial={{pathLength:0,opacity:0}} animate={iv?{pathLength:1,opacity:1}:{}}
+            transition={{duration:0.9,delay:0.25+i*0.22,ease:[0.22,1,0.36,1]}}/>
+        ))}
+        {/* Traveling particles (cx/cy animate along arc shape) */}
+        {iv && ARCS.map((a,i)=>
+          [0,1,2].map(j=>(
+            <motion.circle key={`${i}-${j}`} r="4" fill={B4} filter="url(#pf)"
+              animate={{cx:[a.x1,a.mx,a.x2], cy:[48,8,48], opacity:[0,1,1,0]}}
+              transition={{duration:1.8,delay:j*0.6+i*0.2,repeat:Infinity,ease:"easeInOut"}}/>
+          ))
+        )}
+        {/* Node circles */}
+        {NODE_X.map((x,i)=>(
+          <motion.g key={i} initial={{scale:0}} animate={iv?{scale:1}:{}}
+            transition={{duration:0.5,delay:0.1+i*0.15,ease:[0.22,1,0.36,1]}}
+            style={{transformOrigin:`${x}px 48px`}}>
+            <circle cx={x} cy={48} r={12} fill="white" stroke={BDR} strokeWidth="2"/>
+            <circle cx={x} cy={48} r={12} fill="none" stroke={P} strokeWidth="2"
+              strokeDasharray="75" strokeDashoffset={75*(1-RS[i]||0.8)}/>
+            <text x={x} y={48} textAnchor="middle" dominantBaseline="middle"
+              fontSize="10" fill={P} fontFamily={SANS} fontWeight="700">{i+1}</text>
+          </motion.g>
+        ))}
+      </svg>
+      {/* Cards */}
+      <Stagger style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"1.5rem"}}>
+        {steps.map((s)=>(
+          <motion.div key={s.n} variants={iV}
+            whileHover={{scale:1.025,boxShadow:SH_LG}}
+            style={{background:BG3,border:`1px solid ${BDR}`,borderRadius:20,
+              padding:"2rem 1.5rem",display:"flex",flexDirection:"column",gap:16,
+              boxShadow:SH,position:"relative",overflow:"hidden",transition:"box-shadow 0.25s"}}>
+            {/* Top accent bar */}
+            <div style={{position:"absolute",top:0,left:0,right:0,height:4,background:GRAD,
+              boxShadow:`0 0 16px rgba(37,99,235,0.5)`}}/>
+            {/* Big stat */}
+            <div>
+              <div style={{fontFamily:SANS,fontWeight:700,fontSize:"2.6rem",color:P,
+                lineHeight:1,letterSpacing:"-0.04em",
+                textShadow:`0 0 30px rgba(37,99,235,0.3)`}}>{s.stat}</div>
+              <div style={{fontFamily:SANS,fontSize:"0.68rem",color:FG3,textTransform:"uppercase",
+                letterSpacing:"0.1em",marginTop:4,fontWeight:600}}>{s.sub}</div>
+            </div>
+            <div>
+              <div style={{fontFamily:SANS,fontWeight:700,fontSize:"0.95rem",color:FG,marginBottom:8}}>{s.title}</div>
+              <div style={{fontFamily:SANS,fontWeight:300,fontSize:"0.8rem",color:FG3,lineHeight:1.78}}>{s.desc}</div>
+            </div>
+          </motion.div>
+        ))}
+      </Stagger>
+    </div>
+  );
+}
+
+// ─── Noise ─────────────────────────────────────────────────────────────────────
+const Noise = () => (
+  <div style={{position:"fixed",inset:0,zIndex:9999,pointerEvents:"none",opacity:0.018}}>
+    <svg width="100%" height="100%"><filter id="nf"><feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#nf)"/></svg>
+  </div>
+);
+
+// ─── Navbar ────────────────────────────────────────────────────────────────────
+function Navbar() {
+  const [sc,setSc]=useState(false);
+  useEffect(()=>{ const h=()=>setSc(window.scrollY>80); window.addEventListener("scroll",h,{passive:true}); return ()=>window.removeEventListener("scroll",h); },[]);
+  const go=p=>{ window.history.pushState({},""  ,p); window.dispatchEvent(new PopStateEvent("popstate")); };
+  return (
+    <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:100,
+      padding:"1.1rem 2.5rem",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"2rem",
+      background:sc?"rgba(255,255,255,0.95)":"transparent",
+      backdropFilter:sc?"blur(24px)":"none",WebkitBackdropFilter:sc?"blur(24px)":"none",
+      borderBottom:sc?`1px solid ${BDR}`:"1px solid transparent",
+      boxShadow:sc?`0 2px 40px rgba(37,99,235,0.1),0 1px 4px rgba(0,0,0,0.04)`:"none",
+      transition:"all 0.35s"}}>
+      <div style={{fontFamily:SANS,fontWeight:700,fontSize:"1.05rem",letterSpacing:"-0.03em",flexShrink:0,
+        color:sc?FG:"#fff",transition:"color 0.35s"}}>mentorable</div>
+      <div style={{display:"flex",alignItems:"center",gap:"1.25rem"}}>
+        {sc?(
+          <><PlainBtn onClick={()=>go("/auth")}>Log In</PlainBtn>
+          <GradBtn onClick={()=>go("/auth")}>Get Started <ArrowRight color="#fff"/></GradBtn></>
+        ):(
+          <><PlainBtn onClick={()=>go("/auth")} color="rgba(255,255,255,0.68)">Log In</PlainBtn>
+          <GlowBtn onClick={()=>go("/auth")}>Get Started <ArrowRight color="#fff"/></GlowBtn></>
+        )}
+      </div>
+    </nav>
+  );
+}
+
+// ─── Galaxy ────────────────────────────────────────────────────────────────────
+const GSLOTS=[{angle:0,label:"Engineering",sub:"STEM & tech"},{angle:45,label:"Medicine",sub:"Health sciences"},{angle:90,label:"Design",sub:"Creative & UX"},{angle:135,label:"Law",sub:"Policy & advocacy"},{angle:180,label:"Business",sub:"Entrepreneurship"},{angle:225,label:"Research",sub:"Academia"},{angle:270,label:"Education",sub:"Teaching"},{angle:315,label:"Leadership",sub:"Civic & nonprofit"}];
+function Galaxy() {
+  const SZ=700,RAD=230,IS=152,SP=30;
+  return (
+    <div style={{position:"relative",width:SZ,height:SZ,flexShrink:0,overflow:"hidden"}}>
+      <div style={{position:"absolute",top:"50%",left:"50%",width:RAD*2,height:RAD*2,borderRadius:"50%",
+        border:`1px solid ${BDR}`,transform:"translate(-50%,-50%)",pointerEvents:"none",
+        boxShadow:`0 0 80px rgba(37,99,235,0.08)`}}/>
+      <motion.div animate={{rotate:360}} transition={{duration:SP,repeat:Infinity,ease:"linear"}} style={{position:"absolute",inset:0,pointerEvents:"none"}}>
+        {GSLOTS.map(({angle,label,sub})=>{
+          const r=(angle-90)*Math.PI/180,gx=SZ/2+RAD*Math.cos(r),gy=SZ/2+RAD*Math.sin(r);
+          return (
+            <motion.div key={label} animate={{rotate:-360}} transition={{duration:SP,repeat:Infinity,ease:"linear"}}
+              style={{position:"absolute",left:gx-IS/2,top:gy-IS/2,width:IS,height:IS}}>
+              <div
+                style={{width:"100%",height:"100%",borderRadius:18,background:BG3,border:`1px solid ${BDR}`,
+                  boxShadow:SH,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:5,cursor:"default"}}>
+                <div style={{fontFamily:SANS,fontWeight:600,fontSize:"0.82rem",color:FG,textAlign:"center",padding:"0 8px"}}>{label}</div>
+                <div style={{fontFamily:SANS,fontSize:"0.62rem",color:FG3,textAlign:"center",padding:"0 8px"}}>{sub}</div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </motion.div>
+      <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}>
+        {[0,1,2].map(i=>(
+          <motion.div key={i} animate={{scale:[1,1.65+i*0.2],opacity:[0.22,0]}}
+            transition={{duration:2.8,delay:i*0.9,repeat:Infinity,ease:"easeOut"}}
+            style={{position:"absolute",inset:-22-i*12,borderRadius:"50%",border:`1px solid rgba(37,99,235,0.25)`}}/>
+        ))}
+        <div style={{width:182,height:182,borderRadius:"50%",background:GRAD,
+          boxShadow:`0 0 70px rgba(37,99,235,0.5),0 0 140px rgba(37,99,235,0.22)`,
+          display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
+          <div style={{fontFamily:SANS,fontWeight:700,fontSize:"0.92rem",color:"#fff"}}>mentorable</div>
+          <div style={{fontFamily:SANS,fontSize:"0.62rem",color:"rgba(255,255,255,0.72)",textAlign:"center",lineHeight:1.5,padding:"0 18px"}}>AI Career Mentor</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Ask Anything response data ────────────────────────────────────────────────
+const RESPONSES=[
+  {r:"Based on your creativity (91%) and problem-solving (88%), your top fits are Software Engineer, Product Designer, and UX Researcher.",tags:["Creativity: 91%","Problem Solving: 88%","Technical: 78%"]},
+  {r:"Your voice interview flagged strong leadership instincts. Lead with project outcomes. Admissions teams respond to students who started things.",tags:["Communication: 76%","Self-Starter","Leadership: 64%"]},
+  {r:"You're 2 milestones from finishing Phase 1. Reaching out to one mentor this month pushes your confidence score above 80.",tags:["Phase 1: 50%","Confidence: 72%","2 tasks left"]},
+  {r:"Tracking ahead of schedule. Your scorecard improved 12 points since onboarding and your engagement is in the top 20% of students.",tags:["Score: 92/100","+12 since start","Top 20%"]},
 ];
 
-function HowItWorksSection() {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
+// Module-level flag: resets on every page load, persists within SPA navigation
+let _introPlayed = false;
+
+// ─── Intro Animation ───────────────────────────────────────────────────────────
+function IntroAnimation({ onComplete }) {
+  const wrapperRef   = useRef(null);
+  const bgRef        = useRef(null);
+  const textContRef  = useRef(null);
+  const brandRef     = useRef(null);
+  const svgRef       = useRef(null);
+  const path1Ref     = useRef(null);
+  const path2Ref     = useRef(null);
+  const path3Ref     = useRef(null);
+  const dot1Ref      = useRef(null);
+  const dot2Ref      = useRef(null);
+  const dot3Ref      = useRef(null);
+  const finalTextRef = useRef(null);
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    gsap.registerPlugin(MotionPathPlugin, TextPlugin);
+
+    let tl;
+
+    const rafId = requestAnimationFrame(() => {
+      const paths = [path1Ref.current, path2Ref.current, path3Ref.current];
+      paths.forEach(p => {
+        const len = p.getTotalLength();
+        gsap.set(p, { strokeDasharray: len, strokeDashoffset: len, opacity: 0 });
+      });
+
+      gsap.set(brandRef.current, { y: 20, opacity: 0 });
+      gsap.set([dot1Ref.current, dot2Ref.current, dot3Ref.current], {
+        scale: 0, opacity: 0, transformOrigin: "50% 50%"
+      });
+
+      tl = gsap.timeline({
+        onComplete: () => {
+          document.body.style.overflow = "";
+          onCompleteRef.current?.();
+        }
+      });
+      tl.timeScale(1.5);
+
+      tl.to(brandRef.current, { y: 0, opacity: 1, duration: 1.5, ease: "power2.out" }, 0.5);
+      tl.to([dot1Ref.current, dot2Ref.current, dot3Ref.current], {
+        scale: 1, opacity: 1, duration: 0.4, stagger: 0.1, ease: "back.out(1.5)"
+      }, 1.5);
+
+      const d1 = dot1Ref.current, d2 = dot2Ref.current, d3 = dot3Ref.current;
+      tl.to(d1, { attr: { cy: 300 }, duration: 0.35, yoyo: true, repeat: 5, ease: "sine.inOut" }, 2.0);
+      tl.to(d2, { attr: { cy: 300 }, duration: 0.35, yoyo: true, repeat: 5, ease: "sine.inOut" }, 2.12);
+      tl.to(d3, { attr: { cy: 300 }, duration: 0.35, yoyo: true, repeat: 5, ease: "sine.inOut" }, 2.24);
+
+      tl.to(d1, { attr: { cx: 400, cy: 380 }, duration: 0.55, ease: "power3.inOut" }, 4.4);
+      tl.to(d2, { attr: { cx: 400, cy: 380 }, duration: 0.55, ease: "power3.inOut" }, 4.4);
+      tl.to(d3, { attr: { cx: 400, cy: 380 }, duration: 0.55, ease: "power3.inOut" }, 4.4);
+
+      tl.to(paths, { strokeDashoffset: 0, opacity: 1, duration: 1.8, ease: "power2.inOut" }, 5.3);
+
+      tl.to(d1, { duration: 3.5, ease: "power2.inOut", motionPath: { path: path1Ref.current, align: path1Ref.current, alignOrigin: [0.5, 0.5] } }, 5.8);
+      tl.to(d2, { duration: 3.8, ease: "power2.inOut", motionPath: { path: path2Ref.current, align: path2Ref.current, alignOrigin: [0.5, 0.5] } }, 5.8);
+      tl.to(d3, { duration: 3.2, ease: "power2.inOut", motionPath: { path: path3Ref.current, align: path3Ref.current, alignOrigin: [0.5, 0.5] } }, 5.8);
+
+      tl.to([path1Ref.current, path2Ref.current, d1, d2], { opacity: 0, duration: 0.9, ease: "power2.inOut" }, 9.2);
+      tl.to(path3Ref.current, { stroke: "#2563EB", strokeWidth: 16, duration: 0.9, ease: "power2.inOut" }, 9.2);
+
+      tl.to(d3, { attr: { r: 3200 }, duration: 2, ease: "power2.in" }, 9.8);
+
+      tl.to(bgRef.current, { backgroundColor: "#2563EB", duration: 0.15 }, 11.5);
+      tl.to([textContRef.current, path1Ref.current, path2Ref.current, path3Ref.current], { opacity: 0, duration: 0.1 }, 11.5);
+
+      tl.to(finalTextRef.current, { text: "Ready to start your journey?", duration: 2.2, ease: "power1.inOut" }, 12.0);
+
+      tl.to(finalTextRef.current, { opacity: 0, duration: 1.2, ease: "power2.inOut" }, 15.2);
+      tl.to(svgRef.current, { opacity: 0, duration: 1.2, ease: "power2.inOut" }, 15.2);
+      tl.to(wrapperRef.current, { opacity: 0, duration: 1.2, ease: "power2.inOut" }, 15.2);
+    });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      document.body.style.overflow = "";
+      tl?.kill();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <section id="how-it-works" style={{ padding: "6rem 2rem 7rem", background: "#f8fafc" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <FadeIn style={{ textAlign: "center", marginBottom: "4.5rem" }}>
-          <SectionLabel>The Process</SectionLabel>
-          <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: "clamp(2.2rem, 4vw, 3.25rem)", color: "#0f172a", letterSpacing: "-0.025em", lineHeight: 1.12, marginTop: "1rem" }}>
-            Three steps to clarity.
-          </h2>
-          {/* Simple centered divider */}
-          <div style={{ width: 60, height: 1, background: "#1d4ed8", borderRadius: 999, margin: "1.25rem auto 0", opacity: 0.4 }} />
-        </FadeIn>
+    <div ref={wrapperRef} style={{
+      position: "fixed", inset: 0, zIndex: 99999,
+      display: "flex", justifyContent: "center", alignItems: "center",
+      pointerEvents: "all"
+    }}>
+      <div ref={bgRef} style={{ position: "absolute", inset: 0, backgroundColor: "#FAFAFA", zIndex: 1 }} />
+      <div style={{ position: "relative", width: 800, height: 600, zIndex: 5 }}>
+        <div ref={textContRef} style={{ position: "absolute", top: 180, left: 0, right: 0, display: "flex", justifyContent: "center", alignItems: "center", zIndex: 10 }}>
+          <h1 ref={brandRef} style={{ fontFamily: "'Inter', Arial, sans-serif", fontSize: 84, fontWeight: 500, color: "#2A2B2E", margin: 0, letterSpacing: "-2px" }}>mentorable</h1>
+        </div>
+        <svg ref={svgRef} viewBox="0 0 800 600" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 15, overflow: "visible" }}>
+          <defs>
+            <filter id="anim-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+              <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <path ref={path1Ref} d="M 400 380 C 350 440, 200 460, 120 550" fill="none" stroke="#E5E7EB" strokeWidth="12" strokeLinecap="round"/>
+          <path ref={path2Ref} d="M 400 380 C 400 450, 400 500, 400 600" fill="none" stroke="#E5E7EB" strokeWidth="12" strokeLinecap="round"/>
+          <path ref={path3Ref} d="M 400 380 C 450 440, 600 460, 680 550" fill="none" stroke="#E5E7EB" strokeWidth="12" strokeLinecap="round"/>
+          <circle ref={dot1Ref} cx="370" cy="310" r="8" fill="#2563EB" filter="url(#anim-glow)"/>
+          <circle ref={dot2Ref} cx="400" cy="310" r="8" fill="#2563EB" filter="url(#anim-glow)"/>
+          <circle ref={dot3Ref} cx="430" cy="310" r="8" fill="#2563EB" filter="url(#anim-glow)"/>
+        </svg>
+      </div>
+      <div style={{ position: "fixed", inset: 0, display: "flex", justifyContent: "center", alignItems: "center", zIndex: 50, pointerEvents: "none" }}>
+        <h1 ref={finalTextRef} style={{ fontFamily: "'Inter', Arial, sans-serif", fontSize: 80, fontWeight: 600, color: "#FFFFFF", margin: 0, letterSpacing: "-2.5px", textAlign: "center", lineHeight: 1.1, maxWidth: 1200, padding: "0 40px" }}></h1>
+      </div>
+    </div>
+  );
+}
 
-        <div ref={ref} style={{ position: "relative" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", position: "relative", zIndex: 1 }}>
-            {HOW_STEPS.map(({ step, icon, title, desc, featured }, i) => (
-              <motion.div key={step}
-                initial={{ opacity: 0, rotateY: 15, y: 20 }}
-                animate={inView ? { opacity: 1, rotateY: 0, y: 0 } : {}}
-                transition={{ duration: 0.65, delay: i * 0.15, ease: [0.22, 1, 0.36, 1] }}
-                style={{ transformPerspective: "600px", transform: i === 1 ? "translateY(2rem)" : undefined }}>
-                <div className={`step-card${featured ? " step-card-featured" : ""}`}>
-                  {/* START HERE badge on step 01 */}
-                  {featured && (
-                    <div style={{ position: "absolute", top: "1rem", right: "1rem", background: "#2563eb", color: "white", fontSize: "0.625rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", borderRadius: 4, padding: "2px 8px" }}>
-                      Start Here
+// ─── Landing page ──────────────────────────────────────────────────────────────
+export default function LandingPage() {
+  const go=p=>{ window.history.pushState({},""  ,p); window.dispatchEvent(new PopStateEvent("popstate")); };
+
+  const typedText = useTypingCycle(CHAT_STRINGS);
+  // Detect when typing has completed (text exactly matches one of the strings)
+  const matchedIdx = CHAT_STRINGS.findIndex(s => s === typedText);
+  const typingDone = matchedIdx >= 0;
+  // Keep the last valid response visible during the exit animation
+  const [savedIdx, setSavedIdx] = useState(0);
+  useEffect(() => { if(matchedIdx >= 0) setSavedIdx(matchedIdx); }, [matchedIdx]);
+  const cur = RESPONSES[savedIdx];
+  const [showIntro, setShowIntro] = useState(false); // disabled — set to () => !_introPlayed to re-enable
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+  const [showVisual, setShowVisual] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setShowVisual(true), 600); return () => clearTimeout(t); }, []);
+
+  return (
+    <div style={{background:BG,minHeight:"100vh",color:FG,fontFamily:SANS,fontSize:16,lineHeight:"150%",overflowX:"hidden"}}>
+      {showIntro && <IntroAnimation onComplete={() => { _introPlayed = true; window.scrollTo(0, 0); setShowIntro(false); }} />}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+        html,body{overflow-x:hidden;max-width:100%;overflow-anchor:none;}
+        *{box-sizing:border-box;margin:0;padding:0;}
+        @media(max-width:900px){
+          .lp-s{flex-direction:column!important;text-align:center;}
+          .lp-hv{display:none!important;}
+          .lp-g4{grid-template-columns:1fr 1fr!important;}
+          .lp-gx{display:none!important;}
+          .lp-fg{grid-template-columns:1fr!important;}
+          .lp-fi{display:none!important;}
+        }
+        @media(max-width:560px){.lp-g4{grid-template-columns:1fr!important;}}
+      `}</style>
+      <Noise/>
+
+      <Navbar/>
+
+      {/* ── HERO ──────────────────────────────────────────────────────────────── */}
+      <section
+        style={{position:"relative",minHeight:"100vh",display:"flex",alignItems:"center",
+          overflow:"hidden",
+          background:"linear-gradient(to bottom, #163380 0%, #2350b8 50%, #4a7ad4 100%)"}}>
+        {/* Left — content */}
+        <div style={{flex:"0 0 55%",position:"relative",zIndex:1,pointerEvents:"none",display:"flex",flexDirection:"column",justifyContent:"center",
+          padding:"clamp(5rem,8vw,8rem) clamp(2rem,4vw,4rem) 5rem clamp(2rem,6vw,7rem)"}}>
+          {/* Badge */}
+          <motion.div
+            initial={{ x: -50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            style={{willChange:"transform, opacity"}}
+            style={{display:"inline-flex",alignItems:"center",gap:8,padding:"6px 14px",
+              border:"1px solid rgba(255,255,255,0.18)",borderRadius:999,marginBottom:"2rem",
+              background:"rgba(255,255,255,0.06)",backdropFilter:"blur(12px)",alignSelf:"flex-start"}}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 8px #22c55e"}}/>
+            <span style={{fontFamily:SANS,fontSize:"0.78rem",color:"rgba(255,255,255,0.8)"}}>AI-powered career guidance for high schoolers</span>
+          </motion.div>
+
+          {/* Heading — zooms in from large */}
+          <motion.h1
+            initial={{ scale: 1.18, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 1.1, delay: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            style={{margin:"0 0 1.5rem",letterSpacing:"-0.03em",willChange:"transform, opacity"}}>
+            <span style={{
+              fontFamily:SANS, fontWeight:700,
+              fontSize:"clamp(4rem,7vw,7.5rem)", lineHeight:0.97,
+              background:"linear-gradient(135deg,#ffffff 0%,#93c5fd 55%,#60a5fa 100%)",
+              WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
+              backgroundClip:"text", display:"block",
+              filter:"drop-shadow(0 0 35px rgba(147,197,253,0.95)) drop-shadow(0 0 80px rgba(96,165,250,0.6)) drop-shadow(0 0 120px rgba(37,99,235,0.35))",
+            }}>Own your future.</span>
+          </motion.h1>
+
+          {/* Subtitle */}
+          <motion.p
+            initial={{ y: 28, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            style={{fontFamily:SANS,fontWeight:500,fontSize:"1.3rem",color:"rgba(255,255,255,0.85)",
+              lineHeight:1.75,maxWidth:520,margin:"0 0 0.7rem"}}>
+            Mentorable is your personal AI career mentor.
+          </motion.p>
+          <motion.p
+            initial={{ y: 28, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.72, ease: [0.16, 1, 0.3, 1] }}
+            style={{fontFamily:SANS,fontWeight:400,fontSize:"1.05rem",color:"rgba(255,255,255,0.48)",
+              lineHeight:1.9,maxWidth:480,margin:"0 0 2.75rem"}}>
+            Discover your strengths, get a personalized roadmap, and take action. All from a 2-minute voice conversation.
+          </motion.p>
+
+          {/* Buttons */}
+          <motion.div
+            initial={{ y: 35, opacity: 0, scale: 0.96 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7, delay: 0.88, ease: [0.34, 1.56, 0.64, 1] }}
+            style={{display:"flex",alignItems:"center",gap:"1rem",flexWrap:"wrap",pointerEvents:"auto",willChange:"transform, opacity"}}>
+            <GlowBtn onClick={()=>go("/auth")}>Get Started <ArrowRight color="#fff"/></GlowBtn>
+            <motion.button
+              onClick={()=>document.getElementById("hiw")?.scrollIntoView({behavior:"smooth"})}
+              whileHover={{background:"rgba(255,255,255,0.18)",borderColor:"rgba(255,255,255,0.5)"}}
+              style={{fontFamily:SANS,fontSize:"0.9rem",fontWeight:600,color:"#fff",
+                background:"rgba(255,255,255,0.08)",
+                border:"1.5px solid rgba(255,255,255,0.28)",borderRadius:999,
+                padding:"0.82rem 1.75rem",cursor:"pointer",
+                display:"inline-flex",alignItems:"center",gap:8,
+                backdropFilter:"blur(10px)",transition:"background 0.2s,border-color 0.2s"}}>
+              How it works <ArrowUpRight color="rgba(255,255,255,0.85)"/>
+            </motion.button>
+          </motion.div>
+        </div>
+
+        {/* Right — 3D Hero Visual (deferred to avoid competing with entrance animations) */}
+        <div style={{flex:"0 0 45%",height:"100vh",overflow:"visible",pointerEvents:"none"}}>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: showVisual ? 1 : 0 }}
+            transition={{ duration: 2.0, ease: "easeOut" }}
+            style={{ width:"100%", height:"100%" }}>
+            {showVisual && <HeroVisual />}
+          </motion.div>
+        </div>
+
+        {/* Scroll indicator */}
+        <motion.div
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+          style={{position:"absolute",bottom:"2.5rem",left:"50%",transform:"translateX(-50%)",
+            pointerEvents:"none",opacity:0.6}}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </motion.div>
+
+      </section>
+
+      {/* hero → light — dark navy fades to page bg */}
+      <SG from="#4a7ad4" mid="#b8cff5" to={BG} h={280}/>
+
+      {/* ── SIMPLIFY YOUR JOURNEY ─────────────────────────────────────────────── */}
+      <section id="hiw" style={{padding:"4rem 2.5rem 7rem",background:BG}}>
+        <div style={{maxWidth:1100,margin:"0 auto"}}>
+          <FadeUp style={{marginBottom:"5rem",maxWidth:580,transform:"translateY(3rem)"}}>
+            <Heading italic="Simplify" rest="your journey." size="clamp(2.8rem,5vw,4rem)"/>
+          </FadeUp>
+          {[
+            {tag:"VOICE ONBOARDING",title:"Know yourself.",
+              desc:"Talk for two minutes. Our AI listens for signals that forms and surveys miss, extracting your values, passions, and working style with precision.",
+              items:["Interests and passions","Work style and values","Career curiosity and goals","Communication patterns"],
+              visual:<VoiceBlob/>,
+              bg:"linear-gradient(135deg,#f0f9ff 0%,#dbeafe 55%,#f0f9ff 100%)"},
+            {tag:"SCORECARD",title:"See your strengths.",
+              desc:"Get a personalized card that maps your skills, top career matches, and growth areas. Visual, shareable, and permanently yours.",
+              items:["5-dimension skill radar","Top career path matches","Strength and growth labels","Downloadable + shareable"],
+              visual:<ScoreVisual/>,
+              bg:"linear-gradient(135deg,#eef2ff 0%,#c7d2fe 55%,#eef2ff 100%)"},
+            {tag:"ROADMAP",title:"Follow your path.",
+              desc:"A phase-by-phase career guide built specifically for you, updated as you take action and grow toward your goals.",
+              items:["Phase-by-phase milestones","Adaptive to your progress","Confidence direction score","Unlocks as you grow"],
+              visual:<RoadmapCard/>,
+              bg:"linear-gradient(135deg,#faf5ff 0%,#ddd6fe 55%,#faf5ff 100%)"},
+          ].map((feat,i)=>(
+            <FeatureScrollBox key={feat.tag}>
+              {/* Per-row wrapper */}
+              <div style={{
+                position:"relative",
+                paddingTop:"3.5rem",
+                paddingBottom:"3.5rem",
+                marginBottom:"2.5rem",
+              }}>
+                {/* Full-width colored band — fills wrapper height exactly, extends horizontally */}
+                {feat.bg && (
+                  <div style={{
+                    position:"absolute",
+                    top:0, bottom:0,
+                    left:"-7rem", right:"-7rem",
+                    background:feat.bg,
+                    borderRadius:36,
+                    zIndex:0,
+                    pointerEvents:"none",
+                  }}/>
+                )}
+
+                <div style={{position:"relative",zIndex:1}}>
+                  <div className="lp-s" style={{
+                    display:"flex",alignItems:"center",gap:"5rem",
+                    flexDirection:i%2===0?"row":"row-reverse",
+                  }}>
+                    {/* Cluely-style text panel */}
+                    <div style={{flex:"0 0 44%"}}>
+                      <div style={{
+                        background: feat.bg ? "rgba(255,255,255,0.96)" : "rgba(255,255,255,0.92)",
+                        border:`1px solid rgba(37,99,235,${feat.bg?"0.14":"0.11"})`,
+                        borderRadius:22,
+                        padding:"2.25rem 2.5rem",
+                        boxShadow:"0 4px 40px rgba(37,99,235,0.09),0 1px 4px rgba(0,0,0,0.04)",
+                        backdropFilter:"blur(8px)",
+                      }}>
+                        <Label>{feat.tag}</Label>
+                        <h3 style={{fontFamily:SANS,fontWeight:700,fontSize:"clamp(2rem,3.5vw,2.6rem)",
+                          lineHeight:1.12,color:FG,marginBottom:"1rem",letterSpacing:"-0.02em"}}>{feat.title}</h3>
+                        <p style={{fontFamily:SANS,fontWeight:400,fontSize:"0.92rem",color:FG3,
+                          lineHeight:1.9,marginBottom:"1.75rem",maxWidth:380}}>{feat.desc}</p>
+                        <ul style={{listStyle:"none",display:"flex",flexDirection:"column",gap:13}}>
+                          {feat.items.map(it=>(
+                            <li key={it} style={{display:"flex",alignItems:"center",gap:12}}>
+                              <div style={{width:20,height:20,borderRadius:6,background:`rgba(37,99,235,0.08)`,
+                                border:`1px solid rgba(37,99,235,0.18)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                                <Check/>
+                              </div>
+                              <span style={{fontFamily:SANS,fontSize:"0.875rem",color:FG2,fontWeight:500}}>{it}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
+                    <div className="lp-fi" style={{flex:1,display:"flex",justifyContent:"center"}}>
+                      {/* RoadmapCard has its own float — skip the outer float to avoid stacked transforms */}
+                      {i === 2 ? feat.visual : (
+                        <motion.div animate={{y:[0,-10,0]}} transition={{duration:5+i*1.2,repeat:Infinity,ease:"easeInOut"}}>
+                          {feat.visual}
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </FeatureScrollBox>
+          ))}
+        </div>
+      </section>
+
+      {/* light → dark navy — TALL multi-stop for dramatic fade-in */}
+      <div style={{height:380,background:`linear-gradient(to bottom,${BG} 0%,rgba(180,205,255,0.7) 28%,rgba(37,80,200,0.55) 58%,${DARK} 100%)`,pointerEvents:"none",flexShrink:0}}/>
+
+      {/* ── ASK ANYTHING (dark island) ────────────────────────────────────────── */}
+      <section style={{padding:"4rem 2.5rem 7rem",background:DARK,position:"relative",overflow:"hidden"}}>
+        {/* Ambient orbs */}
+        <div style={{position:"absolute",top:"-15%",left:"-8%",width:600,height:600,borderRadius:"50%",
+          background:"radial-gradient(circle,rgba(37,99,235,0.22) 0%,transparent 65%)",
+          filter:"blur(70px)",pointerEvents:"none"}}/>
+        <div style={{position:"absolute",bottom:"-10%",right:"-6%",width:440,height:440,borderRadius:"50%",
+          background:"radial-gradient(circle,rgba(59,130,246,0.14) 0%,transparent 65%)",
+          filter:"blur(60px)",pointerEvents:"none"}}/>
+        <div style={{maxWidth:900,margin:"0 auto",position:"relative",zIndex:1}}>
+          <FadeUp style={{marginBottom:"3.5rem"}}>
+            <Heading italic="Ask" rest="anything." size="clamp(2.8rem,5vw,4rem)" light/>
+            <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.95rem",
+              color:"rgba(255,255,255,0.48)",lineHeight:1.95,maxWidth:480,marginTop:"1.1rem"}}>
+              Every answer is grounded in your personal scorecard, roadmap, and real-world progress. Not generic advice.
+            </p>
+          </FadeUp>
+          <FadeUp delay={0.1}>
+            <div style={{position:"relative", minHeight: 340}}>
+              {/* Rotating conic glow border */}
+              <div style={{position:"absolute",inset:-1,borderRadius:20,overflow:"hidden",pointerEvents:"none"}}>
+                <motion.div animate={{rotate:[0,360]}} transition={{duration:8,repeat:Infinity,ease:"linear"}}
+                  style={{position:"absolute",top:"50%",left:"50%",width:"220%",height:"220%",marginLeft:"-110%",marginTop:"-110%",
+                    background:"conic-gradient(from 0deg,rgba(37,99,235,0.7) 0deg,transparent 50deg,transparent 310deg,rgba(37,99,235,0.7) 360deg)"}}/>
+              </div>
+              {/* Card */}
+              <div style={{background:"linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))",
+                border:"1px solid rgba(255,255,255,0.07)",borderRadius:20,overflow:"hidden",
+                boxShadow:`0 0 100px rgba(37,99,235,0.15),0 30px 80px rgba(0,0,0,0.5)`}}>
+                {/* Input bar */}
+                <div style={{padding:"1.2rem 1.6rem",
+                  background:"linear-gradient(0deg,#0c1020,#181f35)",
+                  borderBottom:"1px solid rgba(255,255,255,0.06)",
+                  display:"flex",alignItems:"center",gap:14}}>
+                  {/* Live indicator */}
+                  <motion.div animate={{opacity:[1,0.2,1]}} transition={{duration:1.3,repeat:Infinity}}
+                    style={{width:9,height:9,borderRadius:"50%",background:B4,flexShrink:0,
+                      boxShadow:`0 0 12px ${B4}`}}/>
+                  {/* Typed text */}
+                  <span style={{fontFamily:"'Roboto Mono',monospace",fontSize:"0.92rem",color:"rgba(255,255,255,0.92)",
+                    flex:1,minHeight:"1.3em",letterSpacing:"0.01em"}}>
+                    {typedText}
+                    <motion.span animate={{opacity:[1,0,1]}} transition={{duration:0.95,repeat:Infinity}}
+                      style={{display:"inline-block",width:2,height:"0.85em",background:B4,
+                        verticalAlign:"text-bottom",marginLeft:2,boxShadow:`0 0 8px ${B4}`}}/>
+                  </span>
+                  <div style={{padding:"5px 14px",background:`rgba(37,99,235,0.22)`,
+                    border:`1px solid rgba(37,99,235,0.4)`,borderRadius:999,
+                    fontFamily:SANS,fontSize:"0.65rem",color:B4,fontWeight:700,letterSpacing:"0.09em",flexShrink:0}}>
+                    MENTORABLE AI
+                  </div>
+                </div>
+                {/* Response — appears when typing completes */}
+                <AnimatePresence>
+                  {typingDone && (
+                    <motion.div
+                      initial={{opacity:0,height:0}}
+                      animate={{opacity:1,height:"auto", transition:{duration:0.55,ease:[0.22,1,0.36,1]}}}
+                      exit={{opacity:0,height:0, transition:{duration:1.6,ease:[0.4,0,0.2,1]}}}>
+                      {/* White response panel */}
+                      <div style={{background:"#ffffff",borderTop:"1px solid rgba(37,99,235,0.1)",
+                        display:"grid",gridTemplateColumns:"1fr 1fr"}}>
+                        <div style={{padding:"1.75rem",borderRight:"1px solid rgba(37,99,235,0.08)"}}>
+                          <div style={{fontFamily:SANS,fontWeight:700,fontSize:"0.68rem",color:FG3,
+                            letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"0.85rem"}}>Insight</div>
+                          <motion.p initial={{opacity:0,y:8}} animate={{opacity:1,y:0}}
+                            transition={{duration:0.45,delay:0.1}}
+                            style={{fontFamily:SANS,fontWeight:400,fontSize:"0.875rem",
+                              color:FG,lineHeight:1.9}}>
+                            {cur.r}
+                          </motion.p>
+                        </div>
+                        <div style={{padding:"1.75rem"}}>
+                          <div style={{fontFamily:SANS,fontWeight:700,fontSize:"0.68rem",color:FG3,
+                            letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"0.85rem"}}>Context signals</div>
+                          <div style={{display:"flex",flexDirection:"column",gap:9}}>
+                            {cur.tags.map((tag,i)=>(
+                              <motion.div key={tag} initial={{opacity:0,x:14}} animate={{opacity:1,x:0}}
+                                transition={{duration:0.4,delay:0.18+i*0.11}}
+                                style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",
+                                  background:`rgba(37,99,235,0.05)`,border:`1px solid ${BDR}`,
+                                  borderRadius:10}}>
+                                <div style={{width:5,height:5,borderRadius:"50%",background:P,flexShrink:0,
+                                  boxShadow:`0 0 6px rgba(37,99,235,0.5)`}}/>
+                                <span style={{fontFamily:SANS,fontSize:"0.82rem",fontWeight:500,color:FG2}}>{tag}</span>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
                   )}
-                  {/* Icon container */}
-                  <div style={{ width: 56, height: 56, borderRadius: 12, background: featured ? "#dbeafe" : "linear-gradient(135deg, #eff6ff, #e0e7ff)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.25rem" }}>
-                    <div style={featured ? { filter: "drop-shadow(0 0 8px rgba(37,99,235,0.4))" } : {}}>
-                      {icon(featured)}
-                    </div>
+                </AnimatePresence>
+              </div>
+            </div>
+          </FadeUp>
+        </div>
+      </section>
+
+      {/* dark navy → light — TALL multi-stop fade-out */}
+      <div style={{height:380,background:`linear-gradient(to bottom,${DARK} 0%,rgba(37,80,200,0.55) 42%,rgba(180,205,255,0.7) 72%,${BG} 100%)`,pointerEvents:"none",flexShrink:0}}/>
+
+      {/* ── GALAXY ────────────────────────────────────────────────────────────── */}
+      <section style={{padding:"4rem 2.5rem 7rem",background:BG,overflow:"hidden"}}>
+        <div style={{maxWidth:1100,margin:"0 auto"}}>
+          <div className="lp-s" style={{display:"flex",alignItems:"center",gap:"5rem"}}>
+            <FadeUp style={{flex:"0 0 36%"}}>
+              <Label>Mentorable AI</Label>
+              <Heading italic="Grow" rest="your potential." size="clamp(2.4rem,4vw,3.2rem)"/>
+              <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.95rem",color:FG3,
+                lineHeight:1.95,marginTop:"1.25rem",maxWidth:360}}>
+                Mentorable AI synthesizes your voice interview, scorecard, and real-world progress to guide you toward any career domain, and many more beyond these eight.
+              </p>
+              <button onClick={()=>go("/auth")}
+                style={{fontFamily:SANS,fontSize:"0.72rem",fontWeight:700,letterSpacing:"0.1em",
+                  textTransform:"uppercase",color:P,background:"transparent",border:"none",
+                  cursor:"pointer",marginTop:"2rem",display:"flex",alignItems:"center",gap:6,transition:"opacity 0.2s"}}
+                onMouseEnter={e=>e.currentTarget.style.opacity="0.55"}
+                onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+                More about Mentorable AI <ArrowRight color={P} size={14}/>
+              </button>
+            </FadeUp>
+            <div className="lp-gx" style={{flex:1,display:"flex",justifyContent:"center",overflow:"hidden"}}>
+              <FadeUp delay={0.1}><Galaxy/></FadeUp>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* light → BG2 */}
+      <SG from={BG} to={BG2} h={80}/>
+
+      {/* ── PLAN YOUR PATH ────────────────────────────────────────────────────── */}
+      <section style={{padding:"4rem 2.5rem 7rem",background:BG2}}>
+        <div style={{maxWidth:1100,margin:"0 auto"}}>
+          <FadeUp style={{marginBottom:"4.5rem"}}>
+            <Heading italic="Plan" rest="your path." size="clamp(2.8rem,5vw,4rem)"/>
+            <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.95rem",color:FG3,
+              lineHeight:1.95,maxWidth:500,marginTop:"1.1rem"}}>
+              Model your future, from college applications to first jobs, and see how every action moves you closer to your goals.
+            </p>
+          </FadeUp>
+          <DataFlow/>
+        </div>
+      </section>
+
+      {/* BG2 → BG2 (skip testimonials) */}
+      <SG from={BG2} to={BG2} h={0}/>
+
+      {/* ── DISCOVER WHAT'S NEW ───────────────────────────────────────────────── */}
+      <section style={{padding:"4rem 2.5rem 7rem",background:BG2}}>
+        <div style={{maxWidth:1100,margin:"0 auto"}}>
+          <FadeUp style={{marginBottom:"3rem"}}>
+            <Heading italic="Discover" rest="what's new." size="clamp(2.4rem,4.5vw,3.4rem)"/>
+          </FadeUp>
+          <Stagger className="lp-fg" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1.25rem"}}>
+            {[
+              {tag:"PRODUCT",title:"Introducing Mentorable: AI-powered career guidance built for every high schooler",date:"March 2025"},
+              {tag:"BEHIND THE BUILD",title:"How we built the voice interview: 2 minutes that change everything",date:"February 2025"},
+              {tag:"PRODUCT",title:"Mentorable launches adaptive roadmap: your career path, updated in real time",date:"January 2025"},
+            ].map(post=>(
+              <motion.div key={post.title} variants={iV}
+                whileHover={{scale:1.02,boxShadow:SH_LG}}
+                style={{border:`1px solid ${BDR}`,borderRadius:18,overflow:"hidden",
+                  display:"flex",flexDirection:"column",height:"100%",
+                  background:BG3,cursor:"pointer",boxShadow:SH}}>
+                <div style={{height:148,background:`linear-gradient(135deg,${BG2},rgba(37,99,235,0.1))`,
+                  borderBottom:`1px solid ${BDR2}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <div style={{fontFamily:SANS,fontWeight:700,fontSize:"0.65rem",color:P,letterSpacing:"0.12em",
+                    textTransform:"uppercase",border:`1px solid ${BDR}`,padding:"5px 13px",borderRadius:999,
+                    background:`rgba(37,99,235,0.06)`}}>{post.tag}</div>
+                </div>
+                <div style={{padding:"1.4rem",flex:1,display:"flex",flexDirection:"column",gap:14}}>
+                  <p style={{fontFamily:SANS,fontWeight:500,fontSize:"0.875rem",color:FG,lineHeight:1.55,flex:1}}>{post.title}</p>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <span style={{fontFamily:SANS,fontSize:"0.7rem",color:FG3}}>{post.date}</span>
+                    <span style={{fontFamily:SANS,fontSize:"0.72rem",color:P,display:"flex",alignItems:"center",gap:4,fontWeight:600}}>
+                      Read more <ArrowRight color={P} size={14}/>
+                    </span>
                   </div>
-                  <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "#1d4ed8", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "0.55rem", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                    Step {step}
-                  </div>
-                  <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: featured ? "1.375rem" : "1.25rem", color: "#0f172a", marginBottom: "0.75rem", lineHeight: 1.3 }}>{title}</h3>
-                  <p style={{ color: "#64748b", lineHeight: 1.7, fontSize: "0.9375rem" }}>{desc}</p>
                 </div>
               </motion.div>
             ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── FEATURES — Bento Grid ────────────────────────────────────────────────
-const FEATURES = [
-  { icon: <IconMic size={36} color="#1d4ed8" sw={1.5}/>, title: "Voice-First Onboarding", desc: "Feels like talking to a mentor, not filling out a form. In 5–8 minutes, Mentorable builds a complete picture of who you are from a natural conversation.", wide: true },
-  { icon: <IconBarChart size={36} color="#1d4ed8" sw={1.5}/>, title: "Personalized Scorecard", desc: "Instant visual snapshot of who you are and where you shine." },
-  { icon: <IconMap size={36} color="#1d4ed8" sw={1.5}/>, title: "Dynamic Roadmaps", desc: "Step-by-step paths that update as your goals evolve." },
-  { icon: <IconTrending size={36} color="#1d4ed8" sw={1.5}/>, title: "Real-Time Market Data", desc: "Roadmaps backed by actual job market trends, not guesswork." },
-  { icon: <IconBell size={36} color="#1d4ed8" sw={1.5}/>, title: "Weekly Career Pulse", desc: "Stay on track with weekly check-ins and opportunity alerts." },
-  { icon: <IconMessage size={36} color="#1d4ed8" sw={1.5}/>, title: "AI Chat Guidance", desc: "Ask anything, anytime. Mentorable always has your full context: goals, strengths, and roadmap, in every response.", wide: true },
-];
-const BENTO_DIRS = [
-  { x: -30, y: 0 }, { x: -30, y: 0 }, { x: 30, y: 0 },
-  { x: -30, y: 0 }, { x: 30, y: 0 }, { x: 0, y: 30 },
-];
-
-function WaveformSvg() {
-  const bars = [5, 10, 18, 26, 34, 28, 20, 14, 8, 14, 22, 30, 24, 18, 10, 16, 24, 20, 12, 7];
-  return (
-    <svg viewBox="0 0 86 44" width="86" height="44" style={{ opacity: 0.2 }}>
-      {bars.map((h, i) => <rect key={i} x={i * 4.3} y={(44 - h) / 2} width={3} height={h} rx={1.5} fill="#1d4ed8"/>)}
-    </svg>
-  );
-}
-
-function FeaturesBento() {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
-
-  return (
-    <section id="features" style={{ padding: "6rem 2rem 7rem", background: "#ffffff", position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 700, height: 700, borderRadius: "50%", background: "radial-gradient(circle, rgba(224,231,255,0.30) 0%, transparent 65%)", pointerEvents: "none", zIndex: 0 }}/>
-      <div style={{ maxWidth: 1200, margin: "0 auto", position: "relative", zIndex: 1 }}>
-        <FadeIn style={{ textAlign: "center", marginBottom: "4.5rem" }}>
-          <SectionLabel>Built For You</SectionLabel>
-          <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: "clamp(2.2rem, 4vw, 3.25rem)", color: "#0f172a", letterSpacing: "-0.025em", lineHeight: 1.12, marginTop: "1rem" }}>
-            Everything you need.{" "}
-            <span style={{ color: "#94a3b8", fontWeight: 600 }}>Nothing you don't.</span>
-          </h2>
-          <div style={{ width: 60, height: 1, background: "#1d4ed8", borderRadius: 999, margin: "1.25rem auto 0", opacity: 0.4 }} />
-        </FadeIn>
-
-        <div ref={ref} style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1.25rem" }}>
-          {FEATURES.map(({ icon, title, desc, wide }, i) => (
-            <motion.div key={title}
-              initial={{ opacity: 0, x: BENTO_DIRS[i].x, y: BENTO_DIRS[i].y }}
-              animate={inView ? { opacity: 1, x: 0, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: i * 0.09, ease: [0.22, 1, 0.36, 1] }}
-              style={{ gridColumn: wide ? "1 / -1" : undefined }}>
-              <div className="feature-card"
-                style={{ display: "flex", alignItems: wide ? "center" : "flex-start", gap: wide ? "2rem" : 0, flexDirection: wide ? "row" : "column", minHeight: wide ? undefined : 180 }}>
-                <motion.div
-                  whileHover={{ scale: 1.08 }}
-                  transition={{ type: "spring", bounce: 0.4 }}
-                  style={{ width: 56, height: 56, borderRadius: 12, background: "linear-gradient(135deg, #eff6ff, #e0e7ff)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: wide ? 0 : "1.25rem", flexShrink: 0 }}>
-                  {icon}
-                </motion.div>
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: "1.25rem", color: "#0f172a", marginBottom: "0.6rem" }}>{title}</h3>
-                  <p style={{ color: "#64748b", lineHeight: 1.7, fontSize: "0.9375rem" }}>{desc}</p>
-                </div>
-                {i === 0 && <div style={{ flexShrink: 0, display: "flex", alignItems: "center" }}><WaveformSvg/></div>}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Main Landing Page ────────────────────────────────────────────────────
-export default function LandingPage() {
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", fn);
-    return () => window.removeEventListener("scroll", fn);
-  }, []);
-  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-
-  return (
-    <div style={{ fontFamily: "system-ui, sans-serif", background: "#ffffff", color: "#0f172a" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { scroll-behavior: smooth; }
-        body { overflow-x: hidden; }
-
-        .btn-primary {
-          background: #1d4ed8; color: white; border: none; border-radius: 999px;
-          padding: 0.875rem 2rem; font-weight: 600; font-size: 1rem;
-          cursor: pointer; transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-          font-family: 'Plus Jakarta Sans', sans-serif; display: inline-block;
-          text-decoration: none; box-shadow: 0 4px 20px rgba(29,78,216,0.3);
-          position: relative; overflow: hidden;
-        }
-        .btn-primary:hover { background: #1e40af; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(29,78,216,0.38); }
-        .btn-primary::after {
-          content: ''; position: absolute; top: 0; left: -60%;
-          width: 50%; height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
-          animation: shimmer 3.5s ease-in-out infinite;
-          animation-delay: 2s;
-        }
-        @keyframes shimmer {
-          0% { left: -60%; }
-          100% { left: 130%; }
-        }
-
-        .btn-ghost {
-          background: transparent; color: #1d4ed8; border: 1.5px solid rgba(29,78,216,0.28);
-          border-radius: 999px; padding: 0.875rem 2rem; font-weight: 600; font-size: 1rem;
-          cursor: pointer; transition: border-color 0.2s, background 0.2s, transform 0.15s;
-          font-family: 'Plus Jakarta Sans', sans-serif; display: inline-block; text-decoration: none;
-        }
-        .btn-ghost:hover { border-color: #1d4ed8; background: rgba(29,78,216,0.05); transform: translateY(-2px); }
-
-        @keyframes pulse-glow {
-          0%, 100% { transform: scale(1); opacity: 0.2; }
-          50% { transform: scale(2.4); opacity: 0; }
-        }
-        .pulse-glow {
-          animation: pulse-glow 2.6s ease-in-out infinite;
-          transform-box: fill-box; transform-origin: center;
-        }
-
-        /* Step cards */
-        .step-card {
-          background: #ffffff;
-          border: 1px solid rgba(148,163,184,0.3);
-          border-radius: 1.25rem;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-          padding: 28px;
-          min-height: 220px;
-          position: relative;
-          overflow: hidden;
-          transition: transform 0.25s ease, box-shadow 0.25s ease, border-top 0.25s ease;
-          cursor: default;
-        }
-        .step-card:hover {
-          transform: translateY(-6px);
-          box-shadow: 0 12px 40px rgba(0,0,0,0.12);
-          border-top: 3px solid #3b82f6;
-        }
-        .step-card-featured {
-          border-left: 3px solid #2563eb;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 0 0 1px rgba(37,99,235,0.15);
-        }
-
-        /* Feature cards */
-        .feature-card {
-          background: #ffffff;
-          border: 1px solid rgba(148,163,184,0.3);
-          border-radius: 1.25rem;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-          padding: 28px;
-          height: 100%;
-          position: relative;
-          overflow: hidden;
-          transition: transform 0.25s ease, box-shadow 0.25s ease, border-top 0.25s ease;
-          cursor: default;
-        }
-        .feature-card:hover {
-          transform: translateY(-6px);
-          box-shadow: 0 12px 40px rgba(0,0,0,0.12);
-          border-top: 3px solid #3b82f6;
-        }
-      `}</style>
-
-      {/* ── Navbar ─────────────────────────────────────────────────────── */}
-      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, transition: "background 0.3s, box-shadow 0.3s", background: scrolled ? "rgba(255,255,255,0.92)" : "transparent", backdropFilter: scrolled ? "blur(20px)" : "none", WebkitBackdropFilter: scrolled ? "blur(20px)" : "none", boxShadow: scrolled ? "0 1px 24px rgba(0,0,0,0.07)" : "none", borderBottom: scrolled ? "1px solid rgba(148,163,184,0.15)" : "1px solid transparent" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 2rem", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: "1.25rem", color: "#0f172a", letterSpacing: "-0.025em" }}>mentorable</span>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#1d4ed8", display: "inline-block", marginBottom: 2 }}/>
-          </button>
-          <div style={{ display: "flex", alignItems: "center", gap: "2rem" }}>
-            <div style={{ display: "flex", gap: "1.75rem" }}>
-              {[["how-it-works","How it Works"],["features","Features"],["faq","FAQ"]].map(([id, label]) => (
-                <button key={id} onClick={() => scrollTo(id)}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", fontSize: "0.9rem", fontWeight: 500, fontFamily: "system-ui", transition: "color 0.2s" }}
-                  onMouseEnter={e => e.target.style.color = "#0f172a"}
-                  onMouseLeave={e => e.target.style.color = "#64748b"}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            <button className="btn-primary" style={{ padding: "0.65rem 1.5rem", fontSize: "0.9rem" }} onClick={() => window.location.href = "/auth"}>Get Started</button>
-          </div>
-        </div>
-      </nav>
-
-      {/* ── Hero ───────────────────────────────────────────────────────── */}
-      <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", padding: "7rem 2rem 5rem", position: "relative", overflow: "hidden", background: "linear-gradient(170deg, #ffffff 55%, #f4f8ff 100%)" }}>
-        <TopoBg/>
-        {/* Radial orbs — drifting slowly */}
-        <motion.div
-          animate={{ x: [0, 15, 0], y: [0, -10, 0] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-          style={{ position: "absolute", top: "-10%", right: "-8%", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(147,197,253,0.50) 0%, transparent 70%)", pointerEvents: "none" }}/>
-        <motion.div
-          animate={{ x: [0, -12, 0], y: [0, 8, 0] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-          style={{ position: "absolute", bottom: "-15%", left: "-12%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(199,210,254,0.45) 0%, transparent 70%)", pointerEvents: "none" }}/>
-
-        <div style={{ maxWidth: 1200, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "3rem", flexWrap: "wrap", position: "relative", zIndex: 1 }}>
-          {/* Copy */}
-          <div style={{ flex: "1 1 420px", maxWidth: 580 }}>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay: 0.1 }}>
-              <SectionLabel>AI-Powered Career Guidance</SectionLabel>
-            </motion.div>
-
-            <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 900, letterSpacing: "-0.02em", fontSize: "clamp(3rem, 6vw, 5.5rem)", margin: "1.25rem 0 1.5rem" }}>
-              <span style={{ display: "block", lineHeight: 1.1 }}>
-                <span style={{ color: "#0f172a" }}>
-                  <WordAnimate text="Every great career starts with" delay={0.2}/>
-                </span>
-                {" "}
-                <span style={{ background: "linear-gradient(135deg, #1d4ed8, #60a5fa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                  <WordAnimate text="one" delay={0.68}/>
-                </span>
-              </span>
-              <span style={{ display: "block", lineHeight: 1.1, background: "linear-gradient(135deg, #1d4ed8, #60a5fa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                <WordAnimate text="conversation." delay={0.80}/>
-              </span>
-            </h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.2, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              style={{ color: "#64748b", fontSize: "1.125rem", lineHeight: 1.78, marginBottom: "2.5rem", maxWidth: 480 }}>
-              Mentorable listens to your story, maps your strengths, and builds a career roadmap that's actually yours. Not a template.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1.4, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
-              style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-              <button className="btn-primary" onClick={() => window.location.href = "/auth"}>Start your journey →</button>
-              <button className="btn-ghost" onClick={() => scrollTo("how-it-works")}>See how it works</button>
-            </motion.div>
-          </div>
-
-          {/* Scorecard */}
-          <motion.div
-            initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            style={{ flex: "0 0 auto", display: "flex", justifyContent: "center" }}>
-            <ScorecardCard/>
-          </motion.div>
+          </Stagger>
         </div>
       </section>
 
-      {/* ── How It Works ─────────────────────────────────────────────────── */}
-      <HowItWorksSection/>
+      {/* BG2 → light */}
+      <SG from={BG2} to={BG} h={80}/>
 
-      {/* ── Features (Bento) ─────────────────────────────────────────────── */}
-      <FeaturesBento/>
-
-      {/* ── FAQ ──────────────────────────────────────────────────────────── */}
-      <section id="faq" style={{ padding: "6rem 2rem 7rem", background: "#f8fafc" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <FadeIn style={{ textAlign: "center", marginBottom: "3.5rem" }}>
-            <SectionLabel>FAQ</SectionLabel>
-            <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: "clamp(2.2rem, 4vw, 3.25rem)", color: "#0f172a", letterSpacing: "-0.025em", lineHeight: 1.12, marginTop: "1rem" }}>
-              Questions answered.
-            </h2>
-          </FadeIn>
-          <FadeIn delay={0.1}>
-            <div style={{ background: "#ffffff", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(148,163,184,0.2)", borderTop: "3px solid #3b82f6", borderRadius: "1.25rem", boxShadow: "0 8px 40px rgba(0,0,0,0.10)", padding: "0.25rem 2.25rem" }}>
-              {FAQS.map(item => <FAQItem key={item.q} {...item}/>)}
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* ── CTA + Gradient transition to dark footer ──────────────────────── */}
-      <section id="cta" style={{ padding: "7rem 2rem 8rem", position: "relative", overflow: "hidden", background: "linear-gradient(175deg, #ffffff 0%, #dbeafe 35%, #3b82f6 70%, #0f172a 100%)" }}>
-        <motion.div
-          animate={{ x: [0, 12, 0], y: [0, -8, 0] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-          style={{ position: "absolute", top: "-20%", right: "-8%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(147,197,253,0.45) 0%, transparent 60%)", pointerEvents: "none" }}/>
-        <div style={{ maxWidth: 700, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1 }}>
-          <FadeIn>
-            <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 900, fontSize: "clamp(2.2rem, 4vw, 3.2rem)", color: "#0f172a", letterSpacing: "-0.025em", lineHeight: 1.1, marginBottom: "1.1rem" }}>
-              Your path starts with one conversation.
-            </h2>
-            <p style={{ color: "#475569", fontSize: "1.1rem", lineHeight: 1.75, marginBottom: "2.75rem" }}>
-              Join thousands of students who stopped stressing and started planning.
+      {/* ── NEWSLETTER ───────────────────────────────────────────────────────── */}
+      <section style={{padding:"5rem 2.5rem",background:BG}}>
+        <div style={{maxWidth:520,margin:"0 auto",textAlign:"center"}}>
+          <FadeUp>
+            <h3 style={{fontFamily:SANS,fontWeight:300,fontSize:"2rem",color:FG,marginBottom:"0.75rem",letterSpacing:"-0.02em"}}>Stay in the loop</h3>
+            <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.9rem",color:FG3,lineHeight:1.9,marginBottom:"1.75rem"}}>
+              Sign up for updates on new features, career insights, and Mentorable news.
             </p>
-            <button className="btn-primary" style={{ fontSize: "1.05rem", padding: "1rem 2.5rem" }} onClick={() => window.location.href = "/auth"}>
-              Start your voice onboarding →
-            </button>
-            <div style={{ marginTop: "1.35rem", display: "flex", justifyContent: "center", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-              {["Free to start", "No credit card required", "5 minutes"].map((t, i, arr) => (
-                <span key={t} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                  <span style={{ color: "rgba(255,255,255,0.8)", fontSize: "0.85rem" }}>{t}</span>
-                  {i < arr.length - 1 && <span style={{ color: "rgba(255,255,255,0.4)" }}>·</span>}
-                </span>
-              ))}
+            <div style={{display:"flex",gap:8}}>
+              <input type="email" placeholder="Enter your email"
+                style={{flex:1,fontFamily:SANS,fontSize:"0.875rem",padding:"0.85rem 1.1rem",borderRadius:999,
+                  background:BG3,border:`1px solid ${BDR}`,color:FG,outline:"none",
+                  boxShadow:`0 2px 20px rgba(37,99,235,0.08)`}}/>
+              <GradBtn onClick={()=>{}}>Subscribe</GradBtn>
             </div>
-          </FadeIn>
+          </FadeUp>
         </div>
       </section>
 
-      {/* ── Footer (dark navy) ────────────────────────────────────────────── */}
-      <footer style={{ background: "#0f172a", padding: "3.5rem 2rem" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "2rem" }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: "0.5rem" }}>
-              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: "1.2rem", color: "#f1f5f9", letterSpacing: "-0.025em" }}>mentorable</span>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#3b82f6", display: "inline-block", marginBottom: 2 }}/>
+      {/* light → footer — dramatic multi-stop gradient */}
+      <div style={{height:280,background:"linear-gradient(to bottom,#f4f8ff 0%,rgba(180,210,255,0.6) 22%,rgba(26,63,150,0.35) 55%,rgba(30,64,175,0.55) 78%,#1e40af 100%)",pointerEvents:"none",flexShrink:0}}/>
+
+      {/* ── FOOTER ───────────────────────────────────────────────────────────── */}
+      <footer style={{padding:"4rem 2.5rem 2rem",background:"#1e40af",color:"#fff"}}>
+        <div style={{maxWidth:1100,margin:"0 auto"}}>
+          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",gap:"3rem",marginBottom:"3rem"}}>
+            <div>
+              <div style={{fontFamily:SANS,fontWeight:700,fontSize:"1.05rem",color:"#fff",marginBottom:"0.75rem",letterSpacing:"-0.03em"}}>mentorable</div>
+              <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.8rem",color:"rgba(255,255,255,0.6)",lineHeight:1.85,maxWidth:240}}>
+                AI-powered career guidance for high school students.
+              </p>
             </div>
-            <p style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.7)" }}>Career clarity for every student.</p>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem", alignItems: "center" }}>
-            {[["how-it-works","How it Works"],["features","Features"],["faq","FAQ"],["cta","Privacy"],["cta","Contact"]].map(([id, label]) => (
-              <button key={label} onClick={() => scrollTo(id)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.7)", fontSize: "0.875rem", transition: "color 0.2s", fontFamily: "system-ui" }}
-                onMouseEnter={e => e.target.style.color = "#ffffff"}
-                onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.7)"}>
-                {label}
-              </button>
+            {[
+              {heading:"Features",links:["Voice Onboarding","Scorecard","Roadmap","AI Guidance"]},
+              {heading:"Resources",links:["About","Blog","Help Center","Legal"]},
+              {heading:"Company",links:["Careers","Contact","Privacy Policy","Terms"]},
+            ].map(col=>(
+              <div key={col.heading}>
+                <div style={{fontFamily:SANS,fontSize:"0.68rem",fontWeight:700,color:"rgba(255,255,255,0.5)",
+                  textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:"1rem"}}>{col.heading}</div>
+                <div style={{display:"flex",flexDirection:"column",gap:11}}>
+                  {col.links.map(l=>(
+                    <button key={l} style={{fontFamily:SANS,fontSize:"0.82rem",color:"rgba(255,255,255,0.72)",
+                      background:"transparent",border:"none",cursor:"pointer",textAlign:"left",padding:0,transition:"color 0.2s"}}
+                      onMouseEnter={e=>e.currentTarget.style.color="#fff"}
+                      onMouseLeave={e=>e.currentTarget.style.color="rgba(255,255,255,0.72)"}>{l}</button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
-        </div>
-        <div style={{ maxWidth: 1200, margin: "2rem auto 0", paddingTop: "1.5rem", borderTop: "1px solid rgba(148,163,184,0.1)", fontSize: "0.78rem", color: "#475569" }}>
-          <span style={{ color: "rgba(255,255,255,0.5)" }}>© 2025 Mentorable. All rights reserved.</span>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+            paddingTop:"2rem",borderTop:"1px solid rgba(255,255,255,0.18)"}}>
+            <div style={{fontFamily:SANS,fontSize:"0.75rem",color:"rgba(255,255,255,0.55)"}}>©2025 Mentorable Inc. All rights reserved.</div>
+            <div style={{display:"flex",gap:"1.5rem"}}>
+              {["X","LinkedIn","Instagram"].map(s=>(
+                <button key={s} style={{fontFamily:SANS,fontSize:"0.75rem",color:"rgba(255,255,255,0.6)",
+                  background:"transparent",border:"none",cursor:"pointer",transition:"color 0.2s"}}
+                  onMouseEnter={e=>e.currentTarget.style.color="#fff"}
+                  onMouseLeave={e=>e.currentTarget.style.color="rgba(255,255,255,0.6)"}>{s}</button>
+              ))}
+            </div>
+          </div>
         </div>
       </footer>
     </div>

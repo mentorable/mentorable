@@ -35,7 +35,6 @@ function isTaskLocked(task, phase, allTasksInPhase) {
   return false;
 }
 
-/* Spinner used in "generating" state */
 function Spinner({ size = 20, color = "#6366f1" }) {
   return (
     <svg
@@ -67,8 +66,6 @@ export default function RoadmapPath({
     );
   }
 
-  /* Build a globalIdx counter so we can compute sine-wave offsets continuously
-     across phase boundaries. */
   let globalIdx = 0;
 
   return (
@@ -88,7 +85,7 @@ export default function RoadmapPath({
 
         return (
           <div key={phase.id} style={{ position: "relative" }}>
-            {/* ── Phase header ── */}
+            {/* Phase header */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -128,7 +125,7 @@ export default function RoadmapPath({
               )}
             </motion.div>
 
-            {/* ── Milestone nodes — curved / zig-zag ── */}
+            {/* Milestone nodes — curved / zig-zag */}
             {!isLocked && phaseTasks.map((task, taskIdx) => {
               const myGlobalIdx = globalIdx++;
               const xOffset     = getCurveOffset(myGlobalIdx);
@@ -152,7 +149,6 @@ export default function RoadmapPath({
                     marginBottom:   "1.75rem",
                     position:       "relative",
                     zIndex:         1,
-                    /* Horizontal shift creates the winding path */
                     transform:      `translateX(${xOffset}px)`,
                   }}
                 >
@@ -168,7 +164,7 @@ export default function RoadmapPath({
               );
             })}
 
-            {/* Advance globalIdx for locked tasks so spacing continues smoothly */}
+            {/* Advance globalIdx for locked tasks so curve continues smoothly */}
             {isLocked && (() => { globalIdx += (phase.tasks || []).length; return null; })()}
 
             {phaseIdx < phases.length - 1 && <div style={{ height: "0.75rem" }} />}
@@ -176,7 +172,7 @@ export default function RoadmapPath({
         );
       })}
 
-      {/* ── Generating next phase indicator ── */}
+      {/* Generating next phase indicator */}
       <AnimatePresence>
         {generatingNextPhase && (
           <motion.div

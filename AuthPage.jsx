@@ -1,19 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
-
-// ─── Spinner ──────────────────────────────────────────────────────────────
-function Spinner() {
-  return (
-    <svg
-      width="18" height="18" viewBox="0 0 24 24" fill="none"
-      style={{ animation: "auth-spin 0.75s linear infinite", flexShrink: 0 }}
-    >
-      <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.28)" strokeWidth="3"/>
-      <path d="M12 2a10 10 0 0 1 10 10" stroke="white" strokeWidth="3" strokeLinecap="round"/>
-    </svg>
-  );
-}
+import Spinner from "./components/common/Spinner.jsx";
 
 // ─── Mode content ─────────────────────────────────────────────────────────
 const CONTENT = {
@@ -113,8 +101,6 @@ export default function AuthPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        @keyframes auth-spin { to { transform: rotate(360deg); } }
 
         @keyframes auth-glow {
           0%, 100% { opacity: 0.18; transform: scale(1); }
@@ -418,7 +404,7 @@ export default function AuthPage() {
               disabled={loading}
               onClick={handleSubmit}
             >
-              {loading ? <Spinner /> : `${c.btn} →`}
+              {loading ? <Spinner size={18} color="#ffffff" /> : `${c.btn} →`}
             </button>
           </div>
         )}
