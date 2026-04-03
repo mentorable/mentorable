@@ -5,6 +5,7 @@ import OnboardingPage from "./OnboardingPage.jsx";
 import ScorecardPage from "./ScorecardPage.jsx";
 import RoadmapPage from "./RoadmapPage.jsx";
 import TaskDetailPage from "./components/task/TaskDetailPage.jsx";
+import RoadmapPreviewPage from "./components/roadmap-preview/RoadmapPreviewPage.jsx";
 
 export default function App() {
   const [path, setPath] = useState(() => window.location.pathname);
@@ -29,6 +30,7 @@ export default function App() {
     return <TaskDetailPage taskId={taskMatch[1]} navigate={navigate} />;
   }
   if (path === "/roadmap") return <RoadmapPage navigate={navigate} />;
+  if (path === "/roadmap-preview") return <RoadmapPreviewPage />;
 
   return <LandingPage />;
 }

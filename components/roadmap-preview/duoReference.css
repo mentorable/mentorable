@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+
+/* ── Mentorable design tokens ───────────────────────────────── */
+:root {
+  --m-indigo:     99, 102, 241;   /* #6366f1 — primary */
+  --m-indigo-d:   67, 56, 202;    /* #4338ca — 3-D shadow */
+  --m-indigo-dd:  55, 48, 163;    /* #3730a3 — deeper shadow */
+  --m-green:      52, 211, 153;   /* #34d399 — success / complete */
+  --m-green-d:     5, 150, 105;   /* #059669 — complete shadow */
+  --m-slate:      100, 116, 139;  /* #64748b — muted text */
+  --m-border:     226, 232, 240;  /* #e2e8f0 — card borders */
+  --m-bg:         248, 250, 252;  /* #f8fafc — page bg */
+  --m-white:      255, 255, 255;
+  --m-ink:         15, 23, 42;    /* #0f172a — near-black text */
+  --m-lock:       148, 163, 184;  /* #94a3b8 — locked nodes */
+  --m-lock-d:     100, 116, 139;  /* shadow for locked */
+  --m-card-radius: 16px;
+}
+
+.m-page {
+  -webkit-font-smoothing: antialiased;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 700;
+  color: rgb(var(--m-ink));
+  background: rgb(var(--m-bg));
+}
+.m-page *, .m-page *::before, .m-page *::after { box-sizing: border-box; }
+
+/* ── Node animations ──────────────────────────────────────────── */
+@keyframes m-active-glow {
+  0%, 100% { box-shadow: 0 6px 0 0 rgb(var(--m-indigo-d)), 0 0 0 5px rgba(99,102,241,0.28); }
+  50%       { box-shadow: 0 6px 0 0 rgb(var(--m-indigo-d)), 0 0 0 14px rgba(99,102,241,0.08); }
+}
+@keyframes m-active-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-5px); }
+}
+@keyframes m-locked-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(3px); }
+}
+
+.m-node-active-glow   { animation: m-active-glow   2s ease-in-out infinite; }
+.m-node-active-bounce { animation: m-active-bounce  2.4s ease-in-out infinite; }
+.m-node-locked-float  { animation: m-locked-float   3s ease-in-out infinite; }

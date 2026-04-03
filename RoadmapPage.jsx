@@ -304,7 +304,9 @@ function ErrorScreen({ message }) {
         boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
         border: "1.5px solid rgba(239,68,68,0.2)",
       }}>
-        <div style={{ fontSize: "2rem", marginBottom: "1rem" }}>⚠️</div>
+        <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(239,68,68,0.08)", border: "1.5px solid rgba(239,68,68,0.25)", display: "grid", placeItems: "center", margin: "0 auto 1rem" }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
         <p style={{
           fontFamily: "'Plus Jakarta Sans', sans-serif",
           fontWeight: 700,
@@ -847,7 +849,7 @@ export default function RoadmapPage({ navigate }) {
                       gap: "0.75rem",
                     }}
                   >
-                    <span style={{ fontSize: "1.25rem" }}>🎯</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
                     <div>
                       <p style={{
                         fontSize: "0.7rem",

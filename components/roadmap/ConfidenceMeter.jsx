@@ -33,7 +33,9 @@ export default function ConfidenceMeter({ score, onClick }) {
         outline: "none",
       }}
     >
-      <span style={{ fontSize: "0.85rem" }}>🎯</span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+      </svg>
       <span>{score ?? 0}%</span>
       <span style={{ fontWeight: 500, color: color, opacity: 0.85 }}>{text}</span>
     </motion.button>
