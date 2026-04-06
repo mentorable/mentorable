@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useInView, useScroll, useTransform } from "framer-motion";
+import { motion, AnimatePresence, useInView, useScroll, useTransform, useSpring } from "framer-motion";
 import gsap from "gsap";
 import { MotionPathPlugin } from "gsap/MotionPathPlugin";
 import { TextPlugin } from "gsap/TextPlugin";
@@ -93,8 +93,10 @@ function FeatureScrollBox({ children, style = {} }) {
     target: ref,
     offset: ["0 1", "1 0"]
   });
-  const scale = useTransform(scrollYProgress, [0, 0.25, 0.75, 1], [0.97, 1, 1, 0.97]);
-  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.75, 1, 1, 0.75]);
+  const rawScale   = useTransform(scrollYProgress, [0, 0.4, 0.78, 1], [0.84, 1, 1, 0.95]);
+  const rawOpacity = useTransform(scrollYProgress, [0, 0.35, 0.82, 1], [0.35, 1, 1, 0.65]);
+  const scale   = useSpring(rawScale,   { stiffness: 45, damping: 18, mass: 0.6 });
+  const opacity = useSpring(rawOpacity, { stiffness: 45, damping: 18, mass: 0.6 });
   return (
     <motion.div ref={ref} style={{ scale, opacity, ...style }}>
       {children}
