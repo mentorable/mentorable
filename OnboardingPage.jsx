@@ -4,34 +4,67 @@ import { useConversation } from "@elevenlabs/react";
 import Anthropic from "@anthropic-ai/sdk";
 import { supabase } from "./lib/supabase.js";
 import Spinner from "./components/common/Spinner.jsx";
+import { VoicePoweredOrb } from "./components/common/VoicePoweredOrb.jsx";
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
 
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const BG      = "#fafbff";
+const TEXT    = "#0e1019";
+const TEXT2   = "#4b5470";
+const TEXT3   = "#9199b8";
+const ACCENT  = "#3b5bfc";
+const ACCENT2 = "#7c3aed";
+const BORDER  = "rgba(59,91,252,0.13)";
+const SURFACE = "rgba(59,91,252,0.05)";
+const CARD    = "#ffffff";
+const SERIF   = "'DM Serif Display', Georgia, serif";
+const SANS    = "'Space Grotesk', Arial, sans-serif";
+const MONO    = "'Space Grotesk', monospace";
+
+// ─── Framer-motion variant helpers ───────────────────────────────────────────
+const fadeUp = (delay = 0) => ({
+  initial:    { opacity:0, y:22 },
+  animate:    { opacity:1, y:0 },
+  transition: { duration:0.65, ease:[0.16,1,0.3,1], delay },
+});
+
+const staggerParent = (delayChildren = 0, stagger = 0.12) => ({
+  initial:  "hidden",
+  animate:  "visible",
+  variants: { hidden:{}, visible:{ transition:{ staggerChildren:stagger, delayChildren } } },
+});
+
+const staggerChild = {
+  variants: {
+    hidden:   { opacity:0, y:24 },
+    visible:  { opacity:1, y:0, transition:{ duration:0.6, ease:[0.16,1,0.3,1] } },
+  },
+};
+
+const chipChild = {
+  variants: {
+    hidden:   { opacity:0, scale:0.8, y:8 },
+    visible:  { opacity:1, scale:1, y:0, transition:{ duration:0.35, ease:[0.16,1,0.3,1] } },
+  },
+};
+
+
 // ─── Logo ─────────────────────────────────────────────────────────────────────
-function Logo() {
+function Logo({ textColor = TEXT }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-      <span
-        style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontWeight: 800,
-          fontSize: "1.2rem",
-          color: "white",
-          letterSpacing: "-0.03em",
-        }}
-      >
+    <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+      <span style={{ fontFamily:SANS, fontWeight:700, fontSize:"1.05rem", color:textColor, letterSpacing:"-0.04em" }}>
         mentorable
       </span>
-      <span
+      <motion.span
+        animate={{ scale:[1, 1.35, 1], opacity:[1, 0.7, 1] }}
+        transition={{ duration:2.8, repeat:Infinity, ease:"easeInOut" }}
         style={{
-          width: 6,
-          height: 6,
-          borderRadius: "50%",
-          background: "#3b82f6",
-          display: "inline-block",
-          boxShadow: "0 0 8px rgba(59,130,246,0.7)",
-          flexShrink: 0,
-          marginBottom: 2,
+          width:6, height:6, borderRadius:"50%",
+          background:`linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
+          display:"inline-block", flexShrink:0,
+          boxShadow:`0 0 10px ${ACCENT}60`,
         }}
       />
     </div>
@@ -40,234 +73,285 @@ function Logo() {
 
 // ─── Waveform ─────────────────────────────────────────────────────────────────
 function Waveform({ active, color }) {
-  const delays = [0, 0.12, 0.24, 0.36, 0.48];
+  const heights = [8, 16, 24, 28, 24, 16, 8];
+  const delays  = [0, 0.1, 0.2, 0.3, 0.2, 0.1, 0];
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 4,
-        height: 36,
-      }}
-    >
-      {delays.map((delay, i) => (
-        <div
-          key={i}
-          style={{
-            width: 4,
-            height: 28,
-            borderRadius: 2,
-            background: color,
-            transformOrigin: "center",
-            transform: active ? undefined : "scaleY(0.22)",
-            animation: active ? "ob-wave 0.75s ease-in-out infinite" : "none",
-            animationDelay: `${delay}s`,
-            transition: "transform 0.3s ease, background 0.3s ease",
-          }}
-        />
+    <div style={{ display:"flex", alignItems:"center", gap:3, height:32 }}>
+      {heights.map((h, i) => (
+        <div key={i} style={{
+          width:3, height:h, borderRadius:2,
+          background:color,
+          transformOrigin:"center",
+          transform:active ? undefined : "scaleY(0.25)",
+          animation:active ? "ob-wave 0.9s ease-in-out infinite" : "none",
+          animationDelay:`${delays[i]}s`,
+          transition:"transform 0.3s ease, background 0.3s ease",
+        }}/>
       ))}
     </div>
   );
 }
 
 // ─── MicIcon ──────────────────────────────────────────────────────────────────
-function MicIcon({ color = "white", size = 20 }) {
+function MicIcon({ color = "white", size = 22 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-      <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.94-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.06 7.44-7 7.93V22h-2v-4.07z" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="2" width="6" height="12" rx="3"/>
+      <path d="M5 10a7 7 0 0 0 14 0"/>
+      <line x1="12" y1="17" x2="12" y2="21"/>
+      <line x1="8" y1="21" x2="16" y2="21"/>
     </svg>
+  );
+}
+
+// ─── Phone Icons ─────────────────────────────────────────────────────────────
+function PhoneOutIcon({ color = "white", size = 26 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path fillRule="evenodd" clipRule="evenodd"
+        d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.58.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C9.61 21 3 14.39 3 6c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.24 1.02L6.6 10.8z"
+        fill={color}/>
+      <path d="M17 3h4m0 0v4m0-4L15 9" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function PhoneInIcon({ color = "#111", size = 26 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path fillRule="evenodd" clipRule="evenodd"
+        d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.58.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C9.61 21 3 14.39 3 6c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.24 1.02L6.6 10.8z"
+        fill={color}/>
+      <path d="M21 9l-6-6m0 6V5m0 4h4" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+// ─── Voice Orb ────────────────────────────────────────────────────────────────
+function VoiceOrb({ onStart, loading }) {
+  return (
+    <motion.div
+      initial={{ opacity:0, x:30 }}
+      animate={{ opacity:1, x:0 }}
+      transition={{ duration:0.75, ease:[0.16,1,0.3,1], delay:0.55 }}
+      style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"2rem" }}
+    >
+      {/* WebGL orb */}
+      <div style={{ position:"relative", width:340, height:340 }}>
+        <VoicePoweredOrb
+          hue={0}
+          style={{ width:"100%", height:"100%" }}
+        />
+      </div>
+
+      {/* Call button */}
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"0.75rem" }}>
+        <motion.button
+          onClick={onStart}
+          disabled={loading}
+          whileHover={loading ? {} : { scale:1.07 }}
+          whileTap={loading ? {} : { scale:0.93 }}
+          style={{
+            width:80, height:80, borderRadius:"50%",
+            background:"#111111",
+            border:"none", cursor:loading ? "not-allowed" : "pointer",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            boxShadow:"0 6px 28px rgba(0,0,0,0.32)",
+          }}
+        >
+          {loading ? <Spinner size={24} color="#ffffff"/> : <PhoneOutIcon color="white" size={28}/>}
+        </motion.button>
+        <span style={{ fontFamily:SANS, fontSize:"1rem", color:TEXT2, fontWeight:400, letterSpacing:"-0.01em" }}>
+          Call Agent
+        </span>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Elegant floating shape (background element) ─────────────────────────────
+function ElegantShape({ shapeStyle, delay = 0, width = 400, height = 100, rotate = 0, color = "rgba(99,102,241,0.15)", borderColor = "rgba(59,91,252,0.18)", glowColor = "rgba(59,91,252,0.07)" }) {
+  return (
+    <motion.div
+      initial={{ opacity:0, y:-150, rotate:rotate - 15 }}
+      animate={{ opacity:1, y:0, rotate }}
+      transition={{ duration:2.4, delay, ease:[0.23,0.86,0.39,0.96], opacity:{ duration:1.2 } }}
+      style={{ position:"absolute", ...shapeStyle }}
+    >
+      <motion.div
+        animate={{ y:[0,15,0] }}
+        transition={{ duration:12, repeat:Number.POSITIVE_INFINITY, ease:"easeInOut" }}
+        style={{ width, height, position:"relative" }}
+      >
+        <div style={{
+          position:"absolute", inset:0, borderRadius:"9999px",
+          background:`linear-gradient(to right, ${color}, transparent)`,
+          backdropFilter:"blur(2px)",
+          border:`2px solid ${borderColor}`,
+          boxShadow:`0 8px 32px 0 ${glowColor}`,
+        }}/>
+      </motion.div>
+    </motion.div>
   );
 }
 
 // ─── Phase 1: Intro ───────────────────────────────────────────────────────────
 function IntroPhase({ onStart, loading }) {
+  const topics = [
+    "Academic strengths","Career interests","Work style",
+    "Problem-solving","Collaboration","Long-term goals","Personal values","Communication",
+  ];
+
   return (
     <motion.div
       key="intro"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 0.97 }}
-      transition={{ duration: 0.5 }}
+      initial={{ opacity:0 }}
+      animate={{ opacity:1 }}
+      exit={{ opacity:0, y:-16 }}
+      transition={{ duration:0.35 }}
       style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "2rem",
-        textAlign: "center",
-        minHeight: "100vh",
-        position: "relative",
+        display:"flex", flexDirection:"column",
+        height:"100vh", overflow:"hidden",
+        position:"relative", zIndex:1,
+        background:BG,
       }}
     >
-      {/* Background glow */}
-      <div
+      {/* ── Geometric background ────────────────────────────────────────────── */}
+      <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom right, rgba(99,102,241,0.07), transparent, rgba(124,58,237,0.05))", filter:"blur(80px)", zIndex:0 }}/>
+      <div style={{ position:"absolute", inset:0, overflow:"hidden", zIndex:0 }}>
+        <ElegantShape delay={0.3} width={600} height={140} rotate={12}  color="rgba(99,102,241,0.10)"  borderColor="rgba(99,102,241,0.2)"  glowColor="rgba(99,102,241,0.06)"  shapeStyle={{ left:"-10%", top:"15%" }}/>
+        <ElegantShape delay={0.5} width={500} height={120} rotate={-15} color="rgba(124,58,237,0.09)"  borderColor="rgba(124,58,237,0.18)" glowColor="rgba(124,58,237,0.05)"  shapeStyle={{ right:"-5%", top:"70%" }}/>
+        <ElegantShape delay={0.4} width={300} height={80}  rotate={-8}  color="rgba(59,91,252,0.08)"   borderColor="rgba(59,91,252,0.16)"  glowColor="rgba(59,91,252,0.05)"   shapeStyle={{ left:"5%", bottom:"5%" }}/>
+        <ElegantShape delay={0.6} width={200} height={60}  rotate={20}  color="rgba(99,102,241,0.07)"  borderColor="rgba(99,102,241,0.15)" glowColor="rgba(99,102,241,0.04)"  shapeStyle={{ right:"15%", top:"10%" }}/>
+        <ElegantShape delay={0.7} width={150} height={40}  rotate={-25} color="rgba(124,58,237,0.07)"  borderColor="rgba(124,58,237,0.14)" glowColor="rgba(124,58,237,0.04)"  shapeStyle={{ left:"20%", top:"5%" }}/>
+      </div>
+      <div style={{ position:"absolute", inset:0, background:`linear-gradient(to bottom, rgba(250,251,255,0.6), transparent, ${BG})`, pointerEvents:"none", zIndex:0 }}/>
+
+      {/* ── Top nav ────────────────────────────────────────────────────────── */}
+      <motion.div
+        {...fadeUp(0.05)}
         style={{
-          position: "fixed",
-          inset: 0,
-          pointerEvents: "none",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 0,
+          display:"flex", alignItems:"center", justifyContent:"space-between",
+          padding:"1.5rem 3rem", flexShrink:0,
+          position:"relative", zIndex:1,
         }}
       >
-        <div
-          style={{
-            width: 640,
-            height: 640,
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(29,78,216,0.2) 0%, transparent 65%)",
-            animation: "ob-glow 5s ease-in-out infinite",
-          }}
-        />
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 28 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-        style={{ position: "relative", zIndex: 1, maxWidth: 520, width: "100%" }}
-      >
-        {/* Logo */}
-        <div style={{ marginBottom: "3rem" }}>
-          <Logo />
-        </div>
-
-        {/* Headline */}
-        <h1
-          style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontWeight: 800,
-            fontSize: "clamp(2.2rem, 6vw, 3.25rem)",
-            color: "white",
-            letterSpacing: "-0.03em",
-            lineHeight: 1.08,
-            marginBottom: "1.125rem",
-          }}
+        <Logo />
+        <motion.div
+          initial={{ opacity:0, scale:0.88 }}
+          animate={{ opacity:1, scale:1 }}
+          transition={{ duration:0.5, ease:[0.16,1,0.3,1], delay:0.2 }}
         >
-          Let's get to know you.
-        </h1>
+          <div style={{
+            display:"inline-flex", alignItems:"center", gap:8,
+            padding:"6px 16px", borderRadius:100,
+            border:`1.5px solid ${BORDER}`,
+            background:CARD, boxShadow:"0 2px 12px rgba(59,91,252,0.1)",
+          }}>
+            <span style={{
+              width:7, height:7, borderRadius:"50%",
+              background:"#22c55e", boxShadow:"0 0 8px #22c55e99",
+              animation:"ob-blink 2s ease-in-out infinite",
+            }}/>
+            <span style={{ fontFamily:SANS, fontWeight:600, fontSize:"0.85rem", color:ACCENT, letterSpacing:"0.04em" }}>
+              Voice interview · Ready
+            </span>
+          </div>
+        </motion.div>
+      </motion.div>
 
-        <p
-          style={{
-            color: "#94a3b8",
-            fontSize: "1.0625rem",
-            lineHeight: 1.7,
-            maxWidth: 400,
-            margin: "0 auto 2.5rem",
-          }}
-        >
-          Have a 5–8 minute conversation with your AI guide. Just talk naturally
-          There are no right or wrong answers.
-        </p>
+      {/* ── Two-column body ────────────────────────────────────────────────── */}
+      <div style={{
+        flex:1, display:"grid", gridTemplateColumns:"1fr 1fr",
+        gap:"3rem", padding:"0 3rem 2rem",
+        alignItems:"center", overflow:"hidden",
+        position:"relative", zIndex:1,
+      }}>
 
-        {/* Info pills */}
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "0.625rem",
-            justifyContent: "center",
-            marginBottom: "3rem",
-          }}
-        >
-          {[
-            { icon: "🎙", label: "Voice conversation" },
-            { icon: "⏱", label: "5–8 minutes" },
-            { icon: "🔒", label: "Private & secure" },
-          ].map(({ icon, label }) => (
-            <div
-              key={label}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "0.4375rem 0.9375rem",
-                borderRadius: 999,
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "#cbd5e1",
-                fontSize: "0.8125rem",
-                fontWeight: 500,
-              }}
-            >
-              <span style={{ fontSize: "0.875rem" }}>{icon}</span>
-              {label}
-            </div>
-          ))}
-        </div>
+        {/* Left — text & topics */}
+        <div style={{ display:"flex", flexDirection:"column", gap:"1.75rem", alignItems:"center", textAlign:"center", transform:"translateX(6rem)" }}>
 
-        {/* Start button with pulsing rings */}
-        <div
-          style={{
-            position: "relative",
-            display: "inline-flex",
-            marginBottom: "1.5rem",
-          }}
-        >
-          {!loading && (
-            <>
-              <div
+          {/* Heading */}
+          <h1 style={{
+            fontFamily:SERIF,
+            fontSize:"clamp(3.2rem,5.5vw,5.2rem)",
+            fontWeight:900,
+            letterSpacing:"-0.03em",
+            lineHeight:1.06,
+            margin:0, overflow:"visible",
+          }}>
+            {[
+              { text:"Let's get to", delay:0.28 },
+              { text:"know you.",    delay:0.42 },
+            ].map(({ text, delay }, i) => (
+              <motion.span
+                key={i}
+                initial={{ opacity:0, y:28 }}
+                animate={{ opacity:1, y:0 }}
+                transition={{ duration:0.7, ease:[0.16,1,0.3,1], delay }}
                 style={{
-                  position: "absolute",
-                  inset: -8,
-                  borderRadius: 999,
-                  background: "rgba(29,78,216,0.35)",
-                  animation: "ob-pulse-ring 2.2s ease-out infinite",
-                  pointerEvents: "none",
+                  display:"block",
+                  color: i === 0 ? TEXT : ACCENT,
                 }}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  inset: -8,
-                  borderRadius: 999,
-                  background: "rgba(29,78,216,0.2)",
-                  animation: "ob-pulse-ring 2.2s ease-out infinite 0.7s",
-                  pointerEvents: "none",
-                }}
-              />
-            </>
-          )}
-          <button
-            onClick={onStart}
-            disabled={loading}
+              >
+                {text}
+              </motion.span>
+            ))}
+          </h1>
+
+          {/* Subtitle */}
+          <motion.p
+            {...fadeUp(0.58)}
             style={{
-              position: "relative",
-              padding: "1.0625rem 2.625rem",
-              borderRadius: 999,
-              border: "none",
-              background: loading ? "rgba(29,78,216,0.65)" : "#1d4ed8",
-              color: "white",
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontWeight: 700,
-              fontSize: "1.0625rem",
-              cursor: loading ? "not-allowed" : "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.625rem",
-              boxShadow: "0 8px 32px rgba(29,78,216,0.5)",
-              transition: "background 0.18s, transform 0.15s",
-              letterSpacing: "-0.01em",
+              fontFamily:SANS, color:TEXT2,
+              fontSize:"1.25rem", lineHeight:1.75,
+              fontWeight:400, margin:0,
             }}
           >
-            {loading ? <Spinner size={18} color="#ffffff" /> : <MicIcon size={18} />}
-            {loading ? "Connecting..." : "Start Conversation"}
-          </button>
+            Have a 5–8 minute conversation with your AI guide. Just talk naturally — there are no right or wrong answers.
+          </motion.p>
+
+          {/* Topics */}
+          <motion.div {...fadeUp(0.74)}>
+            <p style={{
+              fontFamily:SANS, fontWeight:600, fontSize:"0.8rem", color:TEXT3,
+              letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:"0.75rem",
+            }}>
+              What we'll explore together
+            </p>
+            <motion.div
+              {...staggerParent(0.82, 0.045)}
+              style={{ display:"flex", flexWrap:"wrap", gap:"0.45rem", justifyContent:"center" }}
+            >
+              {topics.map(topic => (
+                <motion.div
+                  key={topic}
+                  {...chipChild}
+                  whileHover={{ scale:1.07, y:-2 }}
+                  transition={{ type:"spring", stiffness:400, damping:18 }}
+                  style={{
+                    padding:"5px 13px", borderRadius:100,
+                    background:`linear-gradient(135deg, rgba(59,91,252,0.07), rgba(124,58,237,0.05))`,
+                    border:`1.5px solid rgba(59,91,252,0.16)`,
+                    color:ACCENT, fontFamily:SANS, fontWeight:500, fontSize:"0.92rem",
+                    cursor:"default",
+                  }}
+                >
+                  {topic}
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+
         </div>
 
-        <p
-          style={{
-            color: "#334155",
-            fontSize: "0.8125rem",
-            letterSpacing: "0.01em",
-          }}
-        >
-          We'll ask for mic access when you start.
-        </p>
-      </motion.div>
+        {/* Right — voice orb */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <VoiceOrb onStart={onStart} loading={loading}/>
+        </div>
+
+      </div>
     </motion.div>
   );
 }
@@ -275,182 +359,129 @@ function IntroPhase({ onStart, loading }) {
 // ─── Phase 2: Active Conversation ─────────────────────────────────────────────
 function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef }) {
   const formatTime = (s) => {
-    const m = Math.floor(s / 60)
-      .toString()
-      .padStart(2, "0");
+    const m = Math.floor(s / 60).toString().padStart(2, "0");
     return `${m}:${(s % 60).toString().padStart(2, "0")}`;
   };
 
   return (
     <motion.div
       key="active"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.4 }}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-      }}
+      initial={{ opacity:0 }}
+      animate={{ opacity:1 }}
+      exit={{ opacity:0 }}
+      transition={{ duration:0.4 }}
+      style={{ display:"flex", flexDirection:"column", minHeight:"100vh", position:"relative", zIndex:1, background:BG }}
     >
       {/* Top bar */}
-      <div
+      <motion.div
+        initial={{ opacity:0, y:-12 }}
+        animate={{ opacity:1, y:0 }}
+        transition={{ duration:0.5 }}
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "1.25rem 1.5rem",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          flexShrink: 0,
+          display:"flex", alignItems:"center", justifyContent:"space-between",
+          padding:"1.25rem 1.75rem",
+          borderBottom:`1.5px solid ${BORDER}`,
+          background:CARD, flexShrink:0,
+          boxShadow:"0 1px 0 rgba(59,91,252,0.06)",
         }}
       >
         <Logo />
-        <div
-          style={{
-            fontFamily: "ui-monospace, monospace",
-            fontSize: "0.875rem",
-            color: "#475569",
-            letterSpacing: "0.08em",
-            fontWeight: 500,
-          }}
-        >
-          {formatTime(elapsed)}
+        <div style={{ display:"flex", alignItems:"center", gap:"1rem" }}>
+          <div style={{
+            display:"flex", alignItems:"center", gap:7,
+            padding:"5px 12px", borderRadius:100,
+            background:"rgba(34,197,94,0.08)", border:"1.5px solid rgba(34,197,94,0.2)",
+          }}>
+            <span style={{
+              width:6, height:6, borderRadius:"50%",
+              background:"#22c55e", boxShadow:"0 0 6px #22c55e",
+              animation:"ob-blink 2s ease-in-out infinite",
+            }}/>
+            <span style={{ fontFamily:SANS, fontWeight:600, fontSize:"0.72rem", color:"#16a34a", letterSpacing:"0.04em" }}>LIVE</span>
+          </div>
+          <span style={{ fontFamily:MONO, fontSize:"0.82rem", color:TEXT2, letterSpacing:"0.04em", fontWeight:500 }}>
+            {formatTime(elapsed)}
+          </span>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Transcript area */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "1.5rem",
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.75rem",
-          maxWidth: 680,
-          width: "100%",
-          margin: "0 auto",
-          alignSelf: "stretch",
-        }}
-      >
+      {/* Transcript */}
+      <div style={{
+        flex:1, overflowY:"auto", padding:"1.75rem",
+        display:"flex", flexDirection:"column", gap:"0.875rem",
+        maxWidth:640, width:"100%", margin:"0 auto", alignSelf:"stretch",
+      }}>
         {transcript.length === 0 && (
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            style={{
-              textAlign: "center",
-              color: "#334155",
-              fontSize: "0.9375rem",
-              marginTop: "4rem",
-              lineHeight: 1.6,
-            }}
+            initial={{ opacity:0 }}
+            animate={{ opacity:1 }}
+            transition={{ delay:0.8 }}
+            style={{ textAlign:"center", color:TEXT3, fontFamily:SANS, fontSize:"0.9rem", marginTop:"5rem", lineHeight:1.7 }}
           >
             Your conversation will appear here...
           </motion.p>
         )}
-
         <AnimatePresence initial={false}>
           {transcript.map((msg) => (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-              style={{
-                display: "flex",
-                justifyContent: msg.role === "agent" ? "flex-start" : "flex-end",
-              }}
+              initial={{ opacity:0, y:12, scale:0.97 }}
+              animate={{ opacity:1, y:0, scale:1 }}
+              transition={{ duration:0.35, ease:[0.22,1,0.36,1] }}
+              style={{ display:"flex", justifyContent:msg.role === "agent" ? "flex-start" : "flex-end" }}
             >
-              <div
-                style={{
-                  maxWidth: "78%",
-                  padding: "0.75rem 1.0625rem",
-                  borderRadius:
-                    msg.role === "agent"
-                      ? "0.25rem 1rem 1rem 1rem"
-                      : "1rem 0.25rem 1rem 1rem",
-                  background:
-                    msg.role === "agent"
-                      ? "rgba(255,255,255,0.07)"
-                      : "#1d4ed8",
-                  border:
-                    msg.role === "agent"
-                      ? "1px solid rgba(255,255,255,0.08)"
-                      : "none",
-                  color: "white",
-                  fontSize: "0.9375rem",
-                  lineHeight: 1.6,
-                }}
-              >
+              <div style={{
+                maxWidth:"76%", padding:"0.875rem 1.125rem",
+                borderRadius:msg.role === "agent" ? "4px 16px 16px 16px" : "16px 4px 16px 16px",
+                background:msg.role === "agent"
+                  ? CARD
+                  : `linear-gradient(135deg, ${ACCENT} 0%, ${ACCENT2} 100%)`,
+                border:msg.role === "agent" ? `1.5px solid ${BORDER}` : "none",
+                color:msg.role === "agent" ? TEXT : "white",
+                fontFamily:SANS, fontSize:"0.95rem", lineHeight:1.68, fontWeight:400,
+                boxShadow:msg.role !== "agent"
+                  ? "0 4px 20px rgba(59,91,252,0.35)"
+                  : "0 1px 6px rgba(0,0,0,0.06)",
+              }}>
                 {msg.message}
               </div>
             </motion.div>
           ))}
         </AnimatePresence>
-
-        <div ref={transcriptEndRef} />
+        <div ref={transcriptEndRef}/>
       </div>
 
       {/* Bottom bar */}
-      <div
-        style={{
-          padding: "1.25rem 1.5rem 2rem",
-          borderTop: "1px solid rgba(255,255,255,0.06)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "1rem",
-          flexShrink: 0,
-        }}
-      >
-        {/* Waveform + status */}
-        <div
-          style={{ display: "flex", alignItems: "center", gap: "0.875rem" }}
-        >
-          <Waveform
-            active={true}
-            color={isSpeaking ? "#3b82f6" : "#e2e8f0"}
-          />
-          <span
-            style={{
-              color: "#64748b",
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              minWidth: 180,
-            }}
+      <div style={{
+        padding:"1.25rem 1.75rem 2rem",
+        borderTop:`1.5px solid ${BORDER}`,
+        background:CARD,
+        display:"flex", flexDirection:"column", alignItems:"center", gap:"1rem",
+        flexShrink:0,
+      }}>
+        <div style={{ display:"flex", alignItems:"center", gap:"1rem" }}>
+          <Waveform active={true} color={isSpeaking ? ACCENT : "rgba(59,91,252,0.2)"}/>
+          <motion.span
+            animate={{ color: isSpeaking ? ACCENT : TEXT2 }}
+            transition={{ duration:0.4 }}
+            style={{ fontFamily:SANS, fontWeight:500, fontSize:"0.875rem", minWidth:220, fontFamily:SANS }}
           >
             {isSpeaking ? "Mentorable is speaking..." : "Your turn..."}
-          </span>
+          </motion.span>
         </div>
-
-        {/* End button */}
-        <button
+        <motion.button
           onClick={onEnd}
+          whileHover={{ borderColor:ACCENT, color:ACCENT }}
+          transition={{ duration:0.15 }}
           style={{
-            padding: "0.625rem 1.625rem",
-            borderRadius: 999,
-            border: "1px solid rgba(255,255,255,0.13)",
-            background: "transparent",
-            color: "#64748b",
-            fontSize: "0.875rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            transition: "border-color 0.15s, color 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "rgba(255,255,255,0.28)";
-            e.currentTarget.style.color = "#e2e8f0";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "rgba(255,255,255,0.13)";
-            e.currentTarget.style.color = "#64748b";
+            padding:"0.6rem 1.75rem", borderRadius:8,
+            border:`1.5px solid ${BORDER}`, background:CARD,
+            color:TEXT2, fontFamily:SANS, fontWeight:500, fontSize:"0.85rem",
+            cursor:"pointer",
           }}
         >
-          End Conversation
-        </button>
+          End conversation
+        </motion.button>
       </div>
     </motion.div>
   );
@@ -461,72 +492,65 @@ function ProcessingPhase() {
   return (
     <motion.div
       key="processing"
-      initial={{ opacity: 0, scale: 0.97 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity:0, scale:0.97 }}
+      animate={{ opacity:1, scale:1 }}
+      exit={{ opacity:0 }}
+      transition={{ duration:0.5, ease:[0.16,1,0.3,1] }}
       style={{
-        flex: 1,
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        padding: "2rem",
+        flex:1, minHeight:"100vh",
+        display:"flex", flexDirection:"column",
+        alignItems:"center", justifyContent:"center",
+        textAlign:"center", padding:"2rem",
+        position:"relative", zIndex:1,
       }}
     >
-      {/* Spinning ring */}
-      <div style={{ position: "relative", marginBottom: "2.25rem" }}>
-        <div
-          style={{
-            width: 76,
-            height: 76,
-            borderRadius: "50%",
-            border: "3px solid rgba(59,130,246,0.18)",
-            borderTopColor: "#3b82f6",
-            animation: "spinner-rotate 1s linear infinite",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 44,
-            height: 44,
-            borderRadius: "50%",
-            background: "rgba(59,130,246,0.08)",
-            border: "1px solid rgba(59,130,246,0.15)",
-          }}
-        />
+      {/* Counter-rotating rings */}
+      <div style={{ position:"relative", marginBottom:"2.5rem" }}>
+        <div style={{
+          width:68, height:68, borderRadius:"50%",
+          border:`2px solid rgba(59,91,252,0.15)`, borderTopColor:ACCENT,
+          animation:"spinner-rotate 1.2s linear infinite",
+        }}/>
+        <div style={{
+          position:"absolute", top:"50%", left:"50%",
+          transform:"translate(-50%, -50%)",
+          width:44, height:44, borderRadius:"50%",
+          border:`2px solid rgba(124,58,237,0.12)`, borderBottomColor:ACCENT2,
+          animation:"spinner-rotate 1.8s linear infinite reverse",
+        }}/>
       </div>
 
-      <h2
-        style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontWeight: 800,
-          fontSize: "1.875rem",
-          color: "white",
-          letterSpacing: "-0.025em",
-          marginBottom: "0.75rem",
-        }}
+      <motion.h2
+        initial={{ opacity:0, y:16 }}
+        animate={{ opacity:1, y:0 }}
+        transition={{ delay:0.2, duration:0.6 }}
+        style={{ fontFamily:SERIF, fontWeight:700, fontSize:"1.75rem", color:TEXT, letterSpacing:"-0.03em", marginBottom:"0.875rem" }}
       >
         Building your scorecard...
-      </h2>
-
-      <p
-        style={{
-          color: "#475569",
-          fontSize: "0.9375rem",
-          lineHeight: 1.7,
-          maxWidth: 380,
-        }}
+      </motion.h2>
+      <motion.p
+        initial={{ opacity:0, y:12 }}
+        animate={{ opacity:1, y:0 }}
+        transition={{ delay:0.35, duration:0.6 }}
+        style={{ fontFamily:SANS, color:TEXT2, fontSize:"1rem", lineHeight:1.72, maxWidth:360, marginBottom:"2rem" }}
       >
-        This takes about 10 seconds. We're analyzing your conversation and
-        identifying your unique strengths.
-      </p>
+        This takes about 10 seconds. We're analysing your conversation and identifying your unique strengths.
+      </motion.p>
+
+      {/* Pulsing dots */}
+      <div style={{ display:"flex", gap:8, justifyContent:"center" }}>
+        {[0, 1, 2].map(i => (
+          <motion.div
+            key={i}
+            animate={{ opacity:[0.25, 1, 0.25], scale:[0.75, 1.15, 0.75] }}
+            transition={{ duration:1.2, delay:i * 0.2, repeat:Infinity, ease:"easeInOut" }}
+            style={{
+              width:9, height:9, borderRadius:"50%",
+              background:`linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
+            }}
+          />
+        ))}
+      </div>
     </motion.div>
   );
 }
@@ -536,82 +560,48 @@ function ErrorPhase({ error, onRetry }) {
   return (
     <motion.div
       key="error"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      initial={{ opacity:0, scale:0.97 }}
+      animate={{ opacity:1, scale:1 }}
+      exit={{ opacity:0 }}
+      transition={{ duration:0.45, ease:[0.16,1,0.3,1] }}
       style={{
-        flex: 1,
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        padding: "2rem",
+        flex:1, minHeight:"100vh", display:"flex", flexDirection:"column",
+        alignItems:"center", justifyContent:"center",
+        textAlign:"center", padding:"2rem", position:"relative", zIndex:1,
       }}
     >
-      <div
+      <motion.div
+        initial={{ scale:0.7, opacity:0 }}
+        animate={{ scale:1, opacity:1 }}
+        transition={{ delay:0.15, duration:0.5, ease:[0.16,1,0.3,1] }}
         style={{
-          width: 60,
-          height: 60,
-          borderRadius: "50%",
-          background: "rgba(239,68,68,0.1)",
-          border: "1px solid rgba(239,68,68,0.22)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: "1.5rem",
-          fontSize: "1.5rem",
+          width:56, height:56, borderRadius:14,
+          background:"rgba(239,68,68,0.08)", border:"1.5px solid rgba(239,68,68,0.2)",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          marginBottom:"1.5rem", fontSize:"1.35rem",
         }}
-      >
-        ⚠
-      </div>
+      >⚠</motion.div>
 
-      <h2
-        style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontWeight: 700,
-          fontSize: "1.5rem",
-          color: "white",
-          marginBottom: "0.75rem",
-          letterSpacing: "-0.02em",
-        }}
-      >
+      <motion.h2 {...fadeUp(0.25)} style={{ fontFamily:SERIF, fontWeight:700, fontSize:"1.6rem", color:TEXT, letterSpacing:"-0.03em", marginBottom:"0.75rem" }}>
         Something went wrong
-      </h2>
-
-      <p
-        style={{
-          color: "#64748b",
-          fontSize: "0.9375rem",
-          lineHeight: 1.65,
-          maxWidth: 360,
-          marginBottom: "2rem",
-        }}
-      >
+      </motion.h2>
+      <motion.p {...fadeUp(0.35)} style={{ fontFamily:SANS, color:TEXT2, fontSize:"1rem", lineHeight:1.68, maxWidth:360, marginBottom:"2rem" }}>
         {error || "An unexpected error occurred. Please try again."}
-      </p>
-
-      <button
+      </motion.p>
+      <motion.button
+        {...fadeUp(0.45)}
         onClick={onRetry}
+        whileHover={{ scale:1.04 }}
+        whileTap={{ scale:0.97 }}
         style={{
-          padding: "0.9375rem 2.25rem",
-          borderRadius: 999,
-          border: "none",
-          background: "#1d4ed8",
-          color: "white",
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontWeight: 700,
-          fontSize: "0.9375rem",
-          cursor: "pointer",
-          boxShadow: "0 4px 20px rgba(29,78,216,0.4)",
-          transition: "background 0.18s",
+          padding:"0.7rem 1.75rem", borderRadius:10,
+          background:`linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
+          border:"none", color:"white", fontFamily:SANS, fontWeight:600, fontSize:"0.9rem",
+          cursor:"pointer", boxShadow:"0 4px 20px rgba(59,91,252,0.35)",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#1e40af")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "#1d4ed8")}
       >
-        Try again →
-      </button>
+        Try again
+      </motion.button>
     </motion.div>
   );
 }
@@ -621,139 +611,81 @@ function MicDeniedPhase({ onRetry }) {
   return (
     <motion.div
       key="mic-denied"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      initial={{ opacity:0, scale:0.97 }}
+      animate={{ opacity:1, scale:1 }}
+      exit={{ opacity:0 }}
+      transition={{ duration:0.45, ease:[0.16,1,0.3,1] }}
       style={{
-        flex: 1,
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        padding: "2rem",
+        flex:1, minHeight:"100vh", display:"flex", flexDirection:"column",
+        alignItems:"center", justifyContent:"center",
+        textAlign:"center", padding:"2rem", position:"relative", zIndex:1,
       }}
     >
-      <div
+      <motion.div
+        initial={{ scale:0.7, opacity:0 }}
+        animate={{ scale:1, opacity:1 }}
+        transition={{ delay:0.15, duration:0.5, ease:[0.16,1,0.3,1] }}
         style={{
-          width: 60,
-          height: 60,
-          borderRadius: "50%",
-          background: "rgba(245,158,11,0.1)",
-          border: "1px solid rgba(245,158,11,0.22)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: "1.5rem",
-          fontSize: "1.4rem",
+          width:56, height:56, borderRadius:14,
+          background:"rgba(245,158,11,0.08)", border:"1.5px solid rgba(245,158,11,0.25)",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          marginBottom:"1.5rem", fontSize:"1.35rem",
         }}
-      >
-        🎙
-      </div>
+      >🎙</motion.div>
 
-      <h2
-        style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontWeight: 700,
-          fontSize: "1.5rem",
-          color: "white",
-          marginBottom: "0.75rem",
-          letterSpacing: "-0.02em",
-        }}
-      >
+      <motion.h2 {...fadeUp(0.25)} style={{ fontFamily:SERIF, fontWeight:700, fontSize:"1.6rem", color:TEXT, letterSpacing:"-0.03em", marginBottom:"0.75rem" }}>
         Microphone access needed
-      </h2>
-
-      <p
-        style={{
-          color: "#64748b",
-          fontSize: "0.9375rem",
-          lineHeight: 1.65,
-          maxWidth: 360,
-          marginBottom: "2rem",
-        }}
-      >
-        We need microphone access to continue. Please allow access in your
-        browser settings and try again.
-      </p>
-
-      <button
+      </motion.h2>
+      <motion.p {...fadeUp(0.35)} style={{ fontFamily:SANS, color:TEXT2, fontSize:"1rem", lineHeight:1.68, maxWidth:360, marginBottom:"2rem" }}>
+        We need microphone access to continue. Please allow access in your browser settings and try again.
+      </motion.p>
+      <motion.button
+        {...fadeUp(0.45)}
         onClick={onRetry}
+        whileHover={{ scale:1.04 }}
+        whileTap={{ scale:0.97 }}
         style={{
-          padding: "0.9375rem 2.25rem",
-          borderRadius: 999,
-          border: "none",
-          background: "#1d4ed8",
-          color: "white",
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontWeight: 700,
-          fontSize: "0.9375rem",
-          cursor: "pointer",
-          boxShadow: "0 4px 20px rgba(29,78,216,0.4)",
-          transition: "background 0.18s",
+          padding:"0.7rem 1.75rem", borderRadius:10,
+          background:`linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
+          border:"none", color:"white", fontFamily:SANS, fontWeight:600, fontSize:"0.9rem",
+          cursor:"pointer", boxShadow:"0 4px 20px rgba(59,91,252,0.35)",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#1e40af")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "#1d4ed8")}
       >
-        Try again →
-      </button>
+        Try again
+      </motion.button>
     </motion.div>
   );
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function OnboardingPage() {
-  const [phase, setPhase] = useState("loading");
-  const [transcript, setTranscript] = useState([]);
-  const [elapsed, setElapsed] = useState(0);
-  const [error, setError] = useState(null);
-  const [user, setUser] = useState(null);
+  const [phase, setPhase]               = useState("loading");
+  const [transcript, setTranscript]     = useState([]);
+  const [elapsed, setElapsed]           = useState(0);
+  const [error, setError]               = useState(null);
+  const [user, setUser]                 = useState(null);
   const [startingConv, setStartingConv] = useState(false);
 
   const transcriptEndRef = useRef(null);
-  const timerRef = useRef(null);
-  // Mirror transcript in a ref so async functions always see latest
-  const transcriptRef = useRef([]);
+  const timerRef         = useRef(null);
+  const transcriptRef    = useRef([]);
 
-  // ── Auth guard + onboarding check ─────────────────────────────────────────
   useEffect(() => {
     const checkAuth = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        window.location.href = "/auth";
-        return;
-      }
-
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { window.location.href = "/auth"; return; }
       const { data: profile } = await supabase
-        .from("profiles")
-        .select("onboarding_completed")
-        .eq("id", user.id)
-        .single();
-
-      if (profile?.onboarding_completed) {
-        window.location.href = "/scorecard";
-        return;
-      }
-
+        .from("profiles").select("onboarding_completed").eq("id", user.id).single();
+      if (profile?.onboarding_completed) { window.location.href = "/scorecard"; return; }
       setUser(user);
       setPhase("intro");
     };
-
     checkAuth();
   }, []);
 
-  // ── ElevenLabs conversation hook ──────────────────────────────────────────
   const conversation = useConversation({
     onMessage: (msg) => {
-      const newMsg = {
-        role: msg.role, // "agent" or "user"
-        message: msg.message,
-        id: `${Date.now()}-${Math.random()}`,
-      };
+      const newMsg = { role: msg.role, message: msg.message, id: `${Date.now()}-${Math.random()}` };
       setTranscript((prev) => {
         const next = [...prev, newMsg];
         transcriptRef.current = next;
@@ -761,51 +693,36 @@ export default function OnboardingPage() {
       });
     },
     onError: (err) => {
-      const msg =
-        typeof err === "string" ? err : "Connection error. Please try again.";
-      setError(msg);
-      setPhase("error");
+      const msg = typeof err === "string" ? err : "Connection error. Please try again.";
+      setError(msg); setPhase("error");
     },
   });
 
-  // ── Auto-scroll transcript ─────────────────────────────────────────────────
   useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    transcriptEndRef.current?.scrollIntoView({ behavior:"smooth" });
   }, [transcript]);
 
-  // ── Elapsed timer ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (phase === "active") {
-      timerRef.current = setInterval(
-        () => setElapsed((e) => e + 1),
-        1000
-      );
+      timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
     } else {
       clearInterval(timerRef.current);
     }
     return () => clearInterval(timerRef.current);
   }, [phase]);
 
-  // ── Cleanup session on unmount ─────────────────────────────────────────────
   useEffect(() => {
-    return () => {
-      conversation.endSession().catch(() => {});
-    };
+    return () => { conversation.endSession().catch(() => {}); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Start conversation ─────────────────────────────────────────────────────
   const startConversation = async () => {
     setStartingConv(true);
-
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      setPhase("mic-denied");
-      setStartingConv(false);
-      return;
+      setPhase("mic-denied"); setStartingConv(false); return;
     }
-
     try {
       await conversation.startSession({ agentId: AGENT_ID });
       setPhase("active");
@@ -813,31 +730,18 @@ export default function OnboardingPage() {
       setError(err?.message || "Failed to connect. Please try again.");
       setPhase("error");
     }
-
     setStartingConv(false);
   };
 
-  // ── End conversation + process transcript ──────────────────────────────────
   const endConversation = async () => {
     clearInterval(timerRef.current);
-
-    try {
-      await conversation.endSession();
-    } catch {
-      // Session may already be closed
-    }
-
+    try { await conversation.endSession(); } catch { /* already closed */ }
     setPhase("processing");
-
     try {
       const transcriptText = transcriptRef.current
-        .map(
-          (m) =>
-            `${m.role === "agent" ? "Mentorable" : "Student"}: ${m.message}`
-        )
+        .map((m) => `${m.role === "agent" ? "Mentorable" : "Student"}: ${m.message}`)
         .join("\n");
 
-      // Call Claude API directly
       const anthropic = new Anthropic({
         apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
         dangerouslyAllowBrowser: true,
@@ -846,10 +750,9 @@ export default function OnboardingPage() {
       const message = await anthropic.messages.create({
         model: "claude-sonnet-4-6",
         max_tokens: 1024,
-        messages: [
-          {
-            role: "user",
-            content: `You are extracting structured career profile data from a voice conversation transcript between an AI career guide and a high school student.
+        messages: [{
+          role: "user",
+          content: `You are extracting structured career profile data from a voice conversation transcript between an AI career guide and a high school student.
 
 Return ONLY valid JSON with no other text, no markdown, no backticks:
 {
@@ -863,21 +766,14 @@ Return ONLY valid JSON with no other text, no markdown, no backticks:
 
 Transcript:
 ${transcriptText}`,
-          },
-        ],
+        }],
       });
 
-      const responseText =
-        message.content[0].type === "text" ? message.content[0].text : "";
-
-      // Extract JSON even if Claude added surrounding text
+      const responseText = message.content[0].type === "text" ? message.content[0].text : "";
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("Could not extract profile from conversation. Please try a longer conversation.");
-      }
+      if (!jsonMatch) throw new Error("Could not extract profile from conversation. Please try a longer conversation.");
       const profile = JSON.parse(jsonMatch[0]);
 
-      // Save to Supabase
       const { error: updateError } = await supabase
         .from("profiles")
         .update({
@@ -893,101 +789,79 @@ ${transcriptText}`,
         .eq("id", user.id);
 
       if (updateError) throw new Error(updateError.message);
-
       window.location.href = "/scorecard";
     } catch (err) {
-      setError(
-        err?.message || "Something went wrong processing your profile. Please try again."
-      );
+      setError(err?.message || "Something went wrong processing your profile. Please try again.");
       setPhase("error");
     }
   };
 
-  // ── Loading state ──────────────────────────────────────────────────────────
   if (phase === "loading") {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#0f172a",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Spinner size={28} color="#3b82f6" />
+      <div style={{ minHeight:"100vh", background:BG, display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <Spinner size={26} color={ACCENT}/>
       </div>
     );
   }
 
-  // ── Main render ────────────────────────────────────────────────────────────
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#0f172a",
-        display: "flex",
-        flexDirection: "column",
-        fontFamily: "system-ui, sans-serif",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
+    <div style={{
+      minHeight:"100vh", background:BG,
+      display:"flex", flexDirection:"column",
+      fontFamily:SANS, position:"relative", overflow:"hidden",
+    }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Grotesk:wght@400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        @keyframes ob-glow {
-          0%, 100% { opacity: 0.85; transform: scale(1); }
-          50%       { opacity: 1;    transform: scale(1.1); }
+        @keyframes blob-pulse {
+          0%, 100% { opacity:0.7; transform:scale(1); }
+          50%       { opacity:1;   transform:scale(1.09) translateY(-14px); }
         }
-
+        @keyframes blob-drift-tr {
+          0%, 100% { transform:translate(0,0) scale(1); }
+          50%       { transform:translate(-22px,18px) scale(1.04); }
+        }
+        @keyframes blob-drift-bl {
+          0%, 100% { transform:translate(0,0) scale(1); }
+          50%       { transform:translate(18px,-16px) scale(1.03); }
+        }
+        @keyframes blob-drift-br {
+          0%, 100% { transform:translate(0,0) scale(1); }
+          50%       { transform:translate(-14px,-20px) scale(1.05); }
+        }
+        @keyframes float-dot {
+          0%, 100% { transform:translateY(0);    opacity:0.55; }
+          50%       { transform:translateY(-10px); opacity:1; }
+        }
+        @keyframes gradient-slide {
+          0%   { background-position:0% center; }
+          100% { background-position:300% center; }
+        }
         @keyframes ob-pulse-ring {
-          0%   { transform: scale(1);   opacity: 0.6; }
-          100% { transform: scale(1.6); opacity: 0; }
+          0%   { transform:scale(1);   opacity:0.75; }
+          100% { transform:scale(1.85); opacity:0; }
         }
-
         @keyframes ob-wave {
-          0%, 100% { transform: scaleY(0.22); }
-          50%       { transform: scaleY(1);    }
+          0%, 100% { transform:scaleY(0.28); }
+          50%       { transform:scaleY(1); }
+        }
+        @keyframes ob-blink {
+          0%, 100% { opacity:1; }
+          50%       { opacity:0.35; }
+        }
+        @keyframes spinner-rotate {
+          from { transform:rotate(0deg); }
+          to   { transform:rotate(360deg); }
         }
       `}</style>
 
       <AnimatePresence mode="wait">
-        {phase === "intro" && (
-          <IntroPhase
-            key="intro"
-            onStart={startConversation}
-            loading={startingConv}
-          />
-        )}
-        {phase === "active" && (
-          <ActivePhase
-            key="active"
-            transcript={transcript}
-            elapsed={elapsed}
-            isSpeaking={conversation.isSpeaking}
-            onEnd={endConversation}
-            transcriptEndRef={transcriptEndRef}
-          />
-        )}
-        {phase === "processing" && <ProcessingPhase key="processing" />}
-        {phase === "error" && (
-          <ErrorPhase
-            key="error"
-            error={error}
-            onRetry={() => {
-              setError(null);
-              setPhase("intro");
-            }}
-          />
-        )}
-        {phase === "mic-denied" && (
-          <MicDeniedPhase
-            key="mic-denied"
-            onRetry={() => setPhase("intro")}
-          />
-        )}
+        {phase === "intro"      && <IntroPhase      key="intro"      onStart={startConversation} loading={startingConv}/>}
+        {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} transcriptEndRef={transcriptEndRef}/>}
+        {phase === "processing" && <ProcessingPhase key="processing"/>}
+        {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("intro"); }}/>}
+        {phase === "mic-denied" && <MicDeniedPhase  key="mic-denied" onRetry={() => setPhase("intro")}/>}
       </AnimatePresence>
     </div>
   );
