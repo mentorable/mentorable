@@ -685,7 +685,11 @@ export default function OnboardingPage() {
 
   const conversation = useConversation({
     onMessage: (msg) => {
-      const newMsg = { role: msg.role, message: msg.message, id: `${Date.now()}-${Math.random()}` };
+      // ElevenLabs SDK may use msg.source ("user"/"ai") or msg.role ("user"/"agent")
+      const role    = msg.role ?? (msg.source === "ai" ? "agent" : "user");
+      const message = msg.message ?? msg.text ?? "";
+      if (!message) return; // skip empty frames
+      const newMsg = { role, message, id: `${Date.now()}-${Math.random()}` };
       setTranscript((prev) => {
         const next = [...prev, newMsg];
         transcriptRef.current = next;
@@ -693,6 +697,7 @@ export default function OnboardingPage() {
       });
     },
     onError: (err) => {
+      console.error("[ElevenLabs] onError:", err);
       const msg = typeof err === "string" ? err : "Connection error. Please try again.";
       setError(msg); setPhase("error");
     },
@@ -738,7 +743,17 @@ export default function OnboardingPage() {
     try { await conversation.endSession(); } catch { /* already closed */ }
     setPhase("processing");
     try {
-      const transcriptText = transcriptRef.current
+      // Always get a fresh user — don't rely on potentially stale state
+      const { data: { user: freshUser } } = await supabase.auth.getUser();
+      if (!freshUser) throw new Error("Session expired. Please log in again.");
+
+      const messages = transcriptRef.current;
+
+      if (messages.length < 2) {
+        throw new Error("The conversation was too short to generate a profile. Please try again and speak for at least a minute.");
+      }
+
+      const transcriptText = messages
         .map((m) => `${m.role === "agent" ? "Mentorable" : "Student"}: ${m.message}`)
         .join("\n");
 
@@ -747,7 +762,7 @@ export default function OnboardingPage() {
         dangerouslyAllowBrowser: true,
       });
 
-      const message = await anthropic.messages.create({
+      const aiMessage = await anthropic.messages.create({
         model: "claude-sonnet-4-6",
         max_tokens: 1024,
         messages: [{
@@ -769,28 +784,35 @@ ${transcriptText}`,
         }],
       });
 
-      const responseText = message.content[0].type === "text" ? message.content[0].text : "";
+      const responseText = aiMessage.content[0]?.type === "text" ? aiMessage.content[0].text : "";
+
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("Could not extract profile from conversation. Please try a longer conversation.");
+      if (!jsonMatch) throw new Error("Could not extract a profile from the conversation. Please try again.");
       const profile = JSON.parse(jsonMatch[0]);
 
-      const { error: updateError } = await supabase
+      const { data: upsertedRows, error: updateError } = await supabase
         .from("profiles")
-        .update({
-          strengths: profile.strengths,
-          weaknesses: profile.weaknesses,
-          interests: profile.interests,
-          work_style: profile.work_style,
-          career_matches: profile.career_matches,
-          onboarding_summary: profile.onboarding_summary,
+        .upsert({
+          id:                   freshUser.id,
+          strengths:            profile.strengths,
+          weaknesses:           profile.weaknesses,
+          interests:            profile.interests,
+          work_style:           profile.work_style,
+          career_matches:       profile.career_matches,
+          onboarding_summary:   profile.onboarding_summary,
           onboarding_completed: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
+          updated_at:           new Date().toISOString(),
+        }, { onConflict: "id" })
+        .select("id");
 
-      if (updateError) throw new Error(updateError.message);
+      if (updateError) {
+        console.error("[Onboarding] Supabase upsert error:", updateError);
+        throw new Error(`Failed to save profile: ${updateError.message}`);
+      }
+
       window.location.href = "/scorecard";
     } catch (err) {
+      console.error("[Onboarding] endConversation error:", err);
       setError(err?.message || "Something went wrong processing your profile. Please try again.");
       setPhase("error");
     }
