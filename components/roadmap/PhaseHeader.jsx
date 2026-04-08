@@ -26,21 +26,23 @@ export default function PhaseHeader({ phase, currentWeek, completedMilestones, t
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       style={{
-        background: "#1e1b4b",
-        borderRadius: "1rem",
-        padding: "1.25rem 1.5rem",
+        background: "linear-gradient(135deg, #2d2894 0%, #1e1b4b 100%)",
+        borderRadius: "1.25rem",
+        padding: "1.5rem 1.75rem",
         marginBottom: "0",
         position: "relative",
         overflow: "hidden",
+        border: "1.5px solid rgba(129,140,248,0.35)",
+        boxShadow: "0 8px 32px rgba(67,56,202,0.4), 0 0 0 1px rgba(99,102,241,0.1)",
       }}
     >
-      {/* Subtle gradient overlay */}
+      {/* Vibrant gradient overlay */}
       <div style={{
         position: "absolute",
         inset: 0,
-        background: "linear-gradient(135deg, rgba(99,102,241,0.18) 0%, transparent 70%)",
+        background: "linear-gradient(135deg, rgba(129,140,248,0.22) 0%, rgba(99,102,241,0.08) 50%, transparent 100%)",
         pointerEvents: "none",
-        borderRadius: "1rem",
+        borderRadius: "1.25rem",
       }} />
 
       <div style={{ position: "relative", zIndex: 1 }}>
@@ -49,28 +51,30 @@ export default function PhaseHeader({ phase, currentWeek, completedMilestones, t
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: "0.375rem",
+          marginBottom: "0.6rem",
           gap: "0.75rem",
         }}>
           <span style={{
-            fontSize: "0.68rem",
-            fontWeight: 700,
-            letterSpacing: "0.1em",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: "0.78rem",
+            fontWeight: 800,
+            letterSpacing: "0.12em",
             textTransform: "uppercase",
-            color: "rgba(165,180,252,0.8)",
+            color: "#a5b4fc",
           }}>
             Phase {phase.phase_number}
           </span>
 
           {/* Duration badge */}
           <span style={{
-            fontSize: "0.7rem",
-            fontWeight: 600,
-            color: "rgba(255,255,255,0.5)",
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.12)",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            color: "rgba(199,210,254,0.9)",
+            background: "rgba(129,140,248,0.18)",
+            border: "1px solid rgba(129,140,248,0.3)",
             borderRadius: "9999px",
-            padding: "0.15rem 0.6rem",
+            padding: "0.2rem 0.75rem",
             whiteSpace: "nowrap",
           }}>
             {totalWeeks} week{totalWeeks !== 1 ? "s" : ""}
@@ -80,11 +84,13 @@ export default function PhaseHeader({ phase, currentWeek, completedMilestones, t
         {/* Title */}
         <h3 style={{
           fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontWeight: 800,
-          fontSize: "1.15rem",
+          fontWeight: 900,
+          fontSize: "1.55rem",
           color: "white",
-          margin: "0 0 0.4rem 0",
-          lineHeight: 1.25,
+          margin: "0 0 0.5rem 0",
+          lineHeight: 1.2,
+          letterSpacing: "-0.02em",
+          textShadow: "0 2px 12px rgba(99,102,241,0.4)",
         }}>
           {phase.title || `Phase ${phase.phase_number}`}
         </h3>
@@ -92,10 +98,12 @@ export default function PhaseHeader({ phase, currentWeek, completedMilestones, t
         {/* Focus sentence */}
         {phase.focus && (
           <p style={{
-            fontSize: "0.83rem",
-            color: "rgba(255,255,255,0.6)",
-            margin: "0 0 1rem 0",
-            lineHeight: 1.5,
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: "0.97rem",
+            fontWeight: 500,
+            color: "rgba(199,210,254,0.9)",
+            margin: "0 0 1.1rem 0",
+            lineHeight: 1.6,
           }}>
             {phase.focus}
           </p>
@@ -107,17 +115,28 @@ export default function PhaseHeader({ phase, currentWeek, completedMilestones, t
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "0.4rem",
+            marginBottom: "0.45rem",
           }}>
-            <span style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>
+            <span style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: "0.73rem",
+              color: "rgba(165,180,252,0.75)",
+              fontWeight: 600,
+              letterSpacing: "0.03em",
+            }}>
               Progress
             </span>
-            <span style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>
+            <span style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: "0.73rem",
+              color: "rgba(199,210,254,0.9)",
+              fontWeight: 700,
+            }}>
               {progressLabel}
             </span>
           </div>
           <div style={{
-            height: "6px",
+            height: "7px",
             background: "rgba(255,255,255,0.1)",
             borderRadius: "9999px",
             overflow: "hidden",
@@ -130,8 +149,11 @@ export default function PhaseHeader({ phase, currentWeek, completedMilestones, t
                 height: "100%",
                 background: phase.status === "completed"
                   ? "linear-gradient(90deg, #10b981, #34d399)"
-                  : "linear-gradient(90deg, #6366f1, #818cf8)",
+                  : "linear-gradient(90deg, #818cf8, #a5b4fc)",
                 borderRadius: "9999px",
+                boxShadow: phase.status === "completed"
+                  ? "0 0 8px rgba(52,211,153,0.6)"
+                  : "0 0 8px rgba(129,140,248,0.6)",
               }}
             />
           </div>

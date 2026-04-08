@@ -12,28 +12,28 @@ import StickyWeekBar from "./components/roadmap/StickyWeekBar.jsx";
 // ─── Background: Mountain Scene ───────────────────────────────────────────────
 const MOUNTAIN_LAYERS = [
   {
-    opacity: 0.2,
-    color: "#312e81",
+    opacity: 0.45,
+    color: "#1e1b4b",
     points: "0,100 8,72 16,80 24,65 32,75 42,58 52,68 60,55 70,62 80,50 88,58 96,46 100,52 100,100",
   },
   {
-    opacity: 0.3,
-    color: "#4338ca",
+    opacity: 0.55,
+    color: "#312e81",
     points: "0,100 5,78 12,85 20,70 30,80 38,63 48,72 57,60 65,68 73,55 82,63 90,52 100,58 100,100",
   },
   {
-    opacity: 0.4,
-    color: "#4f46e5",
+    opacity: 0.65,
+    color: "#4338ca",
     points: "0,100 6,82 14,88 22,75 32,84 40,68 50,76 59,65 68,72 76,60 85,68 93,57 100,62 100,100",
   },
   {
-    opacity: 0.5,
-    color: "#6366f1",
+    opacity: 0.75,
+    color: "#4f46e5",
     points: "0,100 4,87 10,92 18,80 28,88 36,73 46,80 55,70 63,77 72,65 80,73 88,63 96,68 100,72 100,100",
   },
   {
-    opacity: 0.6,
-    color: "#818cf8",
+    opacity: 0.85,
+    color: "#6366f1",
     points: "0,100 3,90 9,94 16,84 24,90 32,77 42,84 50,75 58,80 66,70 74,76 82,67 90,73 97,68 100,74 100,100",
   },
 ];
@@ -58,7 +58,7 @@ function MountainBackground() {
       inset: 0,
       zIndex: 0,
       pointerEvents: "none",
-      background: "linear-gradient(180deg, #1e1b4b 0%, #312e81 25%, #6366f1 50%, #c7d2fe 70%, #f8fafc 100%)",
+      background: "linear-gradient(180deg, #1a1660 0%, #2d2894 22%, #4338ca 50%, #3730a3 75%, #2a2688 100%)",
     }}>
       {/* Stars */}
       {STARS.map((star) => (
@@ -801,9 +801,9 @@ export default function RoadmapPage({ navigate }) {
               background: "transparent",
             }} />
 
-            {/* Content card area — white/light bg starts here */}
+            {/* Content card area — transparent so vibrant background shows through */}
             <div style={{
-              background: "linear-gradient(180deg, transparent 0%, #f8fafc 80px)",
+              background: "transparent",
               minHeight: "60vh",
             }}>
               <div style={{

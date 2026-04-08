@@ -94,23 +94,24 @@ export default function RoadmapPath({
             >
               {isLocked ? (
                 <div style={{
-                  background: "rgba(241,245,249,0.8)",
-                  border: "1.5px dashed #cbd5e1",
-                  borderRadius: "1rem",
-                  padding: "1rem 1.25rem",
+                  background: "rgba(30,27,75,0.6)",
+                  border: "1.5px dashed rgba(99,102,241,0.35)",
+                  borderRadius: "1.25rem",
+                  padding: "1rem 1.5rem",
                   display: "flex",
                   alignItems: "center",
                   gap: "0.75rem",
+                  backdropFilter: "blur(8px)",
                 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(165,180,252,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
                   <div>
-                    <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: "0.875rem", color: "#94a3b8", margin: 0 }}>
+                    <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: "0.95rem", color: "rgba(165,180,252,0.7)", margin: 0 }}>
                       Phase {phase.phase_number}{phase.title ? ` — ${phase.title}` : ""}
                     </p>
-                    <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "0.15rem 0 0 0" }}>
+                    <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.78rem", color: "rgba(129,140,248,0.5)", margin: "0.15rem 0 0 0" }}>
                       Complete the current phase to unlock
                     </p>
                   </div>
