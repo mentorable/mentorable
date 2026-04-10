@@ -10,16 +10,16 @@ const ICON      = 40;
 const STATUS_STYLES = {
   not_started: {
     size:      SIZE,
-    bg:        "linear-gradient(180deg, #6366f1 0%, #4f46e5 100%)",
-    shadow:    "0 6px 0 0 #3730a3",
+    bg:        "linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)",
+    shadow:    "0 6px 0 0 #1e40af",
     iconColor: "#fff",
     nodeClass: "",
     wrapClass: "",
   },
   in_progress: {
     size:      SIZE_ACTIVE,
-    bg:        "linear-gradient(180deg, #818cf8 0%, #6366f1 100%)",
-    shadow:    "0 6px 0 0 #4338ca",
+    bg:        "linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)",
+    shadow:    "0 6px 0 0 #1d4ed8",
     iconColor: "#fff",
     nodeClass: "m-node-glow",
     wrapClass: "",

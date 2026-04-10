@@ -10,98 +10,66 @@ import ReflectionArea from "./ReflectionArea.jsx";
 import TaskNavBar from "./TaskNavBar.jsx";
 
 const STORAGE_KEY_LAST_TASK = "mentorable_roadmap_last_task";
+const FONT = "'Space Grotesk', sans-serif";
 
 const TYPE_META = {
-  video:      { label: "Video",      icon: "▶", color: "#818cf8", bg: "rgba(99,102,241,0.18)",  border: "rgba(99,102,241,0.35)" },
-  reading:    { label: "Reading",    icon: "📖", color: "#a5b4fc", bg: "rgba(129,140,248,0.15)", border: "rgba(129,140,248,0.3)" },
-  project:    { label: "Project",    icon: "🔧", color: "#c7d2fe", bg: "rgba(165,180,252,0.12)", border: "rgba(165,180,252,0.25)" },
-  checkpoint: { label: "Checkpoint", icon: "🏁", color: "#34d399", bg: "rgba(52,211,153,0.12)",  border: "rgba(52,211,153,0.3)" },
-  reflection: { label: "Reflection", icon: "💭", color: "#a5b4fc", bg: "rgba(129,140,248,0.15)", border: "rgba(129,140,248,0.3)" },
+  video:      { label: "Video",      color: "#1d4ed8", bg: "rgba(37,99,235,0.08)",  border: "rgba(37,99,235,0.2)" },
+  reading:    { label: "Reading",    color: "#0369a1", bg: "rgba(3,105,161,0.07)",  border: "rgba(3,105,161,0.2)" },
+  project:    { label: "Project",    color: "#0f766e", bg: "rgba(15,118,110,0.07)", border: "rgba(15,118,110,0.2)" },
+  checkpoint: { label: "Checkpoint", color: "#b45309", bg: "rgba(180,83,9,0.07)",   border: "rgba(180,83,9,0.2)"  },
+  reflection: { label: "Reflection", color: "#6d28d9", bg: "rgba(109,40,217,0.07)", border: "rgba(109,40,217,0.2)" },
 };
 
-// ── Shared background ─────────────────────────────────────────────────────────
-const BG_STARS = [
-  { id: 0, top: "4%",  left: "10%" }, { id: 1, top: "7%",  left: "30%" },
-  { id: 2, top: "3%",  left: "55%" }, { id: 3, top: "9%",  left: "72%" },
-  { id: 4, top: "5%",  left: "88%" }, { id: 5, top: "14%", left: "22%" },
-  { id: 6, top: "18%", left: "65%" }, { id: 7, top: "12%", left: "90%" },
-];
-
+// ── Background ────────────────────────────────────────────────────────────────
 function PageBackground() {
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
-      background: "linear-gradient(180deg, #1a1660 0%, #2d2894 30%, #4338ca 65%, #3730a3 100%)",
-    }}>
-      {BG_STARS.map((s) => (
-        <motion.div key={s.id}
-          animate={{ opacity: [0.3, 0.9, 0.3], scale: [1, 1.4, 1] }}
-          transition={{ duration: 2.2 + (s.id % 3) * 0.6, repeat: Infinity, delay: s.id * 0.3, ease: "easeInOut" }}
-          style={{
-            position: "absolute", top: s.top, left: s.left,
-            width: 3, height: 3, borderRadius: "50%",
-            background: "white", boxShadow: "0 0 5px rgba(255,255,255,0.8)",
-          }}
-        />
-      ))}
-    </div>
+      background: "linear-gradient(180deg, #e8f0ff 0%, #f4f8ff 25%, #f8faff 100%)",
+    }} />
   );
 }
 
-// ── Loading screen ────────────────────────────────────────────────────────────
+// ── Loading ───────────────────────────────────────────────────────────────────
 function LoadingScreen() {
   return (
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center",
-      justifyContent: "center", fontFamily: "'Plus Jakarta Sans', sans-serif",
+      justifyContent: "center", fontFamily: FONT,
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
         @keyframes tdp-spin { to { transform: rotate(360deg); } }
       `}</style>
       <PageBackground />
       <motion.div
-        initial={{ opacity: 0, scale: 0.88, y: 16 }}
+        initial={{ opacity: 0, scale: 0.9, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         style={{ position: "relative", zIndex: 1, textAlign: "center" }}
       >
-        {/* Pulsing rings */}
-        <div style={{ position: "relative", width: 88, height: 88, margin: "0 auto 1.75rem" }}>
+        <div style={{ position: "relative", width: 80, height: 80, margin: "0 auto 1.5rem" }}>
           <motion.div
-            animate={{ scale: [1, 1.55, 1], opacity: [0.4, 0, 0.4] }}
+            animate={{ scale: [1, 1.45, 1], opacity: [0.3, 0, 0.3] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            style={{ position: "absolute", inset: -12, borderRadius: "50%", border: "2px solid rgba(129,140,248,0.45)" }}
-          />
-          <motion.div
-            animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0.1, 0.6] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.35 }}
-            style={{ position: "absolute", inset: -4, borderRadius: "50%", border: "2px solid rgba(99,102,241,0.55)" }}
+            style={{ position: "absolute", inset: -10, borderRadius: "50%", border: "2px solid rgba(37,99,235,0.3)" }}
           />
           <div style={{
-            width: 88, height: 88, borderRadius: "50%",
-            background: "linear-gradient(135deg, #4338ca, #6366f1)",
+            width: 80, height: 80, borderRadius: "50%",
+            background: "linear-gradient(135deg, #1d4ed8, #3b82f6)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 0 40px rgba(99,102,241,0.55)",
+            boxShadow: "0 8px 32px rgba(37,99,235,0.3)",
           }}>
-            <svg width="44" height="44" viewBox="0 0 44 44"
-              style={{ animation: "tdp-spin 0.9s linear infinite" }}>
-              <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="3.5" />
-              <path d="M22 4 A18 18 0 0 1 40 22" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: "tdp-spin 0.9s linear infinite" }}>
+              <circle cx="20" cy="20" r="15" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="3" />
+              <path d="M20 5 A15 15 0 0 1 35 20" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" />
             </svg>
           </div>
         </div>
-        <p style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800,
-          fontSize: "1.25rem", color: "white", margin: "0 0 0.4rem",
-          letterSpacing: "-0.02em",
-        }}>
+        <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1.15rem", color: "#0b1340", margin: "0 0 0.35rem", letterSpacing: "-0.02em" }}>
           Loading task
         </p>
-        <p style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontSize: "0.88rem", color: "rgba(165,180,252,0.75)", margin: 0, fontWeight: 500,
-        }}>
+        <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: "#4b5470", margin: 0, fontWeight: 500 }}>
           Getting everything ready…
         </p>
       </motion.div>
@@ -114,22 +82,20 @@ function TopBar({ phase, task, onBack }) {
   return (
     <div style={{
       position: "fixed", top: 0, left: 0, right: 0, height: 60, zIndex: 50,
-      background: "rgba(26,22,96,0.88)", backdropFilter: "blur(16px)",
-      WebkitBackdropFilter: "blur(16px)",
-      borderBottom: "1px solid rgba(99,102,241,0.2)",
+      background: "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)",
+      WebkitBackdropFilter: "blur(12px)",
+      borderBottom: "1px solid rgba(37,99,235,0.1)",
       display: "flex", alignItems: "center",
       justifyContent: "space-between", padding: "0 1.25rem",
     }}>
-      {/* Back */}
       <button onClick={onBack} style={{
-        display: "flex", alignItems: "center", gap: 6,
+        display: "flex", alignItems: "center", gap: 5,
         background: "none", border: "none", cursor: "pointer",
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        fontWeight: 700, fontSize: "0.85rem", color: "#a5b4fc",
+        fontFamily: FONT, fontWeight: 700, fontSize: "0.85rem", color: "#1d4ed8",
         padding: "0.3rem 0", transition: "color 0.15s",
       }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = "white"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = "#a5b4fc"; }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = "#1e40af"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = "#1d4ed8"; }}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />
@@ -137,35 +103,32 @@ function TopBar({ phase, task, onBack }) {
         Back
       </button>
 
-      {/* Center breadcrumb */}
       {phase && (
         <span style={{
           position: "absolute", left: "50%", transform: "translateX(-50%)",
-          fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700,
-          fontSize: "0.78rem", color: "rgba(165,180,252,0.85)",
-          letterSpacing: "0.06em", textTransform: "uppercase",
-          whiteSpace: "nowrap",
+          fontFamily: FONT, fontWeight: 700,
+          fontSize: "0.75rem", color: "#4b5470",
+          letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap",
         }}>
           Phase {phase.phase_number} · Week {task?.week_number || 1}
         </span>
       )}
 
-      {/* Wordmark */}
       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", color: "#1d4ed8", letterSpacing: "-0.04em" }}>
+          mentorable
+        </span>
         <span style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800,
-          fontSize: "1rem", color: "#818cf8", letterSpacing: "-0.03em",
-        }}>mentorable</span>
-        <span style={{
-          width: 5, height: 5, borderRadius: "50%", background: "#818cf8",
-          boxShadow: "0 0 6px rgba(129,140,248,0.8)", flexShrink: 0, marginBottom: 2,
+          width: 5, height: 5, borderRadius: "50%",
+          background: "linear-gradient(135deg, #1d4ed8, #60a5fa)",
+          boxShadow: "0 0 5px rgba(37,99,235,0.4)", flexShrink: 0, marginBottom: 1,
         }} />
       </div>
     </div>
   );
 }
 
-// ── Celebration modal ─────────────────────────────────────────────────────────
+// ── Celebration ───────────────────────────────────────────────────────────────
 function CelebrationModal({ nextTask, nextLocked, onNext, onBack }) {
   return (
     <motion.div
@@ -174,108 +137,83 @@ function CelebrationModal({ nextTask, nextLocked, onNext, onBack }) {
       exit={{ opacity: 0 }}
       style={{
         position: "fixed", inset: 0,
-        background: "rgba(15,12,60,0.75)", backdropFilter: "blur(8px)",
+        background: "rgba(11,19,64,0.4)", backdropFilter: "blur(6px)",
         display: "flex", alignItems: "center", justifyContent: "center",
         zIndex: 60, padding: "1rem",
       }}
       onClick={onBack}
     >
       <motion.div
-        initial={{ scale: 0.75, opacity: 0, y: 30 }}
+        initial={{ scale: 0.8, opacity: 0, y: 24 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ type: "spring", damping: 22, stiffness: 300 }}
+        exit={{ scale: 0.92, opacity: 0 }}
+        transition={{ type: "spring", damping: 22, stiffness: 280 }}
         style={{
-          background: "linear-gradient(135deg, #2d2894 0%, #1e1b4b 100%)",
-          border: "1.5px solid rgba(129,140,248,0.4)",
+          background: "#ffffff",
+          border: "1.5px solid rgba(37,99,235,0.15)",
           borderRadius: "1.5rem",
           padding: "2.5rem 2rem",
           textAlign: "center", maxWidth: 340, width: "100%",
-          boxShadow: "0 24px 80px rgba(67,56,202,0.5), 0 0 0 1px rgba(99,102,241,0.1)",
+          boxShadow: "0 20px 60px rgba(37,99,235,0.2), 0 4px 16px rgba(0,0,0,0.08)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Checkmark with glow rings */}
-        <div style={{ position: "relative", width: 80, height: 80, margin: "0 auto 1.5rem" }}>
+        <div style={{ position: "relative", width: 76, height: 76, margin: "0 auto 1.5rem" }}>
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: [0, 1.3, 1], opacity: [0, 0.5, 0] }}
-            transition={{ duration: 0.7, delay: 0.15 }}
-            style={{
-              position: "absolute", inset: -14, borderRadius: "50%",
-              border: "2px solid rgba(52,211,153,0.5)",
-            }}
+            animate={{ scale: [0, 1.3, 1], opacity: [0, 0.4, 0] }}
+            transition={{ duration: 0.65, delay: 0.1 }}
+            style={{ position: "absolute", inset: -12, borderRadius: "50%", border: "2px solid rgba(16,185,129,0.4)" }}
           />
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ type: "spring", damping: 18, stiffness: 260, delay: 0.08 }}
+            transition={{ type: "spring", damping: 16, stiffness: 280, delay: 0.06 }}
             style={{
-              width: 80, height: 80, borderRadius: "50%",
-              background: "linear-gradient(135deg, #10b981, #34d399)",
+              width: 76, height: 76, borderRadius: "50%",
+              background: "linear-gradient(135deg, #059669, #10b981)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 0 40px rgba(52,211,153,0.5)",
+              boxShadow: "0 8px 32px rgba(16,185,129,0.35)",
             }}
           >
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </motion.div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-        >
-          <p style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontWeight: 900, fontSize: "1.6rem", color: "white",
-            margin: "0 0 0.4rem", letterSpacing: "-0.02em",
-          }}>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}>
+          <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1.5rem", color: "#0b1340", margin: "0 0 0.35rem", letterSpacing: "-0.02em" }}>
             Task complete!
           </p>
-          <p style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontSize: "0.92rem", color: "rgba(165,180,252,0.8)",
-            margin: "0 0 0.6rem", fontWeight: 500,
-          }}>
+          <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: "#4b5470", margin: "0 0 0.75rem", fontWeight: 500 }}>
             You're building real momentum.
           </p>
           <span style={{
-            display: "inline-block",
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontSize: "0.8rem", fontWeight: 700,
-            color: "#34d399", background: "rgba(52,211,153,0.12)",
-            border: "1px solid rgba(52,211,153,0.3)",
-            borderRadius: "9999px", padding: "0.2rem 0.75rem",
-            marginBottom: "1.75rem",
+            display: "inline-block", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 700,
+            color: "#059669", background: "rgba(16,185,129,0.08)",
+            border: "1px solid rgba(16,185,129,0.2)",
+            borderRadius: "9999px", padding: "0.2rem 0.75rem", marginBottom: "1.75rem",
           }}>
             +3 confidence
           </span>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-            <button
-              onClick={onNext}
-              style={{
-                padding: "0.8rem 1.5rem",
-                background: "linear-gradient(135deg, #4338ca, #6366f1)",
-                border: "none", borderRadius: "0.875rem",
-                color: "white", fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
-                boxShadow: "0 4px 20px rgba(99,102,241,0.45)",
-              }}
-            >
+            <button onClick={onNext} style={{
+              padding: "0.8rem 1.5rem",
+              background: "linear-gradient(135deg, #1d4ed8, #3b82f6)",
+              border: "none", borderRadius: "0.875rem",
+              color: "white", fontFamily: FONT, fontWeight: 700,
+              fontSize: "0.95rem", cursor: "pointer",
+              boxShadow: "0 4px 20px rgba(37,99,235,0.35)",
+            }}>
               {nextTask && !nextLocked ? "Next Task →" : "Back to Roadmap"}
             </button>
-            <button
-              onClick={onBack}
-              style={{
-                padding: "0.6rem", background: "none", border: "none",
-                color: "rgba(165,180,252,0.6)", fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontWeight: 600, fontSize: "0.82rem", cursor: "pointer",
-              }}
-            >
+            <button onClick={onBack} style={{
+              padding: "0.5rem", background: "none", border: "none",
+              color: "#9199b8", fontFamily: FONT, fontWeight: 600,
+              fontSize: "0.82rem", cursor: "pointer",
+            }}>
               Return to roadmap
             </button>
           </div>
@@ -302,10 +240,8 @@ export default function TaskDetailPage({ taskId, navigate }) {
 
   const loadPhases = useCallback(async (roadmapId) => {
     const { data, error: e } = await supabase
-      .from("roadmap_phases")
-      .select("*, tasks:roadmap_tasks(*)")
-      .eq("roadmap_id", roadmapId)
-      .order("phase_number", { ascending: true });
+      .from("roadmap_phases").select("*, tasks:roadmap_tasks(*)")
+      .eq("roadmap_id", roadmapId).order("phase_number", { ascending: true });
     if (e) throw e;
     return data || [];
   }, []);
@@ -366,9 +302,7 @@ export default function TaskDetailPage({ taskId, navigate }) {
         try {
           const raw = localStorage.getItem(`mentorable_reflection_${taskId}`);
           if (!cancelled) setTaskResponses(raw ? { responses: JSON.parse(raw) } : null);
-        } catch (_) {
-          if (!cancelled) setTaskResponses(null);
-        }
+        } catch (_) { if (!cancelled) setTaskResponses(null); }
       } catch (err) {
         if (!cancelled) setError(err?.message || "Failed to load task");
       } finally {
@@ -422,7 +356,6 @@ export default function TaskDetailPage({ taskId, navigate }) {
   const goNext = () => {
     if (nextTask && !nextLocked) { if (taskId) sessionStorage.setItem(STORAGE_KEY_LAST_TASK, taskId); navigate(`/roadmap/task/${nextTask.id}`); }
   };
-
   const markPhaseComplete = useCallback(async () => {
     if (!phase || !user) return;
     await supabase.from("roadmap_phases").update({ status: "completed" }).eq("id", phase.id);
@@ -436,25 +369,20 @@ export default function TaskDetailPage({ taskId, navigate }) {
   const notForMe = task?.not_for_me;
   const typeMeta = TYPE_META[taskType] || TYPE_META.reflection;
 
-  // ── Loading ──
   if (loading) return <LoadingScreen />;
 
-  // ── Error ──
   if (error || !task) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1rem", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');`}</style>
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1rem", fontFamily: FONT }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');`}</style>
         <PageBackground />
         <div style={{ position: "relative", zIndex: 1, textAlign: "center" }}>
-          <p style={{ color: "rgba(165,180,252,0.8)", marginBottom: "1.25rem", fontWeight: 600 }}>
-            {error || "Task not found"}
-          </p>
+          <p style={{ color: "#4b5470", marginBottom: "1.25rem", fontWeight: 600 }}>{error || "Task not found"}</p>
           <button onClick={goBack} style={{
             padding: "0.7rem 1.5rem",
-            background: "linear-gradient(135deg, #4338ca, #6366f1)",
+            background: "linear-gradient(135deg, #1d4ed8, #3b82f6)",
             border: "none", borderRadius: "0.875rem", color: "white",
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontWeight: 700, fontSize: "0.9rem", cursor: "pointer",
+            fontFamily: FONT, fontWeight: 700, fontSize: "0.9rem", cursor: "pointer",
           }}>
             Back to Roadmap
           </button>
@@ -463,10 +391,9 @@ export default function TaskDetailPage({ taskId, navigate }) {
     );
   }
 
-  // ── Main render ──
   return (
-    <div style={{ minHeight: "100vh", fontFamily: "'Plus Jakarta Sans', sans-serif", position: "relative" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');`}</style>
+    <div style={{ minHeight: "100vh", fontFamily: FONT, position: "relative" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');`}</style>
 
       <PageBackground />
 
@@ -474,80 +401,59 @@ export default function TaskDetailPage({ taskId, navigate }) {
         <TopBar phase={phase} task={task} onBack={goBack} />
 
         <motion.main
-          initial={{ opacity: 0, y: 28 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          style={{
-            paddingTop: 76, maxWidth: 660,
-            margin: "0 auto",
-            paddingLeft: "1.25rem", paddingRight: "1.25rem",
-            paddingBottom: 100,
-          }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          style={{ paddingTop: 76, maxWidth: 660, margin: "0 auto", paddingLeft: "1.25rem", paddingRight: "1.25rem", paddingBottom: 100 }}
         >
-          {/* ── Task header ── */}
+          {/* Header */}
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.08, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            style={{ marginBottom: "2rem" }}
+            transition={{ delay: 0.07, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            style={{ marginBottom: "1.75rem" }}
           >
-            {/* Phase / Week breadcrumb pill */}
+            {/* Breadcrumb pill */}
             <div style={{
               display: "inline-flex", alignItems: "center", gap: "0.4rem",
-              background: "rgba(99,102,241,0.18)", border: "1px solid rgba(99,102,241,0.3)",
-              borderRadius: "9999px", padding: "0.3rem 0.85rem",
-              marginBottom: "1rem",
+              background: "rgba(37,99,235,0.07)", border: "1px solid rgba(37,99,235,0.15)",
+              borderRadius: "9999px", padding: "0.28rem 0.85rem", marginBottom: "0.9rem",
             }}>
-              <span style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: "0.73rem", fontWeight: 800,
-                letterSpacing: "0.1em", textTransform: "uppercase",
-                color: "#a5b4fc",
-              }}>
+              <span style={{ fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#1d4ed8" }}>
                 Phase {phase?.phase_number}
               </span>
-              <span style={{ color: "rgba(165,180,252,0.4)", fontSize: "0.65rem" }}>·</span>
-              <span style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: "0.73rem", fontWeight: 700, color: "rgba(165,180,252,0.8)",
-              }}>
+              <span style={{ color: "rgba(37,99,235,0.3)", fontSize: "0.6rem" }}>·</span>
+              <span style={{ fontFamily: FONT, fontSize: "0.7rem", fontWeight: 600, color: "#4b5470" }}>
                 Week {task.week_number || 1}
               </span>
             </div>
 
-            {/* Title */}
             <h1 style={{
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontWeight: 900, fontSize: "2rem", color: "white",
-              margin: "0 0 1rem", lineHeight: 1.2, letterSpacing: "-0.025em",
-              textShadow: "0 2px 20px rgba(99,102,241,0.35)",
+              fontFamily: FONT, fontWeight: 700, fontSize: "1.9rem",
+              color: "#0b1340", margin: "0 0 0.9rem", lineHeight: 1.2, letterSpacing: "-0.025em",
             }}>
               {task.title}
             </h1>
 
             {/* Meta badges */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
-              {/* Type badge */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem", alignItems: "center" }}>
               <span style={{
-                display: "inline-flex", alignItems: "center", gap: "0.35rem",
-                padding: "0.3rem 0.85rem",
+                display: "inline-flex", alignItems: "center",
+                padding: "0.28rem 0.8rem",
                 background: typeMeta.bg, border: `1px solid ${typeMeta.border}`,
-                borderRadius: "9999px",
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: "0.78rem", fontWeight: 700, color: typeMeta.color,
+                borderRadius: "9999px", fontFamily: FONT,
+                fontSize: "0.75rem", fontWeight: 700, color: typeMeta.color,
               }}>
                 {typeMeta.label}
               </span>
 
-              {/* Time */}
               {task.estimated_time && (
                 <span style={{
-                  display: "inline-flex", alignItems: "center", gap: "0.35rem",
-                  padding: "0.3rem 0.85rem",
-                  background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.25)",
-                  borderRadius: "9999px",
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  fontSize: "0.78rem", fontWeight: 600, color: "rgba(199,210,254,0.9)",
+                  display: "inline-flex", alignItems: "center", gap: "0.3rem",
+                  padding: "0.28rem 0.8rem",
+                  background: "rgba(37,99,235,0.05)", border: "1px solid rgba(37,99,235,0.12)",
+                  borderRadius: "9999px", fontFamily: FONT,
+                  fontSize: "0.75rem", fontWeight: 600, color: "#4b5470",
                 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -556,44 +462,36 @@ export default function TaskDetailPage({ taskId, navigate }) {
                 </span>
               )}
 
-              {/* Skill gained */}
               {task.skill_gained && (
                 <span style={{
-                  display: "inline-flex", alignItems: "center", gap: "0.35rem",
-                  padding: "0.3rem 0.85rem",
-                  background: "rgba(129,140,248,0.12)", border: "1px solid rgba(129,140,248,0.25)",
-                  borderRadius: "9999px",
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  fontSize: "0.78rem", fontWeight: 600, color: "rgba(199,210,254,0.85)",
+                  display: "inline-flex", alignItems: "center", gap: "0.3rem",
+                  padding: "0.28rem 0.8rem",
+                  background: "rgba(37,99,235,0.05)", border: "1px solid rgba(37,99,235,0.12)",
+                  borderRadius: "9999px", fontFamily: FONT,
+                  fontSize: "0.75rem", fontWeight: 600, color: "#4b5470",
                 }}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
                   {task.skill_gained}
                 </span>
               )}
 
-              {/* Status */}
               {completed && (
                 <span style={{
-                  display: "inline-flex", alignItems: "center", gap: "0.35rem",
-                  padding: "0.3rem 0.85rem",
-                  background: "rgba(52,211,153,0.15)", border: "1px solid rgba(52,211,153,0.35)",
-                  borderRadius: "9999px",
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  fontSize: "0.78rem", fontWeight: 700, color: "#34d399",
+                  display: "inline-flex", alignItems: "center", gap: "0.3rem",
+                  padding: "0.28rem 0.8rem",
+                  background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)",
+                  borderRadius: "9999px", fontFamily: FONT,
+                  fontSize: "0.75rem", fontWeight: 700, color: "#059669",
                 }}>
                   ✓ Completed
                 </span>
               )}
               {notForMe && (
                 <span style={{
-                  display: "inline-flex", alignItems: "center", gap: "0.35rem",
-                  padding: "0.3rem 0.85rem",
-                  background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.3)",
-                  borderRadius: "9999px",
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  fontSize: "0.78rem", fontWeight: 700, color: "#fb923c",
+                  display: "inline-flex", alignItems: "center",
+                  padding: "0.28rem 0.8rem",
+                  background: "rgba(249,115,22,0.07)", border: "1px solid rgba(249,115,22,0.2)",
+                  borderRadius: "9999px", fontFamily: FONT,
+                  fontSize: "0.75rem", fontWeight: 700, color: "#ea580c",
                 }}>
                   Skipped
                 </span>
@@ -601,11 +499,11 @@ export default function TaskDetailPage({ taskId, navigate }) {
             </div>
           </motion.div>
 
-          {/* ── Content ── */}
+          {/* Content */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.18, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ delay: 0.16, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           >
             {taskType === "video" && (
               <VideoTaskContent task={task} userId={user?.id} taskResponses={taskResponses}
@@ -641,8 +539,7 @@ export default function TaskDetailPage({ taskId, navigate }) {
       <AnimatePresence>
         {showCelebration && (
           <CelebrationModal
-            nextTask={nextTask}
-            nextLocked={nextLocked}
+            nextTask={nextTask} nextLocked={nextLocked}
             onNext={() => { setShowCelebration(false); nextTask && !nextLocked ? navigate(`/roadmap/task/${nextTask.id}`) : goBack(); }}
             onBack={() => { setShowCelebration(false); goBack(); }}
           />

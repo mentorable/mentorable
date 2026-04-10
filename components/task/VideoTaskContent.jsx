@@ -1,12 +1,13 @@
 import ReflectionArea from "./ReflectionArea.jsx";
 
+const FONT = "'Space Grotesk', sans-serif";
 const CARD = {
-  background: "linear-gradient(135deg, rgba(45,40,148,0.55) 0%, rgba(30,27,75,0.75) 100%)",
-  border: "1.5px solid rgba(99,102,241,0.3)",
+  background: "#ffffff",
+  border: "1.5px solid rgba(37,99,235,0.12)",
   borderRadius: "1.25rem",
   padding: "1.5rem 1.75rem",
   marginBottom: "1.25rem",
-  boxShadow: "0 8px 32px rgba(67,56,202,0.2)",
+  boxShadow: "0 4px 24px rgba(37,99,235,0.08), 0 1px 4px rgba(0,0,0,0.04)",
 };
 
 export default function VideoTaskContent({ task, userId, taskResponses, onSaveResponses }) {
@@ -17,84 +18,57 @@ export default function VideoTaskContent({ task, userId, taskResponses, onSaveRe
   return (
     <>
       <div style={CARD}>
-        {/* Header row */}
         <div style={{ display: "flex", alignItems: "center", gap: "0.875rem", marginBottom: "1.25rem" }}>
           <div style={{
-            width: 48, height: 48, borderRadius: "0.875rem", flexShrink: 0,
-            background: "linear-gradient(135deg, #4338ca, #6366f1)",
+            width: 46, height: 46, borderRadius: "0.875rem", flexShrink: 0,
+            background: "linear-gradient(135deg, #1d4ed8, #3b82f6)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 4px 16px rgba(99,102,241,0.4)",
+            boxShadow: "0 4px 14px rgba(37,99,235,0.3)",
           }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
           <div>
-            <p style={{
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontWeight: 800, fontSize: "1.05rem", color: "white", margin: "0 0 0.2rem",
-            }}>
+            <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", color: "#0b1340", margin: "0 0 0.15rem" }}>
               Watch
             </p>
-            <p style={{
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontSize: "0.78rem", fontWeight: 600,
-              color: "rgba(165,180,252,0.65)", margin: 0,
-            }}>
+            <p style={{ fontFamily: FONT, fontSize: "0.78rem", fontWeight: 500, color: "#9199b8", margin: 0 }}>
               {label} · {task?.estimated_time || "—"}
             </p>
           </div>
         </div>
 
-        {/* Description */}
         {task?.description && (
-          <p style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontSize: "0.92rem", color: "rgba(199,210,254,0.85)",
-            margin: "0 0 1.25rem", lineHeight: 1.65, fontWeight: 500,
-          }}>
+          <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: "#4b5470", margin: "0 0 1.25rem", lineHeight: 1.65, fontWeight: 500 }}>
             {task.description.split("\n")[0]}
           </p>
         )}
 
-        {/* CTA */}
         {url ? (
-          <a
-            href={url} target="_blank" rel="noopener noreferrer"
+          <a href={url} target="_blank" rel="noopener noreferrer"
             style={{
               display: "inline-flex", alignItems: "center", gap: "0.5rem",
-              padding: "0.7rem 1.4rem",
-              background: "linear-gradient(135deg, #4338ca, #6366f1)",
+              padding: "0.65rem 1.35rem",
+              background: "linear-gradient(135deg, #1d4ed8, #3b82f6)",
               color: "white", borderRadius: "0.875rem",
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontWeight: 700, fontSize: "0.9rem", textDecoration: "none",
-              boxShadow: "0 4px 20px rgba(99,102,241,0.45)",
+              fontFamily: FONT, fontWeight: 700, fontSize: "0.88rem",
+              textDecoration: "none", boxShadow: "0 4px 16px rgba(37,99,235,0.3)",
               transition: "transform 0.15s, box-shadow 0.15s",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 28px rgba(99,102,241,0.6)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(99,102,241,0.45)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(37,99,235,0.45)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 16px rgba(37,99,235,0.3)"; }}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="white">
-              <path d="M8 5v14l11-7z" />
-            </svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>
             Watch video
           </a>
         ) : (
-          <span style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontSize: "0.82rem", color: "rgba(165,180,252,0.5)", fontWeight: 500,
-          }}>
-            No video link provided
-          </span>
+          <span style={{ fontFamily: FONT, fontSize: "0.82rem", color: "#9199b8", fontWeight: 500 }}>No video link provided</span>
         )}
       </div>
 
-      <ReflectionArea
-        taskId={task?.id} userId={userId}
-        prompts={prompts}
-        initialResponses={taskResponses?.responses || {}}
-        onSave={onSaveResponses}
-      />
+      <ReflectionArea taskId={task?.id} userId={userId} prompts={prompts}
+        initialResponses={taskResponses?.responses || {}} onSave={onSaveResponses} />
     </>
   );
 }
