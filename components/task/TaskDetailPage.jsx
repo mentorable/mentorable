@@ -8,6 +8,7 @@ import ProjectTaskContent from "./ProjectTaskContent.jsx";
 import CheckpointContent from "./CheckpointContent.jsx";
 import ReflectionArea from "./ReflectionArea.jsx";
 import TaskNavBar from "./TaskNavBar.jsx";
+import Sidebar, { SIDEBAR_WIDTH } from "../common/Sidebar.jsx";
 
 const STORAGE_KEY_LAST_TASK = "mentorable_roadmap_last_task";
 const FONT = "'Space Grotesk', sans-serif";
@@ -73,57 +74,6 @@ function LoadingScreen() {
           Getting everything ready…
         </p>
       </motion.div>
-    </div>
-  );
-}
-
-// ── Top bar ───────────────────────────────────────────────────────────────────
-function TopBar({ phase, task, onBack }) {
-  return (
-    <div style={{
-      position: "fixed", top: 0, left: 0, right: 0, height: 60, zIndex: 50,
-      background: "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)",
-      WebkitBackdropFilter: "blur(12px)",
-      borderBottom: "1px solid rgba(37,99,235,0.1)",
-      display: "flex", alignItems: "center",
-      justifyContent: "space-between", padding: "0 1.25rem",
-    }}>
-      <button onClick={onBack} style={{
-        display: "flex", alignItems: "center", gap: 5,
-        background: "none", border: "none", cursor: "pointer",
-        fontFamily: FONT, fontWeight: 700, fontSize: "0.85rem", color: "#1d4ed8",
-        padding: "0.3rem 0", transition: "color 0.15s",
-      }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = "#1e40af"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = "#1d4ed8"; }}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
-        Back
-      </button>
-
-      {phase && (
-        <span style={{
-          position: "absolute", left: "50%", transform: "translateX(-50%)",
-          fontFamily: FONT, fontWeight: 700,
-          fontSize: "0.75rem", color: "#4b5470",
-          letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap",
-        }}>
-          Phase {phase.phase_number} · Week {task?.week_number || 1}
-        </span>
-      )}
-
-      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-        <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", color: "#1d4ed8", letterSpacing: "-0.04em" }}>
-          mentorable
-        </span>
-        <span style={{
-          width: 5, height: 5, borderRadius: "50%",
-          background: "linear-gradient(135deg, #1d4ed8, #60a5fa)",
-          boxShadow: "0 0 5px rgba(37,99,235,0.4)", flexShrink: 0, marginBottom: 1,
-        }} />
-      </div>
     </div>
   );
 }
@@ -397,15 +347,35 @@ export default function TaskDetailPage({ taskId, navigate }) {
 
       <PageBackground />
 
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <TopBar phase={phase} task={task} onBack={goBack} />
+      <Sidebar
+        activePath="/roadmap"
+        navigate={navigate}
+        onModeClick={null}
+        roadmapMode={roadmap?.mode || "discovery"}
+      />
 
+      <div style={{ position: "relative", zIndex: 1, marginLeft: SIDEBAR_WIDTH }}>
         <motion.main
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          style={{ paddingTop: 76, maxWidth: 660, margin: "0 auto", paddingLeft: "1.25rem", paddingRight: "1.25rem", paddingBottom: 100 }}
+          style={{ paddingTop: 32, maxWidth: 660, margin: "0 auto", paddingLeft: "1.25rem", paddingRight: "1.25rem", paddingBottom: 100 }}
         >
+          {/* Back link */}
+          <button onClick={goBack} style={{
+            display: "flex", alignItems: "center", gap: 5, marginBottom: "1.5rem",
+            background: "none", border: "none", cursor: "pointer",
+            fontFamily: FONT, fontWeight: 700, fontSize: "0.85rem", color: "#1d4ed8",
+            padding: 0, transition: "color 0.15s",
+          }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "#1e40af"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "#1d4ed8"; }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Back to Roadmap
+          </button>
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 14 }}

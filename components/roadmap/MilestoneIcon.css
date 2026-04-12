@@ -14,7 +14,7 @@
 /* Hover label */
 .m-node-wrap { position: relative; display: inline-flex; flex-direction: column; align-items: center; gap: 6px; }
 .m-label {
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
   font-size: 12px;
   font-weight: 700;
   color: #1e3a8a;
@@ -28,6 +28,5 @@
   transition: opacity 0.2s ease, transform 0.2s ease;
   pointer-events: none;
   line-height: 1.4;
-  text-shadow: none;
 }
 .m-node-wrap:hover .m-label { opacity: 1; transform: translateY(0); }

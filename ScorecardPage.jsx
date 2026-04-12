@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
 import Spinner from "./components/common/Spinner.jsx";
+import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 
 // ─── Themes ───────────────────────────────────────────────────────────────────
 const themes = [
@@ -223,9 +224,10 @@ function SkeletonLayout({ theme }) {
 }
 
 // ─── ScorecardPage ────────────────────────────────────────────────────────────
-export default function ScorecardPage() {
+export default function ScorecardPage({ navigate }) {
   const [phase, setPhase] = useState("loading");
   const [profile, setProfile] = useState(null);
+  const [hasRoadmap, setHasRoadmap] = useState(false);
   const [theme, setTheme] = useState(themes[0]);
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -248,6 +250,10 @@ export default function ScorecardPage() {
           .from("profiles").select("*").eq("id", user.id).single();
         if (!profileData?.onboarding_completed) { window.location.href = "/onboarding"; return; }
         setProfile(profileData);
+        // Check for active roadmap to decide sidebar + button visibility
+        const { data: roadmapRows } = await supabase
+          .from("roadmaps").select("id").eq("user_id", user.id).eq("is_active", true).limit(1);
+        setHasRoadmap((roadmapRows?.length ?? 0) > 0);
         setPhase("loaded");
       } catch {
         setPhase("error");
@@ -408,6 +414,8 @@ export default function ScorecardPage() {
     transition: "border-color 0.3s ease, box-shadow 0.3s ease",
   };
 
+  const goToRoadmap = () => navigate ? navigate("/roadmap") : (window.location.href = "/roadmap");
+
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div style={{
@@ -418,9 +426,13 @@ export default function ScorecardPage() {
       position: "relative",
       fontFamily: "system-ui, sans-serif",
       padding: "3rem 1.5rem 5rem",
+      paddingLeft: hasRoadmap ? `calc(${SIDEBAR_WIDTH}px + 1.5rem)` : "1.5rem",
       background: `linear-gradient(135deg, #f8fafc 0%, ${theme.accent}12 50%, #f1f5f9 100%)`,
       transition: "background 300ms ease",
     }}>
+      {hasRoadmap && (
+        <Sidebar activePath="/scorecard" navigate={navigate || ((p) => { window.location.href = p; })} onModeClick={null} roadmapMode="discovery" />
+      )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -767,23 +779,25 @@ export default function ScorecardPage() {
                   {linkCopied ? "Copied!" : "Copy link"}
                 </button>
 
-                <button
-                  onClick={() => { window.location.href = "/roadmap"; }}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: "0.5rem",
-                    padding: "0.675rem 1.2rem",
-                    border: "none", borderRadius: "0.75rem",
-                    background: theme.accent, color: "white",
-                    fontSize: "0.875rem", fontWeight: 700,
-                    cursor: "pointer",
-                    boxShadow: `0 4px 14px ${theme.glow}`,
-                    fontFamily: "system-ui, sans-serif",
-                    whiteSpace: "nowrap",
-                    transition: "all 300ms ease",
-                  }}
-                >
-                  See my roadmap →
-                </button>
+                {!hasRoadmap && (
+                  <button
+                    onClick={goToRoadmap}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: "0.5rem",
+                      padding: "0.675rem 1.2rem",
+                      border: "none", borderRadius: "0.75rem",
+                      background: theme.accent, color: "white",
+                      fontSize: "0.875rem", fontWeight: 700,
+                      cursor: "pointer",
+                      boxShadow: `0 4px 14px ${theme.glow}`,
+                      fontFamily: "system-ui, sans-serif",
+                      whiteSpace: "nowrap",
+                      transition: "all 300ms ease",
+                    }}
+                  >
+                    See my roadmap →
+                  </button>
+                )}
               </motion.div>
             </motion.div>
 

@@ -8,6 +8,7 @@ import ConfidencePanel from "./components/roadmap/ConfidencePanel.jsx";
 import ModeSwitchModal from "./components/roadmap/ModeSwitchModal.jsx";
 import PhaseCompleteModal from "./components/roadmap/PhaseCompleteModal.jsx";
 import StickyWeekBar from "./components/roadmap/StickyWeekBar.jsx";
+import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 
 // ─── Background: Mountain Scene ───────────────────────────────────────────────
 function PageBackground() {
@@ -19,102 +20,6 @@ function PageBackground() {
       pointerEvents: "none",
       background: "linear-gradient(180deg, #e8f0ff 0%, #f4f8ff 25%, #f8faff 100%)",
     }} />
-  );
-}
-
-// ─── TopBar ───────────────────────────────────────────────────────────────────
-function TopBar({ roadmap, onModeClick, onConfidenceClick }) {
-  const mode = roadmap?.mode || "discovery";
-  const modeLabel = mode === "career" ? "Career Mode" : "Discovery Mode";
-  const modeColor = mode === "career" ? "#1d4ed8" : "#2563eb";
-
-  return (
-    <div style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      height: "64px",
-      background: "rgba(255,255,255,0.92)",
-      backdropFilter: "blur(12px)",
-      WebkitBackdropFilter: "blur(12px)",
-      borderBottom: "1px solid rgba(37,99,235,0.1)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "0 1.25rem",
-      zIndex: 50,
-    }}>
-      {/* Left: wordmark */}
-      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-        <span style={{
-          fontFamily: "'Space Grotesk', sans-serif",
-          fontWeight: 700,
-          fontSize: "1.05rem",
-          color: "#1d4ed8",
-          letterSpacing: "-0.04em",
-        }}>
-          mentorable
-        </span>
-        <span style={{
-          width: 5,
-          height: 5,
-          borderRadius: "50%",
-          background: "linear-gradient(135deg, #1d4ed8, #60a5fa)",
-          display: "inline-block",
-          boxShadow: "0 0 6px rgba(37,99,235,0.5)",
-          flexShrink: 0,
-          marginBottom: 2,
-        }} />
-      </div>
-
-      {/* Center: mode badge */}
-      <button
-        onClick={onModeClick}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "0.35rem",
-          padding: "0.3rem 0.8rem",
-          borderRadius: "9999px",
-          border: `1.5px solid ${modeColor}40`,
-          background: `${modeColor}10`,
-          cursor: "pointer",
-          fontFamily: "'Space Grotesk', sans-serif",
-          fontWeight: 700,
-          fontSize: "0.78rem",
-          color: modeColor,
-          outline: "none",
-          transition: "background 0.2s",
-          position: "absolute",
-          left: "50%",
-          transform: "translateX(-50%)",
-        }}
-      >
-        {mode === "career" ? (
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-          </svg>
-        ) : (
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-          </svg>
-        )}
-        {modeLabel}
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-
-      {/* Right: confidence meter — discovery mode only */}
-      {roadmap && roadmap.mode !== "career" && (
-        <ConfidenceMeter
-          score={roadmap.confidence_score ?? 0}
-          onClick={onConfidenceClick}
-        />
-      )}
-    </div>
   );
 }
 
@@ -683,17 +588,16 @@ export default function RoadmapPage({ navigate }) {
       {/* Background */}
       <PageBackground />
 
-      {/* Content sits above background */}
-      <div style={{ position: "relative", zIndex: 1 }}>
-        {/* TopBar */}
-        {!loading && !error && (
-          <TopBar
-            roadmap={roadmap}
-            onModeClick={() => setShowModeModal(true)}
-            onConfidenceClick={() => setShowConfidencePanel(true)}
-          />
-        )}
+      {/* Sidebar */}
+      <Sidebar
+        activePath="/roadmap"
+        navigate={navigate}
+        onModeClick={() => setShowModeModal(true)}
+        roadmapMode={roadmap?.mode || "discovery"}
+      />
 
+      {/* Content sits above background */}
+      <div style={{ position: "relative", zIndex: 1, marginLeft: SIDEBAR_WIDTH }}>
         {/* Loading */}
         {loading && <LoadingScreen slow={loadingSlow} />}
 
@@ -703,9 +607,18 @@ export default function RoadmapPage({ navigate }) {
         {/* Main content */}
         {!loading && !error && roadmap && (
           <main style={{
-            paddingTop: "64px",
+            paddingTop: "2rem",
             minHeight: "100vh",
           }}>
+            {/* Confidence meter (discovery mode) */}
+            {roadmap.mode !== "career" && (
+              <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 1rem 0.5rem" }}>
+                <ConfidenceMeter
+                  score={roadmap.confidence_score ?? 0}
+                  onClick={() => setShowConfidencePanel(true)}
+                />
+              </div>
+            )}
             {/* Content area */}
             <div style={{
               background: "transparent",

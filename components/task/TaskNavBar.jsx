@@ -13,7 +13,7 @@ export default function TaskNavBar({
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.28, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 0, left: "220px", right: 0,
         padding: "0.875rem 1.25rem",
         background: "rgba(255,255,255,0.95)",
         backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",

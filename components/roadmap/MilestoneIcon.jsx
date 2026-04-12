@@ -118,7 +118,7 @@ function NodeIcon({ type, status, locked, color }) {
 }
 
 /* ── Component ──────────────────────────────────────────────────────────────── */
-export default function MilestoneIcon({ task, taskType, isLocked, isActive, navigate, index }) {
+export default function MilestoneIcon({ task, taskType, isLocked, isActive, navigate, index, hideLabel = false }) {
   const [shaking, setShaking] = useState(false);
 
   const status  = task.not_for_me ? "skipped" : isLocked ? "locked" : (task.status || "not_started");
@@ -183,7 +183,7 @@ export default function MilestoneIcon({ task, taskType, isLocked, isActive, navi
         <NodeIcon type={type} status={status} locked={isLocked} color={s.iconColor} />
       </motion.button>
 
-      <span className="m-label">{label}</span>
+      {!hideLabel && <span className="m-label">{label}</span>}
     </motion.div>
   );
 }

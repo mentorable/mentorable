@@ -66,13 +66,23 @@ export default function AuthPage() {
           setError("Incorrect email or password. Please try again.");
           return;
         }
-        // Smart redirect: skip onboarding if already completed
+        // Smart redirect: skip onboarding if already completed, go to roadmap if built
         const { data: profile } = await supabase
           .from("profiles")
           .select("onboarding_completed")
           .eq("id", data.user.id)
           .single();
-        window.location.href = profile?.onboarding_completed ? "/scorecard" : "/onboarding";
+        if (profile?.onboarding_completed) {
+          const { data: roadmapRows } = await supabase
+            .from("roadmaps")
+            .select("id")
+            .eq("user_id", data.user.id)
+            .eq("is_active", true)
+            .limit(1);
+          window.location.href = roadmapRows?.length > 0 ? "/roadmap" : "/scorecard";
+        } else {
+          window.location.href = "/onboarding";
+        }
       }
     } catch (err) {
       setError(err.message ?? "Something went wrong. Please try again.");
