@@ -221,22 +221,61 @@ export default function TaskDetailPage({ taskId, navigate }) {
         if (cancelled) return;
         setPhases(phasesData);
 
-        let foundTask = null, foundPhase = null, prev = null, next = null, nextIsLocked = false;
+        let foundTask = null, foundPhase = null, foundPhaseTasks = null, prev = null, next = null, nextIsLocked = false;
         for (const ph of phasesData) {
           const tasks = (ph.tasks || []).slice().sort((a, b) => (a.week_number || 1) - (b.week_number || 1));
           for (let i = 0; i < tasks.length; i++) {
             if (tasks[i].id === taskId) {
-              foundTask = tasks[i]; foundPhase = ph;
+              foundTask = tasks[i]; foundPhase = ph; foundPhaseTasks = tasks;
               prev = i > 0 ? tasks[i - 1] : null;
               next = i < tasks.length - 1 ? tasks[i + 1] : null;
               if (next) {
-                const prevDone = tasks.slice(0, i + 1).every((t) => t.status === "completed" || t.status === "skipped");
+                // Next task in same phase: all tasks up to (not including) the next must be done
+                // i.e. tasks[0..i] (current included) — but treat in_progress as non-blocking
+                const prevDone = tasks.slice(0, i).every((t) => t.status === "completed" || t.status === "skipped");
                 nextIsLocked = !prevDone;
               }
               break;
             }
           }
           if (foundTask) break;
+        }
+
+        // Cross-phase: if no next task found, look at the first task of the next available phase
+        if (!next && foundPhase) {
+          const phaseIdx = phasesData.findIndex((p) => p.id === foundPhase.id);
+          for (let pi = phaseIdx + 1; pi < phasesData.length; pi++) {
+            const nextPhase = phasesData[pi];
+            if (nextPhase.status === "locked") continue;
+            const nextPhaseTasks = (nextPhase.tasks || [])
+              .slice()
+              .sort((a, b) => (a.week_number || 1) - (b.week_number || 1));
+            if (nextPhaseTasks.length > 0) {
+              next = nextPhaseTasks[0];
+              // Locked until every task in the current phase is done (including current)
+              const currentPhaseDone = (foundPhaseTasks || []).every(
+                (t) => t.id === foundTask.id
+                  ? false // current task not yet complete at load time
+                  : t.status === "completed" || t.status === "skipped"
+              );
+              nextIsLocked = !currentPhaseDone;
+              break;
+            }
+          }
+        }
+
+        // Cross-phase: if no prev task found, look at the last task of the previous phase
+        if (!prev && foundPhase) {
+          const phaseIdx = phasesData.findIndex((p) => p.id === foundPhase.id);
+          if (phaseIdx > 0) {
+            const prevPhase = phasesData[phaseIdx - 1];
+            const prevPhaseTasks = (prevPhase.tasks || [])
+              .slice()
+              .sort((a, b) => (a.week_number || 1) - (b.week_number || 1));
+            if (prevPhaseTasks.length > 0) {
+              prev = prevPhaseTasks[prevPhaseTasks.length - 1];
+            }
+          }
         }
 
         if (!foundTask) { setError("Task not found"); setLoading(false); return; }
@@ -271,6 +310,8 @@ export default function TaskDetailPage({ taskId, navigate }) {
   const completeTask = useCallback(async () => {
     if (!task || !phase || !roadmap || !user) return;
     setTask((t) => (t ? { ...t, status: "completed" } : t));
+    // Completing the current task always unblocks the next one
+    setNextLocked(false);
     await supabase.from("roadmap_tasks")
       .update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", task.id);
     const prevScore = roadmap.confidence_score ?? 0;
@@ -282,12 +323,28 @@ export default function TaskDetailPage({ taskId, navigate }) {
       reason: "You completed a task — great momentum!", trigger: "task_completed",
     });
     setRoadmap((r) => (r ? { ...r, confidence_score: newScore } : r));
+
+    // Check if all tasks in this phase are now done and mark phase complete
+    const phaseTasks = phases.find((p) => p.id === phase.id)?.tasks || [];
+    const updatedPhaseTasks = phaseTasks.map((t) =>
+      t.id === task.id ? { ...t, status: "completed" } : t
+    );
+    const allDone = updatedPhaseTasks.every(
+      (t) => t.status === "completed" || t.status === "skipped"
+    );
+    if (allDone) {
+      await supabase.from("roadmap_phases").update({ status: "completed" }).eq("id", phase.id);
+      setPhase((p) => (p ? { ...p, status: "completed" } : p));
+    }
+
     setShowCelebration(true);
-  }, [task, phase, roadmap, user]);
+  }, [task, phase, phases, roadmap, user]);
 
   const flagNotForMe = useCallback(async () => {
     if (!task || !phase || !roadmap || !user) return;
     setTask((t) => (t ? { ...t, not_for_me: true, status: "skipped" } : t));
+    // Skipping the current task also unblocks the next one
+    setNextLocked(false);
     await supabase.from("roadmap_tasks").update({ not_for_me: true, status: "skipped" }).eq("id", task.id);
     const prevScore = roadmap.confidence_score ?? 0;
     const newScore = Math.min(100, Math.max(0, prevScore - 4));
@@ -298,7 +355,20 @@ export default function TaskDetailPage({ taskId, navigate }) {
       reason: "You flagged a task as not for you.", trigger: "task_flagged_not_for_me",
     });
     setRoadmap((r) => (r ? { ...r, confidence_score: newScore } : r));
-  }, [task, phase, roadmap, user]);
+
+    // Check if all tasks in this phase are now done and mark phase complete
+    const phaseTasks = phases.find((p) => p.id === phase.id)?.tasks || [];
+    const updatedPhaseTasks = phaseTasks.map((t) =>
+      t.id === task.id ? { ...t, not_for_me: true, status: "skipped" } : t
+    );
+    const allDone = updatedPhaseTasks.every(
+      (t) => t.status === "completed" || t.status === "skipped"
+    );
+    if (allDone) {
+      await supabase.from("roadmap_phases").update({ status: "completed" }).eq("id", phase.id);
+      setPhase((p) => (p ? { ...p, status: "completed" } : p));
+    }
+  }, [task, phase, phases, roadmap, user]);
 
   const goPrev = () => {
     if (prevTask) { if (taskId) sessionStorage.setItem(STORAGE_KEY_LAST_TASK, taskId); navigate(`/roadmap/task/${prevTask.id}`); }
@@ -491,7 +561,8 @@ export default function TaskDetailPage({ taskId, navigate }) {
               <CheckpointContent phase={phase} onMarkPhaseComplete={markPhaseComplete} />
             )}
             {taskType === "reflection" && (
-              <ReflectionArea taskId={task.id} userId={user?.id} prompts={[]}
+              <ReflectionArea taskId={task.id} userId={user?.id}
+                prompts={task.description ? [{ id: "reflection_main", label: task.description }] : []}
                 initialResponses={taskResponses?.responses || {}}
                 onSave={(r) => setTaskResponses((p) => p ? { ...p, responses: r } : { responses: r })} />
             )}
