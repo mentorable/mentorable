@@ -1018,19 +1018,26 @@ export default function OnboardingPage() {
       setPhase("mic-denied"); setStartingConv(false); return;
     }
     try {
-      const sessionConfig = { agentId: AGENT_ID };
-      if (demographics.fullName) {
-        // Pass name as a dynamic variable (requires {{user_name}} in your ElevenLabs agent prompt)
-        sessionConfig.dynamicVariables = { user_name: demographics.fullName };
-        // Also override the first message so the agent greets by name immediately
-        sessionConfig.overrides = {
-          agent: {
-            firstMessage: `Hi ${demographics.fullName}! I'm so excited to meet you. I'm your Mentorable AI guide and I'm here to help you discover your strengths, interests, and potential paths forward. Let's get started — what subjects or activities do you find yourself most drawn to?`,
-          },
-        };
-      }
-      await conversation.startSession(sessionConfig);
+      // Start the session exactly as before — no overrides that could be rejected by the agent config
+      await conversation.startSession({ agentId: AGENT_ID });
       setPhase("active");
+      // After the session is live, send demographic context via sendContextualUpdate.
+      // This is the safe, supported way to inject context without touching session init.
+      if (demographics.fullName || demographics.educationLevel || demographics.state) {
+        const parts = [];
+        if (demographics.fullName) {
+          parts.push(`The student's name is ${demographics.fullName} — please address them by name throughout the conversation.`);
+        }
+        if (demographics.educationLevel) {
+          const levelLabel = { high_school: "High School", college: "College / University", other: "Other" }[demographics.educationLevel] ?? demographics.educationLevel;
+          const gradeLabel = { "9": "9th grade", "10": "10th grade", "11": "11th grade", "12": "12th grade", "1": "1st year (Freshman)", "2": "2nd year (Sophomore)", "3": "3rd year (Junior)", "4": "4th year (Senior)" }[demographics.gradeYear ?? ""] ?? null;
+          parts.push(`They are a ${levelLabel} student${gradeLabel ? `, ${gradeLabel}` : ""}.`);
+        }
+        if (demographics.state) {
+          parts.push(`They are based in ${demographics.state}.`);
+        }
+        try { conversation.sendContextualUpdate(parts.join(" ")); } catch (_) { /* best-effort */ }
+      }
     } catch (err) {
       setError(err?.message || "Failed to connect. Please try again.");
       setPhase("error");
