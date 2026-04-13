@@ -196,6 +196,273 @@ function ElegantShape({ shapeStyle, delay = 0, width = 400, height = 100, rotate
   );
 }
 
+// ─── Phase 0: Demographics ────────────────────────────────────────────────────
+const US_STATES = [
+  "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
+  "Delaware","District of Columbia","Florida","Georgia","Hawaii","Idaho","Illinois",
+  "Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts",
+  "Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada",
+  "New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota",
+  "Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina",
+  "South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington",
+  "West Virginia","Wisconsin","Wyoming",
+];
+
+const HS_GRADES = [
+  { value:"9",  label:"9th Grade"  },
+  { value:"10", label:"10th Grade" },
+  { value:"11", label:"11th Grade" },
+  { value:"12", label:"12th Grade" },
+];
+
+const COLLEGE_YEARS = [
+  { value:"1", label:"Freshman"  },
+  { value:"2", label:"Sophomore" },
+  { value:"3", label:"Junior"    },
+  { value:"4", label:"Senior"    },
+];
+
+const EDU_OPTIONS = [
+  { value:"high_school", label:"High School"         },
+  { value:"college",     label:"College / University" },
+  { value:"other",       label:"Other"                },
+];
+
+function DemographicsPhase({ onContinue, submitting }) {
+  const [fullName,        setFullName]        = useState("");
+  const [educationLevel,  setEducationLevel]  = useState("");
+  const [gradeYear,       setGradeYear]       = useState("");
+  const [usState,         setUsState]         = useState("");
+
+  const showGrade         = educationLevel === "high_school";
+  const showYear          = educationLevel === "college";
+  const gradeYearRequired = showGrade || showYear;
+
+  const isValid = (
+    fullName.trim().length > 0 &&
+    educationLevel !== "" &&
+    (!gradeYearRequired || gradeYear !== "")
+  );
+
+  const handleContinue = () => {
+    if (!isValid || submitting) return;
+    onContinue({
+      fullName:       fullName.trim(),
+      educationLevel,
+      gradeYear:      gradeYearRequired ? gradeYear : null,
+      state:          usState,
+    });
+  };
+
+  const inputStyle = {
+    width:"100%", padding:"0.75rem 1rem",
+    border:`1.5px solid ${BORDER}`, borderRadius:10,
+    background:SURFACE, color:TEXT,
+    fontFamily:SANS, fontSize:"0.95rem", fontWeight:500,
+    outline:"none", transition:"border-color 0.15s", boxSizing:"border-box",
+  };
+
+  const labelStyle = {
+    display:"block", fontFamily:SANS, fontSize:"0.72rem", fontWeight:700,
+    color:TEXT2, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:"0.45rem",
+  };
+
+  return (
+    <motion.div
+      key="demographics"
+      initial={{ opacity:0 }}
+      animate={{ opacity:1 }}
+      exit={{ opacity:0, y:-16 }}
+      transition={{ duration:0.35 }}
+      style={{
+        display:"flex", flexDirection:"column",
+        minHeight:"100vh", alignItems:"center", justifyContent:"center",
+        padding:"2rem", position:"relative", zIndex:1, background:BG,
+      }}
+    >
+      {/* Background */}
+      <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom right, rgba(99,102,241,0.07), transparent, rgba(124,58,237,0.05))", filter:"blur(80px)", zIndex:0 }}/>
+      <div style={{ position:"absolute", inset:0, overflow:"hidden", zIndex:0 }}>
+        <ElegantShape delay={0.3} width={500} height={120} rotate={12}  color="rgba(99,102,241,0.08)"  borderColor="rgba(99,102,241,0.18)"  glowColor="rgba(99,102,241,0.05)"  shapeStyle={{ left:"-8%", top:"10%" }}/>
+        <ElegantShape delay={0.5} width={400} height={100} rotate={-15} color="rgba(124,58,237,0.07)"  borderColor="rgba(124,58,237,0.15)"  glowColor="rgba(124,58,237,0.04)"  shapeStyle={{ right:"-4%", bottom:"15%" }}/>
+      </div>
+
+      {/* Logo */}
+      <div style={{ position:"absolute", top:"1.5rem", left:"3rem", zIndex:2 }}>
+        <Logo />
+      </div>
+
+      {/* Step indicator */}
+      <div style={{ position:"absolute", top:"1.6rem", right:"3rem", zIndex:2, display:"flex", alignItems:"center", gap:8 }}>
+        <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"5px 14px", borderRadius:100, border:`1.5px solid ${BORDER}`, background:CARD, boxShadow:"0 2px 12px rgba(59,91,252,0.08)" }}>
+          <div style={{ display:"flex", gap:5 }}>
+            {[0,1].map(i => (
+              <div key={i} style={{ width:i===0?18:6, height:6, borderRadius:3, background:i===0?ACCENT:`rgba(59,91,252,0.2)`, transition:"all 0.3s" }}/>
+            ))}
+          </div>
+          <span style={{ fontFamily:SANS, fontSize:"0.78rem", fontWeight:600, color:ACCENT }}>Step 1 of 2</span>
+        </div>
+      </div>
+
+      {/* Card */}
+      <motion.div
+        initial={{ opacity:0, y:28 }}
+        animate={{ opacity:1, y:0 }}
+        transition={{ duration:0.65, ease:[0.16,1,0.3,1], delay:0.1 }}
+        style={{
+          position:"relative", zIndex:1,
+          background:CARD, border:`1.5px solid ${BORDER}`, borderRadius:20,
+          padding:"2.5rem", maxWidth:460, width:"100%",
+          boxShadow:"0 4px 40px rgba(59,91,252,0.1), 0 1px 8px rgba(0,0,0,0.06)",
+        }}
+      >
+        {/* Header */}
+        <motion.div {...fadeUp(0.15)} style={{ marginBottom:"1.75rem" }}>
+          <h2 style={{ fontFamily:SERIF, fontWeight:700, fontSize:"1.85rem", color:TEXT, letterSpacing:"-0.025em", lineHeight:1.15, marginBottom:"0.5rem" }}>
+            A bit about you
+          </h2>
+          <p style={{ fontFamily:SANS, fontSize:"0.9rem", color:TEXT2, lineHeight:1.65, margin:0 }}>
+            This helps us personalize your roadmap and gives your AI guide the right context before your conversation.
+          </p>
+        </motion.div>
+
+        {/* Fields */}
+        <div style={{ display:"flex", flexDirection:"column", gap:"1.35rem" }}>
+
+          {/* Name */}
+          <motion.div {...fadeUp(0.22)}>
+            <label style={labelStyle}>Your name</label>
+            <input
+              type="text"
+              placeholder="First name is fine"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              onFocus={(e) => { e.target.style.borderColor = ACCENT; }}
+              onBlur={(e)  => { e.target.style.borderColor = BORDER; }}
+              onKeyDown={(e) => e.key === "Enter" && handleContinue()}
+              style={inputStyle}
+              autoFocus
+            />
+          </motion.div>
+
+          {/* Education level */}
+          <motion.div {...fadeUp(0.29)}>
+            <label style={labelStyle}>Education level</label>
+            <div style={{ display:"flex", gap:"0.5rem" }}>
+              {EDU_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => { setEducationLevel(opt.value); setGradeYear(""); }}
+                  style={{
+                    flex:1, padding:"0.625rem 0.4rem", borderRadius:10,
+                    border:`1.5px solid ${educationLevel === opt.value ? ACCENT : BORDER}`,
+                    background:educationLevel === opt.value ? `rgba(59,91,252,0.07)` : "transparent",
+                    color:educationLevel === opt.value ? ACCENT : TEXT2,
+                    fontFamily:SANS, fontWeight:600, fontSize:"0.78rem",
+                    cursor:"pointer", transition:"all 0.15s",
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Grade / Year (animated, conditional) */}
+          <AnimatePresence>
+            {(showGrade || showYear) && (
+              <motion.div
+                key="grade-year-field"
+                initial={{ opacity:0, height:0 }}
+                animate={{ opacity:1, height:"auto" }}
+                exit={{ opacity:0, height:0 }}
+                transition={{ duration:0.28, ease:[0.16,1,0.3,1] }}
+                style={{ overflow:"hidden" }}
+              >
+                <label style={labelStyle}>{showGrade ? "Grade" : "Year in school"}</label>
+                <div style={{ display:"flex", gap:"0.45rem", flexWrap:"wrap" }}>
+                  {(showGrade ? HS_GRADES : COLLEGE_YEARS).map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setGradeYear(opt.value)}
+                      style={{
+                        padding:"0.55rem 1rem", borderRadius:8,
+                        border:`1.5px solid ${gradeYear === opt.value ? ACCENT : BORDER}`,
+                        background:gradeYear === opt.value ? `rgba(59,91,252,0.07)` : "transparent",
+                        color:gradeYear === opt.value ? ACCENT : TEXT2,
+                        fontFamily:SANS, fontWeight:600, fontSize:"0.82rem",
+                        cursor:"pointer", transition:"all 0.15s",
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* State (optional) */}
+          <motion.div {...fadeUp(0.36)}>
+            <label style={labelStyle}>
+              State{" "}
+              <span style={{ fontWeight:500, opacity:0.55, textTransform:"none", letterSpacing:0, fontSize:"0.68rem" }}>
+                (optional)
+              </span>
+            </label>
+            <div style={{ position:"relative" }}>
+              <select
+                value={usState}
+                onChange={(e) => setUsState(e.target.value)}
+                onFocus={(e) => { e.target.style.borderColor = ACCENT; }}
+                onBlur={(e)  => { e.target.style.borderColor = BORDER; }}
+                style={{ ...inputStyle, cursor:"pointer", paddingRight:"2.25rem", appearance:"none", WebkitAppearance:"none" }}
+              >
+                <option value="">Select your state…</option>
+                {US_STATES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              {/* Chevron icon */}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={TEXT3} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{ position:"absolute", right:"0.85rem", top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }}>
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </motion.div>
+
+          {/* Continue button */}
+          <motion.div {...fadeUp(0.42)}>
+            <motion.button
+              onClick={handleContinue}
+              disabled={!isValid || submitting}
+              whileHover={isValid && !submitting ? { scale:1.02 } : {}}
+              whileTap={isValid && !submitting ? { scale:0.97 } : {}}
+              style={{
+                width:"100%", padding:"0.9rem 1.5rem",
+                borderRadius:12, border:"none",
+                background:isValid ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})` : `rgba(59,91,252,0.12)`,
+                color:isValid ? "white" : TEXT3,
+                fontFamily:SANS, fontWeight:700, fontSize:"0.95rem",
+                cursor:isValid && !submitting ? "pointer" : "not-allowed",
+                transition:"all 0.2s",
+                display:"flex", alignItems:"center", justifyContent:"center", gap:"0.5rem",
+                boxShadow:isValid ? "0 4px 20px rgba(59,91,252,0.3)" : "none",
+              }}
+            >
+              {submitting
+                ? <><Spinner size={16} color="white"/> Saving…</>
+                : <>Continue to voice interview →</>
+              }
+            </motion.button>
+          </motion.div>
+
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ─── Phase 1: Intro ───────────────────────────────────────────────────────────
 function IntroPhase({ onStart, loading }) {
   const topics = [
@@ -665,6 +932,8 @@ export default function OnboardingPage() {
   const [error, setError]               = useState(null);
   const [user, setUser]                 = useState(null);
   const [startingConv, setStartingConv] = useState(false);
+  const [demographics, setDemographics] = useState({ fullName:"", educationLevel:"", gradeYear:null, state:"" });
+  const [savingDemo, setSavingDemo]     = useState(false);
 
   const transcriptEndRef = useRef(null);
   const timerRef         = useRef(null);
@@ -678,10 +947,30 @@ export default function OnboardingPage() {
         .from("profiles").select("onboarding_completed").eq("id", user.id).single();
       if (profile?.onboarding_completed) { window.location.href = "/scorecard"; return; }
       setUser(user);
-      setPhase("intro");
+      setPhase("demographics");
     };
     checkAuth();
   }, []);
+
+  const handleDemographicsContinue = async (data) => {
+    setSavingDemo(true);
+    setDemographics(data);
+    try {
+      await supabase.from("profiles").upsert({
+        id:              user.id,
+        full_name:       data.fullName,
+        education_level: data.educationLevel,
+        grade_level:     data.gradeYear ? parseInt(data.gradeYear) : null,
+        location_general: data.state || null,
+        updated_at:      new Date().toISOString(),
+      }, { onConflict: "id" });
+    } catch (err) {
+      console.error("[Onboarding] demographics save error:", err);
+      // Non-blocking — proceed even if save fails; will retry in final upsert
+    }
+    setSavingDemo(false);
+    setPhase("intro");
+  };
 
   const conversation = useConversation({
     onMessage: (msg) => {
@@ -729,7 +1018,18 @@ export default function OnboardingPage() {
       setPhase("mic-denied"); setStartingConv(false); return;
     }
     try {
-      await conversation.startSession({ agentId: AGENT_ID });
+      const sessionConfig = { agentId: AGENT_ID };
+      if (demographics.fullName) {
+        // Pass name as a dynamic variable (requires {{user_name}} in your ElevenLabs agent prompt)
+        sessionConfig.dynamicVariables = { user_name: demographics.fullName };
+        // Also override the first message so the agent greets by name immediately
+        sessionConfig.overrides = {
+          agent: {
+            firstMessage: `Hi ${demographics.fullName}! I'm so excited to meet you. I'm your Mentorable AI guide and I'm here to help you discover your strengths, interests, and potential paths forward. Let's get started — what subjects or activities do you find yourself most drawn to?`,
+          },
+        };
+      }
+      await conversation.startSession(sessionConfig);
       setPhase("active");
     } catch (err) {
       setError(err?.message || "Failed to connect. Please try again.");
@@ -794,6 +1094,12 @@ ${transcriptText}`,
         .from("profiles")
         .upsert({
           id:                   freshUser.id,
+          // Demographic fields (collected before voice call)
+          full_name:            demographics.fullName || null,
+          education_level:      demographics.educationLevel || null,
+          grade_level:          demographics.gradeYear ? parseInt(demographics.gradeYear) : null,
+          location_general:     demographics.state || null,
+          // Voice-extracted fields
           strengths:            profile.strengths,
           weaknesses:           profile.weaknesses,
           interests:            profile.interests,
@@ -879,10 +1185,11 @@ ${transcriptText}`,
       `}</style>
 
       <AnimatePresence mode="wait">
+        {phase === "demographics" && <DemographicsPhase key="demographics" onContinue={handleDemographicsContinue} submitting={savingDemo}/>}
         {phase === "intro"      && <IntroPhase      key="intro"      onStart={startConversation} loading={startingConv}/>}
         {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} transcriptEndRef={transcriptEndRef}/>}
         {phase === "processing" && <ProcessingPhase key="processing"/>}
-        {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("intro"); }}/>}
+        {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("demographics"); }}/>}
         {phase === "mic-denied" && <MicDeniedPhase  key="mic-denied" onRetry={() => setPhase("intro")}/>}
       </AnimatePresence>
     </div>

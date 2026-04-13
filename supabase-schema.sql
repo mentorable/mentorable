@@ -8,7 +8,9 @@
 
 CREATE TABLE profiles (
   id                   UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  grade_level          SMALLINT CHECK (grade_level BETWEEN 9 AND 12),
+  full_name            TEXT DEFAULT '',
+  education_level      TEXT CHECK (education_level IS NULL OR education_level IN ('high_school', 'college', 'other')),
+  grade_level          SMALLINT CHECK (grade_level IS NULL OR (grade_level >= 1 AND grade_level <= 12)),
   school_type          TEXT CHECK (school_type IN ('public', 'private', 'charter', 'homeschool')),
   location_general     TEXT,
   strengths            JSONB DEFAULT '[]',
