@@ -30,7 +30,7 @@ export default function StickyWeekBar({ phase, currentWeek, tasks, onScrollToCur
       style={{
         position: "fixed",
         bottom: 0,
-        left: "220px",
+        left: 0,
         right: 0,
         zIndex: 100,
         cursor: "pointer",

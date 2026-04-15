@@ -1,5 +1,6 @@
 import Anthropic from 'npm:@anthropic-ai/sdk'
 import { createClient } from 'npm:@supabase/supabase-js'
+import { mnmSearch, mnmSearchSummaryForPrompt } from '../_shared/onet.ts'
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') })
 
@@ -93,6 +94,30 @@ Deno.serve(async (req) => {
 
     const isDiscovery = roadmap.mode === 'discovery'
 
+    let onetCareerContext = ''
+    if (roadmap.mode === 'career') {
+      const raw =
+        (typeof roadmap.career_direction === 'string' && roadmap.career_direction.trim()) ||
+        (Array.isArray(profile.career_matches) && profile.career_matches[0]) ||
+        ''
+      const term = typeof raw === 'string' ? raw.trim() : ''
+      if (term) {
+        try {
+          const search = await mnmSearch(term)
+          const summary = mnmSearchSummaryForPrompt(search)
+          if (summary) {
+            onetCareerContext = `\n## O*NET (official occupation titles related to this direction)\n${summary}\n`
+          }
+        } catch (e) {
+          if (e instanceof Error && e.name === 'OnetRateLimit') {
+            console.warn('O*NET rate limit; continuing without O*NET block')
+          } else {
+            console.warn('O*NET context skipped:', e)
+          }
+        }
+      }
+    }
+
     const systemPrompt = `
 You are Mentorable's roadmap engine. You generate personalized weekly career guidance tasks for high school students.
 
@@ -125,7 +150,7 @@ Generate Phase ${phaseNumber} of this student's roadmap.
 - Work style: ${profile.work_style}
 - Career matches from onboarding: ${JSON.stringify(profile.career_matches)}
 - Onboarding summary: ${profile.onboarding_summary}
-
+${onetCareerContext}
 ## ROADMAP STATE
 - Mode: ${roadmap.mode}
 - Career direction: ${roadmap.career_direction || 'Not yet chosen -- still exploring'}

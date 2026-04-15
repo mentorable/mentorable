@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../lib/supabase.js";
+import { searchMnmCareers } from "../../lib/onet.js";
 
 export default function ModeSwitchModal({ currentMode, userId, onConfirm, onCancel }) {
   const [careerDirection, setCareerDirection] = useState("");
   const [previousCareerPlans, setPreviousCareerPlans] = useState([]);
   const [selectedPlan, setSelectedPlan] = useState(null); // null = new plan
+  const [onetSuggestions, setOnetSuggestions] = useState([]);
+  const [onetSuggestLoading, setOnetSuggestLoading] = useState(false);
 
   const switchingToCareer = currentMode === "discovery";
 
@@ -23,6 +26,36 @@ export default function ModeSwitchModal({ currentMode, userId, onConfirm, onCanc
     };
     loadPrevious();
   }, [switchingToCareer, userId]);
+
+  // O*NET keyword search (debounced) when entering a new career direction
+  useEffect(() => {
+    if (!switchingToCareer || selectedPlan) {
+      setOnetSuggestions([]);
+      return;
+    }
+    const q = careerDirection.trim();
+    if (q.length < 2) {
+      setOnetSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    setOnetSuggestLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await searchMnmCareers(q);
+        if (cancelled) return;
+        setOnetSuggestions(res?.career?.slice(0, 8) ?? []);
+      } catch {
+        if (!cancelled) setOnetSuggestions([]);
+      } finally {
+        if (!cancelled) setOnetSuggestLoading(false);
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [careerDirection, switchingToCareer, selectedPlan]);
 
   const handleConfirm = () => {
     if (switchingToCareer) {
@@ -227,39 +260,110 @@ export default function ModeSwitchModal({ currentMode, userId, onConfirm, onCanc
                   }}>
                     {previousCareerPlans.length > 0 ? "New direction" : "What field are you gravitating toward?"}
                   </label>
-                  <input
-                    type="text"
-                    value={careerDirection}
-                    onChange={(e) => {
-                      setCareerDirection(e.target.value);
-                      if (e.target.value.trim()) setSelectedPlan(null);
-                    }}
-                    placeholder="e.g. Software Engineering, Medicine, Law..."
-                    autoFocus={previousCareerPlans.length === 0}
-                    style={{
-                      width: "100%",
-                      padding: "0.7rem 1rem",
-                      borderRadius: "0.75rem",
-                      border: selectedPlan ? "1.5px solid #e2e8f0" : "1.5px solid #6366f1",
-                      fontSize: "0.875rem",
-                      color: "#0f172a",
-                      fontFamily: "system-ui, sans-serif",
-                      outline: "none",
-                      transition: "border-color 0.2s",
-                      boxSizing: "border-box",
-                      opacity: selectedPlan ? 0.5 : 1,
-                    }}
-                    onFocus={(e) => {
-                      setSelectedPlan(null);
-                      e.target.style.borderColor = "#6366f1";
-                      e.target.style.opacity = "1";
-                    }}
-                    onBlur={(e) => {
-                      if (!careerDirection.trim()) {
-                        e.target.style.borderColor = "#e2e8f0";
-                      }
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type="text"
+                      value={careerDirection}
+                      onChange={(e) => {
+                        setCareerDirection(e.target.value);
+                        if (e.target.value.trim()) setSelectedPlan(null);
+                      }}
+                      placeholder="e.g. Software Engineering, Medicine, Law..."
+                      autoFocus={previousCareerPlans.length === 0}
+                      autoComplete="off"
+                      aria-autocomplete="list"
+                      aria-expanded={onetSuggestions.length > 0}
+                      style={{
+                        width: "100%",
+                        padding: "0.7rem 1rem",
+                        borderRadius: "0.75rem",
+                        border: selectedPlan ? "1.5px solid #e2e8f0" : "1.5px solid #6366f1",
+                        fontSize: "0.875rem",
+                        color: "#0f172a",
+                        fontFamily: "system-ui, sans-serif",
+                        outline: "none",
+                        transition: "border-color 0.2s",
+                        boxSizing: "border-box",
+                        opacity: selectedPlan ? 0.5 : 1,
+                      }}
+                      onFocus={(e) => {
+                        setSelectedPlan(null);
+                        e.target.style.borderColor = "#6366f1";
+                        e.target.style.opacity = "1";
+                      }}
+                      onBlur={(e) => {
+                        if (!careerDirection.trim()) {
+                          e.target.style.borderColor = "#e2e8f0";
+                        }
+                      }}
+                    />
+                    {onetSuggestLoading && careerDirection.trim().length >= 2 && !selectedPlan && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          right: "0.65rem",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          fontSize: "0.7rem",
+                          color: "#94a3b8",
+                        }}
+                      >
+                        …
+                      </div>
+                    )}
+                    {onetSuggestions.length > 0 && !selectedPlan && (
+                      <div
+                        role="listbox"
+                        style={{
+                          position: "absolute",
+                          left: 0,
+                          right: 0,
+                          top: "calc(100% + 4px)",
+                          maxHeight: "220px",
+                          overflowY: "auto",
+                          background: "#ffffff",
+                          border: "1.5px solid #e2e8f0",
+                          borderRadius: "0.75rem",
+                          boxShadow: "0 12px 32px rgba(15,23,42,0.12)",
+                          zIndex: 10,
+                        }}
+                      >
+                        {onetSuggestions.map((c) => (
+                          <button
+                            key={`${c.code}-${c.title}`}
+                            type="button"
+                            role="option"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setCareerDirection(c.title);
+                              setOnetSuggestions([]);
+                            }}
+                            style={{
+                              display: "block",
+                              width: "100%",
+                              textAlign: "left",
+                              padding: "0.55rem 0.85rem",
+                              border: "none",
+                              borderBottom: "1px solid #f1f5f9",
+                              background: "transparent",
+                              cursor: "pointer",
+                              fontSize: "0.8125rem",
+                              color: "#0f172a",
+                              fontFamily: "system-ui, sans-serif",
+                            }}
+                          >
+                            <span style={{ fontWeight: 600 }}>{c.title}</span>
+                            <span style={{ display: "block", fontSize: "0.7rem", color: "#94a3b8", marginTop: "0.1rem" }}>
+                              O*NET-SOC {c.code}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <p style={{ fontSize: "0.72rem", color: "#94a3b8", margin: "0.35rem 0 0 0", lineHeight: 1.4 }}>
+                    Occupation data from O*NET — pick a title or keep typing your own.
+                  </p>
                 </div>
               </div>
             )}
