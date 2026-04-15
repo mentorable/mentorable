@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { Routes, Route, useNavigate, useParams } from "react-router-dom";
 import LandingPage from "./LandingPage.jsx";
 import AuthPage from "./AuthPage.jsx";
 import OnboardingPage from "./OnboardingPage.jsx";
@@ -45,33 +45,28 @@ function ComingSoonPage({ title, navigate, activePath }) {
   );
 }
 
+function TaskDetailRoute() {
+  const { taskId } = useParams();
+  const navigate = useNavigate();
+  return <TaskDetailPage taskId={taskId} navigate={navigate} />;
+}
+
 export default function App() {
-  const [path, setPath] = useState(() => window.location.pathname);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const onPop = () => setPath(window.location.pathname);
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
-
-  const navigate = (newPath) => {
-    window.history.pushState({}, "", newPath);
-    setPath(newPath);
-  };
-
-  if (path === "/auth") return <AuthPage />;
-  if (path === "/onboarding") return <OnboardingPage />;
-  if (path === "/scorecard") return <ScorecardPage navigate={navigate} />;
-  if (path === "/chat") return <ComingSoonPage title="Chat" navigate={navigate} activePath="/chat" />;
-  if (path === "/profile") return <ComingSoonPage title="Profile" navigate={navigate} activePath="/profile" />;
-  if (path === "/community") return <ComingSoonPage title="Community" navigate={navigate} activePath="/community" />;
-
-  const taskMatch = path.match(/^\/roadmap\/task\/([^/]+)$/);
-  if (taskMatch) {
-    return <TaskDetailPage taskId={taskMatch[1]} navigate={navigate} />;
-  }
-  if (path === "/roadmap") return <RoadmapPage navigate={navigate} />;
-  if (path === "/roadmap-preview") return <RoadmapPreviewPage />;
-
-  return <LandingPage />;
+  return (
+    <Routes>
+      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="/scorecard" element={<ScorecardPage navigate={navigate} />} />
+      <Route path="/chat" element={<ComingSoonPage title="Chat" navigate={navigate} activePath="/chat" />} />
+      <Route path="/profile" element={<ComingSoonPage title="Profile" navigate={navigate} activePath="/profile" />} />
+      <Route path="/community" element={<ComingSoonPage title="Community" navigate={navigate} activePath="/community" />} />
+      <Route path="/roadmap/task/:taskId" element={<TaskDetailRoute />} />
+      <Route path="/roadmap" element={<RoadmapPage navigate={navigate} />} />
+      <Route path="/roadmap-preview" element={<RoadmapPreviewPage />} />
+      <Route path="/" element={<LandingPage />} />
+      <Route path="*" element={<LandingPage />} />
+    </Routes>
+  );
 }

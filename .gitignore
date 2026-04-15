@@ -10,3 +10,5 @@ supabase/.temp/
 # AI development artifacts
 .claude/
 sample_screenshots/
+
+.playwright-mcp
