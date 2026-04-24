@@ -6,6 +6,7 @@ import ScorecardPage from "./ScorecardPage.jsx";
 import RoadmapPage from "./RoadmapPage.jsx";
 import TaskDetailPage from "./components/task/TaskDetailPage.jsx";
 import RoadmapPreviewPage from "./components/roadmap-preview/RoadmapPreviewPage.jsx";
+import ChatPage from "./ChatPage.jsx";
 import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 
 const FONT = "'Space Grotesk', sans-serif";
@@ -51,19 +52,37 @@ function TaskDetailRoute() {
   return <TaskDetailPage taskId={taskId} navigate={navigate} />;
 }
 
-export default function App() {
+function ChatRoute() {
   const navigate = useNavigate();
+  return <ChatPage navigate={navigate} />;
+}
 
+function ScorecardRoute() {
+  const navigate = useNavigate();
+  return <ScorecardPage navigate={navigate} />;
+}
+
+function RoadmapRoute() {
+  const navigate = useNavigate();
+  return <RoadmapPage navigate={navigate} />;
+}
+
+function ComingSoonRoute({ title, activePath }) {
+  const navigate = useNavigate();
+  return <ComingSoonPage title={title} navigate={navigate} activePath={activePath} />;
+}
+
+export default function App() {
   return (
     <Routes>
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
-      <Route path="/scorecard" element={<ScorecardPage navigate={navigate} />} />
-      <Route path="/chat" element={<ComingSoonPage title="Chat" navigate={navigate} activePath="/chat" />} />
-      <Route path="/profile" element={<ComingSoonPage title="Profile" navigate={navigate} activePath="/profile" />} />
-      <Route path="/community" element={<ComingSoonPage title="Community" navigate={navigate} activePath="/community" />} />
+      <Route path="/scorecard" element={<ScorecardRoute />} />
+      <Route path="/chat" element={<ChatRoute />} />
+      <Route path="/profile" element={<ComingSoonRoute title="Profile" activePath="/profile" />} />
+      <Route path="/community" element={<ComingSoonRoute title="Community" activePath="/community" />} />
       <Route path="/roadmap/task/:taskId" element={<TaskDetailRoute />} />
-      <Route path="/roadmap" element={<RoadmapPage navigate={navigate} />} />
+      <Route path="/roadmap" element={<RoadmapRoute />} />
       <Route path="/roadmap-preview" element={<RoadmapPreviewPage />} />
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<LandingPage />} />

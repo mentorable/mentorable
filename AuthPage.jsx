@@ -63,7 +63,14 @@ export default function AuthPage() {
       } else {
         const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) {
-          setError("Incorrect email or password. Please try again.");
+          const msg = err.message?.toLowerCase() ?? "";
+          if (msg.includes("fetch") || msg.includes("network") || msg.includes("connect")) {
+            setError("Can't reach the server. Check your connection or try again in a moment.");
+          } else if (msg.includes("invalid") || msg.includes("credentials") || msg.includes("password") || msg.includes("email")) {
+            setError("Incorrect email or password. Please try again.");
+          } else {
+            setError(err.message);
+          }
           return;
         }
         // Smart redirect: skip onboarding if already completed, go to roadmap if built
@@ -74,7 +81,7 @@ export default function AuthPage() {
           .single();
         if (profile?.onboarding_completed) {
           const { data: roadmapRows } = await supabase
-            .from("roadmaps")
+            .from("career_roadmaps")
             .select("id")
             .eq("user_id", data.user.id)
             .eq("is_active", true)
