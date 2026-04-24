@@ -8,202 +8,18 @@ import ConfidencePanel from "./components/roadmap/ConfidencePanel.jsx";
 import ModeSwitchModal from "./components/roadmap/ModeSwitchModal.jsx";
 import PhaseCompleteModal from "./components/roadmap/PhaseCompleteModal.jsx";
 import StickyWeekBar from "./components/roadmap/StickyWeekBar.jsx";
+import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 
 // ─── Background: Mountain Scene ───────────────────────────────────────────────
-const MOUNTAIN_LAYERS = [
-  {
-    opacity: 0.45,
-    color: "#1e1b4b",
-    points: "0,100 8,72 16,80 24,65 32,75 42,58 52,68 60,55 70,62 80,50 88,58 96,46 100,52 100,100",
-  },
-  {
-    opacity: 0.55,
-    color: "#312e81",
-    points: "0,100 5,78 12,85 20,70 30,80 38,63 48,72 57,60 65,68 73,55 82,63 90,52 100,58 100,100",
-  },
-  {
-    opacity: 0.65,
-    color: "#4338ca",
-    points: "0,100 6,82 14,88 22,75 32,84 40,68 50,76 59,65 68,72 76,60 85,68 93,57 100,62 100,100",
-  },
-  {
-    opacity: 0.75,
-    color: "#4f46e5",
-    points: "0,100 4,87 10,92 18,80 28,88 36,73 46,80 55,70 63,77 72,65 80,73 88,63 96,68 100,72 100,100",
-  },
-  {
-    opacity: 0.85,
-    color: "#6366f1",
-    points: "0,100 3,90 9,94 16,84 24,90 32,77 42,84 50,75 58,80 66,70 74,76 82,67 90,73 97,68 100,74 100,100",
-  },
-];
-
-const STARS = [
-  { id: 0, top: "5%", left: "12%" },
-  { id: 1, top: "8%", left: "28%" },
-  { id: 2, top: "3%", left: "48%" },
-  { id: 3, top: "11%", left: "63%" },
-  { id: 4, top: "6%", left: "78%" },
-  { id: 5, top: "15%", left: "90%" },
-  { id: 6, top: "20%", left: "5%" },
-  { id: 7, top: "18%", left: "38%" },
-  { id: 8, top: "25%", left: "55%" },
-  { id: 9, top: "22%", left: "82%" },
-];
-
-function MountainBackground() {
+function PageBackground() {
   return (
     <div style={{
       position: "fixed",
       inset: 0,
       zIndex: 0,
       pointerEvents: "none",
-      background: "linear-gradient(180deg, #1a1660 0%, #2d2894 22%, #4338ca 50%, #3730a3 75%, #2a2688 100%)",
-    }}>
-      {/* Stars */}
-      {STARS.map((star) => (
-        <motion.div
-          key={star.id}
-          animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.3, 1] }}
-          transition={{
-            duration: 2 + (star.id % 3),
-            repeat: Infinity,
-            delay: star.id * 0.25,
-            ease: "easeInOut",
-          }}
-          style={{
-            position: "absolute",
-            top: star.top,
-            left: star.left,
-            width: 3,
-            height: 3,
-            borderRadius: "50%",
-            background: "white",
-            boxShadow: "0 0 4px rgba(255,255,255,0.8)",
-          }}
-        />
-      ))}
-
-      {/* Mountain SVG layers */}
-      <div style={{
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: "25vh",
-      }}>
-        <svg
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          style={{ width: "100%", height: "100%", display: "block" }}
-        >
-          {MOUNTAIN_LAYERS.map((layer, i) => (
-            <polygon
-              key={i}
-              points={layer.points}
-              fill={layer.color}
-              opacity={layer.opacity}
-            />
-          ))}
-        </svg>
-      </div>
-    </div>
-  );
-}
-
-// ─── TopBar ───────────────────────────────────────────────────────────────────
-function TopBar({ roadmap, onModeClick, onConfidenceClick }) {
-  const mode = roadmap?.mode || "discovery";
-  const modeLabel = mode === "career" ? "Career Mode" : "Discovery Mode";
-  const modeColor = mode === "career" ? "#6366f1" : "#3b82f6";
-
-  return (
-    <div style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      height: "64px",
-      background: "rgba(203,213,225,0.92)",
-      backdropFilter: "blur(12px)",
-      WebkitBackdropFilter: "blur(12px)",
-      borderBottom: "1px solid rgba(148,163,184,0.35)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "0 1.25rem",
-      zIndex: 50,
-    }}>
-      {/* Left: wordmark */}
-      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-        <span style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontWeight: 800,
-          fontSize: "1.05rem",
-          color: "#4f46e5",
-          letterSpacing: "-0.03em",
-        }}>
-          mentorable
-        </span>
-        <span style={{
-          width: 5,
-          height: 5,
-          borderRadius: "50%",
-          background: "#6366f1",
-          display: "inline-block",
-          boxShadow: "0 0 6px rgba(99,102,241,0.7)",
-          flexShrink: 0,
-          marginBottom: 2,
-        }} />
-      </div>
-
-      {/* Center: mode badge */}
-      <button
-        onClick={onModeClick}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "0.35rem",
-          padding: "0.3rem 0.8rem",
-          borderRadius: "9999px",
-          border: `1.5px solid ${modeColor}40`,
-          background: `${modeColor}10`,
-          cursor: "pointer",
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontWeight: 700,
-          fontSize: "0.78rem",
-          color: modeColor,
-          outline: "none",
-          transition: "background 0.2s",
-          position: "absolute",
-          left: "50%",
-          transform: "translateX(-50%)",
-        }}
-      >
-        {mode === "career" ? (
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-          </svg>
-        ) : (
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-          </svg>
-        )}
-        {modeLabel}
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-
-      {/* Right: confidence meter — discovery mode only */}
-      {roadmap && roadmap.mode !== "career" && (
-        <ConfidenceMeter
-          score={roadmap.confidence_score ?? 0}
-          onClick={onConfidenceClick}
-        />
-      )}
-    </div>
+      background: "linear-gradient(180deg, #e8f0ff 0%, #f4f8ff 25%, #f8faff 100%)",
+    }} />
   );
 }
 
@@ -238,7 +54,7 @@ function LoadingScreen({ slow }) {
           textAlign: "center",
         }}
       >
-        <Spinner size={28} color="#6366f1" />
+        <Spinner size={28} color="#1d4ed8" />
         <AnimatePresence mode="wait">
           <motion.p
             key={slow ? "slow" : "normal"}
@@ -246,10 +62,10 @@ function LoadingScreen({ slow }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             style={{
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 600,
               fontSize: "0.9rem",
-              color: "#374151",
+              color: "#1e3a8a",
               margin: 0,
             }}
           >
@@ -276,19 +92,19 @@ function ErrorScreen({ message }) {
       zIndex: 10,
     }}>
       <div style={{
-        background: "rgba(255,255,255,0.95)",
+        background: "#ffffff",
         borderRadius: "1.25rem",
         padding: "2rem",
         maxWidth: "360px",
         textAlign: "center",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+        boxShadow: "0 4px 32px rgba(37,99,235,0.1), 0 1px 4px rgba(0,0,0,0.05)",
         border: "1.5px solid rgba(239,68,68,0.2)",
       }}>
-        <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(239,68,68,0.08)", border: "1.5px solid rgba(239,68,68,0.25)", display: "grid", placeItems: "center", margin: "0 auto 1rem" }}>
+        <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(239,68,68,0.06)", border: "1.5px solid rgba(239,68,68,0.2)", display: "grid", placeItems: "center", margin: "0 auto 1rem" }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         </div>
         <p style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontFamily: "'Space Grotesk', sans-serif",
           fontWeight: 700,
           color: "#dc2626",
           marginBottom: "0.5rem",
@@ -296,7 +112,7 @@ function ErrorScreen({ message }) {
         }}>
           {message || "Something went wrong"}
         </p>
-        <p style={{ fontSize: "0.82rem", color: "#64748b", marginBottom: "1.25rem" }}>
+        <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "0.82rem", color: "#4b5470", marginBottom: "1.25rem" }}>
           We couldn't load your roadmap.
         </p>
         <button
@@ -305,9 +121,9 @@ function ErrorScreen({ message }) {
             padding: "0.625rem 1.25rem",
             borderRadius: "0.75rem",
             border: "none",
-            background: "#6366f1",
+            background: "linear-gradient(135deg, #1d4ed8, #3b82f6)",
             color: "white",
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 700,
             fontSize: "0.875rem",
             cursor: "pointer",
@@ -765,24 +581,23 @@ export default function RoadmapPage({ navigate }) {
       position: "relative",
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       `}</style>
 
       {/* Background */}
-      <MountainBackground />
+      <PageBackground />
+
+      {/* Sidebar */}
+      <Sidebar
+        activePath="/roadmap"
+        navigate={navigate}
+        onModeClick={() => setShowModeModal(true)}
+        roadmapMode={roadmap?.mode || "discovery"}
+      />
 
       {/* Content sits above background */}
-      <div style={{ position: "relative", zIndex: 1 }}>
-        {/* TopBar */}
-        {!loading && !error && (
-          <TopBar
-            roadmap={roadmap}
-            onModeClick={() => setShowModeModal(true)}
-            onConfidenceClick={() => setShowConfidencePanel(true)}
-          />
-        )}
-
+      <div style={{ position: "relative", zIndex: 1, marginLeft: SIDEBAR_WIDTH }}>
         {/* Loading */}
         {loading && <LoadingScreen slow={loadingSlow} />}
 
@@ -792,16 +607,19 @@ export default function RoadmapPage({ navigate }) {
         {/* Main content */}
         {!loading && !error && roadmap && (
           <main style={{
-            paddingTop: "64px",
+            paddingTop: "2rem",
             minHeight: "100vh",
           }}>
-            {/* Sky-to-surface transition area */}
-            <div style={{
-              height: "clamp(60px, 10vw, 120px)",
-              background: "transparent",
-            }} />
-
-            {/* Content card area — transparent so vibrant background shows through */}
+            {/* Confidence meter (discovery mode) */}
+            {roadmap.mode !== "career" && (
+              <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 1rem 0.5rem" }}>
+                <ConfidenceMeter
+                  score={roadmap.confidence_score ?? 0}
+                  onClick={() => setShowConfidencePanel(true)}
+                />
+              </div>
+            )}
+            {/* Content area */}
             <div style={{
               background: "transparent",
               minHeight: "60vh",
@@ -819,31 +637,32 @@ export default function RoadmapPage({ navigate }) {
                     style={{
                       marginBottom: "1.5rem",
                       padding: "1rem 1.25rem",
-                      background: "rgba(99,102,241,0.06)",
-                      border: "1.5px solid rgba(99,102,241,0.2)",
+                      background: "rgba(37,99,235,0.05)",
+                      border: "1.5px solid rgba(37,99,235,0.15)",
                       borderRadius: "1rem",
                       display: "flex",
                       alignItems: "center",
                       gap: "0.75rem",
                     }}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
                     <div>
                       <p style={{
+                        fontFamily: "'Space Grotesk', sans-serif",
                         fontSize: "0.7rem",
                         fontWeight: 700,
                         letterSpacing: "0.08em",
                         textTransform: "uppercase",
-                        color: "#6366f1",
+                        color: "#1d4ed8",
                         marginBottom: "0.2rem",
                       }}>
                         Career Direction
                       </p>
                       <p style={{
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        fontFamily: "'Space Grotesk', sans-serif",
                         fontWeight: 700,
                         fontSize: "0.95rem",
-                        color: "#0f172a",
+                        color: "#0b1340",
                       }}>
                         {roadmap.career_direction}
                       </p>
