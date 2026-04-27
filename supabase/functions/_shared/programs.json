@@ -1,0 +1,982 @@
+{
+  "summerPrograms": [
+    {
+      "id": "sp_001",
+      "name": "BWSI (Boston University Spark!)",
+      "description": "Intensive summer program for high school students in engineering and robotics",
+      "duration": "4 weeks",
+      "cost": "$7,500",
+      "location": "Boston, MA",
+      "gradeLevel": [10, 11, 12],
+      "careerFocus": ["Software Engineering", "Electrical Engineering", "Mechanical Engineering"],
+      "highlights": [
+        "Hands-on robotics projects",
+        "Mentorship from MIT engineers",
+        "Industry partnerships",
+        "College credit opportunity"
+      ],
+      "applicationDeadline": "2024-04-15",
+      "website": "https://spark.bu.edu",
+      "acceptanceRate": "35%"
+    },
+    {
+      "id": "sp_002",
+      "name": "HOSA Future Health Leaders",
+      "description": "Healthcare-focused student organization with competitive events and leadership development",
+      "duration": "Year-round + Summer Clinic",
+      "cost": "$200-500",
+      "location": "Multiple locations",
+      "gradeLevel": [9, 10, 11, 12],
+      "careerFocus": ["Health", "Business & Finance"],
+      "highlights": [
+        "Competitive medical knowledge events",
+        "Health science competitions",
+        "Leadership development",
+        "Summer clinical experience opportunities"
+      ],
+      "applicationDeadline": "2024-09-01",
+      "website": "https://www.hosaacademic.org",
+      "acceptanceRate": "100%"
+    },
+    {
+      "id": "sp_003",
+      "name": "DECA Competition & Summer Intensives",
+      "description": "Business and entrepreneurship student organization with national competitions",
+      "duration": "Year-round + 1-2 week summer program",
+      "cost": "$150-400",
+      "location": "Multiple locations",
+      "gradeLevel": [9, 10, 11, 12],
+      "careerFocus": ["Business & Finance", "Software Engineering"],
+      "highlights": [
+        "Case study competitions",
+        "Business plan development",
+        "Networking with industry professionals",
+        "Investment pitch competitions"
+      ],
+      "applicationDeadline": "2024-08-15",
+      "website": "https://www.deca.org",
+      "acceptanceRate": "100%"
+    },
+    {
+      "id": "sp_004",
+      "name": "Stanford Summer Engineering",
+      "description": "Competitive summer program for aspiring engineers with project-based learning",
+      "duration": "6 weeks",
+      "cost": "$12,000",
+      "location": "Stanford, CA",
+      "gradeLevel": [10, 11, 12],
+      "careerFocus": ["Software Engineering", "Electrical Engineering", "Mechanical Engineering"],
+      "highlights": [
+        "Advanced engineering design projects",
+        "Access to Stanford labs",
+        "Industry guest speakers",
+        "Networking with top students nationwide"
+      ],
+      "applicationDeadline": "2024-03-01",
+      "website": "https://engineering.stanford.edu/summer",
+      "acceptanceRate": "25%"
+    },
+    {
+      "id": "sp_005",
+      "name": "Summer Law Institute (Various Universities)",
+      "description": "Introduction to law and legal studies for high school students",
+      "duration": "2-4 weeks",
+      "cost": "$4,000-9,000",
+      "location": "Multiple (Harvard, Yale, Northwestern, etc.)",
+      "gradeLevel": [10, 11, 12],
+      "careerFocus": ["Law"],
+      "highlights": [
+        "Mock trials and debates",
+        "Legal research skills",
+        "Meet practicing attorneys",
+        "Explore different practice areas"
+      ],
+      "applicationDeadline": "2024-04-01",
+      "website": "https://summerlawprograms.org",
+      "acceptanceRate": "40%"
+    },
+    {
+      "id": "sp_006",
+      "name": "Goldman Sachs Summer Program (High School)",
+      "description": "Finance and business leadership program for underrepresented students",
+      "duration": "4 weeks",
+      "cost": "$0 (fully funded)",
+      "location": "New York, NY",
+      "gradeLevel": [11, 12],
+      "careerFocus": ["Business & Finance"],
+      "highlights": [
+        "Investment portfolio management",
+        "Financial analysis skills",
+        "Mentorship from Goldman Sachs professionals",
+        "Paid internship track opportunity"
+      ],
+      "applicationDeadline": "2024-02-28",
+      "website": "https://www.goldmansachs.com/careers/divisions/gsam/programs/",
+      "acceptanceRate": "15%"
+    },
+    {
+      "id": "sp_007",
+      "name": "MIT Launch Summer",
+      "description": "Entrepreneurship and innovation program for high school students",
+      "duration": "3 weeks",
+      "cost": "$5,500",
+      "location": "Cambridge, MA",
+      "gradeLevel": [10, 11, 12],
+      "careerFocus": ["Software Engineering", "Business & Finance"],
+      "highlights": [
+        "Startup development from ideation to pitch",
+        "Access to MIT resources and mentors",
+        "Investment from real VCs",
+        "Demo day with investors"
+      ],
+      "applicationDeadline": "2024-03-15",
+      "website": "https://launch.mit.edu/summer",
+      "acceptanceRate": "30%"
+    },
+    {
+      "id": "sp_008",
+      "name": "Johns Hopkins Pre-Med Summer Program",
+      "description": "Intensive program for students interested in pre-medical and health professions",
+      "duration": "3 weeks",
+      "cost": "$6,500",
+      "location": "Baltimore, MD",
+      "gradeLevel": [10, 11, 12],
+      "careerFocus": ["Health"],
+      "highlights": [
+        "Shadow healthcare professionals",
+        "Lab research experience",
+        "Medical school preparation",
+        "Hospital facility tours"
+      ],
+      "applicationDeadline": "2024-04-01",
+      "website": "https://summer.jhu.edu/premedical/",
+      "acceptanceRate": "45%"
+    },
+    {
+      "id": "sp_009",
+      "name": "Microsoft TEALS Internship",
+      "description": "Tech internship program pairing high school students with Microsoft engineers",
+      "duration": "10-12 weeks",
+      "cost": "$0 (paid internship)",
+      "location": "Multiple locations",
+      "gradeLevel": [10, 11, 12],
+      "careerFocus": ["Software Engineering"],
+      "highlights": [
+        "Real software development experience",
+        "Mentorship from industry engineers",
+        "Portfolio building",
+        "Potential full-time offer after graduation"
+      ],
+      "applicationDeadline": "Rolling",
+      "website": "https://www.microsoft.com/en-us/teals",
+      "acceptanceRate": "20%"
+    },
+    {
+      "id": "sp_010",
+      "name": "National Association of Colleges and Employers (NACE) Internship Summit",
+      "description": "Networking and skill-building event for students exploring various career fields",
+      "duration": "3 days",
+      "cost": "$200-400",
+      "location": "Multiple cities",
+      "gradeLevel": [10, 11, 12],
+      "careerFocus": ["All"],
+      "highlights": [
+        "Career exploration workshops",
+        "Networking with top employers",
+        "Resume and interview coaching",
+        "Internship matching"
+      ],
+      "applicationDeadline": "Rolling",
+      "website": "https://www.naceweb.org",
+      "acceptanceRate": "100%"
+    }
+  ],
+  "academicCourses": [
+    {
+      "id": "ac_001",
+      "name": "AP Computer Science Principles",
+      "type": "AP",
+      "gradeLevel": [9, 10, 11, 12],
+      "careerFocus": ["Software Engineering", "Business & Finance"],
+      "difficulty": "Intermediate",
+      "examDate": "2024-05-09",
+      "topicsCovered": [
+        "Computational thinking",
+        "Creative development",
+        "Data and information",
+        "Algorithms",
+        "Programming",
+        "The internet",
+        "Global impact"
+      ],
+      "passRate": "68%",
+      "description": "Foundational course exploring computer science broadly through real-world applications"
+    },
+    {
+      "id": "ac_002",
+      "name": "AP Computer Science A",
+      "type": "AP",
+      "gradeLevel": [10, 11, 12],
+      "careerFocus": ["Software Engineering"],
+      "difficulty": "Advanced",
+      "examDate": "2024-05-09",
+      "topicsCovered": [
+        "Primitive Types",
+        "Using Objects",
+        "Boolean Expressions and if Statements",
+        "Iteration",
+        "Writing Classes",
+        "Array",
+        "ArrayList",
+        "2D Array",
+        "Inheritance",
+        "Recursion"
+      ],
+      "passRate": "72%",
+      "description": "Object-oriented programming course with emphasis on problem-solving and algorithm design"
+    },
+    {
+      "id": "ac_003",
+      "name": "AP Physics C: Mechanics",
+      "type": "AP",
+      "gradeLevel": [11, 12],
+      "careerFocus": ["Electrical Engineering", "Mechanical Engineering"],
+      "difficulty": "Advanced",
+      "examDate": "2024-05-09",
+      "topicsCovered": [
+        "Kinematics",
+        "Newton's Laws",
+        "Work and Energy",
+        "Systems of Particles",
+        "Rotation",
+        "Oscillations and Gravitation"
+      ],
+      "passRate": "58%",
+      "description": "Calculus-based physics course focusing on mechanics, essential for engineering"
+    },
+    {
+      "id": "ac_004",
+      "name": "AP Chemistry",
+      "type": "AP",
+      "gradeLevel": [10, 11, 12],
+      "careerFocus": ["Health", "Electrical Engineering"],
+      "difficulty": "Advanced",
+      "examDate": "2024-05-09",
+      "topicsCovered": [
+        "Atomic Structure and Periodicity",
+        "Molecular and Ionic Compound Structure",
+        "Intermolecular Forces",
+        "Chemical Reactions",
+        "Kinetics",
+        "Thermodynamics",
+        "Equilibrium",
+        "Acids and Bases",
+        "Electrochemistry",
+        "Nuclear Chemistry"
+      ],
+      "passRate": "62%",
+      "description": "College-level chemistry course covering structure, bonding, reactions, and kinetics"
+    },
+    {
+      "id": "ac_005",
+      "name": "AP Biology",
+      "type": "AP",
+      "gradeLevel": [10, 11, 12],
+      "careerFocus": ["Health"],
+      "difficulty": "Advanced",
+      "examDate": "2024-05-09",
+      "topicsCovered": [
+        "Structure and Function of Cells",
+        "Cellular Processes",
+        "Genetics",
+        "Natural Selection",
+        "Organisms and the Environment",
+        "Quantitative Skills and Biostatistics"
+      ],
+      "passRate": "65%",
+      "description": "College-level biology course essential for pre-health track students"
+    },
+    {
+      "id": "ac_006",
+      "name": "AP Microeconomics",
+      "type": "AP",
+      "gradeLevel": [10, 11, 12],
+      "careerFocus": ["Business & Finance"],
+      "difficulty": "Intermediate",
+      "examDate": "2024-05-09",
+      "topicsCovered": [
+        "Basic Economic Concepts",
+        "Supply and Demand",
+        "Consumer Choice",
+        "Production Choices and Behavior",
+        "Market Structure",
+        "Factor Markets",
+        "Uncertainty and Information"
+      ],
+      "passRate": "70%",
+      "description": "Introduction to microeconomic principles and their real-world applications"
+    },
+    {
+      "id": "ac_007",
+      "name": "AP Macroeconomics",
+      "type": "AP",
+      "gradeLevel": [10, 11, 12],
+      "careerFocus": ["Business & Finance"],
+      "difficulty": "Intermediate",
+      "examDate": "2024-05-09",
+      "topicsCovered": [
+        "Basic Economic Concepts",
+        "Economic Indicators",
+        "National Income and Price Determination",
+        "Financial Sector",
+        "Long-Run Consequences of Stabilization Policies",
+        "Open Economy"
+      ],
+      "passRate": "67%",
+      "description": "Comprehensive study of national economies, inflation, unemployment, and fiscal policy"
+    },
+    {
+      "id": "ac_008",
+      "name": "AP Calculus AB",
+      "type": "AP",
+      "gradeLevel": [11, 12],
+      "careerFocus": ["Software Engineering", "Electrical Engineering", "Mechanical Engineering"],
+      "difficulty": "Advanced",
+      "examDate": "2024-05-09",
+      "topicsCovered": [
+        "Limits and Continuity",
+        "Differentiation",
+        "Applications of Differentiation",
+        "Integration",
+        "Differential Equations",
+        "Applications of Integration"
+      ],
+      "passRate": "69%",
+      "description": "Foundation in calculus essential for engineering and advanced mathematics"
+    },
+    {
+      "id": "ac_009",
+      "name": "AP Government and Politics",
+      "type": "AP",
+      "gradeLevel": [10, 11, 12],
+      "careerFocus": ["Law", "Business & Finance"],
+      "difficulty": "Intermediate",
+      "examDate": "2024-05-09",
+      "topicsCovered": [
+        "Foundations of Government",
+        "Political Beliefs and Behaviors",
+        "Political Parties, Interest Groups, and the Media",
+        "Institutions of Government",
+        "Civil Rights",
+        "Policy"
+      ],
+      "passRate": "71%",
+      "description": "Comprehensive study of U.S. political system essential for law careers"
+    },
+    {
+      "id": "ac_010",
+      "name": "IBDP Higher Level Mathematics",
+      "type": "IB Diploma Program",
+      "gradeLevel": [11, 12],
+      "careerFocus": ["Software Engineering", "Electrical Engineering", "Mechanical Engineering"],
+      "difficulty": "Advanced",
+      "examDate": "2024-05-15",
+      "topicsCovered": [
+        "Algebra",
+        "Functions and Equations",
+        "Circular Functions",
+        "Matrices",
+        "Vectors",
+        "Statistics and Probability",
+        "Calculus"
+      ],
+      "passRate": "72%",
+      "description": "Rigorous international mathematics curriculum preparing students for STEM fields"
+    },
+    {
+      "id": "ac_011",
+      "name": "IBDP Higher Level Biology",
+      "type": "IB Diploma Program",
+      "gradeLevel": [11, 12],
+      "careerFocus": ["Health"],
+      "difficulty": "Advanced",
+      "examDate": "2024-05-16",
+      "topicsCovered": [
+        "Cell Biology",
+        "Molecular Biology",
+        "Genetics",
+        "Ecology",
+        "Evolution and Biodiversity",
+        "Human Physiology",
+        "Plants and Photosynthesis",
+        "Neurobiology and Behavior"
+      ],
+      "passRate": "68%",
+      "description": "In-depth international biology program with laboratory work and research components"
+    },
+    {
+      "id": "ac_012",
+      "name": "IBDP Higher Level Chemistry",
+      "type": "IB Diploma Program",
+      "gradeLevel": [11, 12],
+      "careerFocus": ["Electrical Engineering", "Health"],
+      "difficulty": "Advanced",
+      "examDate": "2024-05-14",
+      "topicsCovered": [
+        "Stoichiometry",
+        "Atomic Structure",
+        "Periodicity",
+        "Chemical Bonding",
+        "Energetics",
+        "Kinetics",
+        "Equilibrium",
+        "Acids and Bases",
+        "Oxidation-Reduction",
+        "Organic Chemistry"
+      ],
+      "passRate": "65%",
+      "description": "Comprehensive international chemistry curriculum with emphasis on practical applications"
+    },
+    {
+      "id": "ac_013",
+      "name": "IBDP Economics",
+      "type": "IB Diploma Program",
+      "gradeLevel": [11, 12],
+      "careerFocus": ["Business & Finance"],
+      "difficulty": "Advanced",
+      "examDate": "2024-05-17",
+      "topicsCovered": [
+        "Microeconomics",
+        "Macroeconomics",
+        "International Economics",
+        "Development Economics"
+      ],
+      "passRate": "70%",
+      "description": "International economics course with global perspective on economic systems"
+    },
+    {
+      "id": "ac_014",
+      "name": "AP English Language and Composition",
+      "type": "AP",
+      "gradeLevel": [10, 11, 12],
+      "careerFocus": ["Law"],
+      "difficulty": "Intermediate",
+      "examDate": "2024-05-09",
+      "topicsCovered": [
+        "Rhetoric",
+        "Argument",
+        "Synthesis",
+        "Rhetorical Analysis",
+        "Persuasive Writing"
+      ],
+      "passRate": "73%",
+      "description": "Develops critical reading and persuasive writing skills essential for law"
+    }
+  ],
+  "careerResources": [
+    {
+      "id": "cr_001",
+      "name": "LinkedIn Learning",
+      "url": "https://www.linkedin.com/learning/",
+      "type": "Online Learning",
+      "careerFocus": ["All"],
+      "description": "Professional skill-building platform with courses on coding, business, leadership, and more",
+      "features": [
+        "Industry expert instructors",
+        "Certificates of completion",
+        "Learning paths for specific careers",
+        "Job-ready skills"
+      ]
+    },
+    {
+      "id": "cr_002",
+      "name": "Coursera",
+      "url": "https://www.coursera.org/",
+      "type": "Online Learning",
+      "careerFocus": ["All"],
+      "description": "University-partnered online learning platform offering professional certificates and degrees",
+      "features": [
+        "College-level courses",
+        "Professional certificates",
+        "Specializations",
+        "Job placement assistance"
+      ]
+    },
+    {
+      "id": "cr_003",
+      "name": "LeetCode",
+      "url": "https://www.leetcode.com/",
+      "type": "Coding Practice",
+      "careerFocus": ["Software Engineering"],
+      "description": "Premier platform for technical interview preparation and coding practice",
+      "features": [
+        "1000+ coding problems",
+        "Interview preparation",
+        "Mock interviews",
+        "Company-specific questions"
+      ]
+    },
+    {
+      "id": "cr_004",
+      "name": "HackerRank",
+      "url": "https://www.hackerrank.com/",
+      "type": "Coding Practice",
+      "careerFocus": ["Software Engineering"],
+      "description": "Gamified coding challenge platform used by top tech companies for hiring",
+      "features": [
+        "Coding challenges",
+        "Skills verification",
+        "Hiring challenges",
+        "Learning tracks"
+      ]
+    },
+    {
+      "id": "cr_005",
+      "name": "Glassdoor",
+      "url": "https://www.glassdoor.com/",
+      "type": "Career Exploration",
+      "careerFocus": ["All"],
+      "description": "Employer review site and job listing platform with salary and interview insights",
+      "features": [
+        "Company reviews",
+        "Salary data",
+        "Interview questions",
+        "Career advice"
+      ]
+    },
+    {
+      "id": "cr_006",
+      "name": "Khan Academy",
+      "url": "https://www.khanacademy.org/",
+      "type": "Academic Prep",
+      "careerFocus": ["All"],
+      "description": "Free online learning platform covering K-12 and college-level subjects",
+      "features": [
+        "Free courses",
+        "Test prep",
+        "Video tutorials",
+        "Practice exercises"
+      ]
+    },
+    {
+      "id": "cr_007",
+      "name": "U.S. Bureau of Labor Statistics - Occupational Outlook Handbook",
+      "url": "https://www.bls.gov/ooh/",
+      "type": "Career Research",
+      "careerFocus": ["All"],
+      "description": "Government resource with detailed information on careers, salaries, and job outlook",
+      "features": [
+        "Career profiles",
+        "Salary data",
+        "Job outlook statistics",
+        "Education requirements"
+      ]
+    },
+    {
+      "id": "cr_008",
+      "name": "LSAC (Law School Admission Council)",
+      "url": "https://www.lsac.org/",
+      "type": "Law-Specific",
+      "careerFocus": ["Law"],
+      "description": "Official organization managing law school admissions and LSAT administration",
+      "features": [
+        "Law school finder",
+        "LSAT information",
+        "Application support",
+        "Law school resources"
+      ]
+    },
+    {
+      "id": "cr_009",
+      "name": "MCAT Official Prep (AAMC)",
+      "url": "https://www.aamc.org/",
+      "type": "Health-Specific",
+      "careerFocus": ["Health"],
+      "description": "Official MCAT preparation and medical school admissions resources",
+      "features": [
+        "Official MCAT prep",
+        "Medical school explorer",
+        "Application guidance",
+        "Study materials"
+      ]
+    },
+    {
+      "id": "cr_010",
+      "name": "CFA Institute - Candidate Resources",
+      "url": "https://www.cfainstitute.org/",
+      "type": "Finance-Specific",
+      "careerFocus": ["Business & Finance"],
+      "description": "Professional organization for chartered financial analysts with prep resources",
+      "features": [
+        "CFA exam prep",
+        "Career development",
+        "Networking",
+        "Investment knowledge"
+      ]
+    },
+    {
+      "id": "cr_011",
+      "name": "IEEE (Institute of Electrical and Electronics Engineers)",
+      "url": "https://www.ieee.org/",
+      "type": "Engineering-Specific",
+      "careerFocus": ["Electrical Engineering", "Mechanical Engineering"],
+      "description": "World's largest technical professional organization for engineers",
+      "features": [
+        "Professional networking",
+        "Technical publications",
+        "Student membership",
+        "Career resources"
+      ]
+    },
+    {
+      "id": "cr_012",
+      "name": "GitHub",
+      "url": "https://github.com/",
+      "type": "Portfolio Building",
+      "careerFocus": ["Software Engineering"],
+      "description": "Platform for version control and collaborative software development",
+      "features": [
+        "Portfolio showcase",
+        "Open source contribution",
+        "Collaboration tools",
+        "Employer visibility"
+      ]
+    },
+    {
+      "id": "cr_013",
+      "name": "Design:Related (NFAAQ)",
+      "url": "https://www.designrelated.com/",
+      "type": "Career Exploration",
+      "careerFocus": ["All"],
+      "description": "Career guide covering 350+ professions with detailed information",
+      "features": [
+        "Career profiles",
+        "Day-in-the-life videos",
+        "Salary information",
+        "Educational paths"
+      ]
+    },
+    {
+      "id": "cr_014",
+      "name": "LawyerUp",
+      "url": "https://www.lawyerup.org/",
+      "type": "Law-Specific",
+      "careerFocus": ["Law"],
+      "description": "Non-profit organization helping students explore legal careers",
+      "features": [
+        "Career exploration",
+        "Mentorship programs",
+        "Internship matching",
+        "Law school prep"
+      ]
+    },
+    {
+      "id": "cr_015",
+      "name": "MasterClass",
+      "url": "https://www.masterclass.com/",
+      "type": "Online Learning",
+      "careerFocus": ["All"],
+      "description": "Premium online learning platform with master-level courses from industry leaders",
+      "features": [
+        "Expert instructors",
+        "High production value",
+        "Lifetime access",
+        "Broad subject range"
+      ]
+    },
+    {
+      "id": "cr_016",
+      "name": "edX",
+      "url": "https://www.edx.org/",
+      "type": "Online Learning",
+      "careerFocus": ["All"],
+      "description": "University-based online learning platform with professional certificates",
+      "features": [
+        "University partnerships",
+        "Professional certificates",
+        "Free courses available",
+        "College credit options"
+      ]
+    },
+    {
+      "id": "cr_017",
+      "name": "ProjectManager.com",
+      "url": "https://www.projectmanager.com/",
+      "type": "Professional Skills",
+      "careerFocus": ["Business & Finance"],
+      "description": "Project management training and tools for professional development",
+      "features": [
+        "PMP certification prep",
+        "Management courses",
+        "Team collaboration tools",
+        "Resource planning"
+      ]
+    },
+    {
+      "id": "cr_018",
+      "name": "Stack Overflow",
+      "url": "https://stackoverflow.com/",
+      "type": "Technical Community",
+      "careerFocus": ["Software Engineering"],
+      "description": "Q&A community for programmers and developers worldwide",
+      "features": [
+        "Problem solving",
+        "Knowledge sharing",
+        "Community reputation",
+        "Jobs section"
+      ]
+    },
+    {
+      "id": "cr_019",
+      "name": "American Bar Association - Young Lawyers",
+      "url": "https://www.americanbar.org/groups/young_lawyers/",
+      "type": "Law-Specific",
+      "careerFocus": ["Law"],
+      "description": "Professional organization resources for aspiring and young lawyers",
+      "features": [
+        "Networking",
+        "Mentorship",
+        "Professional development",
+        "Career guidance"
+      ]
+    },
+    {
+      "id": "cr_020",
+      "name": "Unity Learn",
+      "url": "https://learn.unity.com/",
+      "type": "Specialized Learning",
+      "careerFocus": ["Software Engineering"],
+      "description": "Game development and interactive media creation platform and learning hub",
+      "features": [
+        "Game development tutorials",
+        "VR/AR development",
+        "Community projects",
+        "Certification programs"
+      ]
+    }
+  ],
+  "internships": [
+    {
+      "id": "int_001",
+      "name": "Google Engineering Internship",
+      "company": "Google",
+      "careerFocus": ["Software Engineering"],
+      "duration": "12 weeks",
+      "location": "Mountain View, CA; New York, NY; Other US locations",
+      "pay": "$7,500-$8,500/month",
+      "gradeLevel": [10, 11, 12],
+      "applicationDeadline": "Rolling",
+      "description": "Internship for high school and college students working on real projects with Google engineers",
+      "requirements": [
+        "Strong programming fundamentals",
+        "Problem-solving skills",
+        "Interest in computer science"
+      ]
+    },
+    {
+      "id": "int_002",
+      "name": "JPMorgan Chase Investment Banking Internship",
+      "company": "JPMorgan Chase",
+      "careerFocus": ["Business & Finance"],
+      "duration": "10 weeks",
+      "location": "New York, NY; Chicago, IL; Other major cities",
+      "pay": "$8,000-$10,000/month",
+      "gradeLevel": [11, 12],
+      "applicationDeadline": "2024-11-30",
+      "description": "Internship in investment banking with exposure to financial modeling and M&A advisory",
+      "requirements": [
+        "Strong quantitative skills",
+        "Interest in finance",
+        "Excellent communication skills"
+      ]
+    },
+    {
+      "id": "int_003",
+      "name": "NASA High School Internship Program",
+      "company": "NASA",
+      "careerFocus": ["Electrical Engineering", "Mechanical Engineering"],
+      "duration": "8-12 weeks",
+      "location": "Various NASA Centers",
+      "pay": "Varies by location",
+      "gradeLevel": [11, 12],
+      "applicationDeadline": "2024-12-15",
+      "description": "Internship with NASA on real space exploration and engineering projects",
+      "requirements": [
+        "Strong STEM background",
+        "Engineering or physics experience",
+        "Team collaboration skills"
+      ]
+    },
+    {
+      "id": "int_004",
+      "name": "Sullivan & Cromwell Law Summer Program",
+      "company": "Sullivan & Cromwell LLP",
+      "careerFocus": ["Law"],
+      "duration": "8 weeks",
+      "location": "New York, NY",
+      "pay": "$4,500/month",
+      "gradeLevel": [12],
+      "applicationDeadline": "2024-10-31",
+      "description": "Exclusive summer program for high school seniors interested in law",
+      "requirements": [
+        "Excellent academic record",
+        "Strong writing and analytical skills",
+        "Interest in law and public service"
+      ]
+    },
+    {
+      "id": "int_005",
+      "name": "Cleveland Clinic Healthcare Internship",
+      "company": "Cleveland Clinic",
+      "careerFocus": ["Health"],
+      "duration": "10 weeks",
+      "location": "Cleveland, OH; Other locations",
+      "pay": "$15-$18/hour",
+      "gradeLevel": [10, 11, 12],
+      "applicationDeadline": "Rolling",
+      "description": "Healthcare internship with exposure to clinical and administrative operations",
+      "requirements": [
+        "Interest in healthcare",
+        "Patient care orientation",
+        "Reliability and attention to detail"
+      ]
+    }
+  ],
+  "competitions": [
+    {
+      "id": "comp_001",
+      "name": "International Science Olympiad",
+      "careerFocus": ["Software Engineering", "Electrical Engineering", "Mechanical Engineering", "Health"],
+      "type": "STEM Competition",
+      "level": "National/International",
+      "season": "Fall/Winter/Spring",
+      "website": "https://www.soinc.org/",
+      "description": "Science competition covering biology, chemistry, physics, earth science, and engineering",
+      "prizePool": "Medals and recognition"
+    },
+    {
+      "id": "comp_002",
+      "name": "FIRST Robotics Competition",
+      "careerFocus": ["Software Engineering", "Electrical Engineering", "Mechanical Engineering"],
+      "type": "Engineering Competition",
+      "level": "Regional/National",
+      "season": "Fall/Winter/Spring",
+      "website": "https://www.firstinspires.org/robotics/frc",
+      "description": "Team-based robotics competition with real engineering and coding challenges",
+      "prizePool": "Scholarships and sponsorships"
+    },
+    {
+      "id": "comp_003",
+      "name": "DECA Competitions",
+      "careerFocus": ["Business & Finance"],
+      "type": "Business Competition",
+      "level": "Regional/State/National",
+      "season": "Fall/Winter/Spring",
+      "website": "https://www.deca.org/",
+      "description": "Business case study and entrepreneurship competitions",
+      "prizePool": "Scholarships and business startup funding"
+    },
+    {
+      "id": "comp_004",
+      "name": "Mock Trial National Championship",
+      "careerFocus": ["Law"],
+      "type": "Law Competition",
+      "level": "National",
+      "season": "Fall/Winter/Spring",
+      "website": "https://www.nationalmocktrial.org/",
+      "description": "Simulated courtroom competition testing litigation skills",
+      "prizePool": "National recognition and scholarships"
+    },
+    {
+      "id": "comp_005",
+      "name": "HOSA Medical Competitions",
+      "careerFocus": ["Health"],
+      "type": "Health Science Competition",
+      "level": "Regional/State/National",
+      "season": "Year-round",
+      "website": "https://www.hosaacademic.org/",
+      "description": "Healthcare knowledge and skills competitions in various medical specialties",
+      "prizePool": "Scholarships and medical school recommendations"
+    },
+    {
+      "id": "comp_006",
+      "name": "Congressional Debate",
+      "careerFocus": ["Law", "Business & Finance"],
+      "type": "Debate Competition",
+      "level": "National",
+      "season": "Fall/Winter/Spring",
+      "website": "https://www.speechanddebate.org/",
+      "description": "Debate focused on legislative processes and argumentation",
+      "prizePool": "National rankings and scholarships"
+    },
+    {
+      "id": "comp_007",
+      "name": "Code.org Code Quest",
+      "careerFocus": ["Software Engineering"],
+      "type": "Coding Competition",
+      "level": "National",
+      "season": "Spring",
+      "website": "https://codequest.code.org/",
+      "description": "Programming competition focused on computer science fundamentals",
+      "prizePool": "Scholarships and technology prizes"
+    },
+    {
+      "id": "comp_008",
+      "name": "Intel Science and Engineering Fair",
+      "careerFocus": ["All"],
+      "type": "Science Fair",
+      "level": "International",
+      "season": "Spring",
+      "website": "https://www.societyforscience.org/isef/",
+      "description": "Premier international STEM research competition",
+      "prizePool": "Scholarships worth millions"
+    }
+  ],
+  "scholarships": [
+    {
+      "id": "sch_001",
+      "name": "Carnegie Mellon School of Computer Science Scholarship",
+      "amount": "Full tuition",
+      "careerFocus": ["Software Engineering"],
+      "eligibility": "High school seniors planning to study computer science",
+      "website": "https://www.cmu.edu/admission/",
+      "deadline": "2025-01-15"
+    },
+    {
+      "id": "sch_002",
+      "name": "National Merit Scholarship",
+      "amount": "$2,500-$33,000",
+      "careerFocus": ["All"],
+      "eligibility": "Top PSAT/NMSQT scorers",
+      "website": "https://www.nationalmerit.org/",
+      "deadline": "Ongoing"
+    },
+    {
+      "id": "sch_003",
+      "name": "American Bar Association Legal Career Pathways Scholarship",
+      "amount": "$5,000-$10,000",
+      "careerFocus": ["Law"],
+      "eligibility": "Students pursuing law",
+      "website": "https://www.americanbar.org/",
+      "deadline": "2024-12-31"
+    },
+    {
+      "id": "sch_004",
+      "name": "STEM Women Engineers Scholarship",
+      "amount": "$5,000",
+      "careerFocus": ["Electrical Engineering", "Mechanical Engineering"],
+      "eligibility": "Women pursuing engineering",
+      "website": "https://www.societyofwomenengineers.org/",
+      "deadline": "2024-11-15"
+    },
+    {
+      "id": "sch_005",
+      "name": "Health Careers Scholarship Program",
+      "amount": "$3,000-$7,500",
+      "careerFocus": ["Health"],
+      "eligibility": "Students planning healthcare careers",
+      "website": "https://www.aamc.org/",
+      "deadline": "2024-12-15"
+    }
+  ]
+}
