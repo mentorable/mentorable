@@ -158,6 +158,7 @@ export default function RoadmapPage({ navigate }) {
   const currentWeekRef = useRef(null);
   const slowTimer = useRef(null);
   const initRan = useRef(false); // guard against React StrictMode double-init
+  const nextPhaseInFlight = useRef(false); // serialize auto next-phase generation
 
   // ── Slow-loading message timer ──────────────────────────────────────────────
   useEffect(() => {
@@ -375,42 +376,55 @@ export default function RoadmapPage({ navigate }) {
       ...prev,
     ].slice(0, 5));
 
-    // Check phase completion (use latest phases state)
+    // Check phase completion (use latest phases state) and flip local + DB status
     setPhases((currentPhases) => {
       const phase = currentPhases.find((p) => p.id === phaseId);
-      if (phase) {
-        const updatedTasks = phase.tasks.map((t) =>
-          t.id === taskId ? { ...t, status: "completed" } : t
-        );
-        const allDone = updatedTasks.every(
-          (t) => t.status === "completed" || t.status === "skipped"
-        );
-        if (allDone) {
-          setShowPhaseCompleteModal(true);
-          setCompletedPhaseData({ ...phase, tasks: updatedTasks });
-          supabase
-            .from("roadmap_phases")
-            .update({ status: "completed" })
-            .eq("id", phaseId);
-        }
-      }
-      return currentPhases;
+      if (!phase) return currentPhases;
+
+      const updatedTasks = phase.tasks.map((t) =>
+        t.id === taskId ? { ...t, status: "completed" } : t
+      );
+      const allDone = updatedTasks.every(
+        (t) => t.status === "completed" || t.status === "skipped"
+      );
+      if (!allDone) return currentPhases;
+
+      setShowPhaseCompleteModal(true);
+      setCompletedPhaseData({ ...phase, tasks: updatedTasks, status: "completed" });
+      supabase
+        .from("roadmap_phases")
+        .update({ status: "completed" })
+        .eq("id", phaseId);
+
+      // Reflect status locally so the auto-next-phase effect can fire
+      return currentPhases.map((p) =>
+        p.id === phaseId ? { ...p, status: "completed", tasks: updatedTasks } : p
+      );
     });
   }, [roadmap, user]);
 
   // ── Task: flag not for me ────────────────────────────────────────────────────
   const flagNotForMe = useCallback(async (taskId, phaseId) => {
     setPhases((prev) =>
-      prev.map((ph) =>
-        ph.id === phaseId
-          ? {
-              ...ph,
-              tasks: ph.tasks.map((t) =>
-                t.id === taskId ? { ...t, not_for_me: true, status: "skipped" } : t
-              ),
-            }
-          : ph
-      )
+      prev.map((ph) => {
+        if (ph.id !== phaseId) return ph;
+        const updatedTasks = ph.tasks.map((t) =>
+          t.id === taskId ? { ...t, not_for_me: true, status: "skipped" } : t
+        );
+        const allDone = updatedTasks.every(
+          (t) => t.status === "completed" || t.status === "skipped"
+        );
+        if (allDone && ph.status !== "completed") {
+          setShowPhaseCompleteModal(true);
+          setCompletedPhaseData({ ...ph, tasks: updatedTasks, status: "completed" });
+          supabase
+            .from("roadmap_phases")
+            .update({ status: "completed" })
+            .eq("id", phaseId);
+          return { ...ph, tasks: updatedTasks, status: "completed" };
+        }
+        return { ...ph, tasks: updatedTasks };
+      })
     );
 
     await supabase
@@ -453,30 +467,74 @@ export default function RoadmapPage({ navigate }) {
     ].slice(0, 5));
   }, [roadmap, user]);
 
-  // ── Generate next phase ──────────────────────────────────────────────────────
-  const generateNextPhase = useCallback(async () => {
-    setShowPhaseCompleteModal(false);
+  // ── Ensure next phase is generated (idempotent; safe to call repeatedly) ─────
+  // Triggers when the latest phase is completed and there's no active phase.
+  // The Edge Function itself is idempotent (returns existing phase if already
+  // created), so duplicate calls are harmless — the in-flight ref just avoids
+  // wasted work.
+  const ensureNextPhase = useCallback(async (phasesList) => {
+    if (!roadmap || !user) return;
+    if (nextPhaseInFlight.current) return;
+
+    const list = phasesList || [];
+    if (!list.length) return;
+
+    const sorted = [...list].sort(
+      (a, b) => (a.phase_number || 0) - (b.phase_number || 0)
+    );
+    const latest = sorted[sorted.length - 1];
+    const hasActive = sorted.some((p) => p.status === "active");
+
+    if (hasActive) return;
+    if (!latest || latest.status !== "completed") return;
+
+    const targetPhaseNumber = (latest.phase_number || 0) + 1;
+
+    nextPhaseInFlight.current = true;
     setGeneratingNextPhase(true);
-
-    const nextPhaseNumber = (roadmap?.current_phase_number || 1) + 1;
-
     try {
       await supabase.functions.invoke("generate-phase", {
         body: {
           userId: user.id,
           roadmapId: roadmap.id,
-          phaseNumber: nextPhaseNumber,
+          phaseNumber: targetPhaseNumber,
         },
       });
 
       const newPhases = await loadPhases(roadmap.id);
       setPhases(newPhases);
+
+      const { data: refreshedRoadmap } = await supabase
+        .from("roadmaps")
+        .select("*")
+        .eq("id", roadmap.id)
+        .single();
+      if (refreshedRoadmap) setRoadmap(refreshedRoadmap);
     } catch (err) {
-      console.error("generateNextPhase error:", err);
+      console.error("ensureNextPhase error:", err);
     } finally {
+      nextPhaseInFlight.current = false;
       setGeneratingNextPhase(false);
     }
   }, [roadmap, user, loadPhases]);
+
+  // Modal "Continue" handler — closes modal; generation has already been kicked
+  // off by the auto effect below, but call ensureNextPhase as a fallback.
+  const generateNextPhase = useCallback(async () => {
+    setShowPhaseCompleteModal(false);
+    await ensureNextPhase(phases);
+  }, [phases, ensureNextPhase]);
+
+  // Auto-trigger next-phase generation whenever phases settle into a "latest
+  // phase completed, nothing active" state — covers both:
+  //   (a) user just finished the last task in-session, and
+  //   (b) user reloaded the page after finishing it earlier.
+  useEffect(() => {
+    if (loading) return;
+    if (!roadmap || !user) return;
+    if (!phases.length) return;
+    ensureNextPhase(phases);
+  }, [phases, roadmap, user, loading, ensureNextPhase]);
 
   // ── Mode switch ──────────────────────────────────────────────────────────────
   const handleModeSwitch = useCallback(async (newMode, careerDirection, existingRoadmapId) => {

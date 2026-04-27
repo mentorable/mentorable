@@ -1,6 +1,7 @@
 import Anthropic from 'npm:@anthropic-ai/sdk'
 import { createClient } from 'npm:@supabase/supabase-js'
 import { mnmSearch, mnmSearchSummaryForPrompt } from '../_shared/onet.ts'
+import { selectProgramContext } from '../_shared/programs.ts'
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') })
 
@@ -94,29 +95,82 @@ Deno.serve(async (req) => {
 
     const isDiscovery = roadmap.mode === 'discovery'
 
+    // ── O*NET context ────────────────────────────────────────────────────────
+    // In CAREER mode: search the chosen direction so tasks reference real
+    //   occupations / SOC codes related to where the student is heading.
+    // In DISCOVERY mode: search the student's strongest signals (top onboarding
+    //   career match + first interest) so the LLM can weave real, varied
+    //   occupations into exploratory tasks instead of generic "research a
+    //   career" prompts. Capped at 2 keyword searches to stay under O*NET
+    //   rate limits.
     let onetCareerContext = ''
+    const keywordsToSearch: string[] = []
     if (roadmap.mode === 'career') {
       const raw =
         (typeof roadmap.career_direction === 'string' && roadmap.career_direction.trim()) ||
         (Array.isArray(profile.career_matches) && profile.career_matches[0]) ||
         ''
       const term = typeof raw === 'string' ? raw.trim() : ''
-      if (term) {
+      if (term) keywordsToSearch.push(term)
+    } else {
+      const matches = Array.isArray(profile.career_matches) ? profile.career_matches : []
+      const interests = Array.isArray(profile.interests) ? profile.interests : []
+      const candidates = [matches[0], interests[0]]
+        .map((s) => (typeof s === 'string' ? s.trim() : ''))
+        .filter(Boolean)
+      const seen = new Set<string>()
+      for (const c of candidates) {
+        const key = c.toLowerCase()
+        if (!seen.has(key)) {
+          seen.add(key)
+          keywordsToSearch.push(c)
+        }
+        if (keywordsToSearch.length >= 2) break
+      }
+    }
+
+    if (keywordsToSearch.length > 0) {
+      const sections: string[] = []
+      const seenTitles = new Set<string>()
+      for (const term of keywordsToSearch) {
         try {
           const search = await mnmSearch(term)
-          const summary = mnmSearchSummaryForPrompt(search)
-          if (summary) {
-            onetCareerContext = `\n## O*NET (official occupation titles related to this direction)\n${summary}\n`
+          if (!search?.career?.length) continue
+          // De-dup occupations across keyword searches by O*NET-SOC code.
+          const filtered = {
+            ...search,
+            career: search.career.filter((c) => {
+              const key = c.code || c.title
+              if (seenTitles.has(key)) return false
+              seenTitles.add(key)
+              return true
+            }),
           }
+          const summary = mnmSearchSummaryForPrompt(filtered)
+          if (summary) sections.push(`### "${term}"\n${summary}`)
         } catch (e) {
           if (e instanceof Error && e.name === 'OnetRateLimit') {
             console.warn('O*NET rate limit; continuing without O*NET block')
-          } else {
-            console.warn('O*NET context skipped:', e)
+            break
           }
+          console.warn('O*NET context skipped for term', term, e)
         }
       }
+      if (sections.length > 0) {
+        const header = isDiscovery
+          ? "## O*NET (real occupations related to this student's interests — use these for variety)"
+          : '## O*NET (official occupation titles related to this direction)'
+        onetCareerContext = `\n${header}\n${sections.join('\n\n')}\n`
+      }
     }
+
+    // ── Curated opportunities context ────────────────────────────────────────
+    // Hand-picked summer programs, AP/IB courses, internships, competitions,
+    // scholarships and resources filtered by the student's grade level and
+    // career signals. Lets the LLM ground tasks in real, applyable items
+    // (e.g. "Apply to Stanford Summer Engineering by March 1, link below")
+    // instead of generic "research a summer program" prompts.
+    const programsContext = selectProgramContext(profile, roadmap)
 
     const systemPrompt = `
 You are Mentorable's roadmap engine. You generate personalized weekly career guidance tasks for high school students.
@@ -128,14 +182,26 @@ RULES:
 2. Tasks must be specific and actionable -- not "research careers" but "Watch this 15-minute video: What does a software engineer actually do? Then write 3 things that surprised you."
 3. Estimated time must be realistic for a high schooler -- 15 to 60 minutes per task max.
 4. ${isDiscovery
-  ? 'This is a DISCOVERY ROADMAP. Tasks should help the student explore and understand different fields. Start with videos, articles, and reflection exercises. Do not push toward a specific career. The goal is self-discovery.'
-  : 'This is a CAREER ROADMAP. The student has chosen a direction. Tasks should be field-specific, skill-building, and progressively more advanced. Each task should move them closer to their chosen career.'
+  ? 'This is a DISCOVERY ROADMAP. Tasks should help the student explore and understand different fields. Start with videos, articles, and reflection exercises. Do not push toward a specific career. The goal is self-discovery. If an O*NET section is provided below, vary the occupations referenced across the phase so the student sees several real-world roles related to their interests; mention specific occupation titles by name when natural.'
+  : 'This is a CAREER ROADMAP. The student has chosen a direction. Tasks should be field-specific, skill-building, and progressively more advanced. Each task should move them closer to their chosen career. If an O*NET section is provided below, ground tasks in those real occupation titles when relevant.'
 }
 5. Consider their completion history -- if they skipped tasks, make the next ones more engaging. If they flagged tasks as "not for me", avoid that territory.
 6. Each phase should have a clear theme and build on the previous one.
-7. Resource links should be left as empty strings "" -- they will be filled in later.
+7. Resource links: leave resource_url and resource_label as empty strings "" by default -- they will be filled in later. EXCEPTION: when a task is built around a curated opportunity (rule 10), copy that opportunity's real website into resource_url and its name into resource_label.
 8. Skill gained should be left as empty string "" -- it will be filled in later.
 9. Keep task descriptions warm and encouraging -- this student may feel uncertain about their future.
+10. CURATED OPPORTUNITIES: When a "## Curated opportunities" section is provided, weave 1-2 of those real, specific items naturally into this phase. Pick items that fit the phase's theme -- do NOT try to use every category. Examples:
+   - Suggest applying to a relevant summer program with its real deadline and use its website as resource_url / resource_label.
+   - Suggest researching or registering for a relevant AP / IB course that matches their direction.
+   - Suggest joining or scouting a relevant competition (especially in early phases).
+   - For 11th / 12th graders, suggest a real internship with an upcoming deadline.
+   - Mention an applicable scholarship (with deadline) when timing makes sense.
+   - Use a listed career resource (LeetCode, IEEE, Khan Academy, etc.) as resource_url for skill-building tasks.
+   Always copy the website URL into resource_url and use the program / resource name as resource_label. Only reference items from the section -- do not invent programs, deadlines, or links.
+${isDiscovery
+  ? '11. In DISCOVERY mode, vary which curated category you pull from across phases (program in one phase, competition in another, course in another) so the student samples different paths.'
+  : '11. In CAREER mode, use curated opportunities to push concrete, field-specific commitments (apply to X program, sign up for Y course, join Z competition) that align with their direction.'
+}
 `
 
     const userPrompt = `
@@ -150,7 +216,7 @@ Generate Phase ${phaseNumber} of this student's roadmap.
 - Work style: ${profile.work_style}
 - Career matches from onboarding: ${JSON.stringify(profile.career_matches)}
 - Onboarding summary: ${profile.onboarding_summary}
-${onetCareerContext}
+${onetCareerContext}${programsContext}
 ## ROADMAP STATE
 - Mode: ${roadmap.mode}
 - Career direction: ${roadmap.career_direction || 'Not yet chosen -- still exploring'}

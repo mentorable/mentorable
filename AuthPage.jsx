@@ -81,7 +81,7 @@ export default function AuthPage() {
           .single();
         if (profile?.onboarding_completed) {
           const { data: roadmapRows } = await supabase
-            .from("career_roadmaps")
+            .from("roadmaps")
             .select("id")
             .eq("user_id", data.user.id)
             .eq("is_active", true)
