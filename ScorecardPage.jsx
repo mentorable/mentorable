@@ -431,7 +431,7 @@ export default function ScorecardPage({ navigate }) {
       transition: "background 300ms ease",
     }}>
       {hasRoadmap && (
-        <Sidebar activePath="/scorecard" navigate={navigate || ((p) => { window.location.href = p; })} onModeClick={null} roadmapMode="discovery" />
+        <Sidebar activePath="/scorecard" navigate={navigate || ((p) => { window.location.href = p; })} onModeClick={null} roadmapMode={localStorage.getItem("roadmapMode") || "discovery"} />
       )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');

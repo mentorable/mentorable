@@ -634,7 +634,7 @@ export default function ChatPage({ navigate }) {
         supabase.from("chat_sessions").select("id, title, messages, created_at, updated_at")
           .eq("user_id", uid).order("updated_at", { ascending: false }),
         supabase.from("profiles").select("*").eq("id", uid).single(),
-        supabase.from("career_roadmaps").select("id, career_title").eq("user_id", uid).eq("is_active", true).single(),
+        supabase.from("career_roadmaps").select("id, career_title, mode, career_direction").eq("user_id", uid).eq("is_active", true).single(),
       ]);
 
       if (sessionsRes.data) setSessions(sessionsRes.data);
@@ -646,7 +646,9 @@ export default function ChatPage({ navigate }) {
           .select("*, tasks:roadmap_tasks(id, title, status, week_number)")
           .eq("roadmap_id", roadmapRes.data.id)
           .order("phase_number", { ascending: true });
-        setRoadmap({ ...roadmapRes.data, phases: phases || [] });
+        const fullRoadmap = { ...roadmapRes.data, phases: phases || [] };
+        setRoadmap(fullRoadmap);
+        localStorage.setItem("roadmapMode", fullRoadmap.mode || "discovery");
       }
     });
   }, []);
@@ -783,7 +785,7 @@ export default function ChatPage({ navigate }) {
         ::-webkit-scrollbar-thumb{background:rgba(59,91,252,0.15);border-radius:99px;}
       `}</style>
 
-      <Sidebar activePath="/chat" navigate={navigate} onModeClick={null} roadmapMode="discovery" />
+      <Sidebar activePath="/chat" navigate={navigate} onModeClick={null} roadmapMode={roadmap?.mode || localStorage.getItem("roadmapMode") || "discovery"} />
 
       <div style={{ marginLeft: SIDEBAR_WIDTH, height: "100vh", display: "flex", overflow: "hidden", background: "#f8faff" }}>
         <ChatMain

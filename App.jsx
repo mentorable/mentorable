@@ -1,13 +1,16 @@
+import { useState, useEffect } from "react";
 import { Routes, Route, useNavigate, useParams } from "react-router-dom";
 import LandingPage from "./LandingPage.jsx";
 import AuthPage from "./AuthPage.jsx";
 import OnboardingPage from "./OnboardingPage.jsx";
 import ScorecardPage from "./ScorecardPage.jsx";
 import RoadmapPage from "./RoadmapPage.jsx";
+import PreRoadmapPage from "./PreRoadmapPage.jsx";
 import TaskDetailPage from "./components/task/TaskDetailPage.jsx";
 import RoadmapPreviewPage from "./components/roadmap-preview/RoadmapPreviewPage.jsx";
 import ChatPage from "./ChatPage.jsx";
 import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
+import { supabase } from "./lib/supabase.js";
 
 const FONT = "'Space Grotesk', sans-serif";
 
@@ -15,7 +18,7 @@ function ComingSoonPage({ title, navigate, activePath }) {
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #e8f0ff 0%, #f4f8ff 25%, #f8faff 100%)" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');`}</style>
-      <Sidebar activePath={activePath} navigate={navigate} onModeClick={null} roadmapMode="discovery" />
+      <Sidebar activePath={activePath} navigate={navigate} onModeClick={null} roadmapMode={localStorage.getItem("roadmapMode") || "discovery"} />
       <div style={{
         marginLeft: SIDEBAR_WIDTH,
         minHeight: "100vh",
@@ -62,8 +65,33 @@ function ScorecardRoute() {
   return <ScorecardPage navigate={navigate} />;
 }
 
+// Gate: show PreRoadmapPage for first-timers, RoadmapPage for everyone else
 function RoadmapRoute() {
   const navigate = useNavigate();
+  const [ready, setReady] = useState(false);
+  const [needsPreRoadmap, setNeedsPreRoadmap] = useState(false);
+
+  useEffect(() => {
+    const check = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate("/auth"); return; }
+
+      const [profileRes, roadmapRes] = await Promise.all([
+        supabase.from("profiles").select("pre_roadmap_certainty").eq("id", user.id).single(),
+        supabase.from("roadmaps").select("id").eq("user_id", user.id).eq("is_active", true).limit(1),
+      ]);
+
+      const hasAnswered = !!profileRes.data?.pre_roadmap_certainty;
+      const hasRoadmap  = (roadmapRes.data?.length ?? 0) > 0;
+
+      setNeedsPreRoadmap(!hasAnswered && !hasRoadmap);
+      setReady(true);
+    };
+    check();
+  }, [navigate]);
+
+  if (!ready) return <div style={{ minHeight: "100vh", background: "#fafbff" }} />;
+  if (needsPreRoadmap) return <PreRoadmapPage navigate={navigate} />;
   return <RoadmapPage navigate={navigate} />;
 }
 

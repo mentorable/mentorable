@@ -464,7 +464,7 @@ function DemographicsPhase({ onContinue, submitting }) {
 }
 
 // ─── Phase 1: Intro ───────────────────────────────────────────────────────────
-function IntroPhase({ onStart, loading }) {
+function IntroPhase({ onStart, loading, retryNotice }) {
   const topics = [
     "Academic strengths","Career interests","Work style",
     "Problem-solving","Collaboration","Long-term goals","Personal values","Communication",
@@ -614,7 +614,28 @@ function IntroPhase({ onStart, loading }) {
         </div>
 
         {/* Right — voice orb */}
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"1.25rem" }}>
+          {retryNotice && (
+            <motion.div
+              initial={{ opacity:0, y:8 }}
+              animate={{ opacity:1, y:0 }}
+              transition={{ duration:0.4 }}
+              style={{
+                maxWidth:340,
+                background:"rgba(251,191,36,0.12)",
+                border:"1.5px solid rgba(251,191,36,0.35)",
+                borderRadius:"0.875rem",
+                padding:"0.75rem 1rem",
+                fontSize:"0.825rem",
+                color:"#92400e",
+                lineHeight:1.5,
+                textAlign:"center",
+                fontFamily:"'Space Grotesk', sans-serif",
+              }}
+            >
+              {retryNotice}
+            </motion.div>
+          )}
           <VoiceOrb onStart={onStart} loading={loading}/>
         </div>
 
@@ -930,6 +951,7 @@ export default function OnboardingPage() {
   const [transcript, setTranscript]     = useState([]);
   const [elapsed, setElapsed]           = useState(0);
   const [error, setError]               = useState(null);
+  const [retryNotice, setRetryNotice]   = useState(null); // shown on intro screen after insufficient convo
   const [user, setUser]                 = useState(null);
   const [startingConv, setStartingConv] = useState(false);
   const [demographics, setDemographics] = useState({ fullName:"", educationLevel:"", gradeYear:null, state:"" });
@@ -938,6 +960,8 @@ export default function OnboardingPage() {
   const transcriptEndRef = useRef(null);
   const timerRef         = useRef(null);
   const transcriptRef    = useRef([]);
+  const endingRef           = useRef(false); // prevents double-trigger from onDisconnect + manual end
+  const endConversationRef  = useRef(null);  // stable ref so onDisconnect closure always calls latest fn
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -985,6 +1009,10 @@ export default function OnboardingPage() {
         return next;
       });
     },
+    onDisconnect: () => {
+      // Fires when the agent ends the session from its side — auto-advance to processing
+      endConversationRef.current?.();
+    },
     onError: (err) => {
       console.error("[ElevenLabs] onError:", err);
       const msg = typeof err === "string" ? err : "Connection error. Please try again.";
@@ -1011,6 +1039,7 @@ export default function OnboardingPage() {
   }, []);
 
   const startConversation = async () => {
+    setRetryNotice(null);
     setStartingConv(true);
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1046,6 +1075,9 @@ export default function OnboardingPage() {
   };
 
   const endConversation = async () => {
+    if (endingRef.current) return;
+    endingRef.current = true;
+    endConversationRef.current = null; // prevent any further onDisconnect re-entry
     clearInterval(timerRef.current);
     try { await conversation.endSession(); } catch { /* already closed */ }
     setPhase("processing");
@@ -1056,18 +1088,36 @@ export default function OnboardingPage() {
 
       const messages = transcriptRef.current;
 
-      if (messages.length < 2) {
-        throw new Error("The conversation was too short to generate a profile. Please try again and speak for at least a minute.");
-      }
-
-      const transcriptText = messages
-        .map((m) => `${m.role === "agent" ? "Mentorable" : "Student"}: ${m.message}`)
-        .join("\n");
+      const transcriptText = messages.length > 0
+        ? messages.map((m) => `${m.role === "agent" ? "Mentorable" : "Student"}: ${m.message}`).join("\n")
+        : "";
 
       const anthropic = new Anthropic({
         apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
         dangerouslyAllowBrowser: true,
       });
+
+      // Quick sufficiency check — did the student share enough to build a profile?
+      const checkMsg = await anthropic.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 64,
+        messages: [{
+          role: "user",
+          content: `A student just finished a voice onboarding conversation with an AI career guide. Did the student share enough personal information (interests, strengths, goals, or experiences) to meaningfully build a career profile? Reply with only "yes" or "no".\n\nTranscript:\n${transcriptText || "(empty — no messages recorded)"}`,
+        }],
+      });
+      const checkText = (checkMsg.content[0]?.type === "text" ? checkMsg.content[0].text : "").trim().toLowerCase();
+
+      if (!checkText.startsWith("yes")) {
+        // Not enough info — reset and send back to intro with a gentle notice
+        endingRef.current = false;
+        setTranscript([]);
+        transcriptRef.current = [];
+        setElapsed(0);
+        setRetryNotice("It looks like the conversation ended before we got to know you. No worries — just start it again and share a bit about yourself when you're ready.");
+        setPhase("intro");
+        return;
+      }
 
       const aiMessage = await anthropic.messages.create({
         model: "claude-sonnet-4-6",
@@ -1130,6 +1180,8 @@ ${transcriptText}`,
       setPhase("error");
     }
   };
+  // Keep ref current so onDisconnect always calls the latest closure
+  endConversationRef.current = endConversation;
 
   if (phase === "loading") {
     return (
@@ -1193,7 +1245,7 @@ ${transcriptText}`,
 
       <AnimatePresence mode="wait">
         {phase === "demographics" && <DemographicsPhase key="demographics" onContinue={handleDemographicsContinue} submitting={savingDemo}/>}
-        {phase === "intro"      && <IntroPhase      key="intro"      onStart={startConversation} loading={startingConv}/>}
+        {phase === "intro"      && <IntroPhase      key="intro"      onStart={startConversation} loading={startingConv} retryNotice={retryNotice}/>}
         {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} transcriptEndRef={transcriptEndRef}/>}
         {phase === "processing" && <ProcessingPhase key="processing"/>}
         {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("demographics"); }}/>}

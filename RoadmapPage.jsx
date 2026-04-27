@@ -266,6 +266,7 @@ export default function RoadmapPage({ navigate }) {
         }
 
         setRoadmap(existingRoadmap);
+        localStorage.setItem("roadmapMode", existingRoadmap.mode || "discovery");
 
         // Load phases + tasks
         let phasesData = await loadPhases(existingRoadmap.id);
