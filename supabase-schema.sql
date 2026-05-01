@@ -96,6 +96,8 @@ CREATE POLICY "Users can insert own chat sessions"
   ON chat_sessions FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own chat sessions"
   ON chat_sessions FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own chat sessions"
+  ON chat_sessions FOR DELETE USING (auth.uid() = user_id);
 
 -- user_context
 CREATE POLICY "Users can view own context"
