@@ -9,6 +9,7 @@ import PreRoadmapPage from "./PreRoadmapPage.jsx";
 import TaskDetailPage from "./components/task/TaskDetailPage.jsx";
 import RoadmapPreviewPage from "./components/roadmap-preview/RoadmapPreviewPage.jsx";
 import ChatPage from "./ChatPage.jsx";
+import ProfilePage from "./ProfilePage.jsx";
 import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import { supabase } from "./lib/supabase.js";
 
@@ -100,6 +101,11 @@ function ComingSoonRoute({ title, activePath }) {
   return <ComingSoonPage title={title} navigate={navigate} activePath={activePath} />;
 }
 
+function ProfileRoute() {
+  const navigate = useNavigate();
+  return <ProfilePage navigate={navigate} />;
+}
+
 export default function App() {
   return (
     <Routes>
@@ -107,7 +113,7 @@ export default function App() {
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/scorecard" element={<ScorecardRoute />} />
       <Route path="/chat" element={<ChatRoute />} />
-      <Route path="/profile" element={<ComingSoonRoute title="Profile" activePath="/profile" />} />
+      <Route path="/profile" element={<ProfileRoute />} />
       <Route path="/community" element={<ComingSoonRoute title="Community" activePath="/community" />} />
       <Route path="/roadmap/task/:taskId" element={<TaskDetailRoute />} />
       <Route path="/roadmap" element={<RoadmapRoute />} />

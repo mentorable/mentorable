@@ -216,6 +216,9 @@ Generate Phase ${phaseNumber} of this student's roadmap.
 - Work style: ${profile.work_style}
 - Career matches from onboarding: ${JSON.stringify(profile.career_matches)}
 - Onboarding summary: ${profile.onboarding_summary}
+${profile.roadmap_hours_per_week ? `- Weekly time available: ${profile.roadmap_hours_per_week} hours/week — size tasks accordingly` : ''}
+${profile.roadmap_task_style && profile.roadmap_task_style !== 'mix' ? `- Preferred learning style: ${profile.roadmap_task_style === 'reading' ? 'reading & research' : profile.roadmap_task_style === 'hands_on' ? 'hands-on projects & building' : 'video-based learning'} — lean toward this format` : ''}
+${profile.roadmap_difficulty ? `- Difficulty preference: ${profile.roadmap_difficulty} — ${profile.roadmap_difficulty === 'gradual' ? 'start easy and build up slowly' : profile.roadmap_difficulty === 'challenging' ? 'push them with harder tasks from the start' : 'balance accessible and challenging tasks'}` : ''}
 ${onetCareerContext}${programsContext}
 ## ROADMAP STATE
 - Mode: ${roadmap.mode}
