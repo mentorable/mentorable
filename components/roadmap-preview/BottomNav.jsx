@@ -40,7 +40,7 @@ export default function Sidebar() {
             color:         "rgb(var(--m-indigo))",
             letterSpacing: "-0.03em",
           }}>
-            Mentora
+            mentorable
           </span>
           <span style={{
             width:        6, height:     6,
