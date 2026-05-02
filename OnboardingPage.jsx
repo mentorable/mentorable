@@ -962,6 +962,14 @@ export default function OnboardingPage() {
   const transcriptRef    = useRef([]);
   const endingRef           = useRef(false); // prevents double-trigger from onDisconnect + manual end
   const endConversationRef  = useRef(null);  // stable ref so onDisconnect closure always calls latest fn
+  const conversationStartedAtRef = useRef(null);
+  const lastMessageAtRef         = useRef(null);
+
+  // Auto-end thresholds — protect against runaway ElevenLabs sessions that
+  // burn credits when the agent doesn't terminate the call on its own.
+  const MAX_DURATION_MS    = 7 * 60 * 1000; // 7 min hard cap
+  const SILENCE_TIMEOUT_MS = 35 * 1000;     // 35s of no new transcript messages after exchange started
+  const INITIAL_SILENCE_MS = 60 * 1000;     // 60s with no messages at all = stalled / broken
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -1003,6 +1011,7 @@ export default function OnboardingPage() {
       const message = msg.message ?? msg.text ?? "";
       if (!message) return; // skip empty frames
       const newMsg = { role, message, id: `${Date.now()}-${Math.random()}` };
+      lastMessageAtRef.current = Date.now();
       setTranscript((prev) => {
         const next = [...prev, newMsg];
         transcriptRef.current = next;
@@ -1025,11 +1034,42 @@ export default function OnboardingPage() {
   }, [transcript]);
 
   useEffect(() => {
-    if (phase === "active") {
-      timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
-    } else {
+    if (phase !== "active") {
       clearInterval(timerRef.current);
+      return;
     }
+
+    conversationStartedAtRef.current = Date.now();
+    lastMessageAtRef.current = Date.now();
+
+    timerRef.current = setInterval(() => {
+      const now        = Date.now();
+      const elapsedMs  = now - (conversationStartedAtRef.current ?? now);
+      const sinceLast  = now - (lastMessageAtRef.current ?? now);
+      const hasMessages = transcriptRef.current.length > 0;
+
+      setElapsed(Math.floor(elapsedMs / 1000));
+
+      // Hard cap — never let a session run past this regardless of state.
+      if (elapsedMs >= MAX_DURATION_MS) {
+        console.log("[Onboarding] auto-ending: max duration reached");
+        endConversationRef.current?.();
+        return;
+      }
+      // After conversation has produced messages, end on extended silence.
+      if (hasMessages && sinceLast >= SILENCE_TIMEOUT_MS) {
+        console.log("[Onboarding] auto-ending: silence after exchange");
+        endConversationRef.current?.();
+        return;
+      }
+      // Long initial silence with no messages at all — likely broken/abandoned.
+      if (!hasMessages && elapsedMs >= INITIAL_SILENCE_MS) {
+        console.log("[Onboarding] auto-ending: no conversation initiated");
+        endConversationRef.current?.();
+        return;
+      }
+    }, 1000);
+
     return () => clearInterval(timerRef.current);
   }, [phase]);
 
