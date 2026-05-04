@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, useNavigate, useParams } from "react-router-dom";
+import { Routes, Route, useNavigate, useParams, useLocation } from "react-router-dom";
 import LandingPage from "./LandingPage.jsx";
 import AuthPage from "./AuthPage.jsx";
 import OnboardingPage from "./OnboardingPage.jsx";
@@ -15,8 +15,55 @@ import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import { supabase } from "./lib/supabase.js";
 
-const FONT = "'Space Grotesk', sans-serif";
+// Routes that show the persistent sidebar
+const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/research", "/roadmap"];
 
+function AppShell({ children }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [roadmapMode, setRoadmapMode] = useState(
+    localStorage.getItem("roadmapMode") || "discovery"
+  );
+
+  const showSidebar = SIDEBAR_ROUTES.some(
+    (p) => location.pathname === p || location.pathname.startsWith(p + "/")
+  );
+  const isRoadmap = location.pathname === "/roadmap" || location.pathname.startsWith("/roadmap/");
+
+  // Keep mode label in sync when RoadmapPage sets it
+  useEffect(() => {
+    const handler = (e) => setRoadmapMode(e.detail || localStorage.getItem("roadmapMode") || "discovery");
+    window.addEventListener("roadmap:modeChanged", handler);
+    return () => window.removeEventListener("roadmap:modeChanged", handler);
+  }, []);
+
+  // Re-read localStorage when navigating back to a roadmap route
+  useEffect(() => {
+    if (isRoadmap) {
+      setRoadmapMode(localStorage.getItem("roadmapMode") || "discovery");
+    }
+  }, [isRoadmap]);
+
+  const handleModeClick = isRoadmap
+    ? () => window.dispatchEvent(new CustomEvent("roadmap:openModeModal"))
+    : null;
+
+  return (
+    <>
+      {showSidebar && (
+        <Sidebar
+          activePath={location.pathname}
+          navigate={navigate}
+          onModeClick={handleModeClick}
+          roadmapMode={roadmapMode}
+        />
+      )}
+      {children}
+    </>
+  );
+}
+
+// ─── Route wrappers ───────────────────────────────────────────────────────────
 
 function TaskDetailRoute() {
   const { taskId } = useParams();
@@ -34,7 +81,6 @@ function ScorecardRoute() {
   return <ScorecardPage navigate={navigate} />;
 }
 
-// Gate: show PreRoadmapPage for first-timers, RoadmapPage for everyone else
 function RoadmapRoute() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
@@ -64,7 +110,6 @@ function RoadmapRoute() {
   return <RoadmapPage navigate={navigate} />;
 }
 
-
 function ProfileRoute() {
   const navigate = useNavigate();
   return <ProfilePage navigate={navigate} />;
@@ -76,21 +121,25 @@ function ResearchRoute() {
   return <ResearchPage navigate={navigate} initialSessionId={sessionId || null} />;
 }
 
+// ─── App ──────────────────────────────────────────────────────────────────────
+
 export default function App() {
   return (
-    <Routes>
-      <Route path="/auth" element={<AuthPage />} />
-      <Route path="/onboarding" element={<ErrorBoundary><OnboardingPage /></ErrorBoundary>} />
-      <Route path="/scorecard" element={<ScorecardRoute />} />
-      <Route path="/chat" element={<ErrorBoundary><ChatRoute /></ErrorBoundary>} />
-      <Route path="/profile" element={<ProfileRoute />} />
-      <Route path="/research/:sessionId" element={<ResearchRoute />} />
-      <Route path="/research" element={<ResearchRoute />} />
-      <Route path="/roadmap/task/:taskId" element={<ErrorBoundary><TaskDetailRoute /></ErrorBoundary>} />
-      <Route path="/roadmap" element={<ErrorBoundary><RoadmapRoute /></ErrorBoundary>} />
-      <Route path="/roadmap-preview" element={<RoadmapPreviewPage />} />
-      <Route path="/" element={<LandingPage />} />
-      <Route path="*" element={<LandingPage />} />
-    </Routes>
+    <AppShell>
+      <Routes>
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/onboarding" element={<ErrorBoundary><OnboardingPage /></ErrorBoundary>} />
+        <Route path="/scorecard" element={<ScorecardRoute />} />
+        <Route path="/chat" element={<ErrorBoundary><ChatRoute /></ErrorBoundary>} />
+        <Route path="/profile" element={<ProfileRoute />} />
+        <Route path="/research/:sessionId" element={<ResearchRoute />} />
+        <Route path="/research" element={<ResearchRoute />} />
+        <Route path="/roadmap/task/:taskId" element={<ErrorBoundary><TaskDetailRoute /></ErrorBoundary>} />
+        <Route path="/roadmap" element={<ErrorBoundary><RoadmapRoute /></ErrorBoundary>} />
+        <Route path="/roadmap-preview" element={<RoadmapPreviewPage />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="*" element={<LandingPage />} />
+      </Routes>
+    </AppShell>
   );
 }

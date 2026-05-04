@@ -8,7 +8,7 @@ import ProjectTaskContent from "./ProjectTaskContent.jsx";
 import CheckpointContent from "./CheckpointContent.jsx";
 import ReflectionArea from "./ReflectionArea.jsx";
 import TaskNavBar from "./TaskNavBar.jsx";
-import Sidebar, { SIDEBAR_WIDTH } from "../common/Sidebar.jsx";
+import { SIDEBAR_WIDTH } from "../common/Sidebar.jsx";
 
 const STORAGE_KEY_LAST_TASK = "mentorable_roadmap_last_task";
 const FONT = "'Space Grotesk', sans-serif";
@@ -428,13 +428,6 @@ export default function TaskDetailPage({ taskId, navigate }) {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');`}</style>
 
       <PageBackground />
-
-      <Sidebar
-        activePath="/roadmap"
-        navigate={navigate}
-        onModeClick={null}
-        roadmapMode={roadmap?.mode || "discovery"}
-      />
 
       <div style={{ position: "relative", zIndex: 1, marginLeft: SIDEBAR_WIDTH }}>
         <motion.main

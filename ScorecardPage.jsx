@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
 import Spinner from "./components/common/Spinner.jsx";
-import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
+import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 
 // ─── Themes ───────────────────────────────────────────────────────────────────
 const themes = [
@@ -426,13 +426,10 @@ export default function ScorecardPage({ navigate }) {
       position: "relative",
       fontFamily: "system-ui, sans-serif",
       padding: "3rem 1.5rem 5rem",
-      paddingLeft: hasRoadmap ? `calc(${SIDEBAR_WIDTH}px + 1.5rem)` : "1.5rem",
+      paddingLeft: `calc(${SIDEBAR_WIDTH}px + 1.5rem)`,
       background: `linear-gradient(135deg, #f8fafc 0%, ${theme.accent}12 50%, #f1f5f9 100%)`,
       transition: "background 300ms ease",
     }}>
-      {hasRoadmap && (
-        <Sidebar activePath="/scorecard" navigate={navigate || ((p) => { window.location.href = p; })} onModeClick={null} roadmapMode={localStorage.getItem("roadmapMode") || "discovery"} />
-      )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

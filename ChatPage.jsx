@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
 import { buildSystemPrompt, streamChatResponse } from "./lib/mentora.js";
-import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
+import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 
 const ACCENT  = "#3b82f6";
 const NAVY    = "#0f172a";
@@ -864,8 +864,6 @@ export default function ChatPage({ navigate }) {
         ::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.1); border-radius: 99px; }
         ${STREAMING_CSS}
       `}</style>
-
-      <Sidebar activePath="/chat" navigate={navigate} onModeClick={null} roadmapMode={roadmap?.mode || localStorage.getItem("roadmapMode") || "discovery"} />
 
       <div data-sidebar-offset style={{ marginLeft: SIDEBAR_WIDTH, height: "100vh", display: "flex", overflow: "hidden" }}>
         <ChatMain

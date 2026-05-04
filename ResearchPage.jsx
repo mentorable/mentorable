@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
-import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
+import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 
 const FONT  = "'Space Grotesk', sans-serif";
 const NAVY  = "#0f172a";
@@ -731,8 +731,6 @@ export default function ResearchPage({ navigate, initialSessionId }) {
   return (
     <div style={{ minHeight: "100vh", background: "#f4f8ff", display: "flex" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');`}</style>
-
-      <Sidebar activePath="/research" navigate={navigate} onModeClick={null} roadmapMode={roadmapMode} />
 
       {/* Main content */}
       <div

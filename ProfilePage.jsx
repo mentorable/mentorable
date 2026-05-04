@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
-import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
+import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -288,7 +288,7 @@ export default function ProfilePage({ navigate }) {
       minHeight: "100vh",
       background: "linear-gradient(180deg, #e8f0ff 0%, #f4f8ff 25%, #f8faff 100%)",
       fontFamily: "system-ui, -apple-system, sans-serif",
-      paddingLeft: hasRoadmap ? SIDEBAR_WIDTH : 0,
+      paddingLeft: SIDEBAR_WIDTH,
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -299,9 +299,6 @@ export default function ProfilePage({ navigate }) {
         .pf-pill-btn:hover { border-color: #94a3b8 !important; }
       `}</style>
 
-      {hasRoadmap && (
-        <Sidebar activePath="/profile" navigate={nav} onModeClick={null} roadmapMode={localStorage.getItem("roadmapMode") || "discovery"} />
-      )}
 
       <div style={{ maxWidth: 620, margin: "0 auto", padding: "3rem 1.5rem 6rem" }}>
 

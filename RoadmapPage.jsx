@@ -8,7 +8,7 @@ import ConfidencePanel from "./components/roadmap/ConfidencePanel.jsx";
 import ModeSwitchModal from "./components/roadmap/ModeSwitchModal.jsx";
 import PhaseCompleteModal from "./components/roadmap/PhaseCompleteModal.jsx";
 import StickyWeekBar from "./components/roadmap/StickyWeekBar.jsx";
-import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
+import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 
 // ─── Background: Mountain Scene ───────────────────────────────────────────────
 function PageBackground() {
@@ -150,6 +150,13 @@ export default function RoadmapPage({ navigate }) {
 
   const [showConfidencePanel, setShowConfidencePanel] = useState(false);
   const [showModeModal, setShowModeModal] = useState(false);
+
+  // App.jsx dispatches this event from the persistent sidebar's mode button
+  useEffect(() => {
+    const handler = () => setShowModeModal(true);
+    window.addEventListener("roadmap:openModeModal", handler);
+    return () => window.removeEventListener("roadmap:openModeModal", handler);
+  }, []);
   const [showPhaseCompleteModal, setShowPhaseCompleteModal] = useState(false);
   const [completedPhaseData, setCompletedPhaseData] = useState(null);
   const [generatingNextPhase, setGeneratingNextPhase] = useState(false);
@@ -279,6 +286,7 @@ export default function RoadmapPage({ navigate }) {
 
         setRoadmap(existingRoadmap);
         localStorage.setItem("roadmapMode", existingRoadmap.mode || "discovery");
+        window.dispatchEvent(new CustomEvent("roadmap:modeChanged", { detail: existingRoadmap.mode || "discovery" }));
 
         // Load phases + tasks
         let phasesData = await loadPhases(existingRoadmap.id);
@@ -603,14 +611,6 @@ export default function RoadmapPage({ navigate }) {
 
       {/* Background */}
       <PageBackground />
-
-      {/* Sidebar */}
-      <Sidebar
-        activePath="/roadmap"
-        navigate={navigate}
-        onModeClick={() => setShowModeModal(true)}
-        roadmapMode={roadmap?.mode || "discovery"}
-      />
 
       {/* Content sits above background */}
       <div data-sidebar-offset style={{ position: "relative", zIndex: 1, marginLeft: SIDEBAR_WIDTH }}>
