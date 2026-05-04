@@ -429,7 +429,7 @@ export default function TaskDetailPage({ taskId, navigate }) {
 
       <PageBackground />
 
-      <div style={{ position: "relative", zIndex: 1, marginLeft: SIDEBAR_WIDTH }}>
+      <div data-sidebar-offset style={{ position: "relative", zIndex: 1, marginLeft: SIDEBAR_WIDTH }}>
         <motion.main
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}

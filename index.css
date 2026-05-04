@@ -4,16 +4,40 @@ html, body {
   background-color: #f4f8ff;
 }
 
+/* Prevent horizontal overflow globally */
+html, body { overflow-x: hidden; }
+
 @keyframes spinner-rotate { to { transform: rotate(360deg); } }
 
 /* ── Mobile layout ── */
 @media (max-width: 768px) {
+  /* Hide desktop sidebar */
   #main-sidebar {
     display: none !important;
   }
+
+  /* Zero out sidebar offset on all pages */
   [data-sidebar-offset] {
     margin-left: 0 !important;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Prevent iOS font zoom on focus */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+
+  /* Prevent content from overflowing viewport width */
+  img, video, iframe, table {
+    max-width: 100%;
+  }
+}
+
+/* ── Very small phones ── */
+@media (max-width: 390px) {
+  [data-sidebar-offset] {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
   }
 }

@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
 import { buildSystemPrompt, streamChatResponse } from "./lib/mentora.js";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
+import Drawer from "./components/common/Drawer.jsx";
+import { useIsMobile } from "./hooks/useIsMobile.js";
 
 const ACCENT  = "#3b82f6";
 const NAVY    = "#0f172a";
@@ -534,7 +536,7 @@ function RenameInput({ initial, onSave, onCancel }) {
 
 // ─── HistoryPanel ─────────────────────────────────────────────────────────────
 
-function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDeleteChat, onRenameChat }) {
+function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDeleteChat, onRenameChat, fullWidth = false }) {
   const grouped = groupChatsByDate(sessions);
   const ORDER   = ["Today", "Yesterday", "This week", "This month", "Older"];
   const [renamingId, setRenamingId] = useState(null);
@@ -595,10 +597,11 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
 
   return (
     <div style={{
-      width: HISTORY_W, flexShrink: 0,
+      width: fullWidth ? "100%" : HISTORY_W, flexShrink: 0,
       background: "#f8fafc",
-      borderLeft: "1px solid #e8edf2",
+      borderLeft: fullWidth ? "none" : "1px solid #e8edf2",
       display: "flex", flexDirection: "column", overflow: "hidden",
+      flex: fullWidth ? 1 : undefined,
     }}>
       {/* Header */}
       <div style={{ padding: "16px 14px 12px", borderBottom: "1px solid #e8edf2", flexShrink: 0 }}>
@@ -650,7 +653,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
 
 // ─── ChatMain ─────────────────────────────────────────────────────────────────
 
-function ChatMain({ activeChatId, messages, disabled, onSend, userName, error }) {
+function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, onOpenHistory }) {
   const bottomRef = useRef(null);
   const isNew = activeChatId === null;
 
@@ -663,7 +666,7 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error })
 
       {/* Top bar */}
       <div style={{
-        height: 52, flexShrink: 0, paddingLeft: 24, paddingRight: 20,
+        height: 52, flexShrink: 0, paddingLeft: 24, paddingRight: 16,
         background: "rgba(255,255,255,0.92)",
         backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
         borderBottom: "1px solid #e8edf2",
@@ -675,9 +678,27 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error })
             Mentorable Agent
           </span>
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
           <span style={{ fontFamily: SG, fontSize: 11, color: "#64748b", fontWeight: 500 }}>Ready</span>
+          {onOpenHistory && (
+            <button
+              onClick={onOpenHistory}
+              style={{
+                marginLeft: 4, width: 34, height: 34, borderRadius: 8,
+                border: "1.5px solid #e2e8f0", background: "transparent",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer",
+              }}
+              title="Chat history"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="15" y2="18"/>
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
@@ -722,6 +743,8 @@ export default function ChatPage({ navigate }) {
   const [messages, setMessages] = useState([]);
   const [streaming, setStreaming] = useState(false);
   const [chatError, setChatError] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const skipHydrationRef = useRef(false);
   const systemPromptRef  = useRef("");
@@ -853,6 +876,18 @@ export default function ChatPage({ navigate }) {
     }
   }, [user, activeChatId, messages, streaming, refreshSessions]);
 
+  const historyPanel = (
+    <HistoryPanel
+      sessions={sessions}
+      activeChatId={activeChatId}
+      onSelectChat={(id) => { handleSelectChat(id); setHistoryOpen(false); }}
+      onNewChat={() => { handleNewChat(); setHistoryOpen(false); }}
+      onDeleteChat={handleDeleteChat}
+      onRenameChat={handleRenameChat}
+      fullWidth={isMobile}
+    />
+  );
+
   return (
     <>
       <style>{`
@@ -865,7 +900,15 @@ export default function ChatPage({ navigate }) {
         ${STREAMING_CSS}
       `}</style>
 
-      <div data-sidebar-offset style={{ marginLeft: SIDEBAR_WIDTH, height: "100vh", display: "flex", overflow: "hidden" }}>
+      <div
+        data-sidebar-offset
+        style={{
+          marginLeft: isMobile ? 0 : SIDEBAR_WIDTH,
+          height: "100dvh",
+          display: "flex",
+          overflow: "hidden",
+        }}
+      >
         <ChatMain
           activeChatId={activeChatId}
           messages={messages}
@@ -873,16 +916,17 @@ export default function ChatPage({ navigate }) {
           onSend={handleSend}
           userName={profile?.full_name || ""}
           error={chatError}
+          onOpenHistory={isMobile ? () => setHistoryOpen(true) : null}
         />
-        <HistoryPanel
-          sessions={sessions}
-          activeChatId={activeChatId}
-          onSelectChat={handleSelectChat}
-          onNewChat={handleNewChat}
-          onDeleteChat={handleDeleteChat}
-          onRenameChat={handleRenameChat}
-        />
+        {!isMobile && historyPanel}
       </div>
+
+      {/* Mobile history drawer */}
+      {isMobile && (
+        <Drawer open={historyOpen} onClose={() => setHistoryOpen(false)} width={HISTORY_W + 16}>
+          {historyPanel}
+        </Drawer>
+      )}
     </>
   );
 }

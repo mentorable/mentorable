@@ -418,7 +418,7 @@ export default function ScorecardPage({ navigate }) {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{
+    <div data-sidebar-offset style={{
       minHeight: "100vh",
       display: "flex",
       flexDirection: "column",

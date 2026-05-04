@@ -12,7 +12,9 @@ import ChatPage from "./ChatPage.jsx";
 import ProfilePage from "./ProfilePage.jsx";
 import ResearchPage from "./ResearchPage.jsx";
 import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
+import MobileNav from "./components/common/MobileNav.jsx";
 import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
+import { useIsMobile } from "./hooks/useIsMobile.js";
 import { supabase } from "./lib/supabase.js";
 
 // Routes that show the persistent sidebar
@@ -21,6 +23,7 @@ const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/research", "/roadma
 function AppShell({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [roadmapMode, setRoadmapMode] = useState(
     localStorage.getItem("roadmapMode") || "discovery"
   );
@@ -50,7 +53,7 @@ function AppShell({ children }) {
 
   return (
     <>
-      {showSidebar && (
+      {showSidebar && !isMobile && (
         <Sidebar
           activePath={location.pathname}
           navigate={navigate}
@@ -59,6 +62,9 @@ function AppShell({ children }) {
         />
       )}
       {children}
+      {showSidebar && isMobile && (
+        <MobileNav activePath={location.pathname} navigate={navigate} />
+      )}
     </>
   );
 }

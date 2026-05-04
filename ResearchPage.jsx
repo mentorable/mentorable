@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
+import Drawer from "./components/common/Drawer.jsx";
+import { useIsMobile } from "./hooks/useIsMobile.js";
 
 const FONT  = "'Space Grotesk', sans-serif";
 const NAVY  = "#0f172a";
@@ -97,7 +99,7 @@ const IconHistory = ({ size = 14, color = "currentColor" }) => (
 
 // ─── Sessions sidebar ─────────────────────────────────────────────────────────
 
-function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete }) {
+function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidth = false }) {
   const grouped = groupByDate(sessions);
   const ORDER = ["Today", "Yesterday", "This week", "This month", "Older"];
 
@@ -158,10 +160,11 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete }) {
 
   return (
     <div style={{
-      width: SESSIONS_W, flexShrink: 0,
+      width: fullWidth ? "100%" : SESSIONS_W, flexShrink: 0,
       background: "#f8fafc",
-      borderLeft: "1px solid #e8edf2",
+      borderLeft: fullWidth ? "none" : "1px solid #e8edf2",
       display: "flex", flexDirection: "column", overflow: "hidden",
+      flex: fullWidth ? 1 : undefined,
     }}>
       {/* Header */}
       <div style={{ padding: "16px 14px 12px", borderBottom: "1px solid #e8edf2", flexShrink: 0 }}>
@@ -586,6 +589,8 @@ export default function ResearchPage({ navigate, initialSessionId }) {
   const [sessions, setSessions]         = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(initialSessionId || null);
   const [roadmapMode]                   = useState(localStorage.getItem("roadmapMode") || "discovery");
+  const [sessionsOpen, setSessionsOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const stepTimerRef = useRef(null);
 
@@ -728,6 +733,17 @@ export default function ResearchPage({ navigate, initialSessionId }) {
 
   const showEmpty = !loading && !results && !error;
 
+  const sessionsPanel = (
+    <SessionsPanel
+      sessions={sessions}
+      activeId={activeSessionId}
+      onSelect={(s) => { handleSelectSession(s); setSessionsOpen(false); }}
+      onNew={() => { handleNewSearch(); setSessionsOpen(false); }}
+      onDelete={handleDeleteSession}
+      fullWidth={isMobile}
+    />
+  );
+
   return (
     <div style={{ minHeight: "100vh", background: "#f4f8ff", display: "flex" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');`}</style>
@@ -736,15 +752,34 @@ export default function ResearchPage({ navigate, initialSessionId }) {
       <div
         data-sidebar-offset
         style={{
-          marginLeft: SIDEBAR_WIDTH,
+          marginLeft: isMobile ? 0 : SIDEBAR_WIDTH,
           flex: 1,
           minHeight: "100vh",
           overflowY: "auto",
-          padding: "2rem 2rem 4rem",
+          padding: isMobile ? "1.25rem 1rem 5rem" : "2rem 2rem 4rem",
           maxWidth: 820,
           boxSizing: "border-box",
         }}
       >
+        {/* Mobile sessions toggle button */}
+        {isMobile && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.75rem" }}>
+            <button
+              onClick={() => setSessionsOpen(true)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "8px 14px", borderRadius: 8,
+                border: "1.5px solid #e2e8f0", background: "#fff",
+                fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: "#374151",
+                cursor: "pointer",
+              }}
+            >
+              <IconHistory size={13} color="#64748b" />
+              History {sessions.length > 0 && `(${sessions.length})`}
+            </button>
+          </div>
+        )}
+
         {showEmpty
           ? <EmptyState onChipSelect={(chip) => { setQuery(chip); }} loading={loading} />
           : null
@@ -789,14 +824,15 @@ export default function ResearchPage({ navigate, initialSessionId }) {
         </AnimatePresence>
       </div>
 
-      {/* Sessions panel */}
-      <SessionsPanel
-        sessions={sessions}
-        activeId={activeSessionId}
-        onSelect={handleSelectSession}
-        onNew={handleNewSearch}
-        onDelete={handleDeleteSession}
-      />
+      {/* Desktop sessions panel */}
+      {!isMobile && sessionsPanel}
+
+      {/* Mobile sessions drawer */}
+      {isMobile && (
+        <Drawer open={sessionsOpen} onClose={() => setSessionsOpen(false)} width={SESSIONS_W + 20}>
+          {sessionsPanel}
+        </Drawer>
+      )}
     </div>
   );
 }

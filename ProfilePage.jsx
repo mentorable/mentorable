@@ -284,7 +284,7 @@ export default function ProfilePage({ navigate }) {
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{
+    <div data-sidebar-offset style={{
       minHeight: "100vh",
       background: "linear-gradient(180deg, #e8f0ff 0%, #f4f8ff 25%, #f8faff 100%)",
       fontFamily: "system-ui, -apple-system, sans-serif",
