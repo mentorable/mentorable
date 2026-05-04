@@ -124,7 +124,7 @@ function PillSelector({ options, value, onChange, accent = ACCENT }) {
 
 export default function ProfilePage({ navigate }) {
   const [loading, setLoading] = useState(true);
-  const [hasRoadmap, setHasRoadmap] = useState(false);
+  const [hasRoadmap, setHasRoadmap] = useState(true);
   const [userId, setUserId] = useState(null);
   const [userEmail, setUserEmail] = useState("");
 

@@ -227,7 +227,7 @@ function SkeletonLayout({ theme }) {
 export default function ScorecardPage({ navigate }) {
   const [phase, setPhase] = useState("loading");
   const [profile, setProfile] = useState(null);
-  const [hasRoadmap, setHasRoadmap] = useState(false);
+  const [hasRoadmap, setHasRoadmap] = useState(true);
   const [theme, setTheme] = useState(themes[0]);
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
