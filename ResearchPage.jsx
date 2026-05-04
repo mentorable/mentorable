@@ -237,7 +237,7 @@ function HeroSection() {
           Find real opportunities,<br />tailored to you.
         </h1>
         <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: "#94a3b8", maxWidth: 480, lineHeight: 1.65, fontWeight: 500, margin: 0 }}>
-          Ask anything — internships, scholarships, competitions, programs. The agent searches the web and filters results based on your profile and roadmap.
+          Scholarships, internships, programs, competitions — the opportunities a good counselor would surface for you. Search for anything and get results filtered to your profile, for free.
         </p>
         <div style={{ display: "flex", gap: "1.25rem", marginTop: "1.25rem", flexWrap: "wrap" }}>
           {[["🏆", "Competitions"], ["💼", "Internships"], ["🎓", "Scholarships"], ["🚀", "Programs"]].map(([icon, label]) => (

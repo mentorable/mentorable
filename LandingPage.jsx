@@ -1018,7 +1018,7 @@ export default function LandingPage() {
               border:"1px solid rgba(255,255,255,0.18)",borderRadius:999,marginBottom:"2rem",
               background:"rgba(255,255,255,0.06)",backdropFilter:"blur(12px)",alignSelf:"flex-start"}}>
             <div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 8px #22c55e"}}/>
-            <span style={{fontFamily:SANS,fontSize:"0.78rem",color:"rgba(255,255,255,0.8)"}}>AI-powered career guidance for high schoolers</span>
+            <span style={{fontFamily:SANS,fontSize:"0.78rem",color:"rgba(255,255,255,0.8)"}}>Free career guidance for every student</span>
           </motion.div>
 
           {/* Heading — zooms in from large */}
@@ -1029,12 +1029,12 @@ export default function LandingPage() {
             style={{margin:"0 0 1.5rem",letterSpacing:"-0.03em",willChange:"transform, opacity"}}>
             <span style={{
               fontFamily:SANS, fontWeight:700,
-              fontSize:"clamp(4rem,7vw,7.5rem)", lineHeight:0.97,
+              fontSize:"clamp(3rem,6vw,6.5rem)", lineHeight:0.97,
               background:"linear-gradient(135deg,#ffffff 0%,#93c5fd 55%,#60a5fa 100%)",
               WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
               backgroundClip:"text", display:"block",
               filter:"drop-shadow(0 0 35px rgba(147,197,253,0.95)) drop-shadow(0 0 80px rgba(96,165,250,0.6)) drop-shadow(0 0 120px rgba(37,99,235,0.35))",
-            }}>Own your future.</span>
+            }}>Expert guidance for every student.</span>
           </motion.h1>
 
           {/* Subtitle */}
@@ -1044,7 +1044,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
             style={{fontFamily:SANS,fontWeight:500,fontSize:"1.3rem",color:"rgba(255,255,255,0.85)",
               lineHeight:1.75,maxWidth:520,margin:"0 0 0.7rem"}}>
-            Mentorable is your personal AI career mentor.
+            Your personal college and career advisor — the kind of support that used to cost $300 a session, now free.
           </motion.p>
           <motion.p
             initial={{ y: 28, opacity: 0 }}
@@ -1052,7 +1052,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.72, ease: [0.16, 1, 0.3, 1] }}
             style={{fontFamily:SANS,fontWeight:400,fontSize:"1.05rem",color:"rgba(255,255,255,0.48)",
               lineHeight:1.9,maxWidth:480,margin:"0 0 2.75rem"}}>
-            Discover your strengths, get a personalized roadmap, and take action. All from a 2-minute voice conversation.
+            Discover your strengths, build a personalized roadmap, and find real opportunities. No counselor network required.
           </motion.p>
 
           {/* Buttons */}
@@ -1102,6 +1102,23 @@ export default function LandingPage() {
 
       {/* hero → light — dark navy fades to page bg */}
       <SG from="#4a7ad4" mid="#b8cff5" to={BG} h={280}/>
+
+      {/* ── WHY WE BUILT THIS ─────────────────────────────────────────────────── */}
+      <section style={{padding:"0 2.5rem 5rem",background:BG}}>
+        <FadeUp style={{maxWidth:640,margin:"0 auto",textAlign:"center"}}>
+          <p style={{fontFamily:SANS,fontSize:"0.72rem",fontWeight:700,letterSpacing:"0.12em",
+            textTransform:"uppercase",color:"#6366f1",marginBottom:"1rem"}}>
+            Why we built this
+          </p>
+          <p style={{fontFamily:SANS,fontSize:"clamp(1.1rem,2vw,1.35rem)",fontWeight:600,
+            color:"#0f172a",lineHeight:1.65,margin:"0 0 0.875rem",letterSpacing:"-0.01em"}}>
+            Most students don't have access to a counselor who knows their name, their goals, or their situation.
+          </p>
+          <p style={{fontFamily:SANS,fontSize:"1rem",color:"#64748b",lineHeight:1.75,margin:0,fontWeight:400}}>
+            That access gap has always determined who gets in, who gets funded, and who gets left behind. Mentorable exists to close it — giving every student the same quality of guidance that used to be reserved for a privileged few.
+          </p>
+        </FadeUp>
+      </section>
 
       {/* ── SIMPLIFY YOUR JOURNEY ─────────────────────────────────────────────── */}
       <section id="hiw" style={{padding:"4rem 2.5rem 7rem",background:BG}}>

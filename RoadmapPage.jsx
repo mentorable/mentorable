@@ -147,6 +147,7 @@ export default function RoadmapPage({ navigate }) {
   const [loading, setLoading] = useState(true);
   const [loadingSlow, setLoadingSlow] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showGenNote, setShowGenNote] = useState(false);
   const [error, setError] = useState(null);
 
   const [showConfidencePanel, setShowConfidencePanel] = useState(false);
@@ -315,6 +316,7 @@ export default function RoadmapPage({ navigate }) {
         setConfidenceHistory(historyData || []);
 
         setLoading(false);
+        if (isGenerating) setShowGenNote(true);
       } catch (err) {
         console.error("RoadmapPage load error:", err);
         setError(err?.message || "Failed to load roadmap");
@@ -628,6 +630,34 @@ export default function RoadmapPage({ navigate }) {
             paddingTop: "2rem",
             minHeight: "100vh",
           }}>
+            {/* First-gen note — shown only when roadmap was just created */}
+            {showGenNote && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                style={{
+                  margin: "0 1rem 1rem",
+                  padding: "0.75rem 1rem 0.75rem 1.125rem",
+                  background: "rgba(99,102,241,0.06)",
+                  border: "1.5px solid rgba(99,102,241,0.14)",
+                  borderRadius: "0.875rem",
+                  display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem",
+                }}
+              >
+                <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "0.85rem", fontWeight: 600, color: "#4f46e5", margin: 0, lineHeight: 1.5 }}>
+                  This roadmap was built specifically for you — no generic advice, no expensive counselor required.
+                </p>
+                <button
+                  onClick={() => setShowGenNote(false)}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "#a5b4fc", padding: "2px", flexShrink: 0, lineHeight: 1 }}
+                  aria-label="Dismiss"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </motion.div>
+            )}
+
             {/* Confidence meter (discovery mode) */}
             {roadmap.mode !== "career" && (
               <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 1rem 0.5rem" }}>

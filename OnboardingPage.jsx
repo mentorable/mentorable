@@ -575,8 +575,23 @@ function IntroPhase({ onStart, loading, retryNotice }) {
               fontWeight:400, margin:0,
             }}
           >
-            Have a 5–8 minute conversation with your AI guide. Just talk naturally — there are no right or wrong answers.
+            Your personal college and career guide — the kind of support that used to cost hundreds of dollars per session, now free.
           </motion.p>
+
+          {/* Access framing */}
+          <motion.div {...fadeUp(0.66)} style={{
+            background:"rgba(99,102,241,0.06)",
+            border:"1.5px solid rgba(99,102,241,0.14)",
+            borderRadius:12, padding:"0.75rem 1rem",
+            display:"flex", alignItems:"flex-start", gap:"0.625rem",
+          }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,marginTop:1}}>
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            <p style={{fontFamily:SANS,fontSize:"0.82rem",color:"#4f46e5",fontWeight:600,lineHeight:1.55,margin:0}}>
+              You deserve the same guidance as students with private counselors. That's exactly what this is.
+            </p>
+          </motion.div>
 
           {/* Topics */}
           <motion.div {...fadeUp(0.74)}>
