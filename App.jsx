@@ -10,46 +10,13 @@ import TaskDetailPage from "./components/task/TaskDetailPage.jsx";
 import RoadmapPreviewPage from "./components/roadmap-preview/RoadmapPreviewPage.jsx";
 import ChatPage from "./ChatPage.jsx";
 import ProfilePage from "./ProfilePage.jsx";
+import ResearchPage from "./ResearchPage.jsx";
 import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import { supabase } from "./lib/supabase.js";
 
 const FONT = "'Space Grotesk', sans-serif";
 
-function ComingSoonPage({ title, navigate, activePath }) {
-  return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #e8f0ff 0%, #f4f8ff 25%, #f8faff 100%)" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');`}</style>
-      <Sidebar activePath={activePath} navigate={navigate} onModeClick={null} roadmapMode={localStorage.getItem("roadmapMode") || "discovery"} />
-      <div style={{
-        marginLeft: SIDEBAR_WIDTH,
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "column",
-        gap: "1rem",
-        fontFamily: FONT,
-      }}>
-        <div style={{
-          background: "#ffffff",
-          border: "1.5px solid rgba(37,99,235,0.12)",
-          borderRadius: "1.25rem",
-          padding: "2.5rem 3rem",
-          textAlign: "center",
-          boxShadow: "0 4px 24px rgba(37,99,235,0.08)",
-        }}>
-          <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1.5rem", color: "#0b1340", marginBottom: "0.5rem" }}>
-            {title}
-          </p>
-          <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: "#9199b8", fontWeight: 500 }}>
-            Coming soon
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function TaskDetailRoute() {
   const { taskId } = useParams();
@@ -97,14 +64,15 @@ function RoadmapRoute() {
   return <RoadmapPage navigate={navigate} />;
 }
 
-function ComingSoonRoute({ title, activePath }) {
-  const navigate = useNavigate();
-  return <ComingSoonPage title={title} navigate={navigate} activePath={activePath} />;
-}
 
 function ProfileRoute() {
   const navigate = useNavigate();
   return <ProfilePage navigate={navigate} />;
+}
+
+function ResearchRoute() {
+  const navigate = useNavigate();
+  return <ResearchPage navigate={navigate} />;
 }
 
 export default function App() {
@@ -115,7 +83,7 @@ export default function App() {
       <Route path="/scorecard" element={<ScorecardRoute />} />
       <Route path="/chat" element={<ErrorBoundary><ChatRoute /></ErrorBoundary>} />
       <Route path="/profile" element={<ProfileRoute />} />
-      <Route path="/community" element={<ComingSoonRoute title="Community" activePath="/community" />} />
+      <Route path="/research" element={<ResearchRoute />} />
       <Route path="/roadmap/task/:taskId" element={<ErrorBoundary><TaskDetailRoute /></ErrorBoundary>} />
       <Route path="/roadmap" element={<ErrorBoundary><RoadmapRoute /></ErrorBoundary>} />
       <Route path="/roadmap-preview" element={<RoadmapPreviewPage />} />
