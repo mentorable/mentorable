@@ -24,7 +24,7 @@ function PageBackground() {
 }
 
 // ─── Loading Screen ───────────────────────────────────────────────────────────
-function LoadingScreen({ slow }) {
+function LoadingScreen({ slow, generating }) {
   return (
     <div style={{
       position: "fixed",
@@ -69,9 +69,9 @@ function LoadingScreen({ slow }) {
               margin: 0,
             }}
           >
-            {slow
+            {generating
               ? "Generating your first set of tasks..."
-              : "Building your personalized roadmap..."}
+              : "Loading your roadmap..."}
           </motion.p>
         </AnimatePresence>
       </motion.div>
@@ -146,6 +146,7 @@ export default function RoadmapPage({ navigate }) {
   const [confidenceHistory, setConfidenceHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingSlow, setLoadingSlow] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState(null);
 
   const [showConfidencePanel, setShowConfidencePanel] = useState(false);
@@ -248,6 +249,7 @@ export default function RoadmapPage({ navigate }) {
         // initialize-roadmap handles phase 1 generation internally — do NOT call generate-phase here
         if (!existingRoadmap) {
           setLoadingSlow(true);
+          setIsGenerating(true);
           const { data: invokeData, error: invokeError } = await supabase.functions.invoke(
             "initialize-roadmap",
             { body: { userId: authUser.id, startingMode: "discovery" } }
@@ -615,7 +617,7 @@ export default function RoadmapPage({ navigate }) {
       {/* Content sits above background */}
       <div data-sidebar-offset style={{ position: "relative", zIndex: 1, marginLeft: SIDEBAR_WIDTH }}>
         {/* Loading */}
-        {loading && <LoadingScreen slow={loadingSlow} />}
+        {loading && <LoadingScreen slow={loadingSlow} generating={isGenerating} />}
 
         {/* Error */}
         {!loading && error && <ErrorScreen message={error} />}
