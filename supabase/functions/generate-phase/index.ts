@@ -5,15 +5,16 @@ import { selectProgramContext } from '../_shared/programs.ts'
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') })
 
+const CORS_ORIGIN = Deno.env.get('CORS_ORIGIN') || '*'
+const corsHeaders = {
+  'Access-Control-Allow-Origin': CORS_ORIGIN,
+  'Access-Control-Allow-Methods': 'POST',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      }
-    })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
         confidenceUpdate: null,
         note: 'Phase already existed, returning existing'
       }), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': CORS_ORIGIN }
       })
     }
 
@@ -295,7 +296,14 @@ ${isDiscovery ? 'For discovery mode, include at least one task per week that exp
 
     const text = message.content[0].type === 'text' ? message.content[0].text : ''
     const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    const result = JSON.parse(clean)
+    let result: any
+    try {
+      result = JSON.parse(clean)
+    } catch {
+      const match = clean.match(/\{[\s\S]*\}/)
+      if (!match) throw new Error('AI returned invalid JSON — could not parse phase')
+      result = JSON.parse(match[0])
+    }
 
     const { phase, confidence_update } = result
 
@@ -379,7 +387,7 @@ ${isDiscovery ? 'For discovery mode, include at least one task per week that exp
     }), {
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': CORS_ORIGIN
       }
     })
 
@@ -387,7 +395,7 @@ ${isDiscovery ? 'For discovery mode, include at least one task per week that exp
     console.error('Phase generation error:', err)
     return new Response(JSON.stringify({ error: 'Phase generation failed', details: err.message }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': CORS_ORIGIN }
     })
   }
 })

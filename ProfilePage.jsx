@@ -137,6 +137,11 @@ export default function ProfilePage({ navigate }) {
   const [agentResponseStyle, setAgentResponseStyle] = useState("balanced");
   const [agentInstructions, setAgentInstructions] = useState("");
 
+  // Career profile (editable)
+  const [strengths, setStrengths]         = useState("");
+  const [interests, setInterests]         = useState("");
+  const [careerMatches, setCareerMatches] = useState("");
+
   // Roadmap prefs
   const [hoursPerWeek, setHoursPerWeek] = useState("");
   const [taskStyle, setTaskStyle] = useState("mix");
@@ -172,7 +177,7 @@ export default function ProfilePage({ navigate }) {
 
         const [profileRes, roadmapRes] = await Promise.all([
           supabase.from("profiles")
-            .select("full_name, bio, profile_color, agent_response_style, agent_instructions, roadmap_hours_per_week, roadmap_task_style, roadmap_difficulty")
+            .select("full_name, bio, profile_color, agent_response_style, agent_instructions, roadmap_hours_per_week, roadmap_task_style, roadmap_difficulty, strengths, interests, career_matches")
             .eq("id", user.id).single(),
           supabase.from("roadmaps").select("id").eq("user_id", user.id).eq("is_active", true).limit(1),
         ]);
@@ -187,6 +192,9 @@ export default function ProfilePage({ navigate }) {
           setHoursPerWeek(p.roadmap_hours_per_week || "");
           setTaskStyle(p.roadmap_task_style || "mix");
           setDifficulty(p.roadmap_difficulty || "balanced");
+          setStrengths((p.strengths || []).join(", "));
+          setInterests((p.interests || []).join(", "));
+          setCareerMatches((p.career_matches || []).join(", "));
           // persist color to localStorage for immediate use in other pages
           if (p.profile_color) localStorage.setItem("profileColor", p.profile_color);
         }
@@ -213,6 +221,7 @@ export default function ProfilePage({ navigate }) {
 
       // Save extended fields — columns added by migration
       // Wrapped separately so a missing migration doesn't block name save
+      const parseList = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
       const extendedPayload = {
         bio: bio.trim() || null,
         profile_color: profileColor || null,
@@ -221,6 +230,9 @@ export default function ProfilePage({ navigate }) {
         roadmap_hours_per_week: hoursPerWeek || null,
         roadmap_task_style: taskStyle || null,
         roadmap_difficulty: difficulty || null,
+        strengths: strengths.trim() ? parseList(strengths) : null,
+        interests: interests.trim() ? parseList(interests) : null,
+        career_matches: careerMatches.trim() ? parseList(careerMatches) : null,
       };
       const { error: extErr } = await supabase.from("profiles").update(extendedPayload).eq("id", userId);
       if (extErr) {
@@ -386,6 +398,50 @@ export default function ProfilePage({ navigate }) {
                   ))}
                 </div>
                 <Hint>Sets the accent color for your avatar and highlights.</Hint>
+              </div>
+            </div>
+
+            {/* ── Career profile ───────────────────────────────────────────── */}
+            <div style={card}>
+              <SectionHeading>Career Profile</SectionHeading>
+              <Hint style={{ marginBottom: "1.25rem", display: "block" }}>
+                These come from your onboarding conversation. Edit freely — they shape your roadmap and agent responses.
+              </Hint>
+
+              <div style={{ marginBottom: "1.25rem", marginTop: "0.75rem" }}>
+                <Label>Strengths</Label>
+                <input
+                  className="pf-input"
+                  style={inputStyle}
+                  value={strengths}
+                  onChange={(e) => setStrengths(e.target.value)}
+                  placeholder="e.g. Critical thinking, Communication, Problem-solving"
+                />
+                <Hint>Comma-separated. Used to personalize advice and task suggestions.</Hint>
+              </div>
+
+              <div style={{ marginBottom: "1.25rem" }}>
+                <Label>Interests</Label>
+                <input
+                  className="pf-input"
+                  style={inputStyle}
+                  value={interests}
+                  onChange={(e) => setInterests(e.target.value)}
+                  placeholder="e.g. Biology, Technology, Creative writing"
+                />
+                <Hint>Comma-separated. Influences career suggestions and roadmap content.</Hint>
+              </div>
+
+              <div>
+                <Label>Career matches</Label>
+                <input
+                  className="pf-input"
+                  style={inputStyle}
+                  value={careerMatches}
+                  onChange={(e) => setCareerMatches(e.target.value)}
+                  placeholder="e.g. Software Engineer, Data Scientist, Product Manager"
+                />
+                <Hint>Your top career options. The roadmap focuses on these when in Career Mode.</Hint>
               </div>
             </div>
 

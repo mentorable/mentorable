@@ -5,3 +5,15 @@ html, body {
 }
 
 @keyframes spinner-rotate { to { transform: rotate(360deg); } }
+
+/* ── Mobile layout ── */
+@media (max-width: 768px) {
+  #main-sidebar {
+    display: none !important;
+  }
+  [data-sidebar-offset] {
+    margin-left: 0 !important;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}

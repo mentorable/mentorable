@@ -79,7 +79,7 @@ function LoadingScreen() {
 }
 
 // ── Celebration ───────────────────────────────────────────────────────────────
-function CelebrationModal({ nextTask, nextLocked, onNext, onBack }) {
+function CelebrationModal({ nextTask, nextLocked, onNext, onBack, skillGained }) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -139,14 +139,26 @@ function CelebrationModal({ nextTask, nextLocked, onNext, onBack }) {
           <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: "#4b5470", margin: "0 0 0.75rem", fontWeight: 500 }}>
             You're building real momentum.
           </p>
-          <span style={{
-            display: "inline-block", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 700,
-            color: "#059669", background: "rgba(16,185,129,0.08)",
-            border: "1px solid rgba(16,185,129,0.2)",
-            borderRadius: "9999px", padding: "0.2rem 0.75rem", marginBottom: "1.75rem",
-          }}>
-            +3 confidence
-          </span>
+          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", justifyContent: "center", marginBottom: "1.75rem" }}>
+            <span style={{
+              display: "inline-block", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 700,
+              color: "#059669", background: "rgba(16,185,129,0.08)",
+              border: "1px solid rgba(16,185,129,0.2)",
+              borderRadius: "9999px", padding: "0.2rem 0.75rem",
+            }}>
+              +3 confidence
+            </span>
+            {skillGained && (
+              <span style={{
+                display: "inline-block", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600,
+                color: "#1d4ed8", background: "rgba(37,99,235,0.06)",
+                border: "1px solid rgba(37,99,235,0.15)",
+                borderRadius: "9999px", padding: "0.2rem 0.75rem",
+              }}>
+                {skillGained}
+              </span>
+            )}
+          </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
             <button onClick={onNext} style={{
@@ -581,6 +593,7 @@ export default function TaskDetailPage({ taskId, navigate }) {
         {showCelebration && (
           <CelebrationModal
             nextTask={nextTask} nextLocked={nextLocked}
+            skillGained={task?.skill_gained || null}
             onNext={() => { setShowCelebration(false); nextTask && !nextLocked ? navigate(`/roadmap/task/${nextTask.id}`) : goBack(); }}
             onBack={() => { setShowCelebration(false); goBack(); }}
           />

@@ -11,6 +11,7 @@ import RoadmapPreviewPage from "./components/roadmap-preview/RoadmapPreviewPage.
 import ChatPage from "./ChatPage.jsx";
 import ProfilePage from "./ProfilePage.jsx";
 import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
+import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import { supabase } from "./lib/supabase.js";
 
 const FONT = "'Space Grotesk', sans-serif";
@@ -110,13 +111,13 @@ export default function App() {
   return (
     <Routes>
       <Route path="/auth" element={<AuthPage />} />
-      <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="/onboarding" element={<ErrorBoundary><OnboardingPage /></ErrorBoundary>} />
       <Route path="/scorecard" element={<ScorecardRoute />} />
-      <Route path="/chat" element={<ChatRoute />} />
+      <Route path="/chat" element={<ErrorBoundary><ChatRoute /></ErrorBoundary>} />
       <Route path="/profile" element={<ProfileRoute />} />
       <Route path="/community" element={<ComingSoonRoute title="Community" activePath="/community" />} />
-      <Route path="/roadmap/task/:taskId" element={<TaskDetailRoute />} />
-      <Route path="/roadmap" element={<RoadmapRoute />} />
+      <Route path="/roadmap/task/:taskId" element={<ErrorBoundary><TaskDetailRoute /></ErrorBoundary>} />
+      <Route path="/roadmap" element={<ErrorBoundary><RoadmapRoute /></ErrorBoundary>} />
       <Route path="/roadmap-preview" element={<RoadmapPreviewPage />} />
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<LandingPage />} />

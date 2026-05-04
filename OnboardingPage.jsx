@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useConversation } from "@elevenlabs/react";
-import Anthropic from "@anthropic-ai/sdk";
 import { supabase } from "./lib/supabase.js";
 import Spinner from "./components/common/Spinner.jsx";
 import { VoicePoweredOrb } from "./components/common/VoicePoweredOrb.jsx";
@@ -945,6 +944,66 @@ function MicDeniedPhase({ onRetry }) {
   );
 }
 
+// ─── RecoveryPhase ────────────────────────────────────────────────────────────
+function RecoveryPhase({ userId, onSuccess, onRetry }) {
+  const [retrying, setRetrying] = useState(false);
+  const [error, setError]       = useState(null);
+
+  const handleRetry = async () => {
+    if (retrying || !userId) return;
+    setRetrying(true);
+    setError(null);
+    try {
+      // Fetch the saved transcript and re-run extraction
+      const { data: profile } = await supabase.from("profiles").select("raw_voice_transcript").eq("id", userId).single();
+      const saved = profile?.raw_voice_transcript;
+      if (!saved) throw new Error("No saved transcript found. Please record a new conversation.");
+
+      const { data: result, error: fnError } = await supabase.functions.invoke("extract-profile", {
+        body: { transcript: saved, userId },
+      });
+      if (fnError) throw new Error(fnError.message || "Extraction failed");
+      if (!result?.success) throw new Error(result?.error || "Could not process your conversation.");
+      onSuccess();
+    } catch (err) {
+      console.error("[Recovery] retry error:", err);
+      setError(err?.message || "Something went wrong. Please try again.");
+      setRetrying(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0 }}
+      style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "2rem", position: "relative", zIndex: 1 }}
+    >
+      <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(239,68,68,0.07)", border: "1.5px solid rgba(239,68,68,0.2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.5rem" }}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </motion.div>
+      <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "1.4rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: "0.75rem" }}>
+        Processing hiccup
+      </h2>
+      <p style={{ fontFamily: "'Space Grotesk', sans-serif", color: TEXT2, fontSize: "0.95rem", lineHeight: 1.68, maxWidth: 360, marginBottom: "0.5rem" }}>
+        We ran into an issue turning your conversation into a profile. Your transcript was saved — click below to try again.
+      </p>
+      {error && <p style={{ fontFamily: "'Space Grotesk', sans-serif", color: "#ef4444", fontSize: "0.85rem", marginBottom: "1rem", maxWidth: 360 }}>{error}</p>}
+      <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+        <button onClick={handleRetry} disabled={retrying}
+          style={{ padding: "0.7rem 1.75rem", borderRadius: 10, background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`, border: "none", color: "white", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: retrying ? "not-allowed" : "pointer", opacity: retrying ? 0.7 : 1 }}>
+          {retrying ? "Retrying…" : "Try again"}
+        </button>
+        <button onClick={onRetry}
+          style={{ padding: "0.7rem 1.5rem", borderRadius: 10, background: "transparent", border: "1.5px solid rgba(59,91,252,0.25)", color: ACCENT, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer" }}>
+          Record new conversation
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function OnboardingPage() {
   const [phase, setPhase]               = useState("loading");
@@ -1015,6 +1074,15 @@ export default function OnboardingPage() {
       setTranscript((prev) => {
         const next = [...prev, newMsg];
         transcriptRef.current = next;
+        // Persist transcript to DB every 4 messages for recovery if extraction fails
+        if (next.length % 4 === 0) {
+          const transcriptText = next.map((m) => `${m.role === "agent" ? "Mentorable" : "Student"}: ${m.message}`).join("\n");
+          supabase.auth.getUser().then(({ data }) => {
+            if (data?.user) {
+              supabase.from("profiles").update({ raw_voice_transcript: transcriptText }).eq("id", data.user.id).then(() => {});
+            }
+          });
+        }
         return next;
       });
     },
@@ -1122,34 +1190,27 @@ export default function OnboardingPage() {
     try { await conversation.endSession(); } catch { /* already closed */ }
     setPhase("processing");
     try {
-      // Always get a fresh user — don't rely on potentially stale state
       const { data: { user: freshUser } } = await supabase.auth.getUser();
       if (!freshUser) throw new Error("Session expired. Please log in again.");
 
       const messages = transcriptRef.current;
-
       const transcriptText = messages.length > 0
         ? messages.map((m) => `${m.role === "agent" ? "Mentorable" : "Student"}: ${m.message}`).join("\n")
         : "";
 
-      const anthropic = new Anthropic({
-        apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
-        dangerouslyAllowBrowser: true,
+      // Delegate sufficiency check + extraction + DB save to the server-side edge function.
+      // This keeps the Anthropic key off the client entirely.
+      const { data: result, error: fnError } = await supabase.functions.invoke("extract-profile", {
+        body: { transcript: transcriptText, userId: freshUser.id },
       });
 
-      // Quick sufficiency check — did the student share enough to build a profile?
-      const checkMsg = await anthropic.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 64,
-        messages: [{
-          role: "user",
-          content: `A student just finished a voice onboarding conversation with an AI career guide. Did the student share enough personal information (interests, strengths, goals, or experiences) to meaningfully build a career profile? Reply with only "yes" or "no".\n\nTranscript:\n${transcriptText || "(empty — no messages recorded)"}`,
-        }],
-      });
-      const checkText = (checkMsg.content[0]?.type === "text" ? checkMsg.content[0].text : "").trim().toLowerCase();
+      if (fnError) {
+        console.error("[Onboarding] extract-profile error:", fnError);
+        throw new Error(fnError.message || "Profile extraction failed");
+      }
 
-      if (!checkText.startsWith("yes")) {
-        // Not enough info — reset and send back to intro with a gentle notice
+      if (!result?.sufficient) {
+        // Not enough info — reset and offer a retry
         endingRef.current = false;
         setTranscript([]);
         transcriptRef.current = [];
@@ -1159,59 +1220,20 @@ export default function OnboardingPage() {
         return;
       }
 
-      const aiMessage = await anthropic.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1024,
-        messages: [{
-          role: "user",
-          content: `You are extracting structured career profile data from a voice conversation transcript between an AI career guide and a high school student.
-
-Return ONLY valid JSON with no other text, no markdown, no backticks:
-{
-  "strengths": ["3-5 specific strengths mentioned or demonstrated"],
-  "weaknesses": ["2-3 areas for growth"],
-  "interests": ["3-5 specific interests or passions"],
-  "work_style": "2-3 sentence description of how they like to work",
-  "career_matches": ["top 3 career titles that fit this student"],
-  "onboarding_summary": "2-3 warm, encouraging sentences summarizing who this student is and what makes them unique"
-}
-
-Transcript:
-${transcriptText}`,
-        }],
-      });
-
-      const responseText = aiMessage.content[0]?.type === "text" ? aiMessage.content[0].text : "";
-
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("Could not extract a profile from the conversation. Please try again.");
-      const profile = JSON.parse(jsonMatch[0]);
-
-      const { data: upsertedRows, error: updateError } = await supabase
-        .from("profiles")
-        .upsert({
-          id:                   freshUser.id,
-          // Demographic fields (collected before voice call)
-          full_name:            demographics.fullName || null,
-          education_level:      demographics.educationLevel || null,
-          grade_level:          demographics.gradeYear ? parseInt(demographics.gradeYear) : null,
-          location_general:     demographics.state || null,
-          // Voice-extracted fields
-          strengths:            profile.strengths,
-          weaknesses:           profile.weaknesses,
-          interests:            profile.interests,
-          work_style:           profile.work_style,
-          career_matches:       profile.career_matches,
-          onboarding_summary:   profile.onboarding_summary,
-          onboarding_completed: true,
-          updated_at:           new Date().toISOString(),
-        }, { onConflict: "id" })
-        .select("id");
-
-      if (updateError) {
-        console.error("[Onboarding] Supabase upsert error:", updateError);
-        throw new Error(`Failed to save profile: ${updateError.message}`);
+      if (!result?.success) {
+        // Extraction failed but we have the saved transcript — show recovery UI
+        console.error("[Onboarding] extraction failed:", result?.error);
+        setPhase("recovery");
+        return;
       }
+
+      // Also save demographic fields collected before the voice call
+      await supabase.from("profiles").update({
+        full_name:        demographics.fullName || null,
+        education_level:  demographics.educationLevel || null,
+        grade_level:      demographics.gradeYear ? parseInt(demographics.gradeYear) : null,
+        location_general: demographics.state || null,
+      }).eq("id", freshUser.id);
 
       window.location.href = "/scorecard";
     } catch (err) {
@@ -1288,6 +1310,7 @@ ${transcriptText}`,
         {phase === "intro"      && <IntroPhase      key="intro"      onStart={startConversation} loading={startingConv} retryNotice={retryNotice}/>}
         {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} transcriptEndRef={transcriptEndRef}/>}
         {phase === "processing" && <ProcessingPhase key="processing"/>}
+        {phase === "recovery"   && <RecoveryPhase   key="recovery"   userId={user?.id} onSuccess={() => { window.location.href = "/scorecard"; }} onRetry={() => { endingRef.current = false; setPhase("intro"); }}/>}
         {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("demographics"); }}/>}
         {phase === "mic-denied" && <MicDeniedPhase  key="mic-denied" onRetry={() => setPhase("intro")}/>}
       </AnimatePresence>

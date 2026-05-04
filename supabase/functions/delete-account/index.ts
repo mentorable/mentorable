@@ -1,7 +1,8 @@
 import { createClient } from "npm:@supabase/supabase-js";
 
+const CORS_ORIGIN = Deno.env.get('CORS_ORIGIN') || '*'
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": CORS_ORIGIN,
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 

@@ -4,7 +4,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       headers: {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': Deno.env.get("CORS_ORIGIN") || "*",
         'Access-Control-Allow-Methods': 'POST',
         'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
       }
@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
         firstPhase: null,
         note: 'existing roadmap returned'
       }), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': Deno.env.get("CORS_ORIGIN") || "*" }
       })
     }
 
@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
     }), {
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': Deno.env.get("CORS_ORIGIN") || "*"
       }
     })
 
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
     console.error('Initialize roadmap error:', err)
     return new Response(JSON.stringify({ error: 'Failed to initialize roadmap', details: err.message }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': Deno.env.get("CORS_ORIGIN") || "*" }
     })
   }
 })

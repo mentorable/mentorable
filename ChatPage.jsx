@@ -354,6 +354,13 @@ function Message({ msg }) {
 
 // ─── InputBar ─────────────────────────────────────────────────────────────────
 
+const MAX_INPUT = 2000;
+
+// Strip control characters before sending to the API
+function sanitizeChatInput(text) {
+  return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+}
+
 function InputBar({ onSend, disabled }) {
   const [value, setValue] = useState("");
   const taRef = useRef(null);
@@ -366,20 +373,21 @@ function InputBar({ onSend, disabled }) {
   };
 
   const handleSend = () => {
-    const trimmed = value.trim();
-    if (!trimmed || disabled) return;
-    onSend(trimmed);
+    const sanitized = sanitizeChatInput(value);
+    if (!sanitized || disabled) return;
+    onSend(sanitized);
     setValue("");
     if (taRef.current) taRef.current.style.height = "auto";
   };
 
-  const canSend = value.trim() && !disabled;
+  const canSend = value.trim() && !disabled && value.length <= MAX_INPUT;
+  const nearLimit = value.length > MAX_INPUT * 0.85;
 
   return (
     <div style={{ padding: "12px 24px 20px", flexShrink: 0 }}>
       <div style={{
         background: "#fff",
-        border: `1.5px solid ${value ? ACCENT + "50" : "#e2e8f0"}`,
+        border: `1.5px solid ${value.length > MAX_INPUT ? "#ef4444" : value ? ACCENT + "50" : "#e2e8f0"}`,
         borderRadius: 14,
         boxShadow: value ? `0 0 0 3px ${ACCENT}10` : "0 1px 6px rgba(15,23,42,0.06)",
         transition: "border-color 0.18s, box-shadow 0.18s",
@@ -389,7 +397,7 @@ function InputBar({ onSend, disabled }) {
         <textarea
           ref={taRef}
           value={value}
-          onChange={(e) => { setValue(e.target.value); autoResize(); }}
+          onChange={(e) => { if (e.target.value.length <= MAX_INPUT + 50) setValue(e.target.value); autoResize(); }}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
           placeholder="Ask anything about your career…"
           rows={1}
@@ -413,6 +421,11 @@ function InputBar({ onSend, disabled }) {
           <IconSend size={15} color={canSend ? "#fff" : "#94a3b8"} />
         </button>
       </div>
+      {nearLimit && (
+        <p style={{ fontFamily: SG, fontSize: 11, color: value.length > MAX_INPUT ? "#ef4444" : "#f59e0b", textAlign: "right", marginTop: 4 }}>
+          {value.length}/{MAX_INPUT}
+        </p>
+      )}
       <p style={{ fontFamily: SG, fontSize: 11, color: "#b0bac6", textAlign: "center", marginTop: 8 }}>
         Mentorable Agent can make mistakes. Verify important decisions with a counselor.
       </p>
@@ -777,9 +790,10 @@ export default function ChatPage({ navigate }) {
     if (!user || streaming) return;
     setChatError(null);
 
-    const userMsg   = { id: `m_${Date.now()}`,     role: "user", content: text,  time: formatTime(new Date().toISOString()) };
+    const now = new Date().toISOString();
+    const userMsg   = { id: `m_${Date.now()}`,     role: "user", content: text,  time: formatTime(now), created_at: now };
     const aiMsgId   = `m_${Date.now() + 1}`;
-    const aiMsgBase = { id: aiMsgId, role: "ai", content: "", streaming: true, time: formatTime(new Date().toISOString()) };
+    const aiMsgBase = { id: aiMsgId, role: "ai", content: "", streaming: true, time: formatTime(now), created_at: now };
 
     let sessionId = activeChatId;
     let historyBeforeSend;
@@ -853,7 +867,7 @@ export default function ChatPage({ navigate }) {
 
       <Sidebar activePath="/chat" navigate={navigate} onModeClick={null} roadmapMode={roadmap?.mode || localStorage.getItem("roadmapMode") || "discovery"} />
 
-      <div style={{ marginLeft: SIDEBAR_WIDTH, height: "100vh", display: "flex", overflow: "hidden" }}>
+      <div data-sidebar-offset style={{ marginLeft: SIDEBAR_WIDTH, height: "100vh", display: "flex", overflow: "hidden" }}>
         <ChatMain
           activeChatId={activeChatId}
           messages={messages}

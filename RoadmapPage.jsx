@@ -155,10 +155,21 @@ export default function RoadmapPage({ navigate }) {
   const [generatingNextPhase, setGeneratingNextPhase] = useState(false);
   const [stickyVisible, setStickyVisible] = useState(false);
 
+  const [phaseStatusMsg, setPhaseStatusMsg] = useState("");
+
   const currentWeekRef = useRef(null);
   const slowTimer = useRef(null);
   const initRan = useRef(false); // guard against React StrictMode double-init
   const nextPhaseInFlight = useRef(false); // serialize auto next-phase generation
+  const phaseStatusTimer = useRef(null);
+
+  const PHASE_STATUS_STEPS = [
+    "Generating tasks…",
+    "Searching career data…",
+    "Personalizing your plan…",
+    "Saving to database…",
+    "Almost done…",
+  ];
 
   // ── Slow-loading message timer ──────────────────────────────────────────────
   useEffect(() => {
@@ -318,153 +329,94 @@ export default function RoadmapPage({ navigate }) {
     }
   }, [loading, phases?.length]);
 
-  // ── Task: complete ───────────────────────────────────────────────────────────
+  // ── Task: complete (server-validated) ────────────────────────────────────────
   const completeTask = useCallback(async (taskId, phaseId) => {
-    // Optimistic update
+    // Optimistic UI update
     setPhases((prev) =>
       prev.map((ph) =>
         ph.id === phaseId
-          ? {
-              ...ph,
-              tasks: ph.tasks.map((t) =>
-                t.id === taskId
-                  ? { ...t, status: "completed", completed_at: new Date().toISOString() }
-                  : t
-              ),
-            }
+          ? { ...ph, tasks: ph.tasks.map((t) => t.id === taskId ? { ...t, status: "completed", completed_at: new Date().toISOString() } : t) }
           : ph
       )
     );
 
-    await supabase
-      .from("roadmap_tasks")
-      .update({ status: "completed", completed_at: new Date().toISOString() })
-      .eq("id", taskId);
+    try {
+      const { data: result, error: fnError } = await supabase.functions.invoke("complete-task", {
+        body: { taskId, action: "complete" },
+      });
+      if (fnError) throw new Error(fnError.message);
 
-    // Update confidence +3
-    const prevScore = roadmap?.confidence_score ?? 0;
-    const newScore = Math.min(100, Math.max(0, prevScore + 3));
+      const newScore = result?.newConfidenceScore ?? (roadmap?.confidence_score ?? 0);
+      const delta = result?.confidenceDelta ?? 3;
+      const prevScore = roadmap?.confidence_score ?? 0;
 
-    await supabase
-      .from("roadmaps")
-      .update({ confidence_score: newScore })
-      .eq("id", roadmap.id);
-
-    await supabase.from("confidence_history").insert({
-      roadmap_id: roadmap.id,
-      user_id: user.id,
-      previous_score: prevScore,
-      new_score: newScore,
-      delta: 3,
-      reason: "You completed a task — great momentum!",
-      trigger: "task_completed",
-    });
-
-    setRoadmap((prev) => ({ ...prev, confidence_score: newScore }));
-    setConfidenceHistory((prev) => [
-      {
-        id: Date.now(),
-        roadmap_id: roadmap.id,
-        user_id: user.id,
-        previous_score: prevScore,
-        new_score: newScore,
-        delta: 3,
-        reason: "You completed a task — great momentum!",
-        trigger: "task_completed",
+      setRoadmap((prev) => ({ ...prev, confidence_score: newScore }));
+      setConfidenceHistory((prev) => [{
+        id: Date.now(), roadmap_id: roadmap.id, user_id: user.id,
+        previous_score: prevScore, new_score: newScore, delta,
+        reason: "You completed a task — great momentum!", trigger: "task_completed",
         created_at: new Date().toISOString(),
-      },
-      ...prev,
-    ].slice(0, 5));
+      }, ...prev].slice(0, 5));
 
-    // Check phase completion (use latest phases state) and flip local + DB status
-    setPhases((currentPhases) => {
-      const phase = currentPhases.find((p) => p.id === phaseId);
-      if (!phase) return currentPhases;
-
-      const updatedTasks = phase.tasks.map((t) =>
-        t.id === taskId ? { ...t, status: "completed" } : t
+      if (result?.phaseCompleted) {
+        setPhases((currentPhases) => {
+          const phase = currentPhases.find((p) => p.id === phaseId);
+          if (!phase) return currentPhases;
+          const updatedTasks = phase.tasks.map((t) => t.id === taskId ? { ...t, status: "completed" } : t);
+          setShowPhaseCompleteModal(true);
+          setCompletedPhaseData({ ...phase, tasks: updatedTasks, status: "completed" });
+          return currentPhases.map((p) => p.id === phaseId ? { ...p, status: "completed", tasks: updatedTasks } : p);
+        });
+      }
+    } catch (err) {
+      console.error("[RoadmapPage] completeTask error:", err);
+      // Revert optimistic update on failure
+      setPhases((prev) =>
+        prev.map((ph) =>
+          ph.id === phaseId
+            ? { ...ph, tasks: ph.tasks.map((t) => t.id === taskId ? { ...t, status: "not_started", completed_at: null } : t) }
+            : ph
+        )
       );
-      const allDone = updatedTasks.every(
-        (t) => t.status === "completed" || t.status === "skipped"
-      );
-      if (!allDone) return currentPhases;
-
-      setShowPhaseCompleteModal(true);
-      setCompletedPhaseData({ ...phase, tasks: updatedTasks, status: "completed" });
-      supabase
-        .from("roadmap_phases")
-        .update({ status: "completed" })
-        .eq("id", phaseId);
-
-      // Reflect status locally so the auto-next-phase effect can fire
-      return currentPhases.map((p) =>
-        p.id === phaseId ? { ...p, status: "completed", tasks: updatedTasks } : p
-      );
-    });
+    }
   }, [roadmap, user]);
 
-  // ── Task: flag not for me ────────────────────────────────────────────────────
+  // ── Task: flag not for me (server-validated) ─────────────────────────────────
   const flagNotForMe = useCallback(async (taskId, phaseId) => {
     setPhases((prev) =>
       prev.map((ph) => {
         if (ph.id !== phaseId) return ph;
-        const updatedTasks = ph.tasks.map((t) =>
-          t.id === taskId ? { ...t, not_for_me: true, status: "skipped" } : t
-        );
-        const allDone = updatedTasks.every(
-          (t) => t.status === "completed" || t.status === "skipped"
-        );
+        const updatedTasks = ph.tasks.map((t) => t.id === taskId ? { ...t, not_for_me: true, status: "skipped" } : t);
+        const allDone = updatedTasks.every((t) => t.status === "completed" || t.status === "skipped");
         if (allDone && ph.status !== "completed") {
           setShowPhaseCompleteModal(true);
           setCompletedPhaseData({ ...ph, tasks: updatedTasks, status: "completed" });
-          supabase
-            .from("roadmap_phases")
-            .update({ status: "completed" })
-            .eq("id", phaseId);
           return { ...ph, tasks: updatedTasks, status: "completed" };
         }
         return { ...ph, tasks: updatedTasks };
       })
     );
 
-    await supabase
-      .from("roadmap_tasks")
-      .update({ not_for_me: true, status: "skipped" })
-      .eq("id", taskId);
+    try {
+      const { data: result, error: fnError } = await supabase.functions.invoke("complete-task", {
+        body: { taskId, action: "flag" },
+      });
+      if (fnError) throw new Error(fnError.message);
 
-    const prevScore = roadmap?.confidence_score ?? 0;
-    const newScore = Math.min(100, Math.max(0, prevScore - 4));
+      const newScore = result?.newConfidenceScore ?? (roadmap?.confidence_score ?? 0);
+      const delta = result?.confidenceDelta ?? -4;
+      const prevScore = roadmap?.confidence_score ?? 0;
 
-    await supabase
-      .from("roadmaps")
-      .update({ confidence_score: newScore })
-      .eq("id", roadmap.id);
-
-    await supabase.from("confidence_history").insert({
-      roadmap_id: roadmap.id,
-      user_id: user.id,
-      previous_score: prevScore,
-      new_score: newScore,
-      delta: -4,
-      reason: "You flagged a task as not for you — that's useful information.",
-      trigger: "task_flagged_not_for_me",
-    });
-
-    setRoadmap((prev) => ({ ...prev, confidence_score: newScore }));
-    setConfidenceHistory((prev) => [
-      {
-        id: Date.now(),
-        roadmap_id: roadmap.id,
-        user_id: user.id,
-        previous_score: prevScore,
-        new_score: newScore,
-        delta: -4,
-        reason: "You flagged a task as not for you — that's useful information.",
-        trigger: "task_flagged_not_for_me",
+      setRoadmap((prev) => ({ ...prev, confidence_score: newScore }));
+      setConfidenceHistory((prev) => [{
+        id: Date.now(), roadmap_id: roadmap.id, user_id: user.id,
+        previous_score: prevScore, new_score: newScore, delta,
+        reason: "You flagged a task as not for you — that's useful information.", trigger: "task_flagged_not_for_me",
         created_at: new Date().toISOString(),
-      },
-      ...prev,
-    ].slice(0, 5));
+      }, ...prev].slice(0, 5));
+    } catch (err) {
+      console.error("[RoadmapPage] flagNotForMe error:", err);
+    }
   }, [roadmap, user]);
 
   // ── Ensure next phase is generated (idempotent; safe to call repeatedly) ─────
@@ -492,27 +444,32 @@ export default function RoadmapPage({ navigate }) {
 
     nextPhaseInFlight.current = true;
     setGeneratingNextPhase(true);
+
+    // Cycle through status messages while the edge function runs
+    let stepIdx = 0;
+    setPhaseStatusMsg(PHASE_STATUS_STEPS[0]);
+    phaseStatusTimer.current = setInterval(() => {
+      stepIdx = Math.min(stepIdx + 1, PHASE_STATUS_STEPS.length - 1);
+      setPhaseStatusMsg(PHASE_STATUS_STEPS[stepIdx]);
+    }, 3500);
+
     try {
       await supabase.functions.invoke("generate-phase", {
-        body: {
-          userId: user.id,
-          roadmapId: roadmap.id,
-          phaseNumber: targetPhaseNumber,
-        },
+        body: { userId: user.id, roadmapId: roadmap.id, phaseNumber: targetPhaseNumber },
       });
 
       const newPhases = await loadPhases(roadmap.id);
       setPhases(newPhases);
 
       const { data: refreshedRoadmap } = await supabase
-        .from("roadmaps")
-        .select("*")
-        .eq("id", roadmap.id)
-        .single();
+        .from("roadmaps").select("*").eq("id", roadmap.id).single();
       if (refreshedRoadmap) setRoadmap(refreshedRoadmap);
     } catch (err) {
-      console.error("ensureNextPhase error:", err);
+      console.error("[RoadmapPage] ensureNextPhase error:", err);
+      setError("Failed to generate next phase. Please refresh to try again.");
     } finally {
+      clearInterval(phaseStatusTimer.current);
+      setPhaseStatusMsg("");
       nextPhaseInFlight.current = false;
       setGeneratingNextPhase(false);
     }
@@ -656,7 +613,7 @@ export default function RoadmapPage({ navigate }) {
       />
 
       {/* Content sits above background */}
-      <div style={{ position: "relative", zIndex: 1, marginLeft: SIDEBAR_WIDTH }}>
+      <div data-sidebar-offset style={{ position: "relative", zIndex: 1, marginLeft: SIDEBAR_WIDTH }}>
         {/* Loading */}
         {loading && <LoadingScreen slow={loadingSlow} />}
 
@@ -737,6 +694,7 @@ export default function RoadmapPage({ navigate }) {
                   onTaskFlagNotForMe={flagNotForMe}
                   onPhaseComplete={() => {}}
                   generatingNextPhase={generatingNextPhase}
+                  phaseStatusMsg={phaseStatusMsg}
                   navigate={navigate}
                 />
               </div>

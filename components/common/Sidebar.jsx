@@ -66,7 +66,7 @@ export default function Sidebar({ activePath, navigate, onModeClick, roadmapMode
   const modeLabel = roadmapMode === "career" ? "Career Mode" : "Discovery Mode";
 
   return (
-    <div style={{
+    <div id="main-sidebar" style={{
       position: "fixed",
       left: 0, top: 0, bottom: 0,
       width: SIDEBAR_WIDTH,
