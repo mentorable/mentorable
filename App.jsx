@@ -72,7 +72,8 @@ function ProfileRoute() {
 
 function ResearchRoute() {
   const navigate = useNavigate();
-  return <ResearchPage navigate={navigate} />;
+  const { sessionId } = useParams();
+  return <ResearchPage navigate={navigate} initialSessionId={sessionId || null} />;
 }
 
 export default function App() {
@@ -83,6 +84,7 @@ export default function App() {
       <Route path="/scorecard" element={<ScorecardRoute />} />
       <Route path="/chat" element={<ErrorBoundary><ChatRoute /></ErrorBoundary>} />
       <Route path="/profile" element={<ProfileRoute />} />
+      <Route path="/research/:sessionId" element={<ResearchRoute />} />
       <Route path="/research" element={<ResearchRoute />} />
       <Route path="/roadmap/task/:taskId" element={<ErrorBoundary><TaskDetailRoute /></ErrorBoundary>} />
       <Route path="/roadmap" element={<ErrorBoundary><RoadmapRoute /></ErrorBoundary>} />

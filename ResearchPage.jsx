@@ -1,9 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
 import Sidebar, { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 
-const FONT = "'Space Grotesk', sans-serif";
+const FONT  = "'Space Grotesk', sans-serif";
+const NAVY  = "#0f172a";
+const INDIGO = "#6366f1";
+const SESSIONS_W = 256;
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const LOADING_STEPS = [
   "Searching the web…",
@@ -13,97 +18,232 @@ const LOADING_STEPS = [
 ];
 
 const EXAMPLE_CHIPS = [
-  "Find research internships for high school students interested in AI",
-  "What competitions can I enter for environmental science?",
+  "Research internships for high school students interested in AI",
+  "Competitions for environmental science students",
   "Scholarships for first-gen students pursuing medicine",
-  "Summer programs for high schoolers interested in computer science",
-  "How do I get published as a high school researcher?",
-  "College prep resources for first-generation students",
+  "Summer programs for high schoolers in computer science",
+  "How to get published as a high school researcher",
+  "Free resources to learn machine learning as a student",
 ];
 
-function formatDate(iso) {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+const TYPE_META = {
+  competition: { label: "Competition", color: "#7c3aed", bg: "rgba(124,58,237,0.08)", border: "rgba(124,58,237,0.18)" },
+  internship:  { label: "Internship",  color: "#0369a1", bg: "rgba(3,105,161,0.07)",  border: "rgba(3,105,161,0.15)"  },
+  scholarship: { label: "Scholarship", color: "#065f46", bg: "rgba(6,95,70,0.07)",    border: "rgba(6,95,70,0.15)"    },
+  program:     { label: "Program",     color: "#b45309", bg: "rgba(180,83,9,0.07)",   border: "rgba(180,83,9,0.15)"   },
+  resource:    { label: "Resource",    color: "#374151", bg: "rgba(55,65,81,0.06)",   border: "rgba(55,65,81,0.12)"   },
+  article:     { label: "Article",     color: "#64748b", bg: "rgba(100,116,139,0.06)", border: "rgba(100,116,139,0.12)" },
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function timeAgo(iso) {
+  const diff = (Date.now() - new Date(iso)) / 1000;
+  if (diff < 60)     return "Just now";
+  if (diff < 3600)   return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400)  return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 172800) return "Yesterday";
+  return `${Math.floor(diff / 86400)}d ago`;
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+function groupByDate(sessions) {
+  const now = new Date();
+  const out = { Today: [], Yesterday: [], "This week": [], "This month": [], Older: [] };
+  sessions.forEach((s) => {
+    const d = (now - new Date(s.updated_at)) / 86400000;
+    if (d < 1)       out["Today"].push(s);
+    else if (d < 2)  out["Yesterday"].push(s);
+    else if (d < 7)  out["This week"].push(s);
+    else if (d < 30) out["This month"].push(s);
+    else             out["Older"].push(s);
+  });
+  return out;
+}
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+const IconSearch = ({ size = 16, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+  </svg>
+);
+const IconPlus = ({ size = 13, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+);
+const IconTrash = ({ size = 13, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+    <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+  </svg>
+);
+const IconExternal = ({ size = 11, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+    <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+  </svg>
+);
+const IconStar = ({ size = 13, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </svg>
+);
+const IconHistory = ({ size = 14, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.63"/>
+  </svg>
+);
+
+// ─── Sessions sidebar ─────────────────────────────────────────────────────────
+
+function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete }) {
+  const grouped = groupByDate(sessions);
+  const ORDER = ["Today", "Yesterday", "This week", "This month", "Older"];
+
+  const SessionItem = ({ session }) => {
+    const isActive = session.id === activeId;
+    const [hovered, setHovered] = useState(false);
+    const isPending = session.status === "pending";
+
+    return (
+      <div
+        onClick={() => onSelect(session)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          position: "relative", padding: "7px 10px", borderRadius: 8,
+          cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 8,
+          background: isActive ? "rgba(99,102,241,0.08)" : hovered ? "#f8fafc" : "transparent",
+          borderLeft: isActive ? `2px solid ${INDIGO}` : "2px solid transparent",
+          marginBottom: 1, transition: "background 0.12s",
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{
+            fontFamily: FONT, fontSize: 12.5,
+            fontWeight: isActive ? 700 : 500,
+            color: isActive ? NAVY : "#475569",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            lineHeight: 1.4, margin: 0,
+          }}>
+            {session.query}
+          </p>
+          <p style={{ fontFamily: FONT, fontSize: 10.5, color: "#94a3b8", marginTop: 1 }}>
+            {isPending ? "Searching…" : timeAgo(session.updated_at)}
+          </p>
+        </div>
+        {hovered && !isPending && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(session.id); }}
+            style={{ padding: "3px 5px", borderRadius: 5, border: "none", background: "#fef2f2", cursor: "pointer", flexShrink: 0 }}
+            title="Delete"
+          >
+            <IconTrash size={12} color="#ef4444" />
+          </button>
+        )}
+        {isPending && (
+          <span style={{
+            width: 14, height: 14, flexShrink: 0,
+            border: "2px solid rgba(99,102,241,0.2)",
+            borderTopColor: INDIGO, borderRadius: "50%",
+            animation: "spinner-rotate 0.7s linear infinite",
+            display: "inline-block",
+          }} />
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{
+      width: SESSIONS_W, flexShrink: 0,
+      background: "#f8fafc",
+      borderLeft: "1px solid #e8edf2",
+      display: "flex", flexDirection: "column", overflow: "hidden",
+    }}>
+      {/* Header */}
+      <div style={{ padding: "16px 14px 12px", borderBottom: "1px solid #e8edf2", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 12.5, color: NAVY, display: "flex", alignItems: "center", gap: 6 }}>
+            <IconHistory size={13} color="#64748b" /> Searches
+          </span>
+          {sessions.length > 0 && (
+            <span style={{ fontFamily: FONT, fontSize: 10.5, color: "#94a3b8" }}>{sessions.length}</span>
+          )}
+        </div>
+        <button
+          onClick={onNew}
+          style={{
+            width: "100%", padding: "8px 12px", borderRadius: 8,
+            border: "1.5px solid #e2e8f0", background: "#fff",
+            display: "flex", alignItems: "center", gap: 6,
+            fontFamily: FONT, fontWeight: 600, fontSize: 12.5, color: "#374151",
+            cursor: "pointer", transition: "border-color 0.15s",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${INDIGO}50`; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; }}
+        >
+          <IconPlus size={13} color="#374151" /> New search
+        </button>
+      </div>
+
+      {/* List */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "10px 8px" }}>
+        {ORDER.map((group) =>
+          grouped[group]?.length > 0 ? (
+            <div key={group} style={{ marginBottom: 14 }}>
+              <p style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#b0bac6", padding: "3px 4px 5px", margin: 0 }}>
+                {group}
+              </p>
+              {grouped[group].map((s) => <SessionItem key={s.id} session={s} />)}
+            </div>
+          ) : null
+        )}
+        {sessions.length === 0 && (
+          <p style={{ fontFamily: FONT, fontSize: 12, color: "#b0bac6", textAlign: "center", marginTop: 32, padding: "0 12px", lineHeight: 1.6 }}>
+            No searches yet.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Hero ─────────────────────────────────────────────────────────────────────
 
 function HeroSection() {
   return (
     <div style={{
       background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)",
-      borderRadius: "1.5rem",
-      padding: "3rem 2.5rem 2.5rem",
-      marginBottom: "2rem",
-      position: "relative",
-      overflow: "hidden",
+      borderRadius: "1.25rem",
+      padding: "2.25rem 2rem 2rem",
+      marginBottom: "1.75rem",
+      position: "relative", overflow: "hidden",
     }}>
-      {/* Background glow orbs */}
-      <div style={{
-        position: "absolute", top: "-60px", right: "-40px",
-        width: 260, height: 260, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)",
-        pointerEvents: "none",
-      }} />
-      <div style={{
-        position: "absolute", bottom: "-40px", left: "30%",
-        width: 200, height: 200, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)",
-        pointerEvents: "none",
-      }} />
-
+      <div style={{ position: "absolute", top: -60, right: -40, width: 240, height: 240, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: -40, left: "35%", width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%)", pointerEvents: "none" }} />
       <div style={{ position: "relative", zIndex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: "0.75rem",
-            background: "linear-gradient(135deg, #6366f1, #3b82f6)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 4px 16px rgba(99,102,241,0.4)",
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.875rem" }}>
+          <div style={{ width: 36, height: 36, borderRadius: "0.625rem", background: "linear-gradient(135deg, #6366f1, #3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(99,102,241,0.4)" }}>
+            <IconSearch size={17} color="white" />
           </div>
-          <span style={{
-            fontFamily: FONT, fontWeight: 700, fontSize: "0.75rem",
-            letterSpacing: "0.12em", textTransform: "uppercase",
-            color: "#a5b4fc",
-          }}>
+          <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#a5b4fc" }}>
             Deep Research
           </span>
         </div>
-
-        <h1 style={{
-          fontFamily: FONT, fontWeight: 800, fontSize: "clamp(1.6rem, 3vw, 2.2rem)",
-          color: "#f8fafc", marginBottom: "0.75rem", lineHeight: 1.2,
-          letterSpacing: "-0.03em",
-        }}>
+        <h1 style={{ fontFamily: FONT, fontWeight: 800, fontSize: "clamp(1.4rem, 2.5vw, 1.85rem)", color: "#f8fafc", marginBottom: "0.5rem", lineHeight: 1.2, letterSpacing: "-0.03em" }}>
           Find real opportunities,<br />tailored to you.
         </h1>
-
-        <p style={{
-          fontFamily: FONT, fontSize: "1rem", color: "#94a3b8",
-          maxWidth: 520, lineHeight: 1.65, fontWeight: 500,
-        }}>
-          Ask anything — internships, scholarships, competitions, programs. The research agent
-          searches the web and filters results based on your interests, grade, and goals.
+        <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: "#94a3b8", maxWidth: 480, lineHeight: 1.65, fontWeight: 500, margin: 0 }}>
+          Ask anything — internships, scholarships, competitions, programs. The agent searches the web and filters results based on your profile and roadmap.
         </p>
-
-        <div style={{ display: "flex", gap: "1.5rem", marginTop: "1.5rem" }}>
-          {[
-            { icon: "🎓", label: "Scholarships" },
-            { icon: "🔬", label: "Internships" },
-            { icon: "🏆", label: "Competitions" },
-            { icon: "📚", label: "Programs" },
-          ].map(({ icon, label }) => (
-            <div key={label} style={{
-              display: "flex", alignItems: "center", gap: "0.4rem",
-              fontFamily: FONT, fontSize: "0.82rem", fontWeight: 600, color: "#cbd5e1",
-            }}>
-              <span>{icon}</span>
-              <span>{label}</span>
-            </div>
+        <div style={{ display: "flex", gap: "1.25rem", marginTop: "1.25rem", flexWrap: "wrap" }}>
+          {[["🏆", "Competitions"], ["💼", "Internships"], ["🎓", "Scholarships"], ["🚀", "Programs"]].map(([icon, label]) => (
+            <span key={label} style={{ fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, color: "#cbd5e1", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+              {icon} {label}
+            </span>
           ))}
         </div>
       </div>
@@ -111,9 +251,9 @@ function HeroSection() {
   );
 }
 
-function SearchBar({ value, onChange, onSubmit, loading }) {
-  const inputRef = useRef(null);
+// ─── Search bar ───────────────────────────────────────────────────────────────
 
+function SearchBar({ value, onChange, onSubmit, loading }) {
   const handleKey = (e) => {
     if (e.key === "Enter" && !e.shiftKey && value.trim() && !loading) {
       e.preventDefault();
@@ -122,98 +262,67 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
   };
 
   return (
-    <div style={{ position: "relative", marginBottom: "1.5rem" }}>
-      <div style={{
-        display: "flex", gap: "0.75rem", alignItems: "flex-end",
-      }}>
-        <div style={{ flex: 1, position: "relative" }}>
-          <textarea
-            ref={inputRef}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder="e.g. Find research internships for high school students interested in AI…"
-            rows={2}
-            disabled={loading}
-            style={{
-              width: "100%", resize: "none", boxSizing: "border-box",
-              fontFamily: FONT, fontSize: "0.95rem", fontWeight: 500, color: "#0f172a",
-              background: "#ffffff",
-              border: "2px solid rgba(99,102,241,0.2)",
-              borderRadius: "1rem",
-              padding: "1rem 1.25rem",
-              outline: "none",
-              lineHeight: 1.55,
-              transition: "border-color 0.15s, box-shadow 0.15s",
-              boxShadow: "0 2px 12px rgba(99,102,241,0.06)",
-              opacity: loading ? 0.7 : 1,
-            }}
-            onFocus={(e) => {
-              e.target.style.borderColor = "rgba(99,102,241,0.5)";
-              e.target.style.boxShadow = "0 0 0 4px rgba(99,102,241,0.08), 0 2px 12px rgba(99,102,241,0.06)";
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = "rgba(99,102,241,0.2)";
-              e.target.style.boxShadow = "0 2px 12px rgba(99,102,241,0.06)";
-            }}
-          />
-        </div>
-        <motion.button
-          onClick={onSubmit}
-          disabled={!value.trim() || loading}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
+    <div style={{ display: "flex", gap: "0.625rem", marginBottom: "1.25rem" }}>
+      <div style={{ flex: 1, position: "relative" }}>
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKey}
+          placeholder="e.g. Find research internships for high school students interested in AI…"
+          rows={2}
+          disabled={loading}
           style={{
-            padding: "0 1.75rem",
-            height: 56,
-            background: value.trim() && !loading
-              ? "linear-gradient(135deg, #6366f1, #3b82f6)"
-              : "rgba(99,102,241,0.15)",
-            color: value.trim() && !loading ? "white" : "#94a3b8",
-            border: "none",
+            width: "100%", resize: "none", boxSizing: "border-box",
+            fontFamily: FONT, fontSize: "0.9rem", fontWeight: 500, color: NAVY,
+            background: "#fff",
+            border: "2px solid rgba(99,102,241,0.2)",
             borderRadius: "0.875rem",
-            fontFamily: FONT, fontWeight: 700, fontSize: "0.9rem",
-            cursor: value.trim() && !loading ? "pointer" : "not-allowed",
-            transition: "all 0.15s",
-            whiteSpace: "nowrap",
-            boxShadow: value.trim() && !loading ? "0 4px 16px rgba(99,102,241,0.3)" : "none",
-            display: "flex", alignItems: "center", gap: "0.5rem",
-            flexShrink: 0,
+            padding: "0.875rem 1.125rem",
+            outline: "none", lineHeight: 1.55,
+            transition: "border-color 0.15s, box-shadow 0.15s",
+            boxShadow: "0 2px 10px rgba(99,102,241,0.06)",
+            opacity: loading ? 0.7 : 1,
           }}
-        >
-          {loading ? (
-            <span style={{
-              display: "inline-block",
-              width: 16, height: 16,
-              border: "2px solid rgba(148,163,184,0.3)",
-              borderTopColor: "#94a3b8",
-              borderRadius: "50%",
-              animation: "spinner-rotate 0.7s linear infinite",
-            }} />
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-          )}
-          Research
-        </motion.button>
+          onFocus={(e) => { e.target.style.borderColor = "rgba(99,102,241,0.45)"; e.target.style.boxShadow = "0 0 0 4px rgba(99,102,241,0.07)"; }}
+          onBlur={(e)  => { e.target.style.borderColor = "rgba(99,102,241,0.2)"; e.target.style.boxShadow = "0 2px 10px rgba(99,102,241,0.06)"; }}
+        />
       </div>
+      <motion.button
+        onClick={onSubmit}
+        disabled={!value.trim() || loading}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.97 }}
+        style={{
+          padding: "0 1.5rem", height: 56, alignSelf: "flex-end",
+          background: value.trim() && !loading ? "linear-gradient(135deg, #6366f1, #3b82f6)" : "rgba(99,102,241,0.12)",
+          color: value.trim() && !loading ? "white" : "#94a3b8",
+          border: "none", borderRadius: "0.75rem",
+          fontFamily: FONT, fontWeight: 700, fontSize: "0.875rem",
+          cursor: value.trim() && !loading ? "pointer" : "not-allowed",
+          transition: "all 0.15s", whiteSpace: "nowrap",
+          boxShadow: value.trim() && !loading ? "0 4px 14px rgba(99,102,241,0.3)" : "none",
+          display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0,
+        }}
+      >
+        {loading
+          ? <span style={{ width: 16, height: 16, border: "2px solid rgba(148,163,184,0.3)", borderTopColor: "#94a3b8", borderRadius: "50%", animation: "spinner-rotate 0.7s linear infinite", display: "inline-block" }} />
+          : <IconSearch size={15} color="currentColor" />
+        }
+        Research
+      </motion.button>
     </div>
   );
 }
 
+// ─── Chips ────────────────────────────────────────────────────────────────────
+
 function ExampleChips({ onSelect, loading }) {
   return (
-    <div style={{ marginBottom: "2rem" }}>
-      <p style={{
-        fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600,
-        color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase",
-        marginBottom: "0.75rem",
-      }}>
+    <div style={{ marginBottom: "1.75rem" }}>
+      <p style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.625rem" }}>
         Try these
       </p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
         {EXAMPLE_CHIPS.map((chip) => (
           <motion.button
             key={chip}
@@ -222,17 +331,13 @@ function ExampleChips({ onSelect, loading }) {
             whileTap={{ scale: 0.97 }}
             disabled={loading}
             style={{
-              fontFamily: FONT, fontSize: "0.82rem", fontWeight: 600,
-              color: "#6366f1",
-              background: "rgba(99,102,241,0.07)",
-              border: "1.5px solid rgba(99,102,241,0.15)",
-              borderRadius: "2rem",
-              padding: "0.45rem 1rem",
-              cursor: loading ? "not-allowed" : "pointer",
-              transition: "background 0.12s, border-color 0.12s",
+              fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, color: INDIGO,
+              background: "rgba(99,102,241,0.07)", border: "1.5px solid rgba(99,102,241,0.15)",
+              borderRadius: "2rem", padding: "0.4rem 0.875rem",
+              cursor: loading ? "not-allowed" : "pointer", transition: "background 0.12s, border-color 0.12s",
               opacity: loading ? 0.5 : 1,
             }}
-            onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.background = "rgba(99,102,241,0.12)"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.3)"; } }}
+            onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.background = "rgba(99,102,241,0.12)"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.28)"; } }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(99,102,241,0.07)"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.15)"; }}
           >
             {chip}
@@ -243,320 +348,285 @@ function ExampleChips({ onSelect, loading }) {
   );
 }
 
+// ─── Loading state ────────────────────────────────────────────────────────────
+
 function LoadingState({ step }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      style={{
-        background: "linear-gradient(135deg, #0f172a, #1e1b4b)",
-        borderRadius: "1.25rem",
-        padding: "2.5rem 2rem",
-        textAlign: "center",
-        marginBottom: "2rem",
-      }}
+      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+      style={{ background: "linear-gradient(135deg, #0f172a, #1e1b4b)", borderRadius: "1.25rem", padding: "2.25rem 2rem", textAlign: "center", marginBottom: "2rem" }}
     >
-      <div style={{
-        width: 52, height: 52, borderRadius: "50%",
-        background: "rgba(99,102,241,0.15)",
-        border: "2px solid rgba(99,102,241,0.3)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        margin: "0 auto 1.5rem",
-        position: "relative",
-      }}>
-        <div style={{
-          position: "absolute", inset: -4,
-          borderRadius: "50%",
-          border: "2px solid transparent",
-          borderTopColor: "#6366f1",
-          animation: "spinner-rotate 1s linear infinite",
-        }} />
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.35-4.35" />
-        </svg>
+      <div style={{ width: 50, height: 50, borderRadius: "50%", background: "rgba(99,102,241,0.12)", border: "2px solid rgba(99,102,241,0.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.25rem", position: "relative" }}>
+        <div style={{ position: "absolute", inset: -4, borderRadius: "50%", border: "2px solid transparent", borderTopColor: INDIGO, animation: "spinner-rotate 1s linear infinite" }} />
+        <IconSearch size={20} color="#a5b4fc" />
       </div>
-
       <AnimatePresence mode="wait">
-        <motion.p
-          key={step}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.3 }}
-          style={{
-            fontFamily: FONT, fontSize: "1rem", fontWeight: 600,
-            color: "#e2e8f0", marginBottom: "0.5rem",
-          }}
-        >
+        <motion.p key={step} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.25 }}
+          style={{ fontFamily: FONT, fontSize: "0.95rem", fontWeight: 600, color: "#e2e8f0", marginBottom: "0.5rem" }}>
           {LOADING_STEPS[step] || LOADING_STEPS[LOADING_STEPS.length - 1]}
         </motion.p>
       </AnimatePresence>
-
-      <div style={{ display: "flex", justifyContent: "center", gap: "0.5rem", marginTop: "1.25rem" }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: "0.4rem", marginTop: "1rem" }}>
         {LOADING_STEPS.map((_, i) => (
-          <div key={i} style={{
-            width: i === step ? 20 : 6, height: 6,
-            borderRadius: 3,
-            background: i === step ? "#6366f1" : "rgba(99,102,241,0.2)",
-            transition: "all 0.3s",
-          }} />
+          <div key={i} style={{ width: i === step ? 18 : 5, height: 5, borderRadius: 3, background: i === step ? INDIGO : "rgba(99,102,241,0.2)", transition: "all 0.3s" }} />
         ))}
       </div>
     </motion.div>
   );
 }
 
+// ─── Result card ──────────────────────────────────────────────────────────────
+
 function ResultCard({ result, index }) {
+  const meta = TYPE_META[result.type] || TYPE_META.article;
+  const details = result.details || {};
+  const detailPairs = [
+    details.deadline     && ["Deadline",      details.deadline],
+    details.eligibility  && ["Eligibility",   details.eligibility],
+    details.location     && ["Location",      details.location],
+    details.compensation && ["Compensation",  details.compensation],
+  ].filter(Boolean);
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.07 }}
+      transition={{ duration: 0.28, delay: index * 0.06 }}
       style={{
-        background: "#ffffff",
-        border: "1.5px solid rgba(99,102,241,0.1)",
-        borderRadius: "1.25rem",
-        padding: "1.5rem",
-        boxShadow: "0 2px 16px rgba(99,102,241,0.06)",
+        background: "#fff",
+        border: "1.5px solid rgba(99,102,241,0.09)",
+        borderRadius: "1.125rem",
+        padding: "1.375rem 1.5rem",
+        boxShadow: "0 2px 14px rgba(99,102,241,0.05)",
         transition: "box-shadow 0.15s, border-color 0.15s",
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = "0 6px 28px rgba(99,102,241,0.12)";
-        e.currentTarget.style.borderColor = "rgba(99,102,241,0.2)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = "0 2px 16px rgba(99,102,241,0.06)";
-        e.currentTarget.style.borderColor = "rgba(99,102,241,0.1)";
-      }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 5px 24px rgba(99,102,241,0.1)"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.18)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 2px 14px rgba(99,102,241,0.05)"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.09)"; }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", marginBottom: "0.75rem" }}>
-        <h3 style={{
-          fontFamily: FONT, fontWeight: 700, fontSize: "1rem",
-          color: "#0f172a", lineHeight: 1.35, margin: 0,
-        }}>
-          {result.title}
-        </h3>
+      {/* Header row */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.875rem", marginBottom: "0.75rem" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.35rem" }}>
+            <span style={{
+              fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700,
+              letterSpacing: "0.07em", textTransform: "uppercase",
+              color: meta.color, background: meta.bg,
+              border: `1px solid ${meta.border}`,
+              borderRadius: "2rem", padding: "0.2rem 0.6rem",
+              flexShrink: 0,
+            }}>
+              {meta.label}
+            </span>
+          </div>
+          <h3 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", color: NAVY, lineHeight: 1.3, margin: 0 }}>
+            {result.name || result.title}
+          </h3>
+        </div>
         <a
           href={result.url}
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            display: "flex", alignItems: "center", gap: "0.35rem",
+            display: "flex", alignItems: "center", gap: "0.3rem",
             padding: "0.4rem 0.875rem",
             background: "linear-gradient(135deg, #6366f1, #3b82f6)",
             color: "white", borderRadius: "2rem",
-            fontFamily: FONT, fontSize: "0.78rem", fontWeight: 700,
+            fontFamily: FONT, fontSize: "0.75rem", fontWeight: 700,
             textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
-            boxShadow: "0 2px 8px rgba(99,102,241,0.3)",
-            transition: "box-shadow 0.15s, opacity 0.15s",
+            boxShadow: "0 2px 8px rgba(99,102,241,0.28)",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+          onClick={(e) => e.stopPropagation()}
         >
-          Visit
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-            <polyline points="15 3 21 3 21 9" />
-            <line x1="10" y1="14" x2="21" y2="3" />
-          </svg>
+          Visit <IconExternal size={10} color="white" />
         </a>
       </div>
 
-      <p style={{
-        fontFamily: FONT, fontSize: "0.875rem", color: "#475569",
-        lineHeight: 1.6, margin: "0 0 1rem",
-      }}>
+      {/* Description */}
+      <p style={{ fontFamily: FONT, fontSize: "0.86rem", color: "#475569", lineHeight: 1.65, margin: "0 0 0.875rem" }}>
         {result.description}
       </p>
 
+      {/* Detail pills */}
+      {detailPairs.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.875rem" }}>
+          {detailPairs.map(([label, value]) => (
+            <div key={label} style={{
+              fontFamily: FONT, fontSize: "0.76rem",
+              background: "#f8fafc", border: "1px solid #e2e8f0",
+              borderRadius: "0.5rem", padding: "0.3rem 0.625rem",
+              display: "flex", gap: "0.3rem", alignItems: "center",
+            }}>
+              <span style={{ color: "#94a3b8", fontWeight: 600 }}>{label}:</span>
+              <span style={{ color: "#374151", fontWeight: 600 }}>{value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Relevance note */}
       {result.relevance_note && (
         <div style={{
-          display: "flex", gap: "0.5rem", alignItems: "flex-start",
-          background: "rgba(99,102,241,0.05)",
+          display: "flex", gap: "0.45rem", alignItems: "flex-start",
+          background: "rgba(99,102,241,0.04)",
           border: "1px solid rgba(99,102,241,0.1)",
-          borderRadius: "0.75rem",
-          padding: "0.625rem 0.875rem",
+          borderRadius: "0.75rem", padding: "0.6rem 0.875rem",
         }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-          </svg>
-          <p style={{
-            fontFamily: FONT, fontSize: "0.8rem", color: "#6366f1",
-            fontWeight: 600, lineHeight: 1.5, margin: 0,
-          }}>
+          <IconStar size={13} color={INDIGO} style={{ flexShrink: 0, marginTop: 2 }} />
+          <p style={{ fontFamily: FONT, fontSize: "0.79rem", color: INDIGO, fontWeight: 600, lineHeight: 1.55, margin: 0 }}>
             {result.relevance_note}
           </p>
         </div>
       )}
-
-      <p style={{
-        fontFamily: FONT, fontSize: "0.72rem", color: "#94a3b8",
-        margin: "0.75rem 0 0",
-        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-      }}>
-        {result.url}
-      </p>
     </motion.div>
   );
 }
 
-function ResultsSection({ results, query, cached }) {
+// ─── Sources section ──────────────────────────────────────────────────────────
+
+function SourcesSection({ sources }) {
+  const [open, setOpen] = useState(false);
+  if (!sources?.length) return null;
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      style={{ marginBottom: "2.5rem" }}
-    >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
+    <div style={{ marginTop: "1.5rem" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: "flex", alignItems: "center", gap: "0.5rem",
+          background: "none", border: "none", cursor: "pointer",
+          fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, color: "#64748b",
+          padding: "0.5rem 0",
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transition: "transform 0.2s", transform: open ? "rotate(90deg)" : "none" }}>
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+        Sources ({sources.length})
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ overflow: "hidden" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem", paddingTop: "0.5rem" }}>
+              {sources.map((s, i) => (
+                <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+                  style={{
+                    fontFamily: FONT, fontSize: "0.8rem", color: INDIGO, fontWeight: 500,
+                    textDecoration: "none", display: "flex", alignItems: "center", gap: "0.375rem",
+                    padding: "0.3rem 0",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
+                >
+                  <IconExternal size={10} color={INDIGO} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title || s.url}</span>
+                </a>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Results area ─────────────────────────────────────────────────────────────
+
+function ResultsArea({ results, sources, query, cached }) {
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.125rem" }}>
         <div>
-          <h2 style={{
-            fontFamily: FONT, fontWeight: 700, fontSize: "1.1rem",
-            color: "#0f172a", margin: "0 0 0.25rem",
-          }}>
+          <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", color: NAVY, margin: "0 0 0.2rem" }}>
             Results for "{query}"
           </h2>
-          <p style={{ fontFamily: FONT, fontSize: "0.78rem", color: "#94a3b8", margin: 0, fontWeight: 500 }}>
+          <p style={{ fontFamily: FONT, fontSize: "0.76rem", color: "#94a3b8", margin: 0, fontWeight: 500 }}>
             {results.length} result{results.length !== 1 ? "s" : ""}
             {cached && " · From cache"}
           </p>
         </div>
         {cached && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: "0.35rem",
-            background: "rgba(16,185,129,0.08)",
-            border: "1px solid rgba(16,185,129,0.15)",
-            borderRadius: "2rem", padding: "0.3rem 0.75rem",
-          }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
+          <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", background: "rgba(16,185,129,0.07)", border: "1px solid rgba(16,185,129,0.15)", borderRadius: "2rem", padding: "0.3rem 0.7rem" }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
             </svg>
-            <span style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, color: "#10b981" }}>Cached</span>
+            <span style={{ fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, color: "#10b981" }}>Cached</span>
           </div>
         )}
       </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
         {results.map((r, i) => <ResultCard key={r.url || i} result={r} index={i} />)}
       </div>
+      <SourcesSection sources={sources} />
     </motion.div>
   );
 }
 
-function HistorySection({ history, onReopen, onDelete }) {
-  if (!history.length) return null;
+// ─── Empty state ──────────────────────────────────────────────────────────────
 
+function EmptyState({ onChipSelect, loading }) {
   return (
-    <div style={{ marginTop: "1rem" }}>
-      <div style={{
-        height: 1, background: "rgba(99,102,241,0.08)", marginBottom: "1.75rem",
-      }} />
-      <h2 style={{
-        fontFamily: FONT, fontWeight: 700, fontSize: "1rem",
-        color: "#0f172a", marginBottom: "1rem",
-        display: "flex", alignItems: "center", gap: "0.5rem",
-      }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="1 4 1 10 7 10" />
-          <path d="M3.51 15a9 9 0 1 0 .49-3.63" />
-        </svg>
-        Past Searches
-      </h2>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-        {history.map((item) => (
-          <div
-            key={item.id}
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              gap: "1rem",
-              background: "#ffffff",
-              border: "1.5px solid rgba(99,102,241,0.08)",
-              borderRadius: "0.875rem",
-              padding: "0.875rem 1.25rem",
-              transition: "border-color 0.12s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(99,102,241,0.2)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(99,102,241,0.08)"; }}
-          >
-            <button
-              onClick={() => onReopen(item)}
-              style={{
-                flex: 1, background: "none", border: "none", cursor: "pointer",
-                textAlign: "left", padding: 0,
-              }}
-            >
-              <p style={{
-                fontFamily: FONT, fontWeight: 600, fontSize: "0.9rem",
-                color: "#1e293b", margin: "0 0 0.2rem",
-              }}>
-                {item.query}
-              </p>
-              <p style={{
-                fontFamily: FONT, fontSize: "0.75rem", color: "#94a3b8",
-                margin: 0, fontWeight: 500,
-              }}>
-                {formatDate(item.created_at)} · {item.results?.length ?? 0} results
-              </p>
-            </button>
-            <button
-              onClick={() => onDelete(item.id)}
-              style={{
-                background: "none", border: "none", cursor: "pointer",
-                padding: "0.375rem", borderRadius: "0.5rem",
-                color: "#cbd5e1", transition: "color 0.12s, background 0.12s",
-                display: "flex", alignItems: "center",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "#ef4444"; e.currentTarget.style.background = "rgba(239,68,68,0.06)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "#cbd5e1"; e.currentTarget.style.background = "none"; }}
-              title="Delete"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6l-1 14H6L5 6" />
-                <path d="M10 11v6M14 11v6" />
-                <path d="M9 6V4h6v2" />
-              </svg>
-            </button>
-          </div>
-        ))}
-      </div>
+    <div>
+      <HeroSection />
+      <ExampleChips onSelect={onChipSelect} loading={loading} />
     </div>
   );
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function ResearchPage({ navigate }) {
-  const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [loadingStep, setLoadingStep] = useState(0);
-  const [results, setResults] = useState(null);
-  const [activeQuery, setActiveQuery] = useState("");
-  const [cached, setCached] = useState(false);
-  const [error, setError] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [roadmapMode, setRoadmapMode] = useState(localStorage.getItem("roadmapMode") || "discovery");
+export default function ResearchPage({ navigate, initialSessionId }) {
+  const [query, setQuery]               = useState("");
+  const [loading, setLoading]           = useState(false);
+  const [loadingStep, setLoadingStep]   = useState(0);
+  const [results, setResults]           = useState(null);
+  const [sources, setSources]           = useState([]);
+  const [activeQuery, setActiveQuery]   = useState("");
+  const [cached, setCached]             = useState(false);
+  const [error, setError]               = useState(null);
+  const [sessions, setSessions]         = useState([]);
+  const [activeSessionId, setActiveSessionId] = useState(initialSessionId || null);
+  const [roadmapMode]                   = useState(localStorage.getItem("roadmapMode") || "discovery");
 
   const stepTimerRef = useRef(null);
-  const resultsRef = useRef(null);
 
   useEffect(() => {
-    loadHistory();
+    loadSessions();
   }, []);
 
-  async function loadHistory() {
+  // Load a session from URL param on mount
+  useEffect(() => {
+    if (initialSessionId) {
+      loadSession(initialSessionId);
+    }
+  }, [initialSessionId]);
+
+  async function loadSessions() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { data } = await supabase
-      .from("research_history")
-      .select("id, query, results, created_at")
+      .from("research_sessions")
+      .select("id, query, status, results, created_at, updated_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(20);
-    if (data) setHistory(data);
+      .limit(50);
+    if (data) setSessions(data);
+  }
+
+  async function loadSession(id) {
+    const { data } = await supabase
+      .from("research_sessions")
+      .select("id, query, status, results, created_at, updated_at")
+      .eq("id", id)
+      .single();
+    if (data?.status === "completed" && data.results) {
+      const payload = data.results;
+      setResults(payload.results || payload);
+      setSources(payload.sources || []);
+      setActiveQuery(data.query);
+      setQuery(data.query);
+      setCached(true);
+      setActiveSessionId(id);
+    }
   }
 
   function startLoadingSteps() {
@@ -569,107 +639,135 @@ export default function ResearchPage({ navigate }) {
   }
 
   function stopLoadingSteps() {
-    if (stepTimerRef.current) {
-      clearInterval(stepTimerRef.current);
-      stepTimerRef.current = null;
-    }
+    if (stepTimerRef.current) { clearInterval(stepTimerRef.current); stepTimerRef.current = null; }
   }
 
   async function handleSearch() {
     if (!query.trim() || loading) return;
     setError(null);
     setResults(null);
+    setSources([]);
     setLoading(true);
     startLoadingSteps();
 
+    let sessionId = null;
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in");
+
+      // Create pending session row immediately
+      const { data: newSession, error: insertErr } = await supabase
+        .from("research_sessions")
+        .insert({ user_id: user.id, query: query.trim(), status: "pending" })
+        .select("id")
+        .single();
+      if (insertErr) throw insertErr;
+      sessionId = newSession.id;
+
+      setActiveSessionId(sessionId);
+      setSessions((prev) => [{ id: sessionId, query: query.trim(), status: "pending", created_at: new Date().toISOString(), updated_at: new Date().toISOString() }, ...prev]);
+      navigate(`/research/${sessionId}`);
+
       const { data: { session } } = await supabase.auth.getSession();
       const { data, error: fnError } = await supabase.functions.invoke("run-research", {
-        body: { query: query.trim() },
+        body: { query: query.trim(), sessionId },
         headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
       });
 
-      if (fnError || data?.error) {
-        throw new Error(data?.error || fnError?.message || "Research failed");
-      }
+      if (fnError || data?.error) throw new Error(data?.error || fnError?.message || "Research failed");
 
       setResults(data.results || []);
+      setSources(data.sources || []);
       setActiveQuery(query.trim());
       setCached(!!data.cached);
-      await loadHistory();
 
-      setTimeout(() => {
-        resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
+      setSessions((prev) => prev.map((s) => s.id === sessionId ? { ...s, status: "completed", results: { results: data.results, sources: data.sources }, updated_at: new Date().toISOString() } : s));
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
+      if (sessionId) {
+        await supabase.from("research_sessions").update({ status: "error", updated_at: new Date().toISOString() }).eq("id", sessionId);
+        setSessions((prev) => prev.map((s) => s.id === sessionId ? { ...s, status: "error" } : s));
+      }
     } finally {
       stopLoadingSteps();
       setLoading(false);
     }
   }
 
-  function handleChipSelect(chip) {
-    setQuery(chip);
-  }
-
-  function handleReopenHistory(item) {
-    setQuery(item.query);
-    setResults(item.results);
-    setActiveQuery(item.query);
+  function handleSelectSession(session) {
+    if (session.status === "pending") return;
+    setActiveSessionId(session.id);
+    const payload = session.results;
+    if (payload) {
+      setResults(payload.results || payload);
+      setSources(payload.sources || []);
+    }
+    setActiveQuery(session.query);
+    setQuery(session.query);
     setCached(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setError(null);
+    navigate(`/research/${session.id}`);
   }
 
-  async function handleDeleteHistory(id) {
-    await supabase.from("research_history").delete().eq("id", id);
-    setHistory((prev) => prev.filter((h) => h.id !== id));
+  function handleNewSearch() {
+    setQuery("");
+    setResults(null);
+    setSources([]);
+    setActiveQuery("");
+    setActiveSessionId(null);
+    setError(null);
+    setCached(false);
+    navigate("/research");
   }
+
+  async function handleDeleteSession(id) {
+    await supabase.from("research_sessions").delete().eq("id", id);
+    setSessions((prev) => prev.filter((s) => s.id !== id));
+    if (activeSessionId === id) handleNewSearch();
+  }
+
+  const showEmpty = !loading && !results && !error;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f4f8ff" }}>
+    <div style={{ minHeight: "100vh", background: "#f4f8ff", display: "flex" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');`}</style>
 
-      <Sidebar
-        activePath="/research"
-        navigate={navigate}
-        onModeClick={null}
-        roadmapMode={roadmapMode}
-      />
+      <Sidebar activePath="/research" navigate={navigate} onModeClick={null} roadmapMode={roadmapMode} />
 
+      {/* Main content */}
       <div
         data-sidebar-offset
         style={{
           marginLeft: SIDEBAR_WIDTH,
+          flex: 1,
           minHeight: "100vh",
-          padding: "2rem 2.5rem 4rem",
-          maxWidth: 860,
+          overflowY: "auto",
+          padding: "2rem 2rem 4rem",
+          maxWidth: 820,
           boxSizing: "border-box",
         }}
       >
-        <HeroSection />
-        <ExampleChips onSelect={handleChipSelect} loading={loading} />
-        <SearchBar
-          value={query}
-          onChange={setQuery}
-          onSubmit={handleSearch}
-          loading={loading}
-        />
+        {showEmpty
+          ? <EmptyState onChipSelect={(chip) => { setQuery(chip); }} loading={loading} />
+          : null
+        }
+
+        {/* Search bar always visible after first use */}
+        {!showEmpty && (
+          <>
+            <div style={{ marginBottom: "1.5rem" }}>
+              <ExampleChips onSelect={setQuery} loading={loading} />
+            </div>
+          </>
+        )}
+
+        <SearchBar value={query} onChange={setQuery} onSubmit={handleSearch} loading={loading} />
 
         <AnimatePresence>
           {error && (
             <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              style={{
-                background: "rgba(239,68,68,0.06)",
-                border: "1.5px solid rgba(239,68,68,0.15)",
-                borderRadius: "0.875rem",
-                padding: "0.875rem 1.25rem",
-                marginBottom: "1.5rem",
-                fontFamily: FONT, fontSize: "0.875rem", color: "#dc2626", fontWeight: 600,
-              }}
+              initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              style={{ background: "rgba(239,68,68,0.05)", border: "1.5px solid rgba(239,68,68,0.14)", borderRadius: "0.75rem", padding: "0.75rem 1.125rem", marginBottom: "1.25rem", fontFamily: FONT, fontSize: "0.86rem", color: "#dc2626", fontWeight: 600 }}
             >
               {error}
             </motion.div>
@@ -680,25 +778,27 @@ export default function ResearchPage({ navigate }) {
           {loading && <LoadingState key="loading" step={loadingStep} />}
         </AnimatePresence>
 
-        <div ref={resultsRef}>
-          <AnimatePresence>
-            {!loading && results && (
-              <ResultsSection
-                key="results"
-                results={results}
-                query={activeQuery}
-                cached={cached}
-              />
-            )}
-          </AnimatePresence>
-        </div>
-
-        <HistorySection
-          history={history}
-          onReopen={handleReopenHistory}
-          onDelete={handleDeleteHistory}
-        />
+        <AnimatePresence>
+          {!loading && results && (
+            <ResultsArea
+              key={activeSessionId}
+              results={results}
+              sources={sources}
+              query={activeQuery}
+              cached={cached}
+            />
+          )}
+        </AnimatePresence>
       </div>
+
+      {/* Sessions panel */}
+      <SessionsPanel
+        sessions={sessions}
+        activeId={activeSessionId}
+        onSelect={handleSelectSession}
+        onNew={handleNewSearch}
+        onDelete={handleDeleteSession}
+      />
     </div>
   );
 }
