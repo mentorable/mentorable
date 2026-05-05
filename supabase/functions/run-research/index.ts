@@ -4,6 +4,8 @@ import { createClient } from 'npm:@supabase/supabase-js'
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') })
 const BRAVE_API_KEY = Deno.env.get('BRAVE_API_KEY') || ''
 const CORS_ORIGIN = Deno.env.get('CORS_ORIGIN') || '*'
+const SONNET = 'claude-sonnet-4-6'
+const TOP_N = 5 // pages to fetch and enrich
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': CORS_ORIGIN,
@@ -16,6 +18,66 @@ const json = (data: unknown, status = 200) =>
     status,
     headers: { 'Content-Type': 'application/json', ...corsHeaders },
   })
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+
+function parseJson<T>(text: string, fallback: T): T {
+  try { return JSON.parse(text) } catch { /* try extraction */ }
+  const match = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
+  if (match) { try { return JSON.parse(match[0]) } catch { /* fall through */ } }
+  return fallback
+}
+
+async function braveSearch(query: string, count = 10): Promise<Array<{ title: string; url: string; description: string }>> {
+  const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${count}&search_lang=en&safesearch=moderate`
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'Accept-Encoding': 'gzip',
+        'X-Subscription-Token': BRAVE_API_KEY,
+      },
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data?.web?.results || [])
+      .map((r: any) => ({ title: r.title || '', url: r.url || '', description: r.description || '' }))
+      .filter((r: any) => r.title && r.url)
+  } catch { return [] }
+}
+
+async function fetchPageText(url: string): Promise<{ text: string; ok: boolean }> {
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 6000)
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Mentorable-Research/1.0)',
+        Accept: 'text/html,application/xhtml+xml,*/*',
+      },
+    })
+    clearTimeout(timeoutId)
+    if (!res.ok) return { text: '', ok: false }
+    const html = await res.text()
+    const text = html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<nav[\s\S]*?<\/nav>/gi, ' ')
+      .replace(/<header[\s\S]*?<\/header>/gi, ' ')
+      .replace(/<footer[\s\S]*?<\/footer>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/\s+/g, ' ')
+      .trim()
+    return { text: text.slice(0, 3500), ok: true }
+  } catch { return { text: '', ok: false } }
+}
+
+// ── Main handler ──────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
@@ -43,7 +105,7 @@ Deno.serve(async (req) => {
 
     const normalizedQuery = query.trim()
 
-    // Cache: same query within 7 days → reuse results from another session
+    // ── Cache check ────────────────────────────────────────────────────────────
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
     const { data: cached } = await supabase
       .from('research_sessions')
@@ -57,41 +119,19 @@ Deno.serve(async (req) => {
       .limit(1)
       .single()
 
-    if (cached?.results?.length) {
-      await supabase.from('research_sessions')
-        .update({ results: cached.results, status: 'completed', updated_at: new Date().toISOString() })
-        .eq('id', sessionId)
-      return json({ results: cached.results, cached: true })
+    if (cached?.results) {
+      const cp = cached.results
+      const hasResults = Array.isArray(cp) ? cp.length > 0 : (cp?.results?.length ?? 0) > 0
+      if (hasResults) {
+        await supabase.from('research_sessions')
+          .update({ results: cp, status: 'completed', updated_at: new Date().toISOString() })
+          .eq('id', sessionId)
+        const r = Array.isArray(cp) ? cp : cp.results
+        const s = Array.isArray(cp) ? [] : (cp.sources || [])
+        return json({ results: r, sources: s, cached: true })
+      }
     }
 
-    // Load full profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('interests, strengths, career_matches, grade_level, age, location_general, onboarding_summary, work_style')
-      .eq('id', user.id)
-      .single()
-
-    // Load active roadmap + recent tasks
-    const { data: roadmap } = await supabase
-      .from('roadmaps')
-      .select('id, mode, career_direction, confidence_score, current_phase_number')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single()
-
-    let recentTasks: any[] = []
-    if (roadmap?.id) {
-      const { data: phases } = await supabase
-        .from('roadmap_phases')
-        .select('phase_number, title, tasks:roadmap_tasks(title, status, skill_gained)')
-        .eq('roadmap_id', roadmap.id)
-        .order('phase_number', { ascending: false })
-        .limit(2)
-      recentTasks = phases?.flatMap((p: any) => p.tasks || []) || []
-    }
-
-    // Brave Search
-    let braveResults: Array<{ title: string; url: string; description: string }> = []
     if (!BRAVE_API_KEY) {
       await supabase.from('research_sessions')
         .update({ status: 'error', updated_at: new Date().toISOString() })
@@ -99,115 +139,235 @@ Deno.serve(async (req) => {
       return json({ error: 'Search service not configured.' }, 503)
     }
 
-    const searchUrl = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(normalizedQuery)}&count=14&search_lang=en&safesearch=moderate`
-    const braveRes = await fetch(searchUrl, {
-      headers: {
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip',
-        'X-Subscription-Token': BRAVE_API_KEY,
-      }
-    })
+    // ── Load profile + roadmap ─────────────────────────────────────────────────
+    const [profileRes, roadmapRes] = await Promise.all([
+      supabase.from('profiles')
+        .select('interests, strengths, career_matches, grade_level, age, location_general, onboarding_summary, work_style')
+        .eq('id', user.id)
+        .single(),
+      supabase.from('roadmaps')
+        .select('id, mode, career_direction, confidence_score, current_phase_number')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .single(),
+    ])
 
-    if (braveRes.ok) {
-      const data = await braveRes.json()
-      braveResults = (data?.web?.results || [])
-        .map((r: any) => ({ title: r.title || '', url: r.url || '', description: r.description || '' }))
-        .filter((r: any) => r.title && r.url)
+    const profile = profileRes.data
+    const roadmap = roadmapRes.data
+
+    let recentTasks: string[] = []
+    if (roadmap?.id) {
+      const { data: phases } = await supabase
+        .from('roadmap_phases')
+        .select('phase_number, title, tasks:roadmap_tasks(title, status)')
+        .eq('roadmap_id', roadmap.id)
+        .order('phase_number', { ascending: false })
+        .limit(2)
+      recentTasks = phases?.flatMap((p: any) => (p.tasks || []).map((t: any) => t.title)) || []
     }
 
-    if (braveResults.length === 0) {
+    const profileBlock = `STUDENT PROFILE
+- Grade: ${profile?.grade_level || 'not specified'}
+- Age: ${profile?.age || 'not specified'}
+- Location: ${profile?.location_general || 'not specified'}
+- Interests: ${JSON.stringify(profile?.interests || [])}
+- Strengths: ${JSON.stringify(profile?.strengths || [])}
+- Career matches: ${JSON.stringify(profile?.career_matches || [])}
+- Work style: ${profile?.work_style || 'not specified'}
+- Background: ${profile?.onboarding_summary || 'not available'}`
+
+    const roadmapBlock = roadmap
+      ? `ROADMAP STATE
+- Mode: ${roadmap.mode}
+- Direction: ${roadmap.career_direction || 'Exploring'}
+- Confidence: ${roadmap.confidence_score}/100
+- Current phase: ${roadmap.current_phase_number}
+- Recent tasks: ${recentTasks.slice(0, 6).join(', ')}`
+      : ''
+
+    // ── Step 1: Decompose query into targeted sub-queries ──────────────────────
+    const decomposeRes = await anthropic.messages.create({
+      model: SONNET,
+      max_tokens: 400,
+      system: `You generate targeted search queries to find opportunities for high school students.
+Given the student's original query and their profile, produce 2–4 specific sub-queries that together cover the full intent.
+Make each query distinct — vary the angle (e.g. program-name specific, eligibility-focused, deadline-focused, alternate opportunity types).
+Return ONLY valid JSON: { "subQueries": ["query1", "query2", ...] }`,
+      messages: [{
+        role: 'user',
+        content: `ORIGINAL QUERY: "${normalizedQuery}"\n\n${profileBlock}\n\n${roadmapBlock}`,
+      }],
+    })
+
+    const decomposeText = decomposeRes.content[0].type === 'text' ? decomposeRes.content[0].text : ''
+    const { subQueries } = parseJson<{ subQueries: string[] }>(decomposeText, { subQueries: [normalizedQuery] })
+    const queries = Array.isArray(subQueries) && subQueries.length > 0
+      ? subQueries.slice(0, 4)
+      : [normalizedQuery]
+
+    // ── Step 2: Parallel Brave searches ───────────────────────────────────────
+    const searchResults = await Promise.all(queries.map(q => braveSearch(q, 10)))
+
+    // Deduplicate by URL across all sub-queries
+    const seenUrls = new Set<string>()
+    const allBraveResults: Array<{ title: string; url: string; description: string }> = []
+    for (const batch of searchResults) {
+      for (const r of batch) {
+        if (!seenUrls.has(r.url)) {
+          seenUrls.add(r.url)
+          allBraveResults.push(r)
+        }
+      }
+    }
+
+    if (allBraveResults.length === 0) {
       await supabase.from('research_sessions')
         .update({ status: 'error', updated_at: new Date().toISOString() })
         .eq('id', sessionId)
       return json({ error: 'Search returned no results. Try a more specific query.' }, 422)
     }
 
-    const profileBlock = profile ? `
-STUDENT PROFILE
-- Grade: ${profile.grade_level || 'not specified'}
-- Age: ${profile.age || 'not specified'}
-- Location: ${profile.location_general || 'not specified'}
-- Interests: ${JSON.stringify(profile.interests || [])}
-- Strengths: ${JSON.stringify(profile.strengths || [])}
-- Career matches: ${JSON.stringify(profile.career_matches || [])}
-- Work style: ${profile.work_style || 'not specified'}
-- Background: ${profile.onboarding_summary || 'not available'}`.trim() : 'No profile available.'
-
-    const roadmapBlock = roadmap ? `
-ROADMAP STATE
-- Mode: ${roadmap.mode}
-- Direction: ${roadmap.career_direction || 'Exploring'}
-- Confidence: ${roadmap.confidence_score}/100
-- Current phase: ${roadmap.current_phase_number}
-- Recent tasks: ${recentTasks.slice(0, 6).map((t: any) => t.title).join(', ')}`.trim() : ''
-
-    const rawResultsText = braveResults.map((r, i) =>
+    const validUrls = new Set(allBraveResults.map(r => r.url))
+    const rawResultsText = allBraveResults.map((r, i) =>
       `[${i + 1}] ${r.title}\nURL: ${r.url}\n${r.description}`
     ).join('\n\n')
 
-    const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 3000,
-      system: `You are a research assistant helping high school students find real opportunities: competitions, internships, scholarships, programs, and resources.
+    // ── Step 3: Synthesize and rank across all results ─────────────────────────
+    const synthesisRes = await anthropic.messages.create({
+      model: SONNET,
+      max_tokens: 4000,
+      system: `You are a research curator helping high school students find real career opportunities.
+Given raw search results from multiple targeted searches and a student's profile + roadmap, select and structure the 6–8 most genuinely useful results.
 
-Given raw search results and a student's full profile + roadmap, synthesize the 5–7 most genuinely useful results. For each:
-- Classify its type
-- Write a clean name and description
-- Extract key actionable details (deadline, eligibility, etc.) — only include fields that exist in the source
-- Write a personalized relevance note referencing specific things from their profile (their interests, grade, career direction, recent tasks)
-- Collect all source URLs in a separate sources list
+For each result:
+- Classify type: competition, internship, scholarship, program, resource, or article
+- Write the exact program name and a clear 2–3 sentence description
+- Extract any available details (deadline, eligibility, location, compensation) — only include fields you actually know
+- Write a 1-sentence relevance note that references specific details from the student's profile (their interests, grade, career matches, recent tasks)
+- Use only exact URLs from the input list
 
 Return ONLY valid JSON:
 {
   "results": [
     {
-      "type": "competition|internship|scholarship|program|resource|article",
-      "name": "Exact program/opportunity name",
-      "description": "2-3 sentences: what it is, what it offers, who runs it",
-      "details": {
-        "deadline": "Month Day, Year — or omit if unknown",
-        "eligibility": "Who can apply — or omit if unknown",
-        "location": "Remote/State/City — or omit if not relevant",
-        "compensation": "Stipend or award amount — or omit if not applicable"
-      },
-      "url": "exact URL from the input list",
-      "relevance_note": "1 sentence tying this specifically to the student's interests, grade, career direction, or recent roadmap work"
+      "type": "...",
+      "name": "Exact program name",
+      "description": "2–3 sentences",
+      "details": { "deadline": "...", "eligibility": "...", "location": "...", "compensation": "..." },
+      "url": "exact URL from input",
+      "relevance_note": "..."
     }
   ],
-  "sources": [
-    { "title": "page title", "url": "exact URL" }
-  ]
+  "sources": [{ "title": "...", "url": "..." }]
 }
 
-RULES:
-- Only pick genuinely useful results — skip ads, low-quality directories, or irrelevant pages
-- Preserve exact URLs from the input — never modify or invent URLs
-- Relevance notes must name specific profile details (e.g. "Given your interest in AI and 10th-grade standing…")
-- Omit detail fields that you don't actually know — don't write "TBD" or "varies"
-- sources should include all results you used, not just the top picks`,
+Rules: skip ads, generic directories, and low-quality pages. Omit detail fields you don't know — never write "varies" or "TBD".`,
       messages: [{
         role: 'user',
-        content: `QUERY: "${normalizedQuery}"\n\n${profileBlock}\n\n${roadmapBlock}\n\nRAW SEARCH RESULTS:\n${rawResultsText}`
-      }]
+        content: `QUERY: "${normalizedQuery}"\n\n${profileBlock}\n\n${roadmapBlock}\n\nRAW RESULTS (${allBraveResults.length} unique, from ${queries.length} sub-queries):\n${rawResultsText}`,
+      }],
     })
 
-    const text = message.content[0].type === 'text' ? message.content[0].text : ''
-    let parsed: { results: any[]; sources: any[] } = { results: [], sources: [] }
-    try {
-      parsed = JSON.parse(text)
-    } catch {
-      const match = text.match(/\{[\s\S]*\}/)
-      if (match) {
-        try { parsed = JSON.parse(match[0]) } catch { /* fall through with empty */ }
-      }
+    const synthesisText = synthesisRes.content[0].type === 'text' ? synthesisRes.content[0].text : ''
+    const synthesized = parseJson<{ results: any[]; sources: any[] }>(synthesisText, { results: [], sources: [] })
+    synthesized.results = (synthesized.results || []).filter((r: any) => r.url && validUrls.has(r.url))
+    synthesized.sources = (synthesized.sources || []).filter((s: any) => s.url && validUrls.has(s.url))
+
+    if (synthesized.results.length === 0) {
+      await supabase.from('research_sessions')
+        .update({ status: 'error', updated_at: new Date().toISOString() })
+        .eq('id', sessionId)
+      return json({ error: 'Could not identify relevant results. Try a different query.' }, 422)
     }
 
-    // Validate URLs against actual brave results to prevent hallucination
-    const validUrls = new Set(braveResults.map(r => r.url))
-    parsed.results = (parsed.results || []).filter((r: any) => r.url && validUrls.has(r.url))
-    parsed.sources = (parsed.sources || []).filter((s: any) => s.url && validUrls.has(s.url))
+    // ── Step 4: Fetch top N pages in parallel ──────────────────────────────────
+    const topResults = synthesized.results.slice(0, TOP_N)
+    const pageContents = await Promise.all(topResults.map(r => fetchPageText(r.url)))
 
-    const payload = { results: parsed.results, sources: parsed.sources }
+    // ── Step 5: Enrich + generate application strategies (single call) ─────────
+    const pagesBlock = topResults.map((r, i) => {
+      const page = pageContents[i]
+      const snippet = allBraveResults.find(a => a.url === r.url)?.description || ''
+      return [
+        `RESULT ${i} — ${r.name}`,
+        `URL: ${r.url}`,
+        page.ok
+          ? `PAGE CONTENT:\n${page.text}`
+          : `PAGE UNAVAILABLE. Use this snippet: ${snippet}`,
+      ].join('\n')
+    }).join('\n\n---\n\n')
+
+    const enrichRes = await anthropic.messages.create({
+      model: SONNET,
+      max_tokens: 5000,
+      system: `You extract structured data from web pages and write personalized application strategies for high school students.
+
+For EACH of the ${TOP_N} results provided:
+
+1. EXTRACT from the page content (or snippet if page unavailable):
+   - Official program name (exact, from the page itself)
+   - Eligibility requirements (grade level, age, location, GPA, citizenship, etc.)
+   - Application deadline (exact date if stated)
+   - Direct application URL (if different from the page URL)
+   - Award or benefit (scholarship amount, stipend, certificate, experience, etc.)
+   - Key selection criteria (what they actually look for in applicants)
+
+2. Write a "gamePlan" — 3–4 sentences tailored specifically to this student:
+   - Name their actual interests, strengths, or career matches and explain how they fit this opportunity
+   - Mention something specific from their roadmap or recent tasks if relevant
+   - Identify one thing to emphasize in the application based on the selection criteria
+   - Close with one concrete first step they can take this week
+
+Return ONLY a valid JSON array, one object per result in the same order:
+[
+  {
+    "index": 0,
+    "enriched": {
+      "name": "exact official name, or null if same as provided",
+      "description": "improved 2–3 sentence description using page data, or null if no improvement",
+      "details": {
+        "deadline": "Month Day, Year",
+        "eligibility": "specific requirements",
+        "location": "remote / city / state / country",
+        "compensation": "exact amount or benefit",
+        "applicationLink": "direct apply URL if different from main",
+        "selectionCriteria": "what they look for"
+      },
+      "pageEnriched": true
+    },
+    "gamePlan": "3–4 sentence personalized strategy..."
+  }
+]
+
+Rules:
+- Only include detail fields you have actual evidence for on the page
+- pageEnriched = false when the page was unavailable
+- gamePlan MUST reference specific student details (name their interests, career matches, or recent work) — never write generic advice`,
+      messages: [{
+        role: 'user',
+        content: `STUDENT:\n${profileBlock}\n\n${roadmapBlock}\n\n${'─'.repeat(40)}\n\nRESULTS TO ENRICH:\n${pagesBlock}`,
+      }],
+    })
+
+    const enrichText = enrichRes.content[0].type === 'text' ? enrichRes.content[0].text : ''
+    const enrichments = parseJson<Array<{ index: number; enriched: any; gamePlan: string }>>(enrichText, [])
+
+    // ── Step 6: Merge enrichment into final results ────────────────────────────
+    const finalResults = synthesized.results.map((r, i) => {
+      if (i >= TOP_N) return r
+      const enrich = Array.isArray(enrichments) ? enrichments.find((e: any) => e.index === i) : null
+      if (!enrich) return r
+      return {
+        ...r,
+        name: enrich.enriched?.name || r.name,
+        description: enrich.enriched?.description || r.description,
+        details: { ...r.details, ...(enrich.enriched?.details || {}) },
+        pageEnriched: enrich.enriched?.pageEnriched ?? false,
+        gamePlan: enrich.gamePlan ?? null,
+      }
+    })
+
+    const payload = { results: finalResults, sources: synthesized.sources }
 
     await supabase.from('research_sessions')
       .update({ results: payload, status: 'completed', updated_at: new Date().toISOString() })

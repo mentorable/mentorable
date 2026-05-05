@@ -13,10 +13,11 @@ const SESSIONS_W = 256;
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const LOADING_STEPS = [
-  "Searching the web…",
-  "Analyzing results…",
-  "Personalizing for your profile…",
-  "Almost there…",
+  "Breaking down your query…",
+  "Searching across multiple angles…",
+  "Synthesizing results…",
+  "Reading opportunity pages…",
+  "Building your strategy…",
 ];
 
 const EXAMPLE_CHIPS = [
@@ -383,12 +384,17 @@ function LoadingState({ step }) {
 function ResultCard({ result, index }) {
   const meta = TYPE_META[result.type] || TYPE_META.article;
   const details = result.details || {};
+  const [planOpen, setPlanOpen] = useState(false);
+
   const detailPairs = [
-    details.deadline     && ["Deadline",      details.deadline],
-    details.eligibility  && ["Eligibility",   details.eligibility],
-    details.location     && ["Location",      details.location],
-    details.compensation && ["Compensation",  details.compensation],
+    details.deadline          && ["Deadline",      details.deadline],
+    details.eligibility       && ["Eligibility",   details.eligibility],
+    details.location          && ["Location",      details.location],
+    details.compensation      && ["Award",         details.compensation],
+    details.selectionCriteria && ["Criteria",      details.selectionCriteria],
   ].filter(Boolean);
+
+  const visitUrl = details.applicationLink || result.url;
 
   return (
     <motion.div
@@ -409,7 +415,7 @@ function ResultCard({ result, index }) {
       {/* Header row */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.875rem", marginBottom: "0.75rem" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.35rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.35rem", flexWrap: "wrap" }}>
             <span style={{
               fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700,
               letterSpacing: "0.07em", textTransform: "uppercase",
@@ -420,13 +426,24 @@ function ResultCard({ result, index }) {
             }}>
               {meta.label}
             </span>
+            {result.pageEnriched && (
+              <span style={{
+                fontFamily: FONT, fontSize: "0.65rem", fontWeight: 600,
+                color: "#10b981", background: "rgba(16,185,129,0.07)",
+                border: "1px solid rgba(16,185,129,0.18)",
+                borderRadius: "2rem", padding: "0.18rem 0.55rem",
+                flexShrink: 0,
+              }}>
+                Verified
+              </span>
+            )}
           </div>
           <h3 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", color: NAVY, lineHeight: 1.3, margin: 0 }}>
             {result.name || result.title}
           </h3>
         </div>
         <a
-          href={result.url}
+          href={visitUrl}
           target="_blank"
           rel="noopener noreferrer"
           style={{
@@ -473,11 +490,56 @@ function ResultCard({ result, index }) {
           background: "rgba(99,102,241,0.04)",
           border: "1px solid rgba(99,102,241,0.1)",
           borderRadius: "0.75rem", padding: "0.6rem 0.875rem",
+          marginBottom: result.gamePlan ? "0.75rem" : 0,
         }}>
           <IconStar size={13} color={INDIGO} style={{ flexShrink: 0, marginTop: 2 }} />
           <p style={{ fontFamily: FONT, fontSize: "0.79rem", color: INDIGO, fontWeight: 600, lineHeight: 1.55, margin: 0 }}>
             {result.relevance_note}
           </p>
+        </div>
+      )}
+
+      {/* Game plan — collapsible */}
+      {result.gamePlan && (
+        <div>
+          <button
+            onClick={() => setPlanOpen(v => !v)}
+            style={{
+              display: "flex", alignItems: "center", gap: "0.45rem",
+              background: "none", border: "none", cursor: "pointer",
+              fontFamily: FONT, fontSize: "0.78rem", fontWeight: 700,
+              color: "#0369a1", padding: "0.35rem 0",
+              width: "100%", textAlign: "left",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, transition: "transform 0.2s", transform: planOpen ? "rotate(90deg)" : "none" }}>
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+            Your game plan
+          </button>
+          <AnimatePresence>
+            {planOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                style={{ overflow: "hidden" }}
+              >
+                <div style={{
+                  background: "rgba(3,105,161,0.04)",
+                  border: "1px solid rgba(3,105,161,0.12)",
+                  borderRadius: "0.75rem",
+                  padding: "0.875rem 1rem",
+                  marginTop: "0.35rem",
+                }}>
+                  <p style={{ fontFamily: FONT, fontSize: "0.83rem", color: "#0c4a6e", lineHeight: 1.7, margin: 0, fontWeight: 500 }}>
+                    {result.gamePlan}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </motion.div>
