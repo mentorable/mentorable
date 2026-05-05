@@ -219,38 +219,16 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
 
 function HeroSection() {
   return (
-    <div style={{
-      background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)",
-      borderRadius: "1.25rem",
-      padding: "2.25rem 2rem 2rem",
-      marginBottom: "1.75rem",
-      position: "relative", overflow: "hidden",
-    }}>
-      <div style={{ position: "absolute", top: -60, right: -40, width: 240, height: 240, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", bottom: -40, left: "35%", width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%)", pointerEvents: "none" }} />
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.875rem" }}>
-          <div style={{ width: 36, height: 36, borderRadius: "0.625rem", background: "linear-gradient(135deg, #6366f1, #3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(99,102,241,0.4)" }}>
-            <IconSearch size={17} color="white" />
-          </div>
-          <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "#a5b4fc" }}>
-            Deep Research
-          </span>
-        </div>
-        <h1 style={{ fontFamily: FONT, fontWeight: 800, fontSize: "clamp(1.4rem, 2.5vw, 1.85rem)", color: "#f8fafc", marginBottom: "0.5rem", lineHeight: 1.2, letterSpacing: "-0.03em" }}>
-          Find real opportunities,<br />tailored to you.
-        </h1>
-        <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: "#94a3b8", maxWidth: 480, lineHeight: 1.65, fontWeight: 500, margin: 0 }}>
-          Scholarships, internships, programs, competitions — the opportunities a good counselor would surface for you. Search for anything and get results filtered to your profile, for free.
-        </p>
-        <div style={{ display: "flex", gap: "1.25rem", marginTop: "1.25rem", flexWrap: "wrap" }}>
-          {[["🏆", "Competitions"], ["💼", "Internships"], ["🎓", "Scholarships"], ["🚀", "Programs"]].map(([icon, label]) => (
-            <span key={label} style={{ fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, color: "#cbd5e1", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-              {icon} {label}
-            </span>
-          ))}
-        </div>
-      </div>
+    <div style={{ marginBottom: "1.75rem" }}>
+      <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.72rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#94a3b8", marginBottom: "0.625rem" }}>
+        Deep Research
+      </p>
+      <h1 style={{ fontFamily: FONT, fontWeight: 800, fontSize: "clamp(1.4rem, 2.5vw, 1.75rem)", color: NAVY, marginBottom: "0.625rem", lineHeight: 1.2, letterSpacing: "-0.03em" }}>
+        Find real opportunities,<br />tailored to you.
+      </h1>
+      <p style={{ fontFamily: FONT, fontSize: "0.875rem", color: "#64748b", maxWidth: 520, lineHeight: 1.7, fontWeight: 500, margin: 0 }}>
+        Scholarships, internships, programs, and competitions — the opportunities a good counselor would surface for you. Search anything and get results filtered to your profile.
+      </p>
     </div>
   );
 }
