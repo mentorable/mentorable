@@ -60,8 +60,7 @@ const NAV_ITEMS = [
   },
 ];
 
-export default function Sidebar({ activePath, navigate, onModeClick, roadmapMode }) {
-  const modeLabel = roadmapMode === "career" ? "Career Mode" : "Discovery Mode";
+export default function Sidebar({ activePath, navigate, onRegenerateClick }) {
 
   return (
     <div id="main-sidebar" style={{
@@ -128,42 +127,38 @@ export default function Sidebar({ activePath, navigate, onModeClick, roadmapMode
         })}
       </nav>
 
-      {/* Roadmap mode — bottom */}
-      <div style={{ padding: "0.75rem", borderTop: "1px solid rgba(37,99,235,0.07)", flexShrink: 0 }}>
-        <button
-          onClick={onModeClick || undefined}
-          disabled={!onModeClick}
-          style={{
-            display: "flex", alignItems: "center", gap: "0.625rem",
-            width: "100%", padding: "0.65rem 0.875rem",
-            background: "rgba(37,99,235,0.05)",
-            border: "1.5px solid rgba(37,99,235,0.12)",
-            borderRadius: "0.75rem",
-            cursor: onModeClick ? "pointer" : "default",
-            fontFamily: FONT, transition: "background 0.15s",
-          }}
-          onMouseEnter={(e) => { if (onModeClick) e.currentTarget.style.background = "rgba(37,99,235,0.1)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(37,99,235,0.05)"; }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-          </svg>
-          <div style={{ flex: 1, textAlign: "left" }}>
-            <div style={{ fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9199b8", lineHeight: 1 }}>
-              Mode
-            </div>
-            <div style={{ fontFamily: FONT, fontSize: "0.82rem", fontWeight: 700, color: "#1d4ed8", marginTop: 2 }}>
-              {modeLabel}
-            </div>
-          </div>
-          {onModeClick && (
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9199b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9" />
+      {/* Regenerate — bottom (only shown on roadmap) */}
+      {onRegenerateClick && (
+        <div style={{ padding: "0.75rem", borderTop: "1px solid rgba(37,99,235,0.07)", flexShrink: 0 }}>
+          <button
+            onClick={onRegenerateClick}
+            style={{
+              display: "flex", alignItems: "center", gap: "0.625rem",
+              width: "100%", padding: "0.65rem 0.875rem",
+              background: "rgba(37,99,235,0.05)",
+              border: "1.5px solid rgba(37,99,235,0.12)",
+              borderRadius: "0.75rem",
+              cursor: "pointer",
+              fontFamily: FONT, transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(37,99,235,0.1)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(37,99,235,0.05)"; }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 4v6h-6" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
             </svg>
-          )}
-        </button>
-      </div>
+            <div style={{ flex: 1, textAlign: "left" }}>
+              <div style={{ fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9199b8", lineHeight: 1 }}>
+                Roadmap
+              </div>
+              <div style={{ fontFamily: FONT, fontSize: "0.82rem", fontWeight: 700, color: "#1d4ed8", marginTop: 2 }}>
+                Regenerate
+              </div>
+            </div>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

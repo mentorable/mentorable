@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
 import Spinner from "./components/common/Spinner.jsx";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
@@ -231,7 +231,6 @@ export default function ScorecardPage({ navigate }) {
   const [theme, setTheme] = useState(themes[0]);
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
 
   // ── CSS custom properties ─────────────────────────────────────────────────
   useEffect(() => {
@@ -305,12 +304,6 @@ export default function ScorecardPage({ navigate }) {
         });
       });
     } finally { setSharing(false); }
-  };
-
-  const handleShareLink = async () => {
-    await navigator.clipboard.writeText(window.location.href);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2200);
   };
 
   // ── Shape renderer ────────────────────────────────────────────────────────
@@ -762,20 +755,6 @@ export default function ScorecardPage({ navigate }) {
                   Share image
                 </button>
 
-                <button className="sc-action-btn" onClick={handleShareLink}>
-                  {linkCopied ? (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  ) : (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                    </svg>
-                  )}
-                  {linkCopied ? "Copied!" : "Copy link"}
-                </button>
-
                 {!hasRoadmap && (
                   <button
                     onClick={goToRoadmap}
@@ -851,36 +830,6 @@ export default function ScorecardPage({ navigate }) {
         )}
       </div>
 
-      {/* ── Toast ─────────────────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {linkCopied && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 16 }}
-            transition={{ duration: 0.22, ease: [0.22,1,0.36,1] }}
-            style={{
-              position: "fixed", bottom: "2rem",
-              left: 0, right: 0,
-              display: "flex", justifyContent: "center",
-              pointerEvents: "none", zIndex: 200,
-            }}
-          >
-            <div style={{
-              background: "#0f172a", color: "white",
-              padding: "0.75rem 1.25rem", borderRadius: "0.75rem",
-              fontSize: "0.875rem", fontWeight: 600,
-              boxShadow: "0 8px 28px rgba(0,0,0,0.22)",
-              display: "flex", alignItems: "center", gap: "0.5rem",
-              pointerEvents: "auto",
-            }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              Link copied to clipboard
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

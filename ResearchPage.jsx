@@ -353,6 +353,9 @@ function LoadingState({ step }) {
           <div key={i} style={{ width: i === step ? 18 : 5, height: 5, borderRadius: 3, background: i === step ? INDIGO : "rgba(99,102,241,0.2)", transition: "all 0.3s" }} />
         ))}
       </div>
+      <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: "rgba(148,163,184,0.7)", marginTop: "0.75rem" }}>
+        This may take a moment…
+      </p>
     </motion.div>
   );
 }

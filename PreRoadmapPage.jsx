@@ -152,7 +152,7 @@ export default function PreRoadmapPage({ navigate }) {
       });
       if (fnError) throw fnError;
 
-      nav("/roadmap");
+      window.location.href = "/roadmap";
     } catch (err) {
       console.error("[PreRoadmap] error:", err);
       setError("Something went wrong. Please try again.");

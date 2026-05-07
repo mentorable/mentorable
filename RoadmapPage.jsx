@@ -3,9 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
 import Spinner from "./components/common/Spinner.jsx";
 import RoadmapPath from "./components/roadmap/RoadmapPath.jsx";
-import ConfidenceMeter from "./components/roadmap/ConfidenceMeter.jsx";
-import ConfidencePanel from "./components/roadmap/ConfidencePanel.jsx";
-import ModeSwitchModal from "./components/roadmap/ModeSwitchModal.jsx";
+import RegenerateModal from "./components/roadmap/RegenerateModal.jsx";
 import PhaseCompleteModal from "./components/roadmap/PhaseCompleteModal.jsx";
 import StickyWeekBar from "./components/roadmap/StickyWeekBar.jsx";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
@@ -74,6 +72,14 @@ function LoadingScreen({ slow, generating }) {
               : "Loading your roadmap..."}
           </motion.p>
         </AnimatePresence>
+        <p style={{
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontSize: "0.78rem",
+          color: "#64748b",
+          margin: 0,
+        }}>
+          This may take a moment…
+        </p>
       </motion.div>
     </div>
   );
@@ -143,42 +149,31 @@ export default function RoadmapPage({ navigate }) {
   const [user, setUser] = useState(null);
   const [roadmap, setRoadmap] = useState(null);
   const [phases, setPhases] = useState([]);
-  const [confidenceHistory, setConfidenceHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingSlow, setLoadingSlow] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showGenNote, setShowGenNote] = useState(false);
   const [error, setError] = useState(null);
 
-  const [showConfidencePanel, setShowConfidencePanel] = useState(false);
-  const [showModeModal, setShowModeModal] = useState(false);
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
+  const [regeneratePhaseData, setRegeneratePhaseData] = useState(null); // { phaseId, phaseNumber, phaseTitle }
 
-  // App.jsx dispatches this event from the persistent sidebar's mode button
+  // App.jsx dispatches this event from the persistent sidebar's Regenerate button
   useEffect(() => {
-    const handler = () => setShowModeModal(true);
-    window.addEventListener("roadmap:openModeModal", handler);
-    return () => window.removeEventListener("roadmap:openModeModal", handler);
+    const handler = () => { setRegeneratePhaseData(null); setShowRegenerateModal(true); };
+    window.addEventListener("roadmap:openRegenerateModal", handler);
+    return () => window.removeEventListener("roadmap:openRegenerateModal", handler);
   }, []);
   const [showPhaseCompleteModal, setShowPhaseCompleteModal] = useState(false);
   const [completedPhaseData, setCompletedPhaseData] = useState(null);
   const [generatingNextPhase, setGeneratingNextPhase] = useState(false);
   const [stickyVisible, setStickyVisible] = useState(false);
 
-  const [phaseStatusMsg, setPhaseStatusMsg] = useState("");
-
   const currentWeekRef = useRef(null);
   const slowTimer = useRef(null);
   const initRan = useRef(false); // guard against React StrictMode double-init
   const nextPhaseInFlight = useRef(false); // serialize auto next-phase generation
   const phaseStatusTimer = useRef(null);
-
-  const PHASE_STATUS_STEPS = [
-    "Generating tasks…",
-    "Searching career data…",
-    "Personalizing your plan…",
-    "Saving to database…",
-    "Almost done…",
-  ];
 
   // ── Slow-loading message timer ──────────────────────────────────────────────
   useEffect(() => {
@@ -288,8 +283,6 @@ export default function RoadmapPage({ navigate }) {
         }
 
         setRoadmap(existingRoadmap);
-        localStorage.setItem("roadmapMode", existingRoadmap.mode || "discovery");
-        window.dispatchEvent(new CustomEvent("roadmap:modeChanged", { detail: existingRoadmap.mode || "discovery" }));
 
         // Load phases + tasks
         let phasesData = await loadPhases(existingRoadmap.id);
@@ -305,15 +298,6 @@ export default function RoadmapPage({ navigate }) {
           }
         }
         setPhases(phasesData);
-
-        // Load confidence history (last 5)
-        const { data: historyData } = await supabase
-          .from("confidence_history")
-          .select("*")
-          .eq("roadmap_id", existingRoadmap.id)
-          .order("created_at", { ascending: false })
-          .limit(5);
-        setConfidenceHistory(historyData || []);
 
         setLoading(false);
         if (isGenerating) setShowGenNote(true);
@@ -358,18 +342,6 @@ export default function RoadmapPage({ navigate }) {
       });
       if (fnError) throw new Error(fnError.message);
 
-      const newScore = result?.newConfidenceScore ?? (roadmap?.confidence_score ?? 0);
-      const delta = result?.confidenceDelta ?? 3;
-      const prevScore = roadmap?.confidence_score ?? 0;
-
-      setRoadmap((prev) => ({ ...prev, confidence_score: newScore }));
-      setConfidenceHistory((prev) => [{
-        id: Date.now(), roadmap_id: roadmap.id, user_id: user.id,
-        previous_score: prevScore, new_score: newScore, delta,
-        reason: "You completed a task — great momentum!", trigger: "task_completed",
-        created_at: new Date().toISOString(),
-      }, ...prev].slice(0, 5));
-
       if (result?.phaseCompleted) {
         setPhases((currentPhases) => {
           const phase = currentPhases.find((p) => p.id === phaseId);
@@ -410,22 +382,10 @@ export default function RoadmapPage({ navigate }) {
     );
 
     try {
-      const { data: result, error: fnError } = await supabase.functions.invoke("complete-task", {
+      const { error: fnError } = await supabase.functions.invoke("complete-task", {
         body: { taskId, action: "flag" },
       });
       if (fnError) throw new Error(fnError.message);
-
-      const newScore = result?.newConfidenceScore ?? (roadmap?.confidence_score ?? 0);
-      const delta = result?.confidenceDelta ?? -4;
-      const prevScore = roadmap?.confidence_score ?? 0;
-
-      setRoadmap((prev) => ({ ...prev, confidence_score: newScore }));
-      setConfidenceHistory((prev) => [{
-        id: Date.now(), roadmap_id: roadmap.id, user_id: user.id,
-        previous_score: prevScore, new_score: newScore, delta,
-        reason: "You flagged a task as not for you — that's useful information.", trigger: "task_flagged_not_for_me",
-        created_at: new Date().toISOString(),
-      }, ...prev].slice(0, 5));
     } catch (err) {
       console.error("[RoadmapPage] flagNotForMe error:", err);
     }
@@ -457,14 +417,6 @@ export default function RoadmapPage({ navigate }) {
     nextPhaseInFlight.current = true;
     setGeneratingNextPhase(true);
 
-    // Cycle through status messages while the edge function runs
-    let stepIdx = 0;
-    setPhaseStatusMsg(PHASE_STATUS_STEPS[0]);
-    phaseStatusTimer.current = setInterval(() => {
-      stepIdx = Math.min(stepIdx + 1, PHASE_STATUS_STEPS.length - 1);
-      setPhaseStatusMsg(PHASE_STATUS_STEPS[stepIdx]);
-    }, 3500);
-
     try {
       await supabase.functions.invoke("generate-phase", {
         body: { userId: user.id, roadmapId: roadmap.id, phaseNumber: targetPhaseNumber },
@@ -481,7 +433,6 @@ export default function RoadmapPage({ navigate }) {
       setError("Failed to generate next phase. Please refresh to try again.");
     } finally {
       clearInterval(phaseStatusTimer.current);
-      setPhaseStatusMsg("");
       nextPhaseInFlight.current = false;
       setGeneratingNextPhase(false);
     }
@@ -505,80 +456,35 @@ export default function RoadmapPage({ navigate }) {
     ensureNextPhase(phases);
   }, [phases, roadmap, user, loading, ensureNextPhase]);
 
-  // ── Mode switch ──────────────────────────────────────────────────────────────
-  const handleModeSwitch = useCallback(async (newMode, careerDirection, existingRoadmapId) => {
-    setShowModeModal(false);
-    if (!roadmap) return;
+  // ── Regenerate roadmap or phase ──────────────────────────────────────────────
+  const handleRegenerate = useCallback(async () => {
+    if (!roadmap || !user) return;
 
-    setLoading(true);
-    setLoadingSlow(true);
-
-    try {
-      // Deactivate the current roadmap
-      await supabase
-        .from("roadmaps")
-        .update({ is_active: false })
-        .eq("id", roadmap.id);
-
-      if (existingRoadmapId) {
-        // User chose to continue an existing roadmap (career or discovery)
-        await supabase
-          .from("roadmaps")
-          .update({ is_active: true })
-          .eq("id", existingRoadmapId);
-      } else if (newMode === "discovery") {
-        // Find the most recent saved discovery roadmap (excluding the one we just deactivated)
-        const { data: prevDiscovery } = await supabase
-          .from("roadmaps")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("mode", "discovery")
-          .neq("id", roadmap.id)
-          .order("created_at", { ascending: false })
-          .limit(1);
-
-        if (prevDiscovery?.length > 0) {
-          await supabase
-            .from("roadmaps")
-            .update({ is_active: true })
-            .eq("id", prevDiscovery[0].id);
-        } else {
-          // No previous discovery roadmap — create fresh via initialize-roadmap
-          await supabase.functions.invoke("initialize-roadmap", {
-            body: { userId: user.id, startingMode: "discovery" }
-          });
-        }
-      } else {
-        // Career mode — create a brand new career roadmap
-        const { data: newRoadmap, error: insertError } = await supabase
-          .from("roadmaps")
-          .insert({
-            user_id: user.id,
-            mode: "career",
-            career_direction: careerDirection,
-            current_phase_number: 1,
-            confidence_score: 50,
-            is_active: true,
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-
-        // Generate phase 1 — await fully before continuing
-        await supabase.functions.invoke("generate-phase", {
-          body: { userId: user.id, roadmapId: newRoadmap.id, phaseNumber: 1 }
-        });
-      }
-
-      // Full page reload — initRan ref resets on new page load
+    if (regeneratePhaseData) {
+      // Phase-level regenerate
+      const { data: result, error: fnError } = await supabase.functions.invoke("regenerate-roadmap", {
+        body: {
+          roadmapId: roadmap.id,
+          phaseId: regeneratePhaseData.phaseId,
+          phaseNumber: regeneratePhaseData.phaseNumber,
+        },
+      });
+      if (fnError || result?.error) throw new Error((fnError?.message || result?.error) || "Phase regeneration failed");
+      // Reload phases
+      const newPhases = await loadPhases(roadmap.id);
+      setPhases(newPhases);
+      setShowRegenerateModal(false);
+      setRegeneratePhaseData(null);
+    } else {
+      // Full roadmap regenerate
+      const { data: result, error: fnError } = await supabase.functions.invoke("regenerate-roadmap", {
+        body: {},
+      });
+      if (fnError || result?.error) throw new Error((fnError?.message || result?.error) || "Regeneration failed");
+      // Full reload so RoadmapPage re-initializes with the new roadmap
       window.location.reload();
-    } catch (err) {
-      console.error("Mode switch failed:", err);
-      setLoading(false);
-      setError("Failed to switch mode: " + (err?.message || "unknown error"));
     }
-  }, [roadmap, user]);
+  }, [roadmap, user, regeneratePhaseData, loadPhases]);
 
   // ── Sticky bar data ──────────────────────────────────────────────────────────
   const activePhase = phases.find((p) => p.status === "active");
@@ -596,10 +502,6 @@ export default function RoadmapPage({ navigate }) {
     ? (activePhase.tasks || []).filter((t) => t.week_number === currentWeek)
     : [];
 
-  // Confidence delta for phase complete modal
-  const phaseCompleteDelta = completedPhaseData
-    ? (completedPhaseData.tasks || []).filter((t) => t.status === "completed").length * 3
-    : 0;
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -658,15 +560,6 @@ export default function RoadmapPage({ navigate }) {
               </motion.div>
             )}
 
-            {/* Confidence meter (discovery mode) */}
-            {roadmap.mode !== "career" && (
-              <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 1rem 0.5rem" }}>
-                <ConfidenceMeter
-                  score={roadmap.confidence_score ?? 0}
-                  onClick={() => setShowConfidencePanel(true)}
-                />
-              </div>
-            )}
             {/* Content area */}
             <div style={{
               background: "transparent",
@@ -677,57 +570,15 @@ export default function RoadmapPage({ navigate }) {
                 margin: "0 auto",
                 padding: "0 1rem 3rem",
               }}>
-                {/* Career direction header (career mode only) */}
-                {roadmap.mode === "career" && roadmap.career_direction && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    style={{
-                      marginBottom: "1.5rem",
-                      padding: "1rem 1.25rem",
-                      background: "rgba(37,99,235,0.05)",
-                      border: "1.5px solid rgba(37,99,235,0.15)",
-                      borderRadius: "1rem",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.75rem",
-                    }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-                    <div>
-                      <p style={{
-                        fontFamily: "'Space Grotesk', sans-serif",
-                        fontSize: "0.7rem",
-                        fontWeight: 700,
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                        color: "#1d4ed8",
-                        marginBottom: "0.2rem",
-                      }}>
-                        Career Direction
-                      </p>
-                      <p style={{
-                        fontFamily: "'Space Grotesk', sans-serif",
-                        fontWeight: 700,
-                        fontSize: "0.95rem",
-                        color: "#0b1340",
-                      }}>
-                        {roadmap.career_direction}
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-
                 {/* Roadmap path */}
                 <RoadmapPath
-                  roadmap={roadmap}
                   phases={phases}
-                  onTaskComplete={completeTask}
-                  onTaskFlagNotForMe={flagNotForMe}
-                  onPhaseComplete={() => {}}
                   generatingNextPhase={generatingNextPhase}
-                  phaseStatusMsg={phaseStatusMsg}
                   navigate={navigate}
+                  onRegeneratePhase={(phaseId, phaseNumber, phaseTitle) => {
+                    setRegeneratePhaseData({ phaseId, phaseNumber, phaseTitle });
+                    setShowRegenerateModal(true);
+                  }}
                 />
               </div>
             </div>
@@ -735,27 +586,15 @@ export default function RoadmapPage({ navigate }) {
         )}
       </div>
 
-      {/* ── Modals & Panels ── */}
+      {/* ── Modals ── */}
 
-      {/* Confidence Panel */}
+      {/* Regenerate Modal */}
       <AnimatePresence>
-        {showConfidencePanel && (
-          <ConfidencePanel
-            score={roadmap?.confidence_score ?? 0}
-            history={confidenceHistory}
-            onClose={() => setShowConfidencePanel(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Mode Switch Modal */}
-      <AnimatePresence>
-        {showModeModal && (
-          <ModeSwitchModal
-            currentMode={roadmap?.mode || "discovery"}
-            userId={user?.id}
-            onConfirm={handleModeSwitch}
-            onCancel={() => setShowModeModal(false)}
+        {showRegenerateModal && (
+          <RegenerateModal
+            phaseTitle={regeneratePhaseData?.phaseTitle || null}
+            onConfirm={handleRegenerate}
+            onCancel={() => { setShowRegenerateModal(false); setRegeneratePhaseData(null); }}
           />
         )}
       </AnimatePresence>
@@ -765,9 +604,6 @@ export default function RoadmapPage({ navigate }) {
         {showPhaseCompleteModal && completedPhaseData && (
           <PhaseCompleteModal
             phase={completedPhaseData}
-            confidenceScore={roadmap?.confidence_score ?? 0}
-            confidenceDelta={phaseCompleteDelta}
-            confidenceReason="Phase complete — you're making real progress."
             onGenerateNext={generateNextPhase}
           />
         )}

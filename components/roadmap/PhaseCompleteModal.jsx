@@ -160,8 +160,8 @@ export default function PhaseCompleteModal({
               {phase.title ? `You wrapped up "${phase.title}".` : ""}
             </motion.p>
 
-            {/* Confidence card */}
-            <motion.div
+            {/* Confidence card — only shown when confidence tracking is active */}
+            {confidenceScore !== undefined && <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.38 }}
@@ -213,7 +213,7 @@ export default function PhaseCompleteModal({
                   )}
                 </div>
               )}
-            </motion.div>
+            </motion.div>}
 
             {/* CTA button */}
             <motion.button

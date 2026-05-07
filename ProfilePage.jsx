@@ -261,12 +261,14 @@ export default function ProfilePage({ navigate }) {
     setDeleting(true);
     setDeleteError(null);
     try {
-      const { error } = await supabase.functions.invoke("delete-account");
+      const { data: deleteData, error } = await supabase.functions.invoke("delete-account");
       if (error) throw error;
+      if (deleteData?.error) throw new Error(deleteData.error);
       await supabase.auth.signOut();
       nav("/");
-    } catch {
-      setDeleteError("Couldn't delete account. Contact support if this persists.");
+    } catch (err) {
+      console.error("[delete-account]", err);
+      setDeleteError(err?.message || "Couldn't delete account. Contact support if this persists.");
       setDeleting(false);
     }
   };
@@ -523,26 +525,7 @@ export default function ProfilePage({ navigate }) {
               </div>
             </div>
 
-            {/* ── Save ─────────────────────────────────────────────────────── */}
-            <div style={{ marginBottom: "2.5rem" }}>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                style={{
-                  padding: "0.7rem 1.75rem",
-                  background: saving ? `${accent}99` : accent,
-                  color: "white", border: "none",
-                  borderRadius: "0.625rem",
-                  fontSize: "0.9rem", fontWeight: 700,
-                  fontFamily: "system-ui, sans-serif",
-                  cursor: saving ? "not-allowed" : "pointer",
-                  boxShadow: saving ? "none" : `0 3px 10px ${accent}44`,
-                  transition: "opacity 0.15s, background 0.15s",
-                }}
-              >
-                {saving ? "Saving…" : "Save changes"}
-              </button>
-            </div>
+            <div style={{ marginBottom: "2.5rem" }} />
 
             {/* ── Danger zone ──────────────────────────────────────────────── */}
             <div style={{ ...card, border: "1px solid #fecaca" }}>
@@ -688,6 +671,51 @@ export default function ProfilePage({ navigate }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Sticky save button ─────────────────────────────────────────────── */}
+      <motion.button
+        onClick={handleSave}
+        disabled={saving}
+        initial={{ opacity: 0, x: 16 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.4, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        style={{
+          position: "fixed",
+          right: "1.5rem",
+          bottom: "2rem",
+          zIndex: 100,
+          padding: "0.75rem 1.5rem",
+          background: saving ? `${accent}99` : accent,
+          color: "white",
+          border: "none",
+          borderRadius: "0.875rem",
+          fontSize: "0.9rem",
+          fontWeight: 700,
+          fontFamily: "system-ui, sans-serif",
+          cursor: saving ? "not-allowed" : "pointer",
+          boxShadow: saving ? "none" : `0 6px 24px ${accent}55, 0 2px 8px rgba(0,0,0,0.12)`,
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          transition: "background 0.15s, box-shadow 0.15s",
+        }}
+      >
+        {saving ? (
+          <>
+            <div style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "white", borderRadius: "50%", animation: "spinner-rotate 0.7s linear infinite", flexShrink: 0 }} />
+            Saving…
+          </>
+        ) : (
+          <>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
+            Save changes
+          </>
+        )}
+      </motion.button>
     </div>
   );
 }

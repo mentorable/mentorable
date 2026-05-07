@@ -24,31 +24,14 @@ function AppShell({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const [roadmapMode, setRoadmapMode] = useState(
-    localStorage.getItem("roadmapMode") || "discovery"
-  );
 
   const showSidebar = SIDEBAR_ROUTES.some(
     (p) => location.pathname === p || location.pathname.startsWith(p + "/")
   );
   const isRoadmap = location.pathname === "/roadmap" || location.pathname.startsWith("/roadmap/");
 
-  // Keep mode label in sync when RoadmapPage sets it
-  useEffect(() => {
-    const handler = (e) => setRoadmapMode(e.detail || localStorage.getItem("roadmapMode") || "discovery");
-    window.addEventListener("roadmap:modeChanged", handler);
-    return () => window.removeEventListener("roadmap:modeChanged", handler);
-  }, []);
-
-  // Re-read localStorage when navigating back to a roadmap route
-  useEffect(() => {
-    if (isRoadmap) {
-      setRoadmapMode(localStorage.getItem("roadmapMode") || "discovery");
-    }
-  }, [isRoadmap]);
-
-  const handleModeClick = isRoadmap
-    ? () => window.dispatchEvent(new CustomEvent("roadmap:openModeModal"))
+  const handleRegenerateClick = isRoadmap
+    ? () => window.dispatchEvent(new CustomEvent("roadmap:openRegenerateModal"))
     : null;
 
   return (
@@ -57,8 +40,7 @@ function AppShell({ children }) {
         <Sidebar
           activePath={location.pathname}
           navigate={navigate}
-          onModeClick={handleModeClick}
-          roadmapMode={roadmapMode}
+          onRegenerateClick={handleRegenerateClick}
         />
       )}
       {children}

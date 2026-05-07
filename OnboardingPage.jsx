@@ -1225,7 +1225,8 @@ export default function OnboardingPage() {
       }
 
       if (!result?.sufficient) {
-        // Not enough info — reset and offer a retry
+        // Not enough info — clear saved partial transcript and offer a retry
+        supabase.from("profiles").update({ raw_voice_transcript: null }).eq("id", freshUser.id).then(() => {});
         endingRef.current = false;
         setTranscript([]);
         transcriptRef.current = [];

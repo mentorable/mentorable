@@ -130,6 +130,7 @@ export default function RoadmapPath({
   phases,
   generatingNextPhase,
   navigate,
+  onRegeneratePhase,
 }) {
   useMemo(() => phases, [phases]);
 
@@ -191,12 +192,34 @@ export default function RoadmapPath({
                   </div>
                 </div>
               ) : (
-                <PhaseHeader
-                  phase={phase}
-                  currentWeek={null}
-                  completedMilestones={completedInPhase}
-                  totalMilestones={phaseTasks.length}
-                />
+                <div style={{ position: "relative" }}>
+                  <PhaseHeader
+                    phase={phase}
+                    currentWeek={null}
+                    completedMilestones={completedInPhase}
+                    totalMilestones={phaseTasks.length}
+                  />
+                  {onRegeneratePhase && (
+                    <button
+                      onClick={() => onRegeneratePhase(phase.id, phase.phase_number, phase.title)}
+                      title="Regenerate this phase"
+                      style={{
+                        position: "absolute", top: "0.75rem", right: "0.75rem",
+                        background: "none", border: "none", cursor: "pointer",
+                        padding: "0.3rem", borderRadius: "0.5rem",
+                        color: "#94a3b8", display: "flex", alignItems: "center",
+                        transition: "color 0.15s, background 0.15s",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = "#1d4ed8"; e.currentTarget.style.background = "rgba(37,99,235,0.07)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = "#94a3b8"; e.currentTarget.style.background = "none"; }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M23 4v6h-6" />
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               )}
             </motion.div>
 
