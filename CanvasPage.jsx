@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -20,7 +20,6 @@ import { useIsMobile } from "./hooks/useIsMobile.js";
 
 const FONT = "'Space Grotesk', sans-serif";
 const BG = "#0f1117";
-const CANVAS_DARK = "#13161e";
 
 // ─── Node type configs ────────────────────────────────────────────────────────
 
@@ -710,17 +709,18 @@ function CanvasInner({ userId }) {
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [typePicker, setTypePicker] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
 
   const saveTimer = useRef(null);
+  const didLoad = useRef(false);
 
-  // ── Load ────────────────────────────────────────────────────────────────────
+  // ── Load from Supabase when userId resolves ─────────────────────────────────
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || didLoad.current) return;
+    didLoad.current = true;
     const load = async () => {
       const { data } = await supabase
         .from("student_canvas")
@@ -730,9 +730,8 @@ function CanvasInner({ userId }) {
       if (data) {
         setNodes(data.nodes || []);
         setEdges(data.edges || []);
+        setTimeout(() => fitView({ padding: 0.15 }), 100);
       }
-      setLoaded(true);
-      setTimeout(() => fitView({ padding: 0.15 }), 100);
     };
     load();
   }, [userId]);
@@ -751,13 +750,12 @@ function CanvasInner({ userId }) {
     }, 1500);
   }, [userId]);
 
-  // Trigger save whenever nodes or edges change (after initial load)
+  // Trigger save whenever nodes or edges change (skip very first render)
   const isFirstRender = useRef(true);
   useEffect(() => {
-    if (!loaded) return;
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     schedulesSave(nodes, edges);
-  }, [nodes, edges, loaded]);
+  }, [nodes, edges]);
 
   // ── Connections ─────────────────────────────────────────────────────────────
   const onConnect = useCallback((params) => {
@@ -831,17 +829,8 @@ function CanvasInner({ userId }) {
     console.log("[CanvasPage] applyCanvasUpdate:", instruction);
   }, []);
 
-  if (!loaded) {
-    return (
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: BG }}>
-        <div style={{ width: 28, height: 28, borderRadius: "50%", border: "2.5px solid #1d4ed8", borderTopColor: "transparent", animation: "spin 0.7s linear infinite" }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ flex: 1, position: "relative" }} onClick={() => { setContextMenu(null); }}>
+    <div style={{ position: "absolute", inset: 0 }} onClick={() => { setContextMenu(null); }}>
       <Toolbar
         onAddNode={addNodeCentered}
         onClearEdges={clearEdges}
@@ -929,8 +918,6 @@ export default function CanvasPage() {
       top: 0, bottom: 0,
       left: sideOffset,
       right: 0,
-      display: "flex",
-      flexDirection: "column",
       background: BG,
       overflow: "hidden",
     }}>
