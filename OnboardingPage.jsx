@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useConversation } from "@elevenlabs/react";
+import { useConversation, ConversationProvider } from "@elevenlabs/react";
 import { supabase } from "./lib/supabase.js";
 import Spinner from "./components/common/Spinner.jsx";
 import { VoicePoweredOrb } from "./components/common/VoicePoweredOrb.jsx";
@@ -1020,7 +1020,8 @@ function RecoveryPhase({ userId, onSuccess, onRetry }) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function OnboardingPage() {
+// Must be rendered inside <ConversationProvider> (v1.x requirement).
+function OnboardingPageInner() {
   const [phase, setPhase]               = useState("loading");
   const [transcript, setTranscript]     = useState([]);
   const [elapsed, setElapsed]           = useState(0);
@@ -1081,6 +1082,26 @@ export default function OnboardingPage() {
   // NOTE: To further reduce premature termination, set the ElevenLabs agent's
   // "Eagerness" to Low in the ElevenLabs dashboard. This cannot be changed from code.
   const conversation = useConversation({
+    onConnect: () => {
+      // startSession() is now void in v1.x — session-ready work moves here.
+      setPhase("active");
+      setStartingConv(false);
+      if (demographics.fullName || demographics.educationLevel || demographics.state) {
+        const parts = [];
+        if (demographics.fullName) {
+          parts.push(`The student's name is ${demographics.fullName} — please address them by name throughout the conversation.`);
+        }
+        if (demographics.educationLevel) {
+          const levelLabel = { high_school: "High School", college: "College / University", other: "Other" }[demographics.educationLevel] ?? demographics.educationLevel;
+          const gradeLabel = { "9": "9th grade", "10": "10th grade", "11": "11th grade", "12": "12th grade", "1": "1st year (Freshman)", "2": "2nd year (Sophomore)", "3": "3rd year (Junior)", "4": "4th year (Senior)" }[demographics.gradeYear ?? ""] ?? null;
+          parts.push(`They are a ${levelLabel} student${gradeLabel ? `, ${gradeLabel}` : ""}.`);
+        }
+        if (demographics.state) {
+          parts.push(`They are based in ${demographics.state}.`);
+        }
+        try { conversation.sendContextualUpdate(parts.join(" ")); } catch (_) { /* best-effort */ }
+      }
+    },
     onVadScore: ({ vadScore }) => {
       // VAD score > 0.3 means the user is actively speaking. Reset the silence
       // timer so a long spoken response doesn't trigger the auto-end before
@@ -1118,7 +1139,7 @@ export default function OnboardingPage() {
     onError: (err) => {
       console.error("[ElevenLabs] onError:", err);
       const msg = typeof err === "string" ? err : "Connection error. Please try again.";
-      setError(msg); setPhase("error");
+      setError(msg); setPhase("error"); setStartingConv(false);
     },
   });
 
@@ -1167,7 +1188,7 @@ export default function OnboardingPage() {
   }, [phase]);
 
   useEffect(() => {
-    return () => { conversation.endSession().catch(() => {}); };
+    return () => { conversation.endSession(); }; // void in v1.x
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1179,39 +1200,17 @@ export default function OnboardingPage() {
     } catch {
       setPhase("mic-denied"); setStartingConv(false); return;
     }
-    try {
-      // Start the session exactly as before — no overrides that could be rejected by the agent config
-      await conversation.startSession({ agentId: AGENT_ID });
-      setPhase("active");
-      // After the session is live, send demographic context via sendContextualUpdate.
-      // This is the safe, supported way to inject context without touching session init.
-      if (demographics.fullName || demographics.educationLevel || demographics.state) {
-        const parts = [];
-        if (demographics.fullName) {
-          parts.push(`The student's name is ${demographics.fullName} — please address them by name throughout the conversation.`);
-        }
-        if (demographics.educationLevel) {
-          const levelLabel = { high_school: "High School", college: "College / University", other: "Other" }[demographics.educationLevel] ?? demographics.educationLevel;
-          const gradeLabel = { "9": "9th grade", "10": "10th grade", "11": "11th grade", "12": "12th grade", "1": "1st year (Freshman)", "2": "2nd year (Sophomore)", "3": "3rd year (Junior)", "4": "4th year (Senior)" }[demographics.gradeYear ?? ""] ?? null;
-          parts.push(`They are a ${levelLabel} student${gradeLabel ? `, ${gradeLabel}` : ""}.`);
-        }
-        if (demographics.state) {
-          parts.push(`They are based in ${demographics.state}.`);
-        }
-        try { conversation.sendContextualUpdate(parts.join(" ")); } catch (_) { /* best-effort */ }
-      }
-    } catch (err) {
-      setError(err?.message || "Failed to connect. Please try again.");
-      setPhase("error");
-    }
-    setStartingConv(false);
+    // startSession() is void in v1.x — connection is async; onConnect handles
+    // setPhase("active"), sendContextualUpdate, and setStartingConv(false).
+    // Errors surface through onError.
+    conversation.startSession({ agentId: AGENT_ID });
   };
 
   const endConversation = async () => {
     if (endingRef.current) return;
     endingRef.current = true;
     clearInterval(timerRef.current);
-    try { await conversation.endSession(); } catch { /* already closed */ }
+    conversation.endSession(); // void in v1.x
     setPhase("processing");
     try {
       const { data: { user: freshUser } } = await supabase.auth.getUser();
@@ -1340,5 +1339,15 @@ export default function OnboardingPage() {
         {phase === "mic-denied" && <MicDeniedPhase  key="mic-denied" onRetry={() => setPhase("intro")}/>}
       </AnimatePresence>
     </div>
+  );
+}
+
+// ConversationProvider is required by @elevenlabs/react v1.x — useConversation
+// must be called within this context or it throws at runtime.
+export default function OnboardingPage() {
+  return (
+    <ConversationProvider>
+      <OnboardingPageInner />
+    </ConversationProvider>
   );
 }
