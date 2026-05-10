@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useConversation, ConversationProvider } from "@elevenlabs/react";
+import { useConversation } from "@elevenlabs/react";
 import { supabase } from "./lib/supabase.js";
 import Spinner from "./components/common/Spinner.jsx";
 import { VoicePoweredOrb } from "./components/common/VoicePoweredOrb.jsx";
@@ -1020,8 +1020,7 @@ function RecoveryPhase({ userId, onSuccess, onRetry }) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-// Must be rendered inside <ConversationProvider> (v1.x requirement).
-function OnboardingPageInner() {
+export default function OnboardingPage() {
   const [phase, setPhase]               = useState("loading");
   const [transcript, setTranscript]     = useState([]);
   const [elapsed, setElapsed]           = useState(0);
@@ -1069,29 +1068,7 @@ function OnboardingPageInner() {
     setPhase("intro");
   };
 
-  // NOTE: To further reduce premature termination, set the ElevenLabs agent's
-  // "Eagerness" to Low in the ElevenLabs dashboard. This cannot be changed from code.
   const conversation = useConversation({
-    onConnect: () => {
-      // startSession() is now void in v1.x — session-ready work moves here.
-      setPhase("active");
-      setStartingConv(false);
-      if (demographics.fullName || demographics.educationLevel || demographics.state) {
-        const parts = [];
-        if (demographics.fullName) {
-          parts.push(`The student's name is ${demographics.fullName} — please address them by name throughout the conversation.`);
-        }
-        if (demographics.educationLevel) {
-          const levelLabel = { high_school: "High School", college: "College / University", other: "Other" }[demographics.educationLevel] ?? demographics.educationLevel;
-          const gradeLabel = { "9": "9th grade", "10": "10th grade", "11": "11th grade", "12": "12th grade", "1": "1st year (Freshman)", "2": "2nd year (Sophomore)", "3": "3rd year (Junior)", "4": "4th year (Senior)" }[demographics.gradeYear ?? ""] ?? null;
-          parts.push(`They are a ${levelLabel} student${gradeLabel ? `, ${gradeLabel}` : ""}.`);
-        }
-        if (demographics.state) {
-          parts.push(`They are based in ${demographics.state}.`);
-        }
-        try { conversation.sendContextualUpdate(parts.join(" ")); } catch (_) { /* best-effort */ }
-      }
-    },
     onMessage: (msg) => {
       // ElevenLabs SDK may use msg.source ("user"/"ai") or msg.role ("user"/"agent")
       const role    = msg.role ?? (msg.source === "ai" ? "agent" : "user");
@@ -1140,7 +1117,7 @@ function OnboardingPageInner() {
   }, [phase]);
 
   useEffect(() => {
-    return () => { conversation.endSession(); }; // void in v1.x
+    return () => { conversation.endSession().catch(() => {}); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1152,15 +1129,36 @@ function OnboardingPageInner() {
     } catch {
       setPhase("mic-denied"); setStartingConv(false); return;
     }
-    // startSession() is void in v1.x — connection is async; onConnect handles
-    // setPhase("active"), sendContextualUpdate, and setStartingConv(false).
-    // Errors surface through onError.
-    conversation.startSession({ agentId: AGENT_ID });
+    try {
+      await conversation.startSession({ agentId: AGENT_ID });
+      setPhase("active");
+      if (demographics.fullName || demographics.educationLevel || demographics.state) {
+        const parts = [];
+        if (demographics.fullName) {
+          parts.push(`The student's name is ${demographics.fullName} — please address them by name throughout the conversation.`);
+        }
+        if (demographics.educationLevel) {
+          const levelLabel = { high_school: "High School", college: "College / University", other: "Other" }[demographics.educationLevel] ?? demographics.educationLevel;
+          const gradeLabel = { "9": "9th grade", "10": "10th grade", "11": "11th grade", "12": "12th grade", "1": "1st year (Freshman)", "2": "2nd year (Sophomore)", "3": "3rd year (Junior)", "4": "4th year (Senior)" }[demographics.gradeYear ?? ""] ?? null;
+          parts.push(`They are a ${levelLabel} student${gradeLabel ? `, ${gradeLabel}` : ""}.`);
+        }
+        if (demographics.state) {
+          parts.push(`They are based in ${demographics.state}.`);
+        }
+        try { conversation.sendContextualUpdate(parts.join(" ")); } catch (_) { /* best-effort */ }
+      }
+    } catch (err) {
+      console.error("[ElevenLabs] startSession error:", err);
+      setError(typeof err === "string" ? err : "Connection error. Please try again.");
+      setPhase("error");
+    } finally {
+      setStartingConv(false);
+    }
   };
 
   const endConversation = async () => {
     clearInterval(timerRef.current);
-    conversation.endSession(); // void in v1.x
+    try { await conversation.endSession(); } catch { /* already closed */ }
     setPhase("processing");
     try {
       const { data: { user: freshUser } } = await supabase.auth.getUser();
@@ -1281,7 +1279,7 @@ function OnboardingPageInner() {
         {phase === "intro"      && <IntroPhase      key="intro"      onStart={startConversation} loading={startingConv} retryNotice={retryNotice}/>}
         {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} transcriptEndRef={transcriptEndRef}/>}
         {phase === "processing" && <ProcessingPhase key="processing"/>}
-        {phase === "recovery"   && <RecoveryPhase   key="recovery"   userId={user?.id} onSuccess={() => { window.location.href = "/scorecard"; }} onRetry={() => { endingRef.current = false; setPhase("intro"); }}/>}
+        {phase === "recovery"   && <RecoveryPhase   key="recovery"   userId={user?.id} onSuccess={() => { window.location.href = "/scorecard"; }} onRetry={() => { setPhase("intro"); }}/>}
         {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("demographics"); }}/>}
         {phase === "mic-denied" && <MicDeniedPhase  key="mic-denied" onRetry={() => setPhase("intro")}/>}
       </AnimatePresence>
@@ -1289,12 +1287,3 @@ function OnboardingPageInner() {
   );
 }
 
-// ConversationProvider is required by @elevenlabs/react v1.x — useConversation
-// must be called within this context or it throws at runtime.
-export default function OnboardingPage() {
-  return (
-    <ConversationProvider>
-      <OnboardingPageInner />
-    </ConversationProvider>
-  );
-}
