@@ -1034,8 +1034,9 @@ export default function OnboardingPage() {
   const transcriptEndRef = useRef(null);
   const timerRef         = useRef(null);
   const transcriptRef    = useRef([]);
-  const endingRef           = useRef(false); // prevents double-trigger from onDisconnect + manual end
-  const endConversationRef  = useRef(null);  // stable ref so onDisconnect closure always calls latest fn
+  const endingRef            = useRef(false); // prevents double-trigger from onDisconnect + manual end
+  const endConversationRef   = useRef(null);  // stable ref so onDisconnect closure always calls latest fn
+  const disconnectTimerRef   = useRef(null);  // debounce: brief WebSocket drops shouldn't end the session
   const conversationStartedAtRef = useRef(null);
   const lastMessageAtRef         = useRef(null);
 
@@ -1078,7 +1079,14 @@ export default function OnboardingPage() {
     setPhase("intro");
   };
 
+  // NOTE: To further reduce premature termination, set the ElevenLabs agent's
+  // "Eagerness" to Low in the ElevenLabs dashboard. This cannot be changed from code.
   const conversation = useConversation({
+    onConnect: () => {
+      // Connection (re-)established — cancel any pending disconnect-triggered end.
+      clearTimeout(disconnectTimerRef.current);
+      disconnectTimerRef.current = null;
+    },
     onVadScore: ({ vadScore }) => {
       // VAD score > 0.3 means the user is actively speaking. Reset the silence
       // timer so a long spoken response doesn't trigger the auto-end before
@@ -1108,8 +1116,12 @@ export default function OnboardingPage() {
       });
     },
     onDisconnect: () => {
-      // Fires when the agent ends the session from its side — auto-advance to processing
-      endConversationRef.current?.();
+      // Don't end immediately — a brief WebSocket blip can trigger onDisconnect
+      // even mid-sentence. Wait 4 s; if onConnect fires first, cancel the end.
+      disconnectTimerRef.current = setTimeout(() => {
+        disconnectTimerRef.current = null;
+        endConversationRef.current?.();
+      }, 4000);
     },
     onError: (err) => {
       console.error("[ElevenLabs] onError:", err);
@@ -1207,6 +1219,8 @@ export default function OnboardingPage() {
     if (endingRef.current) return;
     endingRef.current = true;
     endConversationRef.current = null; // prevent any further onDisconnect re-entry
+    clearTimeout(disconnectTimerRef.current);
+    disconnectTimerRef.current = null;
     clearInterval(timerRef.current);
     try { await conversation.endSession(); } catch { /* already closed */ }
     setPhase("processing");
