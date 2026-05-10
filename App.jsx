@@ -6,6 +6,7 @@ import OnboardingPage from "./OnboardingPage.jsx";
 import ScorecardPage from "./ScorecardPage.jsx";
 import RoadmapPage from "./RoadmapPage.jsx";
 import PreRoadmapPage from "./PreRoadmapPage.jsx";
+import CanvasPage from "./CanvasPage.jsx";
 import TaskDetailPage from "./components/task/TaskDetailPage.jsx";
 import RoadmapPreviewPage from "./components/roadmap-preview/RoadmapPreviewPage.jsx";
 import ChatPage from "./ChatPage.jsx";
@@ -18,7 +19,7 @@ import { useIsMobile } from "./hooks/useIsMobile.js";
 import { supabase } from "./lib/supabase.js";
 
 // Routes that show the persistent sidebar
-const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/research", "/roadmap"];
+const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/research", "/roadmap", "/canvas"];
 
 function AppShell({ children }) {
   const location = useLocation();
@@ -124,6 +125,7 @@ export default function App() {
         <Route path="/research" element={<ResearchRoute />} />
         <Route path="/roadmap/task/:taskId" element={<ErrorBoundary><TaskDetailRoute /></ErrorBoundary>} />
         <Route path="/roadmap" element={<ErrorBoundary><RoadmapRoute /></ErrorBoundary>} />
+        <Route path="/canvas" element={<ErrorBoundary><CanvasPage /></ErrorBoundary>} />
         <Route path="/roadmap-preview" element={<RoadmapPreviewPage />} />
         <Route path="/" element={<LandingPage />} />
         <Route path="*" element={<LandingPage />} />

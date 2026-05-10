@@ -4,12 +4,15 @@ const FONT = "'Space Grotesk', sans-serif";
 
 const NAV_ITEMS = [
   {
-    key: "roadmap",
-    label: "Roadmap",
-    path: "/roadmap",
+    key: "canvas",
+    label: "Canvas",
+    path: "/canvas",
     icon: (active) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 12h4l3-9 4 18 3-9h4" />
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
       </svg>
     ),
   },
