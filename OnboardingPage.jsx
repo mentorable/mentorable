@@ -6,6 +6,7 @@ import Spinner from "./components/common/Spinner.jsx";
 import { VoicePoweredOrb } from "./components/common/VoicePoweredOrb.jsx";
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
+const MAX_CALL_SECONDS = 360; // ElevenLabs hard-cuts at ~6:05 — end on our side first
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const BG      = "#fafbff";
@@ -701,9 +702,19 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef 
             }}/>
             <span style={{ fontFamily:SANS, fontWeight:600, fontSize:"0.72rem", color:"#16a34a", letterSpacing:"0.04em" }}>LIVE</span>
           </div>
-          <span style={{ fontFamily:MONO, fontSize:"0.82rem", color:TEXT2, letterSpacing:"0.04em", fontWeight:500 }}>
-            {formatTime(elapsed)}
-          </span>
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:2 }}>
+            <span style={{
+              fontFamily:MONO, fontSize:"0.82rem", letterSpacing:"0.04em", fontWeight:500,
+              color: elapsed >= 330 ? "#ef4444" : elapsed >= 300 ? "#f59e0b" : TEXT2,
+            }}>
+              {formatTime(elapsed)}
+            </span>
+            {elapsed >= 330 && (
+              <span style={{ fontFamily:MONO, fontSize:"0.65rem", color:"#ef4444", letterSpacing:"0.03em" }}>
+                {360 - elapsed}s remaining
+              </span>
+            )}
+          </div>
         </div>
       </motion.div>
 
@@ -1115,6 +1126,12 @@ export default function OnboardingPage() {
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(timerRef.current);
   }, [phase]);
+
+  useEffect(() => {
+    if (phase === "active" && elapsed >= MAX_CALL_SECONDS) {
+      endConversation();
+    }
+  }, [elapsed, phase]);
 
   useEffect(() => {
     return () => { conversation.endSession().catch(() => {}); };
