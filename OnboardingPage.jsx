@@ -1042,7 +1042,7 @@ export default function OnboardingPage() {
   // Auto-end thresholds — protect against runaway ElevenLabs sessions that
   // burn credits when the agent doesn't terminate the call on its own.
   const MAX_DURATION_MS    = 7 * 60 * 1000; // 7 min hard cap
-  const SILENCE_TIMEOUT_MS = 35 * 1000;     // 35s of no new transcript messages after exchange started
+  const SILENCE_TIMEOUT_MS = 90 * 1000;     // 90s — long enough for ElevenLabs to process a lengthy response
   const INITIAL_SILENCE_MS = 60 * 1000;     // 60s with no messages at all = stalled / broken
 
   useEffect(() => {
@@ -1079,6 +1079,12 @@ export default function OnboardingPage() {
   };
 
   const conversation = useConversation({
+    onVadScore: ({ vadScore }) => {
+      // VAD score > 0.3 means the user is actively speaking. Reset the silence
+      // timer so a long spoken response doesn't trigger the auto-end before
+      // ElevenLabs has had a chance to emit the transcript message.
+      if (vadScore > 0.3) lastMessageAtRef.current = Date.now();
+    },
     onMessage: (msg) => {
       // ElevenLabs SDK may use msg.source ("user"/"ai") or msg.role ("user"/"agent")
       const role    = msg.role ?? (msg.source === "ai" ? "agent" : "user");
