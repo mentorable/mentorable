@@ -1035,16 +1035,6 @@ function OnboardingPageInner() {
   const transcriptEndRef = useRef(null);
   const timerRef         = useRef(null);
   const transcriptRef    = useRef([]);
-  const endingRef          = useRef(false); // prevents auto-timer + manual-click from both firing
-  const endConversationRef = useRef(null);  // stable ref so interval callbacks always call latest fn
-  const conversationStartedAtRef = useRef(null);
-  const lastMessageAtRef         = useRef(null);
-
-  // Auto-end thresholds — protect against runaway ElevenLabs sessions that
-  // burn credits when the agent doesn't terminate the call on its own.
-  const MAX_DURATION_MS    = 7 * 60 * 1000; // 7 min hard cap
-  const SILENCE_TIMEOUT_MS = 90 * 1000;     // 90s — long enough for ElevenLabs to process a lengthy response
-  const INITIAL_SILENCE_MS = 60 * 1000;     // 60s with no messages at all = stalled / broken
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -1102,19 +1092,12 @@ function OnboardingPageInner() {
         try { conversation.sendContextualUpdate(parts.join(" ")); } catch (_) { /* best-effort */ }
       }
     },
-    onVadScore: ({ vadScore }) => {
-      // VAD score > 0.3 means the user is actively speaking. Reset the silence
-      // timer so a long spoken response doesn't trigger the auto-end before
-      // ElevenLabs has had a chance to emit the transcript message.
-      if (vadScore > 0.3) lastMessageAtRef.current = Date.now();
-    },
     onMessage: (msg) => {
       // ElevenLabs SDK may use msg.source ("user"/"ai") or msg.role ("user"/"agent")
       const role    = msg.role ?? (msg.source === "ai" ? "agent" : "user");
       const message = msg.message ?? msg.text ?? "";
       if (!message) return; // skip empty frames
       const newMsg = { role, message, id: `${Date.now()}-${Math.random()}` };
-      lastMessageAtRef.current = Date.now();
       setTranscript((prev) => {
         const next = [...prev, newMsg];
         transcriptRef.current = next;
@@ -1132,8 +1115,8 @@ function OnboardingPageInner() {
     },
     onDisconnect: () => {
       // Intentionally a no-op: onDisconnect fires on normal ElevenLabs turn
-      // transitions, not only on real session ends. Auto-end timers and the
-      // manual End button are the only things that should trigger endConversation.
+      // transitions, not only on real session ends. Only the manual End button
+      // should trigger endConversation.
       console.log("[ElevenLabs] onDisconnect fired (ignored)");
     },
     onError: (err) => {
@@ -1152,38 +1135,7 @@ function OnboardingPageInner() {
       clearInterval(timerRef.current);
       return;
     }
-
-    conversationStartedAtRef.current = Date.now();
-    lastMessageAtRef.current = Date.now();
-
-    timerRef.current = setInterval(() => {
-      const now        = Date.now();
-      const elapsedMs  = now - (conversationStartedAtRef.current ?? now);
-      const sinceLast  = now - (lastMessageAtRef.current ?? now);
-      const hasMessages = transcriptRef.current.length > 0;
-
-      setElapsed(Math.floor(elapsedMs / 1000));
-
-      // Hard cap — never let a session run past this regardless of state.
-      if (elapsedMs >= MAX_DURATION_MS) {
-        console.log("[Onboarding] auto-ending: max duration reached");
-        endConversationRef.current?.();
-        return;
-      }
-      // After conversation has produced messages, end on extended silence.
-      if (hasMessages && sinceLast >= SILENCE_TIMEOUT_MS) {
-        console.log("[Onboarding] auto-ending: silence after exchange");
-        endConversationRef.current?.();
-        return;
-      }
-      // Long initial silence with no messages at all — likely broken/abandoned.
-      if (!hasMessages && elapsedMs >= INITIAL_SILENCE_MS) {
-        console.log("[Onboarding] auto-ending: no conversation initiated");
-        endConversationRef.current?.();
-        return;
-      }
-    }, 1000);
-
+    timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(timerRef.current);
   }, [phase]);
 
@@ -1207,8 +1159,6 @@ function OnboardingPageInner() {
   };
 
   const endConversation = async () => {
-    if (endingRef.current) return;
-    endingRef.current = true;
     clearInterval(timerRef.current);
     conversation.endSession(); // void in v1.x
     setPhase("processing");
@@ -1235,7 +1185,6 @@ function OnboardingPageInner() {
       if (!result?.sufficient) {
         // Not enough info — clear saved partial transcript and offer a retry
         supabase.from("profiles").update({ raw_voice_transcript: null }).eq("id", freshUser.id).then(() => {});
-        endingRef.current = false;
         setTranscript([]);
         transcriptRef.current = [];
         setElapsed(0);
@@ -1266,8 +1215,6 @@ function OnboardingPageInner() {
       setPhase("error");
     }
   };
-  // Keep ref current so auto-end interval callbacks always call the latest closure
-  endConversationRef.current = endConversation;
 
   if (phase === "loading") {
     return (
