@@ -676,7 +676,7 @@ function DataFlow() {
   const steps=[
     {n:1,stat:"2 min",sub:"voice interview",title:"Voice Onboarding",desc:"Our AI listens to your 2-minute voice interview and extracts your profile, values, and career instincts automatically."},
     {n:2,stat:"92",sub:"avg score",title:"Skill Scorecard",desc:"See your 5-axis skill radar, top career path matches, and personalized strengths, all drawn from your voice data."},
-    {n:3,stat:"4",sub:"phases",title:"Adaptive Roadmap",desc:"Phase-by-phase milestones generated from your unique scorecard, updated as you hit goals and grow."},
+    {n:3,stat:"1",sub:"shared workspace",title:"Our Mind",desc:"A living board where your goals, tasks, and Mentorable's understanding of you stay visible, editable, and connected."},
     {n:4,stat:"24/7",sub:"availability",title:"AI Guidance",desc:"Ask anything, anytime. Every answer is grounded in your personal data, not generic advice."},
   ];
   const NODE_X=[125,375,625,875];
@@ -1052,7 +1052,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.72, ease: [0.16, 1, 0.3, 1] }}
             style={{fontFamily:SANS,fontWeight:400,fontSize:"1.05rem",color:"rgba(255,255,255,0.48)",
               lineHeight:1.9,maxWidth:480,margin:"0 0 2.75rem"}}>
-            Discover your strengths, build a personalized roadmap, and find real opportunities. No counselor network required.
+            Discover your strengths, build a shared plan in Our Mind, and find real opportunities. No counselor network required.
           </motion.p>
 
           {/* Buttons */}
@@ -1137,9 +1137,9 @@ export default function LandingPage() {
               items:["5-dimension skill radar","Top career path matches","Strength and growth labels","Downloadable + shareable"],
               visual:<ScoreVisual/>,
               bg:"linear-gradient(135deg,#eef2ff 0%,#c7d2fe 55%,#eef2ff 100%)"},
-            {tag:"ROADMAP",title:"Follow your path.",
-              desc:"A phase-by-phase career guide built specifically for you, updated as you take action and grow toward your goals.",
-              items:["Phase-by-phase milestones","Adaptive to your progress","Confidence direction score","Unlocks as you grow"],
+            {tag:"OUR MIND",title:"Shape your direction.",
+              desc:"A shared workspace between you and Mentorable where goals, tasks, opportunities, and self-understanding stay visible and editable.",
+              items:["Editable goals and tasks","AI perspective you can refine","Living opportunity board","Shared context that evolves with you"],
               visual:<RoadmapCard/>,
               bg:"linear-gradient(135deg,#faf5ff 0%,#ddd6fe 55%,#faf5ff 100%)"},
           ].map((feat,i)=>(
@@ -1230,7 +1230,7 @@ export default function LandingPage() {
             <Heading italic="Ask" rest="anything." size="clamp(2.8rem,5vw,4rem)" light/>
             <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.95rem",
               color:"rgba(255,255,255,0.48)",lineHeight:1.95,maxWidth:480,marginTop:"1.1rem"}}>
-              Every answer is grounded in your personal scorecard, roadmap, and real-world progress. Not generic advice.
+              Every answer is grounded in your personal scorecard, Our Mind, and real-world progress. Not generic advice.
             </p>
           </FadeUp>
           <FadeUp delay={0.1}>
@@ -1375,7 +1375,7 @@ export default function LandingPage() {
             {[
               {tag:"PRODUCT",title:"Introducing Mentorable: AI-powered career guidance built for every high schooler",date:"March 2025"},
               {tag:"BEHIND THE BUILD",title:"How we built the voice interview: 2 minutes that change everything",date:"February 2025"},
-              {tag:"PRODUCT",title:"Mentorable launches adaptive roadmap: your career path, updated in real time",date:"January 2025"},
+              {tag:"PRODUCT",title:"Mentorable launches Our Mind: a shared workspace for student and AI",date:"January 2025"},
             ].map(post=>(
               <motion.div key={post.title} variants={iV}
                 whileHover={{scale:1.02,boxShadow:SH_LG}}
@@ -1439,7 +1439,7 @@ export default function LandingPage() {
               </p>
             </div>
             {[
-              {heading:"Features",links:["Voice Onboarding","Scorecard","Roadmap","AI Guidance"]},
+              {heading:"Features",links:["Voice Onboarding","Scorecard","Our Mind","AI Guidance"]},
               {heading:"Resources",links:["About","Blog","Help Center","Legal"]},
               {heading:"Company",links:["Careers","Contact","Privacy Policy","Terms"]},
             ].map(col=>(

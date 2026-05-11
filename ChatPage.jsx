@@ -472,7 +472,7 @@ function WelcomeScreen({ onSend, userName }) {
           Good {timeOfDay}{firstName ? `, ${firstName}` : ""}.
         </h2>
         <p style={{ fontFamily: SG, fontSize: 14, color: "#64748b", fontWeight: 500, maxWidth: 380, lineHeight: 1.6 }}>
-          What's on your mind? Ask about your roadmap, career options, or anything you're working through.
+          What's on your mind? Ask about Our Mind, career options, or anything you're working through.
         </p>
       </motion.div>
 
@@ -737,7 +737,7 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
 export default function ChatPage({ navigate }) {
   const [user, setUser]         = useState(null);
   const [profile, setProfile]   = useState(null);
-  const [roadmap, setRoadmap]   = useState(null);
+  const [ourMind, setOurMind]   = useState(null);
   const [sessions, setSessions] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -749,9 +749,16 @@ export default function ChatPage({ navigate }) {
   const skipHydrationRef = useRef(false);
   const systemPromptRef  = useRef("");
 
+  const refreshOurMind = useCallback(async (userId) => {
+    const { data } = await supabase.from("student_canvas").select("nodes, edges").eq("user_id", userId).maybeSingle();
+    const nextMind = { nodes: data?.nodes || [], edges: data?.edges || [] };
+    setOurMind(nextMind);
+    return nextMind;
+  }, []);
+
   useEffect(() => {
-    systemPromptRef.current = buildSystemPrompt(profile, roadmap);
-  }, [profile, roadmap]);
+    systemPromptRef.current = buildSystemPrompt(profile, ourMind);
+  }, [profile, ourMind]);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -759,26 +766,16 @@ export default function ChatPage({ navigate }) {
       const uid = data.user.id;
       setUser(data.user);
 
-      const [sessionsRes, profileRes, roadmapRes] = await Promise.all([
+      const [sessionsRes, profileRes, ourMindRes] = await Promise.all([
         supabase.from("chat_sessions").select("id, title, messages, created_at, updated_at")
           .eq("user_id", uid).order("updated_at", { ascending: false }),
         supabase.from("profiles").select("*").eq("id", uid).single(),
-        supabase.from("career_roadmaps").select("id, career_title, mode, career_direction").eq("user_id", uid).eq("is_active", true).single(),
+        supabase.from("student_canvas").select("nodes, edges").eq("user_id", uid).maybeSingle(),
       ]);
 
       if (sessionsRes.data) setSessions(sessionsRes.data);
       if (profileRes.data)  setProfile(profileRes.data);
-
-      if (roadmapRes.data) {
-        const { data: phases } = await supabase
-          .from("roadmap_phases")
-          .select("*, tasks:roadmap_tasks(id, title, status, week_number)")
-          .eq("roadmap_id", roadmapRes.data.id)
-          .order("phase_number", { ascending: true });
-        const fullRoadmap = { ...roadmapRes.data, phases: phases || [] };
-        setRoadmap(fullRoadmap);
-        localStorage.setItem("roadmapMode", fullRoadmap.mode || "discovery");
-      }
+      setOurMind({ nodes: ourMindRes.data?.nodes || [], edges: ourMindRes.data?.edges || [] });
     });
   }, []);
 
@@ -835,7 +832,7 @@ export default function ChatPage({ navigate }) {
       historyBeforeSend = [...messages, userMsg];
     }
 
-    const withUser = [...historyBeforeSend.filter((m) => m.id !== aiMsgId)];
+      const withUser = [...historyBeforeSend.filter((m) => m.id !== aiMsgId)];
     setMessages([...withUser, aiMsgBase]);
     setStreaming(true);
 
@@ -861,6 +858,24 @@ export default function ChatPage({ navigate }) {
             messages: finalMessages, updated_at: new Date().toISOString(),
           }).eq("id", sessionId);
           if (saveError) console.error("[Chat] failed to save messages:", saveError.message);
+          try {
+            const syncPrompt = [
+              `User said: ${text}`,
+              `Mentorable replied: ${fullText.slice(0, 900)}`,
+              "Update Our Mind with any new identity signal, memory, agent behavior adjustment, or weekly mission that should exist because of this conversation.",
+            ].join("\n\n");
+
+            const { data: syncedMind } = await supabase.functions.invoke("refine-our-mind", {
+              body: { eventType: "chat", prompt: syncPrompt },
+            });
+            if (syncedMind?.nodes) {
+              setOurMind({ nodes: syncedMind.nodes || [], edges: syncedMind.edges || [] });
+            } else {
+              await refreshOurMind(user.id);
+            }
+          } catch (mindError) {
+            console.error("[Chat] failed to sync Our Mind:", mindError);
+          }
           await refreshSessions(user.id);
           skipHydrationRef.current = false;
         },
@@ -874,7 +889,7 @@ export default function ChatPage({ navigate }) {
         messages: withUser, updated_at: new Date().toISOString(),
       }).eq("id", sessionId);
     }
-  }, [user, activeChatId, messages, streaming, refreshSessions]);
+  }, [user, activeChatId, messages, streaming, refreshSessions, refreshOurMind]);
 
   const historyPanel = (
     <HistoryPanel

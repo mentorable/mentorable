@@ -1,5 +1,6 @@
 import Anthropic from 'npm:@anthropic-ai/sdk'
 import { createClient } from 'npm:@supabase/supabase-js'
+import { buildBoardSummary } from '../_shared/ourMind.ts'
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') })
 const BRAVE_API_KEY = Deno.env.get('BRAVE_API_KEY') || ''
@@ -139,32 +140,20 @@ Deno.serve(async (req) => {
       return json({ error: 'Search service not configured.' }, 503)
     }
 
-    // ── Load profile + roadmap ─────────────────────────────────────────────────
-    const [profileRes, roadmapRes] = await Promise.all([
+    // ── Load profile + Our Mind snapshot ───────────────────────────────────────
+    const [profileRes, mindRes] = await Promise.all([
       supabase.from('profiles')
         .select('interests, strengths, career_matches, grade_level, age, location_general, onboarding_summary, work_style')
         .eq('id', user.id)
         .single(),
-      supabase.from('roadmaps')
-        .select('id, mode, career_direction, confidence_score, current_phase_number')
+      supabase.from('student_canvas')
+        .select('nodes, edges')
         .eq('user_id', user.id)
-        .eq('is_active', true)
-        .single(),
+        .maybeSingle(),
     ])
 
     const profile = profileRes.data
-    const roadmap = roadmapRes.data
-
-    let recentTasks: string[] = []
-    if (roadmap?.id) {
-      const { data: phases } = await supabase
-        .from('roadmap_phases')
-        .select('phase_number, title, tasks:roadmap_tasks(title, status)')
-        .eq('roadmap_id', roadmap.id)
-        .order('phase_number', { ascending: false })
-        .limit(2)
-      recentTasks = phases?.flatMap((p: any) => (p.tasks || []).map((t: any) => t.title)) || []
-    }
+    const ourMindNodes = Array.isArray(mindRes.data?.nodes) ? mindRes.data.nodes : []
 
     const profileBlock = `STUDENT PROFILE
 - Grade: ${profile?.grade_level || 'not specified'}
@@ -176,13 +165,9 @@ Deno.serve(async (req) => {
 - Work style: ${profile?.work_style || 'not specified'}
 - Background: ${profile?.onboarding_summary || 'not available'}`
 
-    const roadmapBlock = roadmap
-      ? `ROADMAP STATE
-- Mode: ${roadmap.mode}
-- Direction: ${roadmap.career_direction || 'Exploring'}
-- Confidence: ${roadmap.confidence_score}/100
-- Current phase: ${roadmap.current_phase_number}
-- Recent tasks: ${recentTasks.slice(0, 6).join(', ')}`
+    const mindBlock = ourMindNodes.length
+      ? `OUR MIND SNAPSHOT
+${buildBoardSummary(ourMindNodes)}`
       : ''
 
     // ── Step 1: Decompose query into targeted sub-queries ──────────────────────
@@ -195,7 +180,7 @@ Make each query distinct — vary the angle (e.g. program-name specific, eligibi
 Return ONLY valid JSON: { "subQueries": ["query1", "query2", ...] }`,
       messages: [{
         role: 'user',
-        content: `ORIGINAL QUERY: "${normalizedQuery}"\n\n${profileBlock}\n\n${roadmapBlock}`,
+        content: `ORIGINAL QUERY: "${normalizedQuery}"\n\n${profileBlock}\n\n${mindBlock}`,
       }],
     })
 
@@ -237,13 +222,13 @@ Return ONLY valid JSON: { "subQueries": ["query1", "query2", ...] }`,
       model: SONNET,
       max_tokens: 4000,
       system: `You are a research curator helping high school students find real career opportunities.
-Given raw search results from multiple targeted searches and a student's profile + roadmap, select and structure the 6–8 most genuinely useful results.
+Given raw search results from multiple targeted searches and a student's profile + current mind snapshot, select and structure the 6–8 most genuinely useful results.
 
 For each result:
 - Classify type: competition, internship, scholarship, program, resource, or article
 - Write the exact program name and a clear 2–3 sentence description
 - Extract any available details (deadline, eligibility, location, compensation) — only include fields you actually know
-- Write a 1-sentence relevance note that references specific details from the student's profile (their interests, grade, career matches, recent tasks)
+- Write a 1-sentence relevance note that references specific details from the student's profile or current mind (their interests, grade, career matches, weekly missions, open questions)
 - Use only exact URLs from the input list
 
 Return ONLY valid JSON:
@@ -264,7 +249,7 @@ Return ONLY valid JSON:
 Rules: skip ads, generic directories, and low-quality pages. Omit detail fields you don't know — never write "varies" or "TBD".`,
       messages: [{
         role: 'user',
-        content: `QUERY: "${normalizedQuery}"\n\n${profileBlock}\n\n${roadmapBlock}\n\nRAW RESULTS (${allBraveResults.length} unique, from ${queries.length} sub-queries):\n${rawResultsText}`,
+        content: `QUERY: "${normalizedQuery}"\n\n${profileBlock}\n\n${mindBlock}\n\nRAW RESULTS (${allBraveResults.length} unique, from ${queries.length} sub-queries):\n${rawResultsText}`,
       }],
     })
 
@@ -314,7 +299,7 @@ For EACH of the ${TOP_N} results provided:
 
 2. Write a "gamePlan" — 3–4 sentences tailored specifically to this student:
    - Name their actual interests, strengths, or career matches and explain how they fit this opportunity
-   - Mention something specific from their roadmap or recent tasks if relevant
+   - Mention something specific from their current mind or weekly missions if relevant
    - Identify one thing to emphasize in the application based on the selection criteria
    - Close with one concrete first step they can take this week
 
@@ -345,7 +330,7 @@ Rules:
 - gamePlan MUST reference specific student details (name their interests, career matches, or recent work) — never write generic advice`,
       messages: [{
         role: 'user',
-        content: `STUDENT:\n${profileBlock}\n\n${roadmapBlock}\n\n${'─'.repeat(40)}\n\nRESULTS TO ENRICH:\n${pagesBlock}`,
+        content: `STUDENT:\n${profileBlock}\n\n${mindBlock}\n\n${'─'.repeat(40)}\n\nRESULTS TO ENRICH:\n${pagesBlock}`,
       }],
     })
 

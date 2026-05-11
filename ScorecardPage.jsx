@@ -227,7 +227,6 @@ function SkeletonLayout({ theme }) {
 export default function ScorecardPage({ navigate }) {
   const [phase, setPhase] = useState("loading");
   const [profile, setProfile] = useState(null);
-  const [hasRoadmap, setHasRoadmap] = useState(true);
   const [theme, setTheme] = useState(themes[0]);
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -249,10 +248,6 @@ export default function ScorecardPage({ navigate }) {
           .from("profiles").select("*").eq("id", user.id).single();
         if (!profileData?.onboarding_completed) { window.location.href = "/onboarding"; return; }
         setProfile(profileData);
-        // Check for active roadmap to decide sidebar + button visibility
-        const { data: roadmapRows } = await supabase
-          .from("roadmaps").select("id").eq("user_id", user.id).eq("is_active", true).limit(1);
-        setHasRoadmap((roadmapRows?.length ?? 0) > 0);
         setPhase("loaded");
       } catch {
         setPhase("error");
@@ -407,7 +402,7 @@ export default function ScorecardPage({ navigate }) {
     transition: "border-color 0.3s ease, box-shadow 0.3s ease",
   };
 
-  const goToRoadmap = () => navigate ? navigate("/roadmap") : (window.location.href = "/roadmap");
+  const goToOurMind = () => navigate ? navigate("/our-mind") : (window.location.href = "/our-mind");
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
@@ -755,25 +750,23 @@ export default function ScorecardPage({ navigate }) {
                   Share image
                 </button>
 
-                {!hasRoadmap && (
-                  <button
-                    onClick={goToRoadmap}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: "0.5rem",
-                      padding: "0.675rem 1.2rem",
-                      border: "none", borderRadius: "0.75rem",
-                      background: theme.accent, color: "white",
-                      fontSize: "0.875rem", fontWeight: 700,
-                      cursor: "pointer",
-                      boxShadow: `0 4px 14px ${theme.glow}`,
-                      fontFamily: "system-ui, sans-serif",
-                      whiteSpace: "nowrap",
-                      transition: "all 300ms ease",
-                    }}
-                  >
-                    See my roadmap →
-                  </button>
-                )}
+                <button
+                  onClick={goToOurMind}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: "0.5rem",
+                    padding: "0.675rem 1.2rem",
+                    border: "none", borderRadius: "0.75rem",
+                    background: theme.accent, color: "white",
+                    fontSize: "0.875rem", fontWeight: 700,
+                    cursor: "pointer",
+                    boxShadow: `0 4px 14px ${theme.glow}`,
+                    fontFamily: "system-ui, sans-serif",
+                    whiteSpace: "nowrap",
+                    transition: "all 300ms ease",
+                  }}
+                >
+                  Open Our Mind →
+                </button>
               </motion.div>
             </motion.div>
 

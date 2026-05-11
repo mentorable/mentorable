@@ -124,7 +124,6 @@ function PillSelector({ options, value, onChange, accent = ACCENT }) {
 
 export default function ProfilePage({ navigate }) {
   const [loading, setLoading] = useState(true);
-  const [hasRoadmap, setHasRoadmap] = useState(true);
   const [userId, setUserId] = useState(null);
   const [userEmail, setUserEmail] = useState("");
 
@@ -142,7 +141,7 @@ export default function ProfilePage({ navigate }) {
   const [interests, setInterests]         = useState("");
   const [careerMatches, setCareerMatches] = useState("");
 
-  // Roadmap prefs
+  // Guidance prefs
   const [hoursPerWeek, setHoursPerWeek] = useState("");
   const [taskStyle, setTaskStyle] = useState("mix");
   const [difficulty, setDifficulty] = useState("balanced");
@@ -175,11 +174,10 @@ export default function ProfilePage({ navigate }) {
         setUserId(user.id);
         setUserEmail(user.email || "");
 
-        const [profileRes, roadmapRes] = await Promise.all([
+        const [profileRes] = await Promise.all([
           supabase.from("profiles")
             .select("full_name, bio, profile_color, agent_response_style, agent_instructions, roadmap_hours_per_week, roadmap_task_style, roadmap_difficulty, strengths, interests, career_matches")
             .eq("id", user.id).single(),
-          supabase.from("roadmaps").select("id").eq("user_id", user.id).eq("is_active", true).limit(1),
         ]);
 
         const p = profileRes.data;
@@ -198,7 +196,6 @@ export default function ProfilePage({ navigate }) {
           // persist color to localStorage for immediate use in other pages
           if (p.profile_color) localStorage.setItem("profileColor", p.profile_color);
         }
-        setHasRoadmap((roadmapRes.data?.length ?? 0) > 0);
       } catch {
         // show page anyway
       } finally {
@@ -403,8 +400,8 @@ export default function ProfilePage({ navigate }) {
             {/* ── Career profile ───────────────────────────────────────────── */}
             <div style={card}>
               <SectionHeading>Career Profile</SectionHeading>
-              <Hint style={{ marginBottom: "1.25rem", display: "block" }}>
-                These come from your onboarding conversation. Edit freely — they shape your roadmap and agent responses.
+                <Hint style={{ marginBottom: "1.25rem", display: "block" }}>
+                These come from your onboarding conversation. Edit freely — they shape Our Mind and your agent responses.
               </Hint>
 
               <div style={{ marginBottom: "1.25rem", marginTop: "0.75rem" }}>
@@ -428,7 +425,7 @@ export default function ProfilePage({ navigate }) {
                   onChange={(e) => setInterests(e.target.value)}
                   placeholder="e.g. Biology, Technology, Creative writing"
                 />
-                <Hint>Comma-separated. Influences career suggestions and roadmap content.</Hint>
+                <Hint>Comma-separated. Influences career suggestions and what shows up in Our Mind.</Hint>
               </div>
 
               <div>
@@ -440,7 +437,7 @@ export default function ProfilePage({ navigate }) {
                   onChange={(e) => setCareerMatches(e.target.value)}
                   placeholder="e.g. Software Engineer, Data Scientist, Product Manager"
                 />
-                <Hint>Your top career options. The roadmap focuses on these when in Career Mode.</Hint>
+                <Hint>Your top career options. These help Mentorable prioritize what to surface for you.</Hint>
               </div>
             </div>
 
@@ -483,11 +480,11 @@ export default function ProfilePage({ navigate }) {
               </div>
             </div>
 
-            {/* ── Roadmap preferences ──────────────────────────────────────── */}
+            {/* ── Guidance preferences ─────────────────────────────────────── */}
             <div style={card}>
-              <SectionHeading>Roadmap Preferences</SectionHeading>
+              <SectionHeading>Guidance Preferences</SectionHeading>
               <Hint style={{ marginBottom: "1.25rem", display: "block" }}>
-                These shape how new roadmap phases are generated for you.
+                These shape how Mentorable suggests tasks, goals, and next steps.
               </Hint>
 
               <div style={{ marginBottom: "1.25rem", marginTop: "0.75rem" }}>
@@ -600,7 +597,7 @@ export default function ProfilePage({ navigate }) {
             >
               <p style={{ fontSize: "1.05rem", fontWeight: 700, color: "#0f172a", marginBottom: "0.5rem" }}>Delete your account?</p>
               <p style={{ fontSize: "0.875rem", color: "#64748b", lineHeight: 1.6, marginBottom: "1.25rem" }}>
-                This permanently deletes your account, profile, roadmap, and all chat history. This cannot be undone.
+                This permanently deletes your account, profile, Our Mind workspace, and chat history. This cannot be undone.
               </p>
 
               <div style={{ marginBottom: "1.25rem" }}>

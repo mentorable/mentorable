@@ -4,9 +4,9 @@ const FONT = "'Space Grotesk', sans-serif";
 
 const NAV_ITEMS = [
   {
-    key: "canvas",
-    label: "Canvas",
-    path: "/canvas",
+    key: "our-mind",
+    label: "Our Mind",
+    path: "/our-mind",
     icon: (active) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2} strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="7" height="7" rx="1" />

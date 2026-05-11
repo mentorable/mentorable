@@ -73,20 +73,14 @@ export default function AuthPage() {
           }
           return;
         }
-        // Smart redirect: skip onboarding if already completed, go to roadmap if built
+        // Smart redirect: skip onboarding if already completed
         const { data: profile } = await supabase
           .from("profiles")
           .select("onboarding_completed")
           .eq("id", data.user.id)
           .single();
         if (profile?.onboarding_completed) {
-          const { data: roadmapRows } = await supabase
-            .from("roadmaps")
-            .select("id")
-            .eq("user_id", data.user.id)
-            .eq("is_active", true)
-            .limit(1);
-          window.location.href = roadmapRows?.length > 0 ? "/roadmap" : "/scorecard";
+          window.location.href = "/our-mind";
         } else {
           window.location.href = "/onboarding";
         }

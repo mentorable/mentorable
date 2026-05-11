@@ -13,3 +13,4 @@ supabase/.temp/
 sample_screenshots/
 
 .playwright-mcp
+.vercel

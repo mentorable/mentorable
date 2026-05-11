@@ -322,7 +322,7 @@ function DemographicsPhase({ onContinue, submitting }) {
             A bit about you
           </h2>
           <p style={{ fontFamily:SANS, fontSize:"0.9rem", color:TEXT2, lineHeight:1.65, margin:0 }}>
-            This helps us personalize your roadmap and gives your AI guide the right context before your conversation.
+            This helps us personalize Our Mind and gives your AI guide the right context before your conversation.
           </p>
         </motion.div>
 
@@ -839,7 +839,7 @@ function ProcessingPhase() {
         transition={{ delay:0.2, duration:0.6 }}
         style={{ fontFamily:SERIF, fontWeight:700, fontSize:"1.75rem", color:TEXT, letterSpacing:"-0.03em", marginBottom:"0.875rem" }}
       >
-        Building your scorecard...
+        Building Our Mind...
       </motion.h2>
       <motion.p
         initial={{ opacity:0, y:12 }}
@@ -1052,7 +1052,7 @@ export default function OnboardingPage() {
       if (!user) { window.location.href = "/auth"; return; }
       const { data: profile } = await supabase
         .from("profiles").select("onboarding_completed").eq("id", user.id).single();
-      if (profile?.onboarding_completed) { window.location.href = "/scorecard"; return; }
+      if (profile?.onboarding_completed) { window.location.href = "/our-mind"; return; }
       setUser(user);
       setPhase("demographics");
     };
@@ -1223,7 +1223,15 @@ export default function OnboardingPage() {
         location_general: demographics.state || null,
       }).eq("id", freshUser.id);
 
-      window.location.href = "/scorecard";
+      // Warm-start Our Mind so the student lands on a populated shared workspace.
+      try {
+        await supabase.functions.invoke("initialize-our-mind", { body: { force: true } });
+      } catch (error) {
+        console.error("[Onboarding] initialize-our-mind error:", error);
+      }
+
+      try { sessionStorage.setItem("ourmind-boot-pending", "1"); } catch {}
+      window.location.href = "/our-mind";
     } catch (err) {
       console.error("[Onboarding] endConversation error:", err);
       setError(err?.message || "Something went wrong processing your profile. Please try again.");
@@ -1296,11 +1304,10 @@ export default function OnboardingPage() {
         {phase === "intro"      && <IntroPhase      key="intro"      onStart={startConversation} loading={startingConv} retryNotice={retryNotice}/>}
         {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} transcriptEndRef={transcriptEndRef}/>}
         {phase === "processing" && <ProcessingPhase key="processing"/>}
-        {phase === "recovery"   && <RecoveryPhase   key="recovery"   userId={user?.id} onSuccess={() => { window.location.href = "/scorecard"; }} onRetry={() => { setPhase("intro"); }}/>}
+        {phase === "recovery"   && <RecoveryPhase   key="recovery"   userId={user?.id} onSuccess={() => { window.location.href = "/our-mind"; }} onRetry={() => { setPhase("intro"); }}/>}
         {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("demographics"); }}/>}
         {phase === "mic-denied" && <MicDeniedPhase  key="mic-denied" onRetry={() => setPhase("intro")}/>}
       </AnimatePresence>
     </div>
   );
 }
-
