@@ -11,6 +11,7 @@ supabase/.temp/
 # AI development artifacts
 .claude/
 sample_screenshots/
+CLAUDE.md
 
 .playwright-mcp
 .vercel

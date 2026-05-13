@@ -678,6 +678,9 @@ function BoardShell({ userId }) {
 
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) || null;
   const summary = summarizeOurMindBoard({ nodes, edges });
+  const weeklyMissions = summary.tasks.filter((node) => !node?.data?.done);
+  const memoryFeed = summary.memories;
+  const opportunityRadar = summary.opportunities;
 
   useEffect(() => {
     const handleClickOutside = (event) => {
