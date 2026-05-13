@@ -4,15 +4,13 @@ const FONT = "'Space Grotesk', sans-serif";
 
 const NAV_ITEMS = [
   {
-    key: "our-mind",
-    label: "Our Mind",
-    path: "/our-mind",
+    key: "quest",
+    label: "Quest",
+    path: "/quest",
     icon: (active) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2} strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <rect x="14" y="14" width="7" height="7" rx="1" />
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
       </svg>
     ),
   },

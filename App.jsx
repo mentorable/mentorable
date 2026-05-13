@@ -3,17 +3,17 @@ import LandingPage from "./LandingPage.jsx";
 import AuthPage from "./AuthPage.jsx";
 import OnboardingPage from "./OnboardingPage.jsx";
 import ScorecardPage from "./ScorecardPage.jsx";
-import CanvasPage from "./CanvasPage.jsx";
 import ChatPage from "./ChatPage.jsx";
 import ProfilePage from "./ProfilePage.jsx";
 import ResearchPage from "./ResearchPage.jsx";
+import RoadmapPage from "./RoadmapPage.jsx";
 import Sidebar from "./components/common/Sidebar.jsx";
 import MobileNav from "./components/common/MobileNav.jsx";
 import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
 // Routes that show the persistent sidebar
-const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/research", "/our-mind", "/canvas"];
+const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/research", "/quest"];
 
 function AppShell({ children }) {
   const location = useLocation();
@@ -60,8 +60,9 @@ function ResearchRoute() {
   return <ResearchPage navigate={navigate} initialSessionId={sessionId || null} />;
 }
 
-function OurMindRoute() {
-  return <CanvasPage />;
+function QuestRoute() {
+  const navigate = useNavigate();
+  return <RoadmapPage navigate={navigate} />;
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
@@ -77,11 +78,12 @@ export default function App() {
         <Route path="/profile" element={<ProfileRoute />} />
         <Route path="/research/:sessionId" element={<ResearchRoute />} />
         <Route path="/research" element={<ResearchRoute />} />
-        <Route path="/our-mind" element={<ErrorBoundary><OurMindRoute /></ErrorBoundary>} />
-        <Route path="/canvas" element={<Navigate to="/our-mind" replace />} />
-        <Route path="/roadmap" element={<Navigate to="/our-mind" replace />} />
-        <Route path="/roadmap/*" element={<Navigate to="/our-mind" replace />} />
-        <Route path="/roadmap-preview" element={<Navigate to="/our-mind" replace />} />
+        <Route path="/quest" element={<ErrorBoundary><QuestRoute /></ErrorBoundary>} />
+        <Route path="/our-mind" element={<Navigate to="/quest" replace />} />
+        <Route path="/canvas" element={<Navigate to="/quest" replace />} />
+        <Route path="/roadmap" element={<Navigate to="/quest" replace />} />
+        <Route path="/roadmap/*" element={<Navigate to="/quest" replace />} />
+        <Route path="/roadmap-preview" element={<Navigate to="/quest" replace />} />
         <Route path="/" element={<LandingPage />} />
         <Route path="*" element={<LandingPage />} />
       </Routes>

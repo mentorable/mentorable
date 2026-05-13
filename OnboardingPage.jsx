@@ -1223,15 +1223,12 @@ export default function OnboardingPage() {
         location_general: demographics.state || null,
       }).eq("id", freshUser.id);
 
-      // Warm-start Our Mind so the student lands on a populated shared workspace.
-      try {
-        await supabase.functions.invoke("initialize-our-mind", { body: { force: true } });
-      } catch (error) {
-        console.error("[Onboarding] initialize-our-mind error:", error);
-      }
+      // Kick off Quest roadmap generation in the background — non-blocking.
+      supabase.functions.invoke("initialize-roadmap", { body: {} }).catch(e => {
+        console.error("[Onboarding] initialize-roadmap error:", e);
+      });
 
-      try { sessionStorage.setItem("ourmind-boot-pending", "1"); } catch {}
-      window.location.href = "/our-mind";
+      window.location.href = "/quest";
     } catch (err) {
       console.error("[Onboarding] endConversation error:", err);
       setError(err?.message || "Something went wrong processing your profile. Please try again.");
