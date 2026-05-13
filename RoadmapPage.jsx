@@ -550,17 +550,17 @@ export default function RoadmapPage({ navigate }) {
 
   const loadRoadmap = useCallback(async (uid) => {
     const { data } = await supabase
-      .from("roadmaps")
+      .from("quests")
       .select(`
         *,
-        phases:roadmap_phases(
+        phases:quest_phases(
           *,
-          tasks:roadmap_tasks(*)
+          tasks:quest_tasks(*)
         )
       `)
       .eq("user_id", uid)
       .eq("is_active", true)
-      .order("phase_number", { referencedTable: "roadmap_phases", ascending: true })
+      .order("phase_number", { referencedTable: "quest_phases", ascending: true })
       .maybeSingle();
 
     if (data) {

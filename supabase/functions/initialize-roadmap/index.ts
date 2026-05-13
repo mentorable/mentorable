@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
     // Return existing active roadmap (prevent duplicates)
     const { data: existingRows } = await supabase
-      .from('roadmaps')
+      .from('quests')
       .select('*')
       .eq('user_id', user.id)
       .eq('is_active', true)
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     const careerDirection = mode === 'career' ? profile.career_matches[0] : null
 
     const { data: roadmap } = await supabase
-      .from('roadmaps')
+      .from('quests')
       .insert({
         user_id: user.id,
         mode,
