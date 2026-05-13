@@ -5,9 +5,9 @@ import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import Drawer from "./components/common/Drawer.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
-const FONT   = "'Space Grotesk', sans-serif";
-const BODY   = "'Plus Jakarta Sans', sans-serif";
-const NAVY   = "#0f172a";
+const FONT   = "'Inter', -apple-system, sans-serif";
+const BODY   = "'Inter', -apple-system, sans-serif";
+const NAVY   = "#141413";
 const BLUE   = "#1d4ed8";
 const BLUE_MID = "#3b82f6";
 const BLUE_SOFT = "#dbeafe";
@@ -38,8 +38,8 @@ const TYPE_META = {
   internship:  { label: "Internship",  color: "#1d4ed8", bg: "rgba(29,78,216,0.07)",  border: "rgba(29,78,216,0.18)" },
   scholarship: { label: "Scholarship", color: "#065f46", bg: "rgba(6,95,70,0.07)",    border: "rgba(6,95,70,0.15)"   },
   program:     { label: "Program",     color: "#b45309", bg: "rgba(180,83,9,0.07)",   border: "rgba(180,83,9,0.15)"  },
-  resource:    { label: "Resource",    color: "#374151", bg: "rgba(55,65,81,0.06)",   border: "rgba(55,65,81,0.12)"  },
-  article:     { label: "Article",     color: "#64748b", bg: "rgba(100,116,139,0.06)", border: "rgba(100,116,139,0.12)" },
+  resource:    { label: "Resource",    color: "#3d3d3a", bg: "rgba(55,65,81,0.06)",   border: "rgba(55,65,81,0.12)"  },
+  article:     { label: "Article",     color: "#6c6a64", bg: "rgba(100,116,139,0.06)", border: "rgba(100,116,139,0.12)" },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -122,7 +122,7 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
           position: "relative", padding: "7px 10px", borderRadius: 8,
           cursor: "pointer",
           display: "flex", alignItems: "center", gap: 8,
-          background: isActive ? "rgba(29,78,216,0.07)" : hovered ? "#f8fafc" : "transparent",
+          background: isActive ? "rgba(29,78,216,0.07)" : hovered ? "#faf9f5" : "transparent",
           borderLeft: isActive ? `2px solid ${BLUE}` : "2px solid transparent",
           marginBottom: 1, transition: "background 0.12s",
         }}
@@ -131,13 +131,13 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
           <p style={{
             fontFamily: FONT, fontSize: 12.5,
             fontWeight: isActive ? 700 : 500,
-            color: isActive ? NAVY : "#475569",
+            color: isActive ? NAVY : "#3d3d3a",
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             lineHeight: 1.4, margin: 0,
           }}>
             {session.query}
           </p>
-          <p style={{ fontFamily: FONT, fontSize: 10.5, color: "#94a3b8", marginTop: 1 }}>
+          <p style={{ fontFamily: FONT, fontSize: 10.5, color: "#8e8b82", marginTop: 1 }}>
             {isPending ? "Searching…" : timeAgo(session.updated_at)}
           </p>
         </div>
@@ -166,7 +166,7 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
   return (
     <div style={{
       width: fullWidth ? "100%" : SESSIONS_W, flexShrink: 0,
-      background: "#f2f6fb",
+      background: "#f5f0e8",
       borderLeft: fullWidth ? "none" : "1.5px solid rgba(29,78,216,0.1)",
       display: "flex", flexDirection: "column", overflow: "hidden",
       flex: fullWidth ? 1 : undefined,
@@ -175,10 +175,10 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
       <div style={{ padding: "16px 14px 12px", borderBottom: "1px solid #e8edf2", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 12.5, color: NAVY, display: "flex", alignItems: "center", gap: 6 }}>
-            <IconHistory size={13} color="#64748b" /> Searches
+            <IconHistory size={13} color="#6c6a64" /> Searches
           </span>
           {sessions.length > 0 && (
-            <span style={{ fontFamily: FONT, fontSize: 10.5, color: "#94a3b8" }}>{sessions.length}</span>
+            <span style={{ fontFamily: FONT, fontSize: 10.5, color: "#8e8b82" }}>{sessions.length}</span>
           )}
         </div>
         <button
@@ -187,13 +187,13 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
             width: "100%", padding: "8px 12px", borderRadius: 8,
             border: "1.5px solid #e2e8f0", background: "#fff",
             display: "flex", alignItems: "center", gap: 6,
-            fontFamily: FONT, fontWeight: 600, fontSize: 12.5, color: "#374151",
+            fontFamily: FONT, fontWeight: 600, fontSize: 12.5, color: "#3d3d3a",
             cursor: "pointer", transition: "border-color 0.15s",
           }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${BLUE}50`; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e6dfd8"; }}
         >
-          <IconPlus size={13} color="#374151" /> New search
+          <IconPlus size={13} color="#3d3d3a" /> New search
         </button>
       </div>
 
@@ -236,13 +236,13 @@ function HeroSection() {
           </span>
         </div>
       </div>
-      <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: "clamp(1.7rem, 3vw, 2.2rem)", color: NAVY, marginBottom: "0.875rem", lineHeight: 1.12, letterSpacing: "-0.045em" }}>
+      <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(2rem, 3vw, 2.6rem)", color: NAVY, marginBottom: "0.875rem", lineHeight: 1.1, letterSpacing: "-0.02em" }}>
         Find real opportunities,<br />
         <span style={{ background: "linear-gradient(90deg, #1d4ed8, #3b82f6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
           tailored to you.
         </span>
       </h1>
-      <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: "#64748b", maxWidth: 500, lineHeight: 1.75, fontWeight: 500, margin: 0 }}>
+      <p style={{ fontFamily: FONT, fontSize: "1rem", color: "#6c6a64", maxWidth: 520, lineHeight: 1.75, fontWeight: 500, margin: 0 }}>
         Scholarships, internships, programs, and competitions — surfaced from real sources and filtered to your profile.
       </p>
     </div>
@@ -271,11 +271,11 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
           disabled={loading}
           style={{
             width: "100%", resize: "none", boxSizing: "border-box",
-            fontFamily: FONT, fontSize: "0.9rem", fontWeight: 500, color: NAVY,
+            fontFamily: FONT, fontSize: "1rem", fontWeight: 500, color: NAVY,
             background: "#fff",
             border: "2px solid rgba(29,78,216,0.15)",
             borderRadius: "0.875rem",
-            padding: "0.875rem 1.125rem",
+            padding: "1.1rem 1.375rem",
             outline: "none", lineHeight: 1.55,
             transition: "border-color 0.15s, box-shadow 0.15s",
             boxShadow: "0 2px 8px rgba(29,78,216,0.06)",
@@ -291,11 +291,11 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.97 }}
         style={{
-          padding: "0 1.5rem", height: 56, alignSelf: "flex-end",
-          background: value.trim() && !loading ? "linear-gradient(135deg, #1d4ed8, #3b82f6)" : "#e2e8f0",
-          color: value.trim() && !loading ? "white" : "#94a3b8",
+          padding: "0 1.75rem", height: 62, alignSelf: "flex-end",
+          background: value.trim() && !loading ? "linear-gradient(135deg, #1d4ed8, #3b82f6)" : "#e6dfd8",
+          color: value.trim() && !loading ? "white" : "#8e8b82",
           border: "none", borderRadius: "0.75rem",
-          fontFamily: FONT, fontWeight: 700, fontSize: "0.875rem",
+          fontFamily: FONT, fontWeight: 700, fontSize: "0.9375rem",
           cursor: value.trim() && !loading ? "pointer" : "not-allowed",
           transition: "all 0.15s", whiteSpace: "nowrap",
           boxShadow: value.trim() && !loading ? "0 4px 14px rgba(29,78,216,0.28)" : "none",
@@ -303,7 +303,7 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
         }}
       >
         {loading
-          ? <span style={{ width: 16, height: 16, border: "2px solid rgba(148,163,184,0.3)", borderTopColor: "#94a3b8", borderRadius: "50%", animation: "spinner-rotate 0.7s linear infinite", display: "inline-block" }} />
+          ? <span style={{ width: 16, height: 16, border: "2px solid rgba(148,163,184,0.3)", borderTopColor: "#8e8b82", borderRadius: "50%", animation: "spinner-rotate 0.7s linear infinite", display: "inline-block" }} />
           : <IconSearch size={15} color="currentColor" />
         }
         Research
@@ -317,7 +317,7 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
 function ExampleChips({ onSelect, loading }) {
   return (
     <div style={{ marginBottom: "1.75rem" }}>
-      <p style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.625rem" }}>
+      <p style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, color: "#8e8b82", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.625rem" }}>
         Try these
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
@@ -354,7 +354,7 @@ function LoadingState({ step }) {
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
       style={{ background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1.5px solid #bfdbfe", borderRadius: "1.25rem", padding: "2.25rem 2rem", textAlign: "center", marginBottom: "2rem" }}
     >
-      <div style={{ width: 50, height: 50, borderRadius: "50%", background: "#ffffff", border: "1.5px solid #bfdbfe", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.25rem", position: "relative", boxShadow: "0 4px 16px rgba(29,78,216,0.1)" }}>
+      <div style={{ width: 50, height: 50, borderRadius: "50%", background: "#faf9f5", border: "1.5px solid #bfdbfe", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.25rem", position: "relative", boxShadow: "0 4px 16px rgba(29,78,216,0.1)" }}>
         <div style={{ position: "absolute", inset: -4, borderRadius: "50%", border: "2px solid transparent", borderTopColor: BLUE, animation: "spinner-rotate 1s linear infinite" }} />
         <IconSearch size={20} color={BLUE} />
       </div>
@@ -369,7 +369,7 @@ function LoadingState({ step }) {
           <div key={i} style={{ width: i === step ? 18 : 5, height: 5, borderRadius: 3, background: i === step ? BLUE : "rgba(29,78,216,0.15)", transition: "all 0.3s" }} />
         ))}
       </div>
-      <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: "#64748b", marginTop: "0.75rem" }}>
+      <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: "#6c6a64", marginTop: "0.75rem" }}>
         This may take a moment…
       </p>
     </motion.div>
@@ -463,7 +463,7 @@ function ResultCard({ result, index }) {
       </div>
 
       {/* Description */}
-      <p style={{ fontFamily: FONT, fontSize: "0.86rem", color: "#475569", lineHeight: 1.65, margin: "0 0 0.875rem" }}>
+      <p style={{ fontFamily: FONT, fontSize: "0.86rem", color: "#3d3d3a", lineHeight: 1.65, margin: "0 0 0.875rem" }}>
         {result.description}
       </p>
 
@@ -473,12 +473,12 @@ function ResultCard({ result, index }) {
           {detailPairs.map(([label, value]) => (
             <div key={label} style={{
               fontFamily: FONT, fontSize: "0.76rem",
-              background: "#f8fafc", border: "1px solid #e2e8f0",
+              background: "#faf9f5", border: "1px solid #e2e8f0",
               borderRadius: "0.5rem", padding: "0.3rem 0.625rem",
               display: "flex", gap: "0.3rem", alignItems: "center",
             }}>
-              <span style={{ color: "#94a3b8", fontWeight: 600 }}>{label}:</span>
-              <span style={{ color: "#374151", fontWeight: 600 }}>{value}</span>
+              <span style={{ color: "#8e8b82", fontWeight: 600 }}>{label}:</span>
+              <span style={{ color: "#3d3d3a", fontWeight: 600 }}>{value}</span>
             </div>
           ))}
         </div>
@@ -560,7 +560,7 @@ function SourcesSection({ sources }) {
         style={{
           display: "flex", alignItems: "center", gap: "0.5rem",
           background: "none", border: "none", cursor: "pointer",
-          fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, color: "#64748b",
+          fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, color: "#6c6a64",
           padding: "0.5rem 0",
         }}
       >
@@ -605,7 +605,7 @@ function ResultsArea({ results, sources, query, cached }) {
           <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", color: NAVY, margin: "0 0 0.2rem" }}>
             Results for "{query}"
           </h2>
-          <p style={{ fontFamily: FONT, fontSize: "0.76rem", color: "#94a3b8", margin: 0, fontWeight: 500 }}>
+          <p style={{ fontFamily: FONT, fontSize: "0.76rem", color: "#8e8b82", margin: 0, fontWeight: 500 }}>
             {results.length} result{results.length !== 1 ? "s" : ""}
             {cached && " · From cache"}
           </p>
@@ -836,10 +836,11 @@ export default function ResearchPage({ navigate, initialSessionId }) {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #eef4ff 0%, #f4f8ff 30%, #f8fbff 100%)", backgroundImage: "radial-gradient(circle, rgba(29,78,216,0.07) 1px, transparent 1px)", backgroundSize: "28px 28px", display: "flex" }}>
+    <div style={{ minHeight: "100vh", background: "#faf9f5", backgroundImage: "radial-gradient(circle, rgba(29,78,216,0.07) 1px, transparent 1px)", backgroundSize: "28px 28px", display: "flex", position: "relative" }}>
+
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        @import
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         @keyframes spinner-rotate { to { transform: rotate(360deg); } }
       `}</style>
 
@@ -854,6 +855,7 @@ export default function ResearchPage({ navigate, initialSessionId }) {
           padding: isMobile ? "1.25rem 1rem 5rem" : "2rem 2.5rem 4rem",
           maxWidth: 840,
           boxSizing: "border-box",
+          position: "relative",
         }}
       >
         {/* Mobile sessions toggle button */}
@@ -865,11 +867,11 @@ export default function ResearchPage({ navigate, initialSessionId }) {
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "8px 14px", borderRadius: 8,
                 border: "1.5px solid #e2e8f0", background: "#fff",
-                fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: "#374151",
+                fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: "#3d3d3a",
                 cursor: "pointer",
               }}
             >
-              <IconHistory size={13} color="#64748b" />
+              <IconHistory size={13} color="#6c6a64" />
               History {sessions.length > 0 && `(${sessions.length})`}
             </button>
           </div>

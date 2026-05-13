@@ -7,9 +7,9 @@ import Drawer from "./components/common/Drawer.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
 const ACCENT  = "#3b82f6";
-const NAVY    = "#0f172a";
-const SG      = "'Space Grotesk', sans-serif";
-const JK      = "'Plus Jakarta Sans', sans-serif";
+const NAVY    = "#141413";
+const SG      = "'Inter', -apple-system, sans-serif";
+const JK      = "'Inter', -apple-system, sans-serif";
 const HISTORY_W = 252;
 
 const SUGGESTIONS = [
@@ -123,7 +123,7 @@ function TypingIndicator() {
           key={i}
           animate={{ y: [0, -4, 0], opacity: [0.3, 0.8, 0.3] }}
           transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.16, ease: "easeInOut" }}
-          style={{ width: 6, height: 6, borderRadius: "50%", background: "#94a3b8", flexShrink: 0 }}
+          style={{ width: 6, height: 6, borderRadius: "50%", background: "#8e8b82", flexShrink: 0 }}
         />
       ))}
     </div>
@@ -170,7 +170,7 @@ function Inline({ text, color = NAVY }) {
       {tokens.map((tok, i) => {
         if (tok.t === "bold")   return <strong key={i} style={{ fontWeight: 700, color }}>{tok.v}</strong>;
         if (tok.t === "italic") return <em key={i} style={{ fontStyle: "italic" }}>{tok.v}</em>;
-        if (tok.t === "code")   return <code key={i} style={{ fontFamily: "monospace", fontSize: 12.5, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 4, padding: "1px 5px", color: "#334155" }}>{tok.v}</code>;
+        if (tok.t === "code")   return <code key={i} style={{ fontFamily: "monospace", fontSize: 12.5, background: "#f5f0e8", border: "1px solid #e2e8f0", borderRadius: 4, padding: "1px 5px", color: "#334155" }}>{tok.v}</code>;
         return <span key={i}>{tok.v}</span>;
       })}
     </>
@@ -217,7 +217,7 @@ function MarkdownRenderer({ text, streaming = false }) {
         if (block.type === "hr")     return <hr key={bi} style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "8px 0" }} />;
         if (block.type === "h1")     return <p key={bi} style={{ fontFamily: JK, fontWeight: 800, fontSize: 17, color: NAVY, lineHeight: 1.35, margin: "10px 0 4px" }}><Inline text={block.text}/>{cur}</p>;
         if (block.type === "h2")     return <p key={bi} style={{ fontFamily: JK, fontWeight: 700, fontSize: 15, color: NAVY, lineHeight: 1.4,  margin: "8px 0 3px"  }}><Inline text={block.text}/>{cur}</p>;
-        if (block.type === "h3")     return <p key={bi} style={{ fontFamily: SG, fontWeight: 700, fontSize: 12.5, color: "#475569", lineHeight: 1.4, margin: "6px 0 2px", textTransform: "uppercase", letterSpacing: "0.05em" }}><Inline text={block.text} color="#475569"/>{cur}</p>;
+        if (block.type === "h3")     return <p key={bi} style={{ fontFamily: SG, fontWeight: 700, fontSize: 12.5, color: "#3d3d3a", lineHeight: 1.4, margin: "6px 0 2px", textTransform: "uppercase", letterSpacing: "0.05em" }}><Inline text={block.text} color="#3d3d3a"/>{cur}</p>;
         if (block.type === "ul")     return (
           <ul key={bi} style={{ paddingLeft: 18, margin: "4px 0", display: "flex", flexDirection: "column", gap: 3 }}>
             {block.items.map((item, ii) => (
@@ -301,11 +301,11 @@ function Message({ msg }) {
         <div style={{
           background: ACCENT,
           borderRadius: "16px 16px 3px 16px",
-          padding: "11px 16px",
+          padding: "13px 18px",
           maxWidth: 520,
           boxShadow: `0 2px 10px ${ACCENT}33`,
         }}>
-          <p style={{ fontFamily: SG, fontSize: 14, color: "#fff", lineHeight: 1.65, margin: 0 }}>{msg.content}</p>
+          <p style={{ fontFamily: SG, fontSize: 15.5, color: "#fff", lineHeight: 1.65, margin: 0 }}>{msg.content}</p>
           <p style={{ fontFamily: SG, fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 5, textAlign: "right" }}>{msg.time}</p>
         </div>
       </motion.div>
@@ -324,9 +324,9 @@ function Message({ msg }) {
         <div
           className={isStreaming ? "streaming-bubble" : undefined}
           style={{
-            background: "#ffffff",
+            background: "#faf9f5",
             borderRadius: "3px 16px 16px 16px",
-            padding: "13px 16px",
+            padding: "16px 18px",
             border: isStreaming
               ? `1px solid ${ACCENT}40`
               : "1px solid rgba(29,78,216,0.1)",
@@ -390,16 +390,16 @@ function InputBar({ onSend, disabled }) {
   const nearLimit = value.length > MAX_INPUT * 0.85;
 
   return (
-    <div style={{ padding: "12px 24px 20px", flexShrink: 0 }}>
+    <div style={{ padding: "16px 28px 24px", flexShrink: 0 }}>
       <div style={{
         background: "#fff",
         border: `1.5px solid ${value.length > MAX_INPUT ? "#ef4444" : value ? ACCENT + "60" : "rgba(29,78,216,0.12)"}`,
-        borderRadius: 14,
+        borderRadius: 16,
         boxShadow: value
           ? `0 0 0 3px ${ACCENT}14, 0 4px 20px rgba(59,130,246,0.1)`
           : "0 2px 12px rgba(29,78,216,0.06)",
         transition: "border-color 0.18s, box-shadow 0.18s",
-        padding: "11px 11px 11px 16px",
+        padding: "14px 14px 14px 20px",
         display: "flex", alignItems: "flex-end", gap: 10,
       }}>
         <textarea
@@ -409,14 +409,14 @@ function InputBar({ onSend, disabled }) {
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
           placeholder="Ask anything about your career…"
           rows={1}
-          style={{ flex: 1, border: "none", background: "transparent", resize: "none", fontFamily: SG, fontSize: 14, color: NAVY, lineHeight: 1.6, padding: 0, outline: "none", maxHeight: 160, minHeight: 24 }}
+          style={{ flex: 1, border: "none", background: "transparent", resize: "none", fontFamily: SG, fontSize: 16, color: NAVY, lineHeight: 1.6, padding: 0, outline: "none", maxHeight: 160, minHeight: 26 }}
         />
         <button
           onClick={handleSend}
           disabled={!canSend}
           style={{
-            width: 36, height: 36, borderRadius: 10, border: "none", flexShrink: 0,
-            background: canSend ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "#e2e8f0",
+            width: 40, height: 40, borderRadius: 12, border: "none", flexShrink: 0,
+            background: canSend ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "#e6dfd8",
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: canSend ? "pointer" : "not-allowed",
             transition: "background 0.18s, transform 0.12s",
@@ -426,7 +426,7 @@ function InputBar({ onSend, disabled }) {
           onMouseDown={(e)  => { if (canSend) e.currentTarget.style.transform = "scale(0.95)"; }}
           onMouseUp={(e)    => { if (canSend) e.currentTarget.style.transform = "scale(1)"; }}
         >
-          <IconSend size={15} color={canSend ? "#fff" : "#94a3b8"} />
+          <IconSend size={15} color={canSend ? "#fff" : "#8e8b82"} />
         </button>
       </div>
       {nearLimit && (
@@ -469,9 +469,9 @@ function WelcomeScreen({ onSend, userName }) {
           />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 28, height: 1, background: "#e2e8f0" }} />
-          <span style={{ fontFamily: SG, fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#94a3b8" }}>your ai mentor</span>
-          <div style={{ width: 28, height: 1, background: "#e2e8f0" }} />
+          <div style={{ width: 28, height: 1, background: "#e6dfd8" }} />
+          <span style={{ fontFamily: SG, fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#8e8b82" }}>your ai mentor</span>
+          <div style={{ width: 28, height: 1, background: "#e6dfd8" }} />
         </div>
       </motion.div>
 
@@ -482,10 +482,10 @@ function WelcomeScreen({ onSend, userName }) {
         transition={{ duration: 0.38, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
         style={{ textAlign: "center", marginBottom: 32 }}
       >
-        <h2 style={{ fontFamily: JK, fontWeight: 800, fontSize: 26, color: NAVY, letterSpacing: "-0.035em", marginBottom: 10, lineHeight: 1.2 }}>
+        <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: 34, color: NAVY, letterSpacing: "-0.02em", marginBottom: 10, lineHeight: 1.15 }}>
           Good {timeOfDay}{firstName ? `, ${firstName}` : ""}.
         </h2>
-        <p style={{ fontFamily: SG, fontSize: 14, color: "#64748b", fontWeight: 500, maxWidth: 360, lineHeight: 1.65 }}>
+        <p style={{ fontFamily: SG, fontSize: 16, color: "#6c6a64", fontWeight: 500, maxWidth: 380, lineHeight: 1.65 }}>
           What's on your mind? Ask about your Quest, career options, or anything you're working through.
         </p>
       </motion.div>
@@ -508,15 +508,15 @@ function WelcomeScreen({ onSend, userName }) {
             whileTap={{ scale: 0.97 }}
             style={{
               background: "#fff", border: "1.5px solid #e8edf2",
-              borderRadius: 12, padding: "13px 15px",
+              borderRadius: 14, padding: "16px 18px",
               textAlign: "left", cursor: "pointer",
               boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
               transition: "border-color 0.15s",
             }}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${ACCENT}55`; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e8edf2"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e6dfd8"; }}
           >
-            <span style={{ fontFamily: SG, fontSize: 13, color: "#334155", fontWeight: 600, lineHeight: 1.5 }}>
+            <span style={{ fontFamily: SG, fontSize: 14.5, color: "#334155", fontWeight: 600, lineHeight: 1.5 }}>
               {s.label}
             </span>
           </motion.button>
@@ -570,7 +570,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
           position: "relative", padding: "7px 10px", borderRadius: 8,
           cursor: isRenaming ? "default" : "pointer",
           display: "flex", alignItems: "center", gap: 8,
-          background: isActive ? "#f1f5f9" : hovered ? "#f8fafc" : "transparent",
+          background: isActive ? "#f5f0e8" : hovered ? "#faf9f5" : "transparent",
           borderLeft: isActive ? `2px solid ${ACCENT}` : "2px solid transparent",
           marginBottom: 1, transition: "background 0.12s",
         }}
@@ -584,10 +584,10 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
             />
           ) : (
             <>
-              <p style={{ fontFamily: SG, fontSize: 12.5, fontWeight: isActive ? 700 : 500, color: isActive ? NAVY : "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.4 }}>
+              <p style={{ fontFamily: SG, fontSize: 12.5, fontWeight: isActive ? 700 : 500, color: isActive ? NAVY : "#3d3d3a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.4 }}>
                 {title}
               </p>
-              <p style={{ fontFamily: SG, fontSize: 10.5, color: "#94a3b8", marginTop: 1 }}>
+              <p style={{ fontFamily: SG, fontSize: 10.5, color: "#8e8b82", marginTop: 1 }}>
                 {timeAgo(session.updated_at)}
               </p>
             </>
@@ -596,8 +596,8 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
         {hovered && !isRenaming && (
           <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
             <button onClick={(e) => { e.stopPropagation(); setRenamingId(session.id); }}
-              style={{ padding: "3px 5px", borderRadius: 5, border: "none", background: "#f1f5f9", cursor: "pointer" }} title="Rename">
-              <IconEdit size={12} color="#64748b" />
+              style={{ padding: "3px 5px", borderRadius: 5, border: "none", background: "#f5f0e8", cursor: "pointer" }} title="Rename">
+              <IconEdit size={12} color="#6c6a64" />
             </button>
             <button onClick={(e) => { e.stopPropagation(); onDeleteChat(session.id); }}
               style={{ padding: "3px 5px", borderRadius: 5, border: "none", background: "#fef2f2", cursor: "pointer" }} title="Delete">
@@ -612,7 +612,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
   return (
     <div style={{
       width: fullWidth ? "100%" : HISTORY_W, flexShrink: 0,
-      background: "#f4f7fb",
+      background: "#f5f0e8",
       borderLeft: fullWidth ? "none" : "1.5px solid #e2e8f0",
       display: "flex", flexDirection: "column", overflow: "hidden",
       flex: fullWidth ? 1 : undefined,
@@ -623,7 +623,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
           <span style={{ fontFamily: JK, fontWeight: 700, fontSize: 12.5, color: NAVY, letterSpacing: "-0.01em" }}>
             Conversations
           </span>
-          <span style={{ fontFamily: SG, fontSize: 10.5, color: "#94a3b8" }}>
+          <span style={{ fontFamily: SG, fontSize: 10.5, color: "#8e8b82" }}>
             {sessions.length > 0 ? `${sessions.length}` : ""}
           </span>
         </div>
@@ -633,13 +633,13 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
             width: "100%", padding: "8px 12px", borderRadius: 8,
             border: `1.5px solid #e2e8f0`, background: "#fff",
             display: "flex", alignItems: "center", gap: 6,
-            fontFamily: SG, fontWeight: 600, fontSize: 12.5, color: "#374151",
+            fontFamily: SG, fontWeight: 600, fontSize: 12.5, color: "#3d3d3a",
             cursor: "pointer", transition: "border-color 0.15s, background 0.15s",
           }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${ACCENT}50`; e.currentTarget.style.background = "#fff"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e6dfd8"; }}
         >
-          <IconPlus size={13} color="#374151" /> New conversation
+          <IconPlus size={13} color="#3d3d3a" /> New conversation
         </button>
       </div>
 
@@ -676,7 +676,8 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
   }, [messages]);
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: "linear-gradient(180deg, #f8faff 0%, #ffffff 120px)", overflow: "hidden", backgroundImage: "radial-gradient(circle, rgba(59,130,246,0.05) 1px, transparent 1px)", backgroundSize: "32px 32px" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: "#faf9f5", overflow: "hidden", backgroundImage: "radial-gradient(circle, rgba(59,130,246,0.05) 1px, transparent 1px)", backgroundSize: "32px 32px", position: "relative" }}>
+
 
       {/* Top bar */}
       <div style={{
@@ -692,7 +693,7 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
           <span style={{ fontFamily: JK, fontWeight: 800, fontSize: 14, color: NAVY, letterSpacing: "-0.03em" }}>
             Mentora
           </span>
-          <span style={{ fontFamily: SG, fontSize: 11, color: "#94a3b8", fontWeight: 500, marginLeft: 6 }}>
+          <span style={{ fontFamily: SG, fontSize: 11, color: "#8e8b82", fontWeight: 500, marginLeft: 6 }}>
             · AI Career Mentor
           </span>
         </div>
@@ -716,7 +717,7 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
               }}
               title="Chat history"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6c6a64" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="3" y1="6" x2="21" y2="6"/>
                 <line x1="3" y1="12" x2="21" y2="12"/>
                 <line x1="3" y1="18" x2="15" y2="18"/>
@@ -727,7 +728,7 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", padding: isNew ? 0 : "28px 28px 8px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: isNew ? 0 : "28px 28px 8px", position: "relative", zIndex: 1 }}>
         {isNew ? (
           <WelcomeScreen onSend={onSend} userName={userName} />
         ) : (
@@ -930,8 +931,8 @@ export default function ChatPage({ navigate }) {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }

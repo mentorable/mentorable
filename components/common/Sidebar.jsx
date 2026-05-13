@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-const FONT = "'Space Grotesk', sans-serif";
+const FONT = "'Inter', -apple-system, sans-serif";
 export const SIDEBAR_WIDTH = 220;
 
 const NAV_ITEMS = [
@@ -68,7 +68,7 @@ export default function Sidebar({ activePath, navigate }) {
       position: "fixed",
       left: 0, top: 0, bottom: 0,
       width: SIDEBAR_WIDTH,
-      background: "#ffffff",
+      background: "#faf9f5",
       borderRight: "1px solid rgba(37,99,235,0.08)",
       display: "flex",
       flexDirection: "column",

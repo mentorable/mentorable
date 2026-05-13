@@ -9,8 +9,8 @@ import HeroVisual from "./components/HeroVisual";
 // ─── Tokens ────────────────────────────────────────────────────────────────────
 const SANS  = "'Space Grotesk', Arial, sans-serif";
 const SERIF = "'DM Serif Display', Georgia, serif";
-const BG    = "#f4f8ff";
-const BG2   = "#e8f0ff";
+const BG    = "#faf9f5";
+const BG2   = "#f0ede6";
 const BG3   = "#ffffff";
 const FG    = "#0b1340";
 const FG2   = "#1e3a8a";

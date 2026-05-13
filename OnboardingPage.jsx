@@ -17,7 +17,7 @@ const ACCENT  = "#3b5bfc";
 const ACCENT2 = "#7c3aed";
 const BORDER  = "rgba(59,91,252,0.13)";
 const SURFACE = "rgba(59,91,252,0.05)";
-const CARD    = "#ffffff";
+const CARD    = "#faf9f5";
 const SERIF   = "'DM Serif Display', Georgia, serif";
 const SANS    = "'Space Grotesk', Arial, sans-serif";
 const MONO    = "'Space Grotesk', monospace";
@@ -160,7 +160,7 @@ function VoiceOrb({ onStart, loading }) {
             boxShadow:"0 6px 28px rgba(0,0,0,0.32)",
           }}
         >
-          {loading ? <Spinner size={24} color="#ffffff"/> : <PhoneOutIcon color="white" size={28}/>}
+          {loading ? <Spinner size={24} color="#faf9f5"/> : <PhoneOutIcon color="white" size={28}/>}
         </motion.button>
         <span style={{ fontFamily:SANS, fontSize:"1rem", color:TEXT2, fontWeight:400, letterSpacing:"-0.01em" }}>
           Call Agent
@@ -255,16 +255,16 @@ function DemographicsPhase({ onContinue, submitting }) {
   };
 
   const inputStyle = {
-    width:"100%", padding:"0.75rem 1rem",
-    border:`1.5px solid ${BORDER}`, borderRadius:10,
+    width:"100%", padding:"1rem 1.25rem",
+    border:`1.5px solid ${BORDER}`, borderRadius:12,
     background:SURFACE, color:TEXT,
-    fontFamily:SANS, fontSize:"0.95rem", fontWeight:500,
+    fontFamily:SANS, fontSize:"1.0625rem", fontWeight:500,
     outline:"none", transition:"border-color 0.15s", boxSizing:"border-box",
   };
 
   const labelStyle = {
-    display:"block", fontFamily:SANS, fontSize:"0.72rem", fontWeight:700,
-    color:TEXT2, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:"0.45rem",
+    display:"block", fontFamily:SANS, fontSize:"0.8rem", fontWeight:700,
+    color:TEXT2, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:"0.5rem",
   };
 
   return (
@@ -312,16 +312,16 @@ function DemographicsPhase({ onContinue, submitting }) {
         style={{
           position:"relative", zIndex:1,
           background:CARD, border:`1.5px solid ${BORDER}`, borderRadius:20,
-          padding:"2.5rem", maxWidth:460, width:"100%",
+          padding:"3rem", maxWidth:500, width:"100%",
           boxShadow:"0 4px 40px rgba(59,91,252,0.1), 0 1px 8px rgba(0,0,0,0.06)",
         }}
       >
         {/* Header */}
         <motion.div {...fadeUp(0.15)} style={{ marginBottom:"1.75rem" }}>
-          <h2 style={{ fontFamily:SERIF, fontWeight:700, fontSize:"1.85rem", color:TEXT, letterSpacing:"-0.025em", lineHeight:1.15, marginBottom:"0.5rem" }}>
+          <h2 style={{ fontFamily:SERIF, fontWeight:700, fontSize:"2.2rem", color:TEXT, letterSpacing:"-0.025em", lineHeight:1.15, marginBottom:"0.5rem" }}>
             A bit about you
           </h2>
-          <p style={{ fontFamily:SANS, fontSize:"0.9rem", color:TEXT2, lineHeight:1.65, margin:0 }}>
+          <p style={{ fontFamily:SANS, fontSize:"1rem", color:TEXT2, lineHeight:1.65, margin:0 }}>
             This helps us personalize Our Mind and gives your AI guide the right context before your conversation.
           </p>
         </motion.div>
@@ -439,11 +439,11 @@ function DemographicsPhase({ onContinue, submitting }) {
               whileHover={isValid && !submitting ? { scale:1.02 } : {}}
               whileTap={isValid && !submitting ? { scale:0.97 } : {}}
               style={{
-                width:"100%", padding:"0.9rem 1.5rem",
+                width:"100%", padding:"1.1rem 1.5rem",
                 borderRadius:12, border:"none",
                 background:isValid ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})` : `rgba(59,91,252,0.12)`,
                 color:isValid ? "white" : TEXT3,
-                fontFamily:SANS, fontWeight:700, fontSize:"0.95rem",
+                fontFamily:SANS, fontWeight:700, fontSize:"1.0625rem",
                 cursor:isValid && !submitting ? "pointer" : "not-allowed",
                 transition:"all 0.2s",
                 display:"flex", alignItems:"center", justifyContent:"center", gap:"0.5rem",
@@ -645,7 +645,7 @@ function IntroPhase({ onStart, loading, retryNotice }) {
                 color:"#92400e",
                 lineHeight:1.5,
                 textAlign:"center",
-                fontFamily:"'Space Grotesk', sans-serif",
+                fontFamily:"'Inter', -apple-system, sans-serif",
               }}
             >
               {retryNotice}
@@ -1009,20 +1009,20 @@ function RecoveryPhase({ userId, onSuccess, onRetry }) {
         style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(239,68,68,0.07)", border: "1.5px solid rgba(239,68,68,0.2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.5rem" }}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </motion.div>
-      <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "1.4rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: "0.75rem" }}>
+      <h2 style={{ fontFamily: "'Inter', -apple-system, sans-serif", fontWeight: 700, fontSize: "1.4rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: "0.75rem" }}>
         Processing hiccup
       </h2>
-      <p style={{ fontFamily: "'Space Grotesk', sans-serif", color: TEXT2, fontSize: "0.95rem", lineHeight: 1.68, maxWidth: 360, marginBottom: "0.5rem" }}>
+      <p style={{ fontFamily: "'Inter', -apple-system, sans-serif", color: TEXT2, fontSize: "0.95rem", lineHeight: 1.68, maxWidth: 360, marginBottom: "0.5rem" }}>
         We ran into an issue turning your conversation into a profile. Your transcript was saved — click below to try again.
       </p>
-      {error && <p style={{ fontFamily: "'Space Grotesk', sans-serif", color: "#ef4444", fontSize: "0.85rem", marginBottom: "1rem", maxWidth: 360 }}>{error}</p>}
+      {error && <p style={{ fontFamily: "'Inter', -apple-system, sans-serif", color: "#ef4444", fontSize: "0.85rem", marginBottom: "1rem", maxWidth: 360 }}>{error}</p>}
       <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.5rem", flexWrap: "wrap", justifyContent: "center" }}>
         <button onClick={handleRetry} disabled={retrying}
-          style={{ padding: "0.7rem 1.75rem", borderRadius: 10, background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`, border: "none", color: "white", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: retrying ? "not-allowed" : "pointer", opacity: retrying ? 0.7 : 1 }}>
+          style={{ padding: "0.7rem 1.75rem", borderRadius: 10, background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`, border: "none", color: "white", fontFamily: "'Inter', -apple-system, sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: retrying ? "not-allowed" : "pointer", opacity: retrying ? 0.7 : 1 }}>
           {retrying ? "Retrying…" : "Try again"}
         </button>
         <button onClick={onRetry}
-          style={{ padding: "0.7rem 1.5rem", borderRadius: 10, background: "transparent", border: "1.5px solid rgba(59,91,252,0.25)", color: ACCENT, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer" }}>
+          style={{ padding: "0.7rem 1.5rem", borderRadius: 10, background: "transparent", border: "1.5px solid rgba(59,91,252,0.25)", color: ACCENT, fontFamily: "'Inter', -apple-system, sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer" }}>
           Record new conversation
         </button>
       </div>

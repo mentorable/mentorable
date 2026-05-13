@@ -11,7 +11,7 @@ const themes = [
   { name: "Emerald", accent: "#10b981", glow: "rgba(16,185,129,0.25)",   rgb: "16,185,129"   },
   { name: "Rose",    accent: "#f43f5e", glow: "rgba(244,63,94,0.25)",    rgb: "244,63,94"    },
   { name: "Amber",   accent: "#f59e0b", glow: "rgba(245,158,11,0.25)",   rgb: "245,158,11"   },
-  { name: "Slate",   accent: "#94a3b8", glow: "rgba(148,163,184,0.25)",  rgb: "148,163,184"  },
+  { name: "Slate",   accent: "#8e8b82", glow: "rgba(148,163,184,0.25)",  rgb: "148,163,184"  },
 ];
 
 const DEFAULT_AXES = ["Problem Solving", "Communication", "Creativity", "Leadership", "Technical"];
@@ -62,7 +62,7 @@ const renderLabel = (text, x, y) => {
     textAnchor: "middle",
     fill: "rgba(255,255,255,0.78)",
     fontSize: "12",
-    fontFamily: "system-ui, sans-serif",
+    fontFamily: "'Inter', -apple-system, sans-serif",
     style: { userSelect: "none" },
   };
   if (words.length === 1) {
@@ -145,7 +145,7 @@ function RadarChart({ axes, scores, theme }) {
 function SectionLabel({ children, color }) {
   return (
     <p style={{
-      fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.1em",
+      fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.1em",
       textTransform: "uppercase", color,
       marginBottom: "0.5rem",
       transition: "color 300ms ease",
@@ -173,7 +173,7 @@ function SBlock({ w = "100%", h = 14, br = "0.5rem", dark = false, mb = 0 }) {
 
 function SkeletonLayout({ theme }) {
   const panelStyle = {
-    background: "#f1f5f9",
+    background: "#f5f0e8",
     border: `2px solid ${theme.accent}`,
     borderTop: `4px solid ${theme.accent}`,
     borderRadius: "1.25rem",
@@ -197,7 +197,7 @@ function SkeletonLayout({ theme }) {
       </div>
       <div className="sc-center-col">
         <div style={{
-          background: "#0f172a", borderRadius: "1.5rem",
+          background: "#141413", borderRadius: "1.5rem",
           border: "1px solid rgba(255,255,255,0.08)",
           boxShadow: "0 25px 60px rgba(0,0,0,0.25)", padding: "2rem", width: "100%",
         }}>
@@ -260,7 +260,7 @@ export default function ScorecardPage({ navigate }) {
   const captureCard = async () => {
     const html2canvas = (await import("html2canvas")).default;
     const card = document.getElementById("scorecard-card");
-    return html2canvas(card, { backgroundColor: "#0f172a", scale: 2, useCORS: true });
+    return html2canvas(card, { backgroundColor: "#141413", scale: 2, useCORS: true });
   };
 
   const handleDownload = async () => {
@@ -373,18 +373,18 @@ export default function ScorecardPage({ navigate }) {
 
   const pillBase = {
     display: "inline-flex", alignItems: "center",
-    padding: "0.4rem 0.9rem",
+    padding: "0.45rem 1rem",
     borderRadius: "2rem",
-    fontSize: "0.83rem",
+    fontSize: "0.875rem",
     fontWeight: 500,
   };
 
   const panelStyle = {
-    background: "#f1f5f9",
+    background: "#f5f0e8",
     border: `2px solid ${theme.accent}`,
     borderTop: `4px solid ${theme.accent}`,
     borderRadius: "1.25rem",
-    padding: "1.5rem",
+    padding: "1.75rem",
     height: "100%",
     backdropFilter: "blur(12px)",
     WebkitBackdropFilter: "blur(12px)",
@@ -393,7 +393,7 @@ export default function ScorecardPage({ navigate }) {
   };
 
   const sectionStyle = {
-    background: "#ffffff",
+    background: "#faf9f5",
     border: `2px solid ${theme.accent}60`,
     borderRadius: "0.875rem",
     padding: "1rem",
@@ -412,14 +412,14 @@ export default function ScorecardPage({ navigate }) {
       flexDirection: "column",
       alignItems: "center",
       position: "relative",
-      fontFamily: "system-ui, sans-serif",
+      fontFamily: "'Inter', -apple-system, sans-serif",
       padding: "3rem 1.5rem 5rem",
       paddingLeft: `calc(${SIDEBAR_WIDTH}px + 1.5rem)`,
-      background: `linear-gradient(135deg, #f8fafc 0%, ${theme.accent}12 50%, #f1f5f9 100%)`,
+      background: `#faf9f5`,
       transition: "background 300ms ease",
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         @keyframes sc-float      { 0%,100% { transform: translateY(0) }   50% { transform: translateY(-6px) } }
@@ -429,10 +429,10 @@ export default function ScorecardPage({ navigate }) {
 
         .sc-layout {
           display: flex; flex-direction: row; gap: 2rem;
-          align-items: flex-start; width: 100%; max-width: 1060px;
+          align-items: flex-start; width: 100%; max-width: 1160px;
         }
-        .sc-left-panel  { width: 280px; flex-shrink: 0; }
-        .sc-right-panel { width: 280px; flex-shrink: 0; }
+        .sc-left-panel  { width: 310px; flex-shrink: 0; }
+        .sc-right-panel { width: 310px; flex-shrink: 0; }
         .sc-center-col  {
           flex: 1; min-width: 0;
           display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
@@ -452,7 +452,7 @@ export default function ScorecardPage({ navigate }) {
           background: transparent; color: #0f172a;
           font-size: 0.875rem; font-weight: 600;
           cursor: pointer; white-space: nowrap;
-          font-family: system-ui, sans-serif;
+          font-family: 'Inter', -apple-system, sans-serif;
           transition: background 0.18s, color 0.18s, transform 0.15s;
         }
         .sc-action-btn:hover:not(:disabled) { background: #0f172a; color: white; transform: translateY(-1px); }
@@ -555,7 +555,7 @@ export default function ScorecardPage({ navigate }) {
                 {profile.onboarding_summary && (
                   <div style={sectionStyle}>
                     <SectionLabel color={theme.accent}>About You</SectionLabel>
-                    <p style={{ color: "#0f172a", fontSize: "0.9rem", lineHeight: 1.65 }}>
+                    <p style={{ color: "#141413", fontSize: "1rem", lineHeight: 1.65 }}>
                       {profile.onboarding_summary}
                     </p>
                   </div>
@@ -564,7 +564,7 @@ export default function ScorecardPage({ navigate }) {
                   <div style={sectionStyle}>
                     <SectionLabel color={theme.accent}>Work Style</SectionLabel>
                     <div style={{ paddingLeft: "0.25rem" }}>
-                      <p style={{ color: "#374151", fontSize: "0.875rem", lineHeight: 1.55 }}>
+                      <p style={{ color: "#3d3d3a", fontSize: "0.9375rem", lineHeight: 1.55 }}>
                         {profile.work_style}
                       </p>
                     </div>
@@ -579,7 +579,7 @@ export default function ScorecardPage({ navigate }) {
                           ...pillBase,
                           background: `${theme.accent}12`,
                           border: `1.5px solid ${theme.accent}70`,
-                          color: "#0f172a",
+                          color: "#141413",
                           transition: "background 300ms ease, border-color 300ms ease",
                         }}>
                           {item}
@@ -598,7 +598,7 @@ export default function ScorecardPage({ navigate }) {
               <div
                 id="scorecard-card"
                 style={{
-                  background: "#0f172a",
+                  background: "#141413",
                   borderRadius: "1.5rem",
                   border: `1px solid rgba(${theme.rgb},0.35)`,
                   boxShadow: `0 25px 60px rgba(0,0,0,0.28), 0 0 100px ${theme.glow}`,
@@ -623,7 +623,7 @@ export default function ScorecardPage({ navigate }) {
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                       <span style={{
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        fontFamily: "'Inter', -apple-system, sans-serif",
                         fontWeight: 800, fontSize: "1rem", color: "white", letterSpacing: "-0.02em",
                       }}>
                         mentorable
@@ -675,14 +675,14 @@ export default function ScorecardPage({ navigate }) {
                             }}
                           >
                             <span style={{
-                              fontFamily: "'Plus Jakarta Sans', sans-serif",
+                              fontFamily: "'Inter', -apple-system, sans-serif",
                               fontWeight: 800, fontSize: "0.8rem", color: theme.accent, minWidth: 26,
                               transition: "color 300ms ease",
                             }}>
                               #{i + 1}
                             </span>
                             <span style={{
-                              fontFamily: "'Plus Jakarta Sans', sans-serif",
+                              fontFamily: "'Inter', -apple-system, sans-serif",
                               fontWeight: 700, fontSize: "0.95rem", color: "rgba(255,255,255,0.95)",
                             }}>
                               {career}
@@ -718,7 +718,7 @@ export default function ScorecardPage({ navigate }) {
                     />
                   ))}
                 </div>
-                <p style={{ fontSize: "0.75rem", color: "#64748b", letterSpacing: "0.03em" }}>
+                <p style={{ fontSize: "0.75rem", color: "#6c6a64", letterSpacing: "0.03em" }}>
                   Customize your card
                 </p>
               </motion.div>
@@ -730,7 +730,7 @@ export default function ScorecardPage({ navigate }) {
                 style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}
               >
                 <button className="sc-action-btn" disabled={downloading} onClick={handleDownload}>
-                  {downloading ? <Spinner size={15} color="#0f172a" /> : (
+                  {downloading ? <Spinner size={15} color="#141413" /> : (
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                       <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
@@ -740,7 +740,7 @@ export default function ScorecardPage({ navigate }) {
                 </button>
 
                 <button className="sc-action-btn" disabled={sharing} onClick={handleShareImage}>
-                  {sharing ? <Spinner size={15} color="#0f172a" /> : (
+                  {sharing ? <Spinner size={15} color="#141413" /> : (
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
                       <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
@@ -760,7 +760,7 @@ export default function ScorecardPage({ navigate }) {
                     fontSize: "0.875rem", fontWeight: 700,
                     cursor: "pointer",
                     boxShadow: `0 4px 14px ${theme.glow}`,
-                    fontFamily: "system-ui, sans-serif",
+                    fontFamily: "'Inter', -apple-system, sans-serif",
                     whiteSpace: "nowrap",
                     transition: "all 300ms ease",
                   }}
@@ -790,7 +790,7 @@ export default function ScorecardPage({ navigate }) {
                             ...pillBase,
                             background: `${theme.accent}12`,
                             border: `1.5px solid ${theme.accent}70`,
-                            color: "#0f172a",
+                            color: "#141413",
                             transition: "background 300ms ease, border-color 300ms ease",
                           }}
                         >
@@ -802,14 +802,14 @@ export default function ScorecardPage({ navigate }) {
                 )}
                 {weaknesses.length > 0 && (
                   <div style={{ ...sectionStyle, marginBottom: 0 }}>
-                    <SectionLabel color="#64748b">Growth Areas</SectionLabel>
+                    <SectionLabel color="#6c6a64">Growth Areas</SectionLabel>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
                       {weaknesses.map((w, i) => (
                         <span key={i} style={{
                           ...pillBase,
                           background: "rgba(148,163,184,0.12)",
                           border: "1px solid rgba(148,163,184,0.28)",
-                          color: "#374151",
+                          color: "#3d3d3a",
                         }}>
                           {w}
                         </span>

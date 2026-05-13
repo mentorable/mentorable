@@ -106,11 +106,11 @@ export default function AuthPage() {
       justifyContent: "center",
       position: "relative",
       overflow: "hidden",
-      background: "#f8fafc",
-      fontFamily: "system-ui, sans-serif",
+      background: "#faf9f5",
+      fontFamily: "'Inter', -apple-system, sans-serif",
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         @keyframes auth-glow {
@@ -120,11 +120,11 @@ export default function AuthPage() {
 
         .auth-input {
           width: 100%;
-          padding: 0.875rem 1rem;
+          padding: 1.125rem 1.25rem;
           border: 1.5px solid rgba(148,163,184,0.3);
-          border-radius: 0.75rem;
-          font-size: 1rem;
-          font-family: system-ui, sans-serif;
+          border-radius: 0.875rem;
+          font-size: 1.0625rem;
+          font-family: 'Inter', -apple-system, sans-serif;
           color: #0f172a;
           background: rgba(255,255,255,0.95);
           outline: none;
@@ -143,14 +143,14 @@ export default function AuthPage() {
 
         .auth-btn {
           width: 100%;
-          padding: 0.9375rem;
+          padding: 1.125rem;
           border: none;
-          border-radius: 0.75rem;
+          border-radius: 0.875rem;
           background: #1d4ed8;
           color: white;
           font-weight: 700;
-          font-size: 1rem;
-          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 1.0625rem;
+          font-family: 'Inter', -apple-system, sans-serif;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -195,7 +195,7 @@ export default function AuthPage() {
           color: #1d4ed8;
           font-weight: 600;
           font-size: 0.875rem;
-          font-family: system-ui, sans-serif;
+          font-family: 'Inter', -apple-system, sans-serif;
           padding: 0;
           text-decoration: underline;
           text-underline-offset: 2px;
@@ -234,7 +234,7 @@ export default function AuthPage() {
         transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
         style={{
           position: "relative", zIndex: 1,
-          width: "100%", maxWidth: 440,
+          width: "100%", maxWidth: 480,
           margin: "1rem",
           background: "rgba(255,255,255,0.85)",
           backdropFilter: "blur(12px)",
@@ -242,15 +242,15 @@ export default function AuthPage() {
           border: "1px solid rgba(148,163,184,0.2)",
           borderRadius: "1.25rem",
           boxShadow: "0 4px 24px rgba(0,0,0,0.05), 0 20px 60px rgba(0,0,0,0.07), 0 0 0 0.5px rgba(148,163,184,0.15)",
-          padding: "2.5rem 2.25rem",
+          padding: "3rem 2.75rem",
         }}
       >
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: "2.25rem" }}>
           <span style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontFamily: "'Inter', -apple-system, sans-serif",
             fontWeight: 800, fontSize: "1.35rem",
-            color: "#0f172a", letterSpacing: "-0.03em",
+            color: "#141413", letterSpacing: "-0.03em",
           }}>
             mentorable
           </span>
@@ -276,17 +276,17 @@ export default function AuthPage() {
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
               <h1 style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontWeight: 800,
-                fontSize: "2.05rem",
-                color: "#0f172a",
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontWeight: 600,
+                fontSize: "2.5rem",
+                color: "#141413",
                 lineHeight: 1.18,
                 marginBottom: "0.5rem",
                 letterSpacing: "-0.025em",
               }}>
                 {c.headline}
               </h1>
-              <p style={{ color: "#64748b", fontSize: "0.9375rem", lineHeight: 1.65 }}>
+              <p style={{ color: "#6c6a64", fontSize: "1rem", lineHeight: 1.65 }}>
                 {c.sub}
               </p>
             </motion.div>
@@ -323,7 +323,7 @@ export default function AuthPage() {
               <p style={{
                 fontWeight: 700,
                 color: "#166534",
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontFamily: "'Inter', -apple-system, sans-serif",
                 fontSize: "1rem",
                 marginBottom: "0.3rem",
               }}>
@@ -415,7 +415,7 @@ export default function AuthPage() {
               disabled={loading}
               onClick={handleSubmit}
             >
-              {loading ? <Spinner size={18} color="#ffffff" /> : `${c.btn} →`}
+              {loading ? <Spinner size={18} color="#faf9f5" /> : `${c.btn} →`}
             </button>
           </div>
         )}
@@ -425,7 +425,7 @@ export default function AuthPage() {
           marginTop: "1.35rem",
           textAlign: "center",
           fontSize: "0.875rem",
-          color: "#64748b",
+          color: "#6c6a64",
         }}>
           {c.togglePrompt}{" "}
           <button className="auth-toggle-btn" onClick={toggle}>

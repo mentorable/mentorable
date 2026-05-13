@@ -5,7 +5,7 @@ import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const BG        = "linear-gradient(180deg, #eef4ff 0%, #f4f8ff 20%, #f8fbff 60%)";
+const BG        = "#faf9f5";
 const WHITE     = "#ffffff";
 const BLUE      = "#1d4ed8";
 const BLUE_MID  = "#3b82f6";
@@ -17,14 +17,15 @@ const AMBER     = "#d97706";
 const AMBER_SOFT= "#fef3c7";
 const RED_SOFT  = "#fee2e2";
 const RED       = "#dc2626";
-const TEXT      = "#0f172a";
-const TEXT_MID  = "#475569";
-const TEXT_MUTED= "#64748b";
-const TEXT_FAINT= "#94a3b8";
-const BORDER    = "#e2e8f0";
-const BORDER_MID= "#cbd5e1";
-const FONT      = "'Space Grotesk', sans-serif";
-const BODY      = "'Plus Jakarta Sans', sans-serif";
+const TEXT      = "#141413";
+const TEXT_MID  = "#3d3d3a";
+const TEXT_MUTED= "#6c6a64";
+const TEXT_FAINT= "#8e8b82";
+const BORDER    = "#e6dfd8";
+const BORDER_MID= "#d4ccbf";
+const FONT      = "'Inter', -apple-system, sans-serif";
+const BODY      = "'Inter', -apple-system, sans-serif";
+const SERIF     = "'Cormorant Garamond', Georgia, serif";
 
 const TASK_TYPE_ICONS = {
   video:    "▶",
@@ -153,10 +154,10 @@ function TaskRow({ task, onAction, actioningId }) {
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
       style={{
         background: done ? BLUE_TINT : flagged ? "#fffbeb" : WHITE,
-        borderRadius: 14,
+        borderRadius: 16,
         border: `1px solid ${done ? BLUE_SOFT : flagged ? "#fde68a" : BORDER}`,
         borderLeft: done ? `3px solid ${BLUE}` : flagged ? `3px solid ${AMBER}` : `3px solid transparent`,
-        padding: "12px 14px",
+        padding: "16px 18px",
         opacity: inactive ? 0.75 : 1,
         transition: "background 0.2s, border 0.2s, opacity 0.2s, box-shadow 0.2s",
         boxShadow: done ? "0 0 0 0 transparent, 0 1px 6px rgba(29,78,216,0.06)" : "none",
@@ -182,7 +183,7 @@ function TaskRow({ task, onAction, actioningId }) {
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <span style={{ fontSize: 13, opacity: 0.55 }}>{taskIcon(task.title)}</span>
               <span style={{
-                fontFamily: FONT, fontWeight: 700, fontSize: 14,
+                fontFamily: FONT, fontWeight: 700, fontSize:  16,
                 color: done ? TEXT_MUTED : TEXT,
                 textDecoration: inactive ? "line-through" : "none",
                 lineHeight: 1.3,
@@ -201,7 +202,7 @@ function TaskRow({ task, onAction, actioningId }) {
                 transition={{ duration: 0.2 }}
                 style={{
                   margin: "6px 0 0",
-                  fontFamily: BODY, fontSize: 13, color: TEXT_MID,
+                  fontFamily: BODY, fontSize:  15, color: TEXT_MID,
                   lineHeight: 1.6, overflow: "hidden",
                 }}
               >
@@ -238,7 +239,7 @@ function TaskRow({ task, onAction, actioningId }) {
             <span style={{
               fontFamily: FONT, fontSize: 11, fontWeight: 700,
               color: TEXT_FAINT, letterSpacing: "0.03em",
-              background: "#f8fafc", borderRadius: 6,
+              background: "#faf9f5", borderRadius: 6,
               padding: "2px 7px", border: `1px solid ${BORDER}`,
             }}>
               {task.estimated_time}
@@ -279,7 +280,7 @@ function PhaseCard({ phase, isActive, isCompleted, isLocked, onAction, actioning
   const allDone = totalTasks > 0 && doneTasks === totalTasks;
 
   const borderColor = isCompleted ? GREEN : isActive ? BLUE : BORDER;
-  const headerBg    = isCompleted ? GREEN_SOFT : isActive ? BLUE_SOFT : "#f8fafc";
+  const headerBg    = isCompleted ? GREEN_SOFT : isActive ? BLUE_SOFT : "#faf9f5";
   const headerColor = isCompleted ? GREEN : isActive ? BLUE : TEXT_FAINT;
 
   return (
@@ -311,7 +312,7 @@ function PhaseCard({ phase, isActive, isCompleted, isLocked, onAction, actioning
         onClick={() => !isLocked && setOpen(o => !o)}
         style={{
           width: "100%", border: "none", cursor: isLocked ? "default" : "pointer",
-          background: headerBg, padding: "14px 18px",
+          background: headerBg, padding: "18px 22px",
           display: "flex", alignItems: "center", gap: 12,
           textAlign: "left",
         }}
@@ -319,7 +320,7 @@ function PhaseCard({ phase, isActive, isCompleted, isLocked, onAction, actioning
         {/* Icon / lock */}
         <div style={{
           width: 36, height: 36, borderRadius: 10,
-          background: isCompleted ? GREEN : isActive ? BLUE : "#e2e8f0",
+          background: isCompleted ? GREEN : isActive ? BLUE : "#e6dfd8",
           display: "flex", alignItems: "center", justifyContent: "center",
           flexShrink: 0,
           boxShadow: isActive
@@ -339,26 +340,26 @@ function PhaseCard({ phase, isActive, isCompleted, isLocked, onAction, actioning
         {/* Title + meta */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: FONT, fontWeight: 800, fontSize: 15, color: isLocked ? TEXT_FAINT : TEXT }}>
+            <span style={{ fontFamily: FONT, fontWeight: 800, fontSize:  18, color: isLocked ? TEXT_FAINT : TEXT }}>
               {isLocked ? `Phase ${phase.phase_number}` : phase.title}
             </span>
             <span style={{
               fontFamily: FONT, fontSize: 10, fontWeight: 700,
               letterSpacing: "0.08em", textTransform: "uppercase",
               color: headerColor,
-              background: isCompleted ? "#bbf7d0" : isActive ? BLUE_SOFT : "#f1f5f9",
+              background: isCompleted ? "#bbf7d0" : isActive ? BLUE_SOFT : "#f5f0e8",
               borderRadius: 6, padding: "2px 7px",
             }}>
               {isLocked ? "Locked" : isCompleted ? "Done" : "Active"}
             </span>
           </div>
           {!isLocked && phase.focus && (
-            <p style={{ margin: "3px 0 0", fontFamily: BODY, fontSize: 12.5, color: TEXT_MUTED, lineHeight: 1.4 }}>
+            <p style={{ margin: "3px 0 0", fontFamily: BODY, fontSize:  15, color: TEXT_MUTED, lineHeight: 1.4 }}>
               {phase.focus}
             </p>
           )}
           {isLocked && (
-            <p style={{ margin: "3px 0 0", fontFamily: BODY, fontSize: 12.5, color: TEXT_FAINT }}>
+            <p style={{ margin: "3px 0 0", fontFamily: BODY, fontSize:  15, color: TEXT_FAINT }}>
               Complete Phase {phase.phase_number - 1} to unlock
             </p>
           )}
@@ -457,7 +458,7 @@ function PhaseCard({ phase, isActive, isCompleted, isLocked, onAction, actioning
                     You're building serious momentum. Ready for what's next?
                   </p>
                   <motion.button
-                    whileHover={{ scale: 1.04, background: "#ffffff" }}
+                    whileHover={{ scale: 1.04, background: "#faf9f5" }}
                     whileTap={{ scale: 0.97 }}
                     onClick={onGenerateNext}
                     disabled={generatingPhase}
@@ -721,7 +722,7 @@ export default function RoadmapPage({ navigate }) {
         paddingLeft: isMobile ? 0 : SIDEBAR_WIDTH,
       }}>
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
           @keyframes quest-spin { to { transform: rotate(360deg); } }
         `}</style>
         <QuestBoot />
@@ -730,15 +731,16 @@ export default function RoadmapPage({ navigate }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: BG, paddingLeft: isMobile ? 0 : SIDEBAR_WIDTH, paddingBottom: isMobile ? 96 : 48, backgroundImage: "radial-gradient(circle, rgba(29,78,216,0.07) 1px, transparent 1px)", backgroundSize: "28px 28px", backgroundAttachment: "local" }}>
+    <div style={{ minHeight: "100vh", background: BG, paddingLeft: isMobile ? 0 : SIDEBAR_WIDTH, paddingBottom: isMobile ? 96 : 48, backgroundImage: "radial-gradient(circle, rgba(29,78,216,0.07) 1px, transparent 1px)", backgroundSize: "28px 28px", backgroundAttachment: "local", position: "relative" }}>
+
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         @keyframes quest-spin { to { transform: rotate(360deg); } }
         @keyframes quest-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(29,78,216,0.4); } 50% { box-shadow: 0 0 0 6px rgba(29,78,216,0); } }
         * { box-sizing: border-box; }
       `}</style>
 
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: isMobile ? "0 16px" : "0 24px" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: isMobile ? "0 16px" : "0 24px", position: "relative" }}>
 
         {/* ── Sticky header ─────────────────────────────────────────────── */}
         <div style={{
@@ -754,7 +756,7 @@ export default function RoadmapPage({ navigate }) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <h1 style={{ fontFamily: FONT, fontWeight: 800, fontSize: isMobile ? 22 : 27, margin: 0, letterSpacing: "-0.04em", background: "linear-gradient(135deg, #0f172a 30%, #1d4ed8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                <h1 style={{ fontFamily: SERIF, fontWeight: 600, fontSize: isMobile ? 26 : 32, margin: 0, letterSpacing: "-0.01em", background: "linear-gradient(135deg, #0f172a 30%, #1d4ed8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                   Quest
                 </h1>
                 <span style={{
