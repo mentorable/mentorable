@@ -5,7 +5,7 @@ import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const BG        = "#f8fbff";
+const BG        = "linear-gradient(180deg, #eef4ff 0%, #f4f8ff 20%, #f8fbff 60%)";
 const WHITE     = "#ffffff";
 const BLUE      = "#1d4ed8";
 const BLUE_MID  = "#3b82f6";
@@ -72,13 +72,13 @@ function XPCounter({ value }) {
 }
 
 // ─── Circular progress ring ───────────────────────────────────────────────────
-function ProgressRing({ value, max, size = 48, stroke = 4, color = BLUE }) {
+function ProgressRing({ value, max, size = 48, stroke = 4, color = BLUE, trackColor }) {
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const pct = max > 0 ? Math.min(value / max, 1) : 0;
   return (
     <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={BORDER} strokeWidth={stroke} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={trackColor || BORDER} strokeWidth={stroke} />
       <circle
         cx={size / 2} cy={size / 2} r={r}
         fill="none" stroke={color} strokeWidth={stroke}
@@ -418,46 +418,53 @@ function PhaseCard({ phase, isActive, isCompleted, isLocked, onAction, actioning
               {/* Generate next phase CTA */}
               {isActive && allDone && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
+                  initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ delay: 0.25, type: "spring", stiffness: 300, damping: 24 }}
                   style={{
                     marginTop: 20,
-                    padding: "18px 20px",
-                    borderRadius: 16,
-                    background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)",
-                    border: `1px solid ${BLUE_SOFT}`,
+                    padding: "24px 24px",
+                    borderRadius: 20,
+                    background: "linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%)",
+                    border: "none",
                     display: "flex", flexDirection: "column", alignItems: "center",
                     gap: 10, textAlign: "center",
+                    boxShadow: "0 8px 32px rgba(29,78,216,0.3)",
                   }}
                 >
-                  <div style={{ fontSize: 28 }}>🎉</div>
-                  <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 15, color: TEXT }}>
+                  <motion.div
+                    animate={{ rotate: [0, -10, 10, -10, 0] }}
+                    transition={{ duration: 0.6, delay: 0.4 }}
+                    style={{ fontSize: 32 }}
+                  >🎉</motion.div>
+                  <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 17, color: WHITE, letterSpacing: "-0.02em" }}>
                     Phase {phase.phase_number} complete!
                   </div>
-                  <p style={{ fontFamily: BODY, fontSize: 13, color: TEXT_MUTED, margin: 0 }}>
-                    You're building serious momentum. Ready for your next phase?
+                  <p style={{ fontFamily: BODY, fontSize: 13, color: "rgba(255,255,255,0.8)", margin: 0, lineHeight: 1.5, maxWidth: 280 }}>
+                    You're building serious momentum. Ready for what's next?
                   </p>
                   <motion.button
-                    whileHover={{ scale: 1.03 }}
+                    whileHover={{ scale: 1.04, background: "#ffffff" }}
                     whileTap={{ scale: 0.97 }}
                     onClick={onGenerateNext}
                     disabled={generatingPhase}
                     style={{
-                      marginTop: 4,
-                      padding: "12px 24px",
+                      marginTop: 6,
+                      padding: "13px 28px",
                       borderRadius: 12,
                       border: "none",
-                      background: generatingPhase ? TEXT_FAINT : BLUE,
-                      color: WHITE,
-                      fontFamily: FONT, fontWeight: 700, fontSize: 14,
+                      background: WHITE,
+                      color: BLUE,
+                      fontFamily: FONT, fontWeight: 800, fontSize: 14,
                       cursor: generatingPhase ? "default" : "pointer",
                       display: "flex", alignItems: "center", gap: 8,
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+                      transition: "transform 0.15s",
                     }}
                   >
                     {generatingPhase ? (
                       <>
-                        <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid rgba(255,255,255,0.3)`, borderTopColor: WHITE, animation: "quest-spin 0.7s linear infinite", display: "inline-block" }} />
+                        <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2.5px solid rgba(29,78,216,0.2)`, borderTopColor: BLUE, animation: "quest-spin 0.7s linear infinite", display: "inline-block" }} />
                         Building Phase {phase.phase_number + 1}…
                       </>
                     ) : (
@@ -736,20 +743,20 @@ export default function RoadmapPage({ navigate }) {
             {/* XP pill */}
             <div style={{ position: "relative" }}>
               <motion.div
-                whileHover={{ scale: 1.04 }}
+                whileHover={{ scale: 1.05 }}
                 style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  background: BLUE_TINT,
-                  border: `1px solid ${BLUE_SOFT}`,
-                  borderRadius: 14, padding: "8px 14px",
+                  display: "flex", alignItems: "center", gap: 10,
+                  background: `linear-gradient(135deg, #1d4ed8, #3b82f6)`,
+                  borderRadius: 16, padding: "10px 16px",
+                  boxShadow: "0 4px 18px rgba(29,78,216,0.28)",
                 }}
               >
-                <ProgressRing value={xp} max={100} size={34} stroke={3} color={BLUE} />
+                <ProgressRing value={xp} max={100} size={36} stroke={3} color={WHITE} trackColor="rgba(255,255,255,0.25)" />
                 <div>
-                  <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 18, color: BLUE, lineHeight: 1 }}>
+                  <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 20, color: WHITE, lineHeight: 1 }}>
                     <XPCounter value={xp} />
                   </div>
-                  <div style={{ fontFamily: FONT, fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: TEXT_FAINT }}>
+                  <div style={{ fontFamily: FONT, fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.65)" }}>
                     XP
                   </div>
                 </div>
@@ -760,14 +767,17 @@ export default function RoadmapPage({ navigate }) {
                 {xpPop && (
                   <motion.div
                     key={xpPop.id}
-                    initial={{ opacity: 0, y: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, y: -28, scale: 1 }}
-                    exit={{ opacity: 0, y: -44, scale: 0.8 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                    initial={{ opacity: 0, y: 4, scale: 0.7 }}
+                    animate={{ opacity: 1, y: -36, scale: 1 }}
+                    exit={{ opacity: 0, y: -52, scale: 0.85 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 22 }}
                     style={{
                       position: "absolute", top: 0, right: 0,
-                      fontFamily: FONT, fontWeight: 800, fontSize: 13,
-                      color: xpPop.delta > 0 ? GREEN : RED,
+                      fontFamily: FONT, fontWeight: 800, fontSize: 15,
+                      color: WHITE,
+                      background: xpPop.delta > 0 ? GREEN : RED,
+                      borderRadius: 10, padding: "4px 10px",
+                      boxShadow: xpPop.delta > 0 ? "0 4px 14px rgba(5,150,105,0.4)" : "0 4px 14px rgba(220,38,38,0.4)",
                       pointerEvents: "none", whiteSpace: "nowrap",
                     }}
                   >
@@ -781,17 +791,17 @@ export default function RoadmapPage({ navigate }) {
           {/* Stats row */}
           <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
             {[
-              { icon: "📅", label: `${doneThisWeek} done this week` },
-              { icon: "🗺️", label: `${phases.length} phase${phases.length !== 1 ? "s" : ""}` },
-              { icon: "✦",  label: `${allTasks.filter(t => t.status === "completed").length} total complete` },
+              { value: doneThisWeek, label: "this week" },
+              { value: phases.length, label: `phase${phases.length !== 1 ? "s" : ""}` },
+              { value: allTasks.filter(t => t.status === "completed").length, label: "complete" },
             ].map(stat => (
               <div key={stat.label} style={{
-                display: "flex", alignItems: "center", gap: 5,
+                display: "flex", alignItems: "baseline", gap: 4,
                 fontFamily: FONT, fontSize: 12, fontWeight: 600, color: TEXT_MUTED,
-                background: WHITE, borderRadius: 9, padding: "5px 10px",
+                background: WHITE, borderRadius: 9, padding: "5px 12px",
                 border: `1px solid ${BORDER}`,
               }}>
-                <span style={{ fontSize: 11 }}>{stat.icon}</span>
+                <span style={{ fontWeight: 800, fontSize: 14, color: TEXT }}>{stat.value}</span>
                 {stat.label}
               </div>
             ))}
@@ -836,35 +846,43 @@ export default function RoadmapPage({ navigate }) {
 
         {/* ── Ask AI nudge ────────────────────────────────────────────────── */}
         {phases.length > 0 && (
-          <div style={{
-            marginTop: 28,
-            padding: "16px 20px",
-            borderRadius: 16,
-            background: WHITE,
-            border: `1px solid ${BORDER}`,
-            display: "flex", alignItems: "center",
-            justifyContent: "space-between", gap: 12,
-          }}>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            style={{
+              marginTop: 28,
+              padding: "20px 22px",
+              borderRadius: 18,
+              background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)",
+              border: `1.5px solid ${BLUE_SOFT}`,
+              display: "flex", alignItems: "center",
+              justifyContent: "space-between", gap: 14,
+              boxShadow: "0 2px 12px rgba(29,78,216,0.06)",
+            }}
+          >
             <div>
-              <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14, color: TEXT }}>
-                Need guidance on any task?
+              <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 14, color: TEXT, marginBottom: 3 }}>
+                Stuck or need guidance?
               </div>
-              <p style={{ fontFamily: BODY, fontSize: 13, color: TEXT_MUTED, margin: "3px 0 0" }}>
-                Ask Mentora for personalised advice or help with anything on your Quest.
+              <p style={{ fontFamily: BODY, fontSize: 13, color: TEXT_MUTED, margin: 0, lineHeight: 1.5 }}>
+                Ask Mentora for personalised advice on any task in your Quest.
               </p>
             </div>
             <motion.button
-              whileHover={{ scale: 1.03 }}
+              whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => navigate("/chat")}
               style={{
                 flexShrink: 0,
-                padding: "10px 18px", borderRadius: 12,
-                border: `1px solid ${BORDER}`,
-                background: WHITE, color: TEXT,
+                padding: "11px 20px", borderRadius: 12,
+                border: "none",
+                background: "linear-gradient(135deg, #1d4ed8, #3b82f6)",
+                color: WHITE,
                 fontFamily: FONT, fontWeight: 700, fontSize: 13,
                 cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 6,
+                display: "flex", alignItems: "center", gap: 7,
+                boxShadow: "0 3px 14px rgba(29,78,216,0.28)",
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -872,7 +890,7 @@ export default function RoadmapPage({ navigate }) {
               </svg>
               Ask Mentora
             </motion.button>
-          </div>
+          </motion.div>
         )}
       </div>
     </div>

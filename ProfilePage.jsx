@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
+import { useIsMobile } from "./hooks/useIsMobile.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -46,9 +47,12 @@ const DIFFICULTY_OPTIONS = [
 
 // ─── Atom components ──────────────────────────────────────────────────────────
 
+const SG = "'Space Grotesk', sans-serif";
+const JK = "'Plus Jakarta Sans', sans-serif";
+
 function Label({ children }) {
   return (
-    <p style={{ fontSize: "0.82rem", fontWeight: 600, color: "#374151", marginBottom: "0.4rem" }}>
+    <p style={{ fontFamily: SG, fontSize: "0.82rem", fontWeight: 700, color: "#0f172a", marginBottom: "0.4rem" }}>
       {children}
     </p>
   );
@@ -56,7 +60,7 @@ function Label({ children }) {
 
 function Hint({ children }) {
   return (
-    <p style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "0.35rem", lineHeight: 1.5 }}>
+    <p style={{ fontFamily: SG, fontSize: "0.75rem", color: "#94a3b8", marginTop: "0.35rem", lineHeight: 1.5 }}>
       {children}
     </p>
   );
@@ -64,9 +68,12 @@ function Hint({ children }) {
 
 function SectionHeading({ children }) {
   return (
-    <p style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#94a3b8", marginBottom: "1.25rem" }}>
-      {children}
-    </p>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: "1.25rem" }}>
+      <p style={{ fontFamily: SG, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#3b82f6", margin: 0 }}>
+        {children}
+      </p>
+      <div style={{ flex: 1, height: 1, background: "#e2e8f0" }} />
+    </div>
   );
 }
 
@@ -78,11 +85,11 @@ const inputStyle = {
   width: "100%",
   padding: "0.6rem 0.85rem",
   border: "1.5px solid #e2e8f0",
-  borderRadius: "0.5rem",
+  borderRadius: "0.625rem",
   fontSize: "0.9rem",
-  fontFamily: "system-ui, sans-serif",
+  fontFamily: "'Space Grotesk', sans-serif",
   color: "#0f172a",
-  background: "#fafbff",
+  background: "#ffffff",
   outline: "none",
   transition: "border-color 0.15s, box-shadow 0.15s",
   boxSizing: "border-box",
@@ -123,6 +130,7 @@ function PillSelector({ options, value, onChange, accent = ACCENT }) {
 // ─── ProfilePage ──────────────────────────────────────────────────────────────
 
 export default function ProfilePage({ navigate }) {
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState(null);
   const [userEmail, setUserEmail] = useState("");
@@ -275,19 +283,21 @@ export default function ProfilePage({ navigate }) {
 
   const card = {
     background: "#ffffff",
-    border: "1px solid #e2e8f0",
-    borderRadius: "0.875rem",
+    border: "1px solid #e8edf5",
+    borderRadius: "1rem",
     padding: "1.5rem",
     marginBottom: "1rem",
+    boxShadow: "0 1px 8px rgba(15,23,42,0.05)",
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div data-sidebar-offset style={{
       minHeight: "100vh",
-      background: "linear-gradient(180deg, #e8f0ff 0%, #f4f8ff 25%, #f8faff 100%)",
-      fontFamily: "system-ui, -apple-system, sans-serif",
-      paddingLeft: SIDEBAR_WIDTH,
+      background: "linear-gradient(180deg, #e8f0ff 0%, #f4f8ff 30%, #f8faff 100%)",
+      fontFamily: "'Space Grotesk', sans-serif",
+      paddingLeft: isMobile ? 0 : SIDEBAR_WIDTH,
+      paddingBottom: isMobile ? 96 : 0,
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -304,23 +314,24 @@ export default function ProfilePage({ navigate }) {
         {/* Header */}
         <div style={{ marginBottom: "2rem" }}>
           {!loading && (
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "1.25rem", marginBottom: "0.5rem" }}>
               {/* Avatar */}
               <div style={{
-                width: 48, height: 48, borderRadius: "50%",
+                width: 56, height: 56, borderRadius: "50%",
                 background: `linear-gradient(135deg, ${accent}, ${accent}bb)`,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0, boxShadow: `0 4px 14px ${accent}44`,
+                flexShrink: 0, boxShadow: `0 4px 18px ${accent}44`,
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontWeight: 800, fontSize: "1.1rem", color: "white",
+                fontWeight: 800, fontSize: "1.3rem", color: "white",
+                border: `3px solid ${accent}22`,
               }}>
                 {(preferredName || userEmail || "?").charAt(0).toUpperCase()}
               </div>
               <div>
-                <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "1.3rem", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em" }}>
+                <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "1.45rem", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.03em", lineHeight: 1.2 }}>
                   {preferredName || "Your Profile"}
                 </h1>
-                {userEmail && <p style={{ fontSize: "0.82rem", color: "#94a3b8", marginTop: "0.1rem" }}>{userEmail}</p>}
+                {userEmail && <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "0.82rem", color: "#94a3b8", marginTop: "0.2rem" }}>{userEmail}</p>}
               </div>
             </div>
           )}

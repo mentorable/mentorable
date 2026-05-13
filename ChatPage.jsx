@@ -452,13 +452,21 @@ function WelcomeScreen({ onSend, userName }) {
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         style={{ marginBottom: 28, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontFamily: JK, fontWeight: 800, fontSize: 22, color: NAVY, letterSpacing: "-0.03em" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <span style={{ fontFamily: JK, fontWeight: 800, fontSize: 22, color: NAVY, letterSpacing: "-0.04em" }}>
             mentorable
           </span>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: ACCENT, display: "inline-block", marginBottom: 2, boxShadow: `0 0 6px ${ACCENT}` }} />
+          <motion.span
+            animate={{ boxShadow: [`0 0 6px ${ACCENT}80`, `0 0 12px ${ACCENT}`, `0 0 6px ${ACCENT}80`] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            style={{ width: 7, height: 7, borderRadius: "50%", background: ACCENT, display: "inline-block", marginBottom: 2 }}
+          />
         </div>
-        <div style={{ width: 36, height: 1, background: "#e2e8f0" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 28, height: 1, background: "#e2e8f0" }} />
+          <span style={{ fontFamily: SG, fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#94a3b8" }}>your ai mentor</span>
+          <div style={{ width: 28, height: 1, background: "#e2e8f0" }} />
+        </div>
       </motion.div>
 
       {/* Greeting */}
@@ -466,13 +474,13 @@ function WelcomeScreen({ onSend, userName }) {
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.38, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-        style={{ textAlign: "center", marginBottom: 36 }}
+        style={{ textAlign: "center", marginBottom: 32 }}
       >
-        <h2 style={{ fontFamily: JK, fontWeight: 800, fontSize: 24, color: NAVY, letterSpacing: "-0.025em", marginBottom: 8 }}>
+        <h2 style={{ fontFamily: JK, fontWeight: 800, fontSize: 26, color: NAVY, letterSpacing: "-0.035em", marginBottom: 10, lineHeight: 1.2 }}>
           Good {timeOfDay}{firstName ? `, ${firstName}` : ""}.
         </h2>
-        <p style={{ fontFamily: SG, fontSize: 14, color: "#64748b", fontWeight: 500, maxWidth: 380, lineHeight: 1.6 }}>
-          What's on your mind? Ask about Our Mind, career options, or anything you're working through.
+        <p style={{ fontFamily: SG, fontSize: 14, color: "#64748b", fontWeight: 500, maxWidth: 360, lineHeight: 1.65 }}>
+          What's on your mind? Ask about your Quest, career options, or anything you're working through.
         </p>
       </motion.div>
 
@@ -481,28 +489,28 @@ function WelcomeScreen({ onSend, userName }) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.38, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, width: "100%", maxWidth: 520 }}
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, width: "100%", maxWidth: 500 }}
       >
         {SUGGESTIONS.map((s, i) => (
           <motion.button
             key={i}
             onClick={() => onSend(s.label)}
-            initial={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28, delay: 0.16 + i * 0.05 }}
-            whileHover={{ y: -1 }}
-            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.28, delay: 0.18 + i * 0.06 }}
+            whileHover={{ y: -2, boxShadow: `0 4px 20px ${ACCENT}14` }}
+            whileTap={{ scale: 0.97 }}
             style={{
               background: "#fff", border: "1.5px solid #e8edf2",
-              borderRadius: 10, padding: "12px 14px",
+              borderRadius: 12, padding: "13px 15px",
               textAlign: "left", cursor: "pointer",
               boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
-              transition: "border-color 0.15s, box-shadow 0.15s",
+              transition: "border-color 0.15s",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${ACCENT}60`; e.currentTarget.style.boxShadow = `0 2px 12px ${ACCENT}12`; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e8edf2"; e.currentTarget.style.boxShadow = "0 1px 4px rgba(15,23,42,0.05)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${ACCENT}55`; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e8edf2"; }}
           >
-            <span style={{ fontFamily: SG, fontSize: 13, color: "#334155", fontWeight: 600, lineHeight: 1.4 }}>
+            <span style={{ fontFamily: SG, fontSize: 13, color: "#334155", fontWeight: 600, lineHeight: 1.5 }}>
               {s.label}
             </span>
           </motion.button>
@@ -598,8 +606,8 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
   return (
     <div style={{
       width: fullWidth ? "100%" : HISTORY_W, flexShrink: 0,
-      background: "#f8fafc",
-      borderLeft: fullWidth ? "none" : "1px solid #e8edf2",
+      background: "#f4f7fb",
+      borderLeft: fullWidth ? "none" : "1.5px solid #e2e8f0",
       display: "flex", flexDirection: "column", overflow: "hidden",
       flex: fullWidth ? 1 : undefined,
     }}>
@@ -666,20 +674,27 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
 
       {/* Top bar */}
       <div style={{
-        height: 52, flexShrink: 0, paddingLeft: 24, paddingRight: 16,
-        background: "rgba(255,255,255,0.92)",
-        backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+        height: 54, flexShrink: 0, paddingLeft: 24, paddingRight: 16,
+        background: "rgba(255,255,255,0.95)",
+        backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
         borderBottom: "1px solid #e8edf2",
         display: "flex", alignItems: "center", gap: 10, zIndex: 5,
       }}>
-        <AgentAvatar size={26} />
+        <AgentAvatar size={28} />
         <div>
-          <span style={{ fontFamily: JK, fontWeight: 700, fontSize: 13.5, color: NAVY, letterSpacing: "-0.01em" }}>
-            Mentorable Agent
+          <span style={{ fontFamily: JK, fontWeight: 700, fontSize: 14, color: NAVY, letterSpacing: "-0.02em" }}>
+            Mentora
+          </span>
+          <span style={{ fontFamily: SG, fontSize: 11, color: "#94a3b8", fontWeight: 500, marginLeft: 6 }}>
+            · AI Career Mentor
           </span>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
+          <motion.span
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block" }}
+          />
           <span style={{ fontFamily: SG, fontSize: 11, color: "#64748b", fontWeight: 500 }}>Ready</span>
           {onOpenHistory && (
             <button

@@ -5,9 +5,13 @@ import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import Drawer from "./components/common/Drawer.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
-const FONT  = "'Space Grotesk', sans-serif";
-const NAVY  = "#0f172a";
-const INDIGO = "#6366f1";
+const FONT   = "'Space Grotesk', sans-serif";
+const BODY   = "'Plus Jakarta Sans', sans-serif";
+const NAVY   = "#0f172a";
+const BLUE   = "#1d4ed8";
+const BLUE_MID = "#3b82f6";
+const BLUE_SOFT = "#dbeafe";
+const BLUE_TINT = "#eff6ff";
 const SESSIONS_W = 256;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -30,11 +34,11 @@ const EXAMPLE_CHIPS = [
 ];
 
 const TYPE_META = {
-  competition: { label: "Competition", color: "#7c3aed", bg: "rgba(124,58,237,0.08)", border: "rgba(124,58,237,0.18)" },
-  internship:  { label: "Internship",  color: "#0369a1", bg: "rgba(3,105,161,0.07)",  border: "rgba(3,105,161,0.15)"  },
-  scholarship: { label: "Scholarship", color: "#065f46", bg: "rgba(6,95,70,0.07)",    border: "rgba(6,95,70,0.15)"    },
-  program:     { label: "Program",     color: "#b45309", bg: "rgba(180,83,9,0.07)",   border: "rgba(180,83,9,0.15)"   },
-  resource:    { label: "Resource",    color: "#374151", bg: "rgba(55,65,81,0.06)",   border: "rgba(55,65,81,0.12)"   },
+  competition: { label: "Competition", color: "#0369a1", bg: "rgba(3,105,161,0.08)",  border: "rgba(3,105,161,0.2)"  },
+  internship:  { label: "Internship",  color: "#1d4ed8", bg: "rgba(29,78,216,0.07)",  border: "rgba(29,78,216,0.18)" },
+  scholarship: { label: "Scholarship", color: "#065f46", bg: "rgba(6,95,70,0.07)",    border: "rgba(6,95,70,0.15)"   },
+  program:     { label: "Program",     color: "#b45309", bg: "rgba(180,83,9,0.07)",   border: "rgba(180,83,9,0.15)"  },
+  resource:    { label: "Resource",    color: "#374151", bg: "rgba(55,65,81,0.06)",   border: "rgba(55,65,81,0.12)"  },
   article:     { label: "Article",     color: "#64748b", bg: "rgba(100,116,139,0.06)", border: "rgba(100,116,139,0.12)" },
 };
 
@@ -118,8 +122,8 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
           position: "relative", padding: "7px 10px", borderRadius: 8,
           cursor: "pointer",
           display: "flex", alignItems: "center", gap: 8,
-          background: isActive ? "rgba(99,102,241,0.08)" : hovered ? "#f8fafc" : "transparent",
-          borderLeft: isActive ? `2px solid ${INDIGO}` : "2px solid transparent",
+          background: isActive ? "rgba(29,78,216,0.07)" : hovered ? "#f8fafc" : "transparent",
+          borderLeft: isActive ? `2px solid ${BLUE}` : "2px solid transparent",
           marginBottom: 1, transition: "background 0.12s",
         }}
       >
@@ -149,8 +153,8 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
         {isPending && (
           <span style={{
             width: 14, height: 14, flexShrink: 0,
-            border: "2px solid rgba(99,102,241,0.2)",
-            borderTopColor: INDIGO, borderRadius: "50%",
+            border: "2px solid rgba(29,78,216,0.15)",
+            borderTopColor: BLUE_MID, borderRadius: "50%",
             animation: "spinner-rotate 0.7s linear infinite",
             display: "inline-block",
           }} />
@@ -186,7 +190,7 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
             fontFamily: FONT, fontWeight: 600, fontSize: 12.5, color: "#374151",
             cursor: "pointer", transition: "border-color 0.15s",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${INDIGO}50`; }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${BLUE}50`; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; }}
         >
           <IconPlus size={13} color="#374151" /> New search
@@ -219,15 +223,21 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
 
 function HeroSection() {
   return (
-    <div style={{ marginBottom: "1.75rem" }}>
-      <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.72rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#94a3b8", marginBottom: "0.625rem" }}>
-        Deep Research
-      </p>
-      <h1 style={{ fontFamily: FONT, fontWeight: 800, fontSize: "clamp(1.4rem, 2.5vw, 1.75rem)", color: NAVY, marginBottom: "0.625rem", lineHeight: 1.2, letterSpacing: "-0.03em" }}>
-        Find real opportunities,<br />tailored to you.
+    <div style={{ marginBottom: "2rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: "0.75rem" }}>
+        <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: BLUE }}>
+          Deep Research
+        </span>
+        <span style={{ width: 4, height: 4, borderRadius: "50%", background: BLUE, display: "inline-block", boxShadow: "0 0 6px rgba(29,78,216,0.5)" }} />
+      </div>
+      <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: "clamp(1.6rem, 3vw, 2.1rem)", color: NAVY, marginBottom: "0.75rem", lineHeight: 1.15, letterSpacing: "-0.04em" }}>
+        Find real opportunities,<br />
+        <span style={{ background: "linear-gradient(90deg, #1d4ed8, #3b82f6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+          tailored to you.
+        </span>
       </h1>
-      <p style={{ fontFamily: FONT, fontSize: "0.875rem", color: "#64748b", maxWidth: 520, lineHeight: 1.7, fontWeight: 500, margin: 0 }}>
-        Scholarships, internships, programs, and competitions — the opportunities a good counselor would surface for you. Search anything and get results filtered to your profile.
+      <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: "#64748b", maxWidth: 520, lineHeight: 1.7, fontWeight: 500, margin: 0 }}>
+        Scholarships, internships, programs, and competitions — surfaced from real sources and filtered to your profile.
       </p>
     </div>
   );
@@ -257,16 +267,16 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
             width: "100%", resize: "none", boxSizing: "border-box",
             fontFamily: FONT, fontSize: "0.9rem", fontWeight: 500, color: NAVY,
             background: "#fff",
-            border: "2px solid rgba(99,102,241,0.2)",
+            border: "2px solid rgba(29,78,216,0.15)",
             borderRadius: "0.875rem",
             padding: "0.875rem 1.125rem",
             outline: "none", lineHeight: 1.55,
             transition: "border-color 0.15s, box-shadow 0.15s",
-            boxShadow: "0 2px 10px rgba(99,102,241,0.06)",
+            boxShadow: "0 2px 8px rgba(29,78,216,0.06)",
             opacity: loading ? 0.7 : 1,
           }}
-          onFocus={(e) => { e.target.style.borderColor = "rgba(99,102,241,0.45)"; e.target.style.boxShadow = "0 0 0 4px rgba(99,102,241,0.07)"; }}
-          onBlur={(e)  => { e.target.style.borderColor = "rgba(99,102,241,0.2)"; e.target.style.boxShadow = "0 2px 10px rgba(99,102,241,0.06)"; }}
+          onFocus={(e) => { e.target.style.borderColor = "rgba(29,78,216,0.5)"; e.target.style.boxShadow = "0 0 0 4px rgba(29,78,216,0.07)"; }}
+          onBlur={(e)  => { e.target.style.borderColor = "rgba(29,78,216,0.15)"; e.target.style.boxShadow = "0 2px 8px rgba(29,78,216,0.06)"; }}
         />
       </div>
       <motion.button
@@ -276,13 +286,13 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
         whileTap={{ scale: 0.97 }}
         style={{
           padding: "0 1.5rem", height: 56, alignSelf: "flex-end",
-          background: value.trim() && !loading ? "linear-gradient(135deg, #6366f1, #3b82f6)" : "rgba(99,102,241,0.12)",
+          background: value.trim() && !loading ? "linear-gradient(135deg, #1d4ed8, #3b82f6)" : "#e2e8f0",
           color: value.trim() && !loading ? "white" : "#94a3b8",
           border: "none", borderRadius: "0.75rem",
           fontFamily: FONT, fontWeight: 700, fontSize: "0.875rem",
           cursor: value.trim() && !loading ? "pointer" : "not-allowed",
           transition: "all 0.15s", whiteSpace: "nowrap",
-          boxShadow: value.trim() && !loading ? "0 4px 14px rgba(99,102,241,0.3)" : "none",
+          boxShadow: value.trim() && !loading ? "0 4px 14px rgba(29,78,216,0.28)" : "none",
           display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0,
         }}
       >
@@ -313,14 +323,14 @@ function ExampleChips({ onSelect, loading }) {
             whileTap={{ scale: 0.97 }}
             disabled={loading}
             style={{
-              fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, color: INDIGO,
-              background: "rgba(99,102,241,0.07)", border: "1.5px solid rgba(99,102,241,0.15)",
+              fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, color: BLUE,
+              background: BLUE_TINT, border: `1.5px solid ${BLUE_SOFT}`,
               borderRadius: "2rem", padding: "0.4rem 0.875rem",
               cursor: loading ? "not-allowed" : "pointer", transition: "background 0.12s, border-color 0.12s",
               opacity: loading ? 0.5 : 1,
             }}
-            onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.background = "rgba(99,102,241,0.12)"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.28)"; } }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(99,102,241,0.07)"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.15)"; }}
+            onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.background = "#dbeafe"; e.currentTarget.style.borderColor = "#93c5fd"; } }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = BLUE_TINT; e.currentTarget.style.borderColor = BLUE_SOFT; }}
           >
             {chip}
           </motion.button>
@@ -336,24 +346,24 @@ function LoadingState({ step }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-      style={{ background: "linear-gradient(135deg, #0f172a, #1e1b4b)", borderRadius: "1.25rem", padding: "2.25rem 2rem", textAlign: "center", marginBottom: "2rem" }}
+      style={{ background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1.5px solid #bfdbfe", borderRadius: "1.25rem", padding: "2.25rem 2rem", textAlign: "center", marginBottom: "2rem" }}
     >
-      <div style={{ width: 50, height: 50, borderRadius: "50%", background: "rgba(99,102,241,0.12)", border: "2px solid rgba(99,102,241,0.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.25rem", position: "relative" }}>
-        <div style={{ position: "absolute", inset: -4, borderRadius: "50%", border: "2px solid transparent", borderTopColor: INDIGO, animation: "spinner-rotate 1s linear infinite" }} />
-        <IconSearch size={20} color="#a5b4fc" />
+      <div style={{ width: 50, height: 50, borderRadius: "50%", background: "#ffffff", border: "1.5px solid #bfdbfe", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.25rem", position: "relative", boxShadow: "0 4px 16px rgba(29,78,216,0.1)" }}>
+        <div style={{ position: "absolute", inset: -4, borderRadius: "50%", border: "2px solid transparent", borderTopColor: BLUE, animation: "spinner-rotate 1s linear infinite" }} />
+        <IconSearch size={20} color={BLUE} />
       </div>
       <AnimatePresence mode="wait">
         <motion.p key={step} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.25 }}
-          style={{ fontFamily: FONT, fontSize: "0.95rem", fontWeight: 600, color: "#e2e8f0", marginBottom: "0.5rem" }}>
+          style={{ fontFamily: FONT, fontSize: "0.95rem", fontWeight: 700, color: NAVY, marginBottom: "0.5rem" }}>
           {LOADING_STEPS[step] || LOADING_STEPS[LOADING_STEPS.length - 1]}
         </motion.p>
       </AnimatePresence>
       <div style={{ display: "flex", justifyContent: "center", gap: "0.4rem", marginTop: "1rem" }}>
         {LOADING_STEPS.map((_, i) => (
-          <div key={i} style={{ width: i === step ? 18 : 5, height: 5, borderRadius: 3, background: i === step ? INDIGO : "rgba(99,102,241,0.2)", transition: "all 0.3s" }} />
+          <div key={i} style={{ width: i === step ? 18 : 5, height: 5, borderRadius: 3, background: i === step ? BLUE : "rgba(29,78,216,0.15)", transition: "all 0.3s" }} />
         ))}
       </div>
-      <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: "rgba(148,163,184,0.7)", marginTop: "0.75rem" }}>
+      <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: "#64748b", marginTop: "0.75rem" }}>
         This may take a moment…
       </p>
     </motion.div>
@@ -430,11 +440,11 @@ function ResultCard({ result, index }) {
           style={{
             display: "flex", alignItems: "center", gap: "0.3rem",
             padding: "0.4rem 0.875rem",
-            background: "linear-gradient(135deg, #6366f1, #3b82f6)",
+            background: "linear-gradient(135deg, #1d4ed8, #3b82f6)",
             color: "white", borderRadius: "2rem",
             fontFamily: FONT, fontSize: "0.75rem", fontWeight: 700,
             textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
-            boxShadow: "0 2px 8px rgba(99,102,241,0.28)",
+            boxShadow: "0 2px 8px rgba(29,78,216,0.28)",
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -468,13 +478,13 @@ function ResultCard({ result, index }) {
       {result.relevance_note && (
         <div style={{
           display: "flex", gap: "0.45rem", alignItems: "flex-start",
-          background: "rgba(99,102,241,0.04)",
-          border: "1px solid rgba(99,102,241,0.1)",
+          background: BLUE_TINT,
+          border: `1px solid ${BLUE_SOFT}`,
           borderRadius: "0.75rem", padding: "0.6rem 0.875rem",
           marginBottom: result.gamePlan ? "0.75rem" : 0,
         }}>
-          <IconStar size={13} color={INDIGO} style={{ flexShrink: 0, marginTop: 2 }} />
-          <p style={{ fontFamily: FONT, fontSize: "0.79rem", color: INDIGO, fontWeight: 600, lineHeight: 1.55, margin: 0 }}>
+          <IconStar size={13} color={BLUE} style={{ flexShrink: 0, marginTop: 2 }} />
+          <p style={{ fontFamily: FONT, fontSize: "0.79rem", color: BLUE, fontWeight: 600, lineHeight: 1.55, margin: 0 }}>
             {result.relevance_note}
           </p>
         </div>
@@ -556,14 +566,14 @@ function SourcesSection({ sources }) {
               {sources.map((s, i) => (
                 <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
                   style={{
-                    fontFamily: FONT, fontSize: "0.8rem", color: INDIGO, fontWeight: 500,
+                    fontFamily: FONT, fontSize: "0.8rem", color: BLUE, fontWeight: 500,
                     textDecoration: "none", display: "flex", alignItems: "center", gap: "0.375rem",
                     padding: "0.3rem 0",
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
                 >
-                  <IconExternal size={10} color={INDIGO} />
+                  <IconExternal size={10} color={BLUE} />
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title || s.url}</span>
                 </a>
               ))}
