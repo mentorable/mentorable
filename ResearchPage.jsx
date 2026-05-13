@@ -166,8 +166,8 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
   return (
     <div style={{
       width: fullWidth ? "100%" : SESSIONS_W, flexShrink: 0,
-      background: "#f8fafc",
-      borderLeft: fullWidth ? "none" : "1px solid #e8edf2",
+      background: "#f2f6fb",
+      borderLeft: fullWidth ? "none" : "1.5px solid rgba(29,78,216,0.1)",
       display: "flex", flexDirection: "column", overflow: "hidden",
       flex: fullWidth ? 1 : undefined,
     }}>
@@ -223,20 +223,26 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
 
 function HeroSection() {
   return (
-    <div style={{ marginBottom: "2rem" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: "0.75rem" }}>
-        <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: BLUE }}>
-          Deep Research
-        </span>
-        <span style={{ width: 4, height: 4, borderRadius: "50%", background: BLUE, display: "inline-block", boxShadow: "0 0 6px rgba(29,78,216,0.5)" }} />
+    <div style={{ marginBottom: "2rem", position: "relative" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: "0.875rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: BLUE_TINT, border: `1px solid ${BLUE_SOFT}`, borderRadius: 20, padding: "4px 12px", width: "fit-content" }}>
+          <motion.span
+            animate={{ boxShadow: ["0 0 0 0 rgba(29,78,216,0.5)", "0 0 0 4px rgba(29,78,216,0)", "0 0 0 0 rgba(29,78,216,0)"] }}
+            transition={{ duration: 2.5, repeat: Infinity }}
+            style={{ width: 6, height: 6, borderRadius: "50%", background: BLUE, display: "inline-block" }}
+          />
+          <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: BLUE }}>
+            Deep Research
+          </span>
+        </div>
       </div>
-      <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: "clamp(1.6rem, 3vw, 2.1rem)", color: NAVY, marginBottom: "0.75rem", lineHeight: 1.15, letterSpacing: "-0.04em" }}>
+      <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: "clamp(1.7rem, 3vw, 2.2rem)", color: NAVY, marginBottom: "0.875rem", lineHeight: 1.12, letterSpacing: "-0.045em" }}>
         Find real opportunities,<br />
         <span style={{ background: "linear-gradient(90deg, #1d4ed8, #3b82f6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
           tailored to you.
         </span>
       </h1>
-      <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: "#64748b", maxWidth: 520, lineHeight: 1.7, fontWeight: 500, margin: 0 }}>
+      <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: "#64748b", maxWidth: 500, lineHeight: 1.75, fontWeight: 500, margin: 0 }}>
         Scholarships, internships, programs, and competitions — surfaced from real sources and filtered to your profile.
       </p>
     </div>
@@ -387,6 +393,9 @@ function ResultCard({ result, index }) {
 
   const visitUrl = details.applicationLink || result.url;
 
+  const glowColor = meta.color + "20";
+  const borderAccent = meta.color;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
@@ -394,14 +403,15 @@ function ResultCard({ result, index }) {
       transition={{ duration: 0.28, delay: index * 0.06 }}
       style={{
         background: "#fff",
-        border: "1.5px solid rgba(99,102,241,0.09)",
+        border: `1px solid rgba(15,23,42,0.07)`,
+        borderLeft: `4px solid ${borderAccent}`,
         borderRadius: "1.125rem",
         padding: "1.375rem 1.5rem",
-        boxShadow: "0 2px 14px rgba(99,102,241,0.05)",
-        transition: "box-shadow 0.15s, border-color 0.15s",
+        boxShadow: "0 2px 10px rgba(15,23,42,0.05)",
+        transition: "box-shadow 0.2s, border-color 0.2s",
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 5px 24px rgba(99,102,241,0.1)"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.18)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 2px 14px rgba(99,102,241,0.05)"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.09)"; }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 6px 28px ${glowColor}, 0 2px 8px rgba(15,23,42,0.06)`; e.currentTarget.style.borderColor = `${borderAccent}30`; }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 2px 10px rgba(15,23,42,0.05)"; e.currentTarget.style.borderColor = "rgba(15,23,42,0.07)"; }}
     >
       {/* Header row */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.875rem", marginBottom: "0.75rem" }}>
@@ -826,8 +836,12 @@ export default function ResearchPage({ navigate, initialSessionId }) {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f4f8ff", display: "flex" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');`}</style>
+    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #eef4ff 0%, #f4f8ff 30%, #f8fbff 100%)", backgroundImage: "radial-gradient(circle, rgba(29,78,216,0.07) 1px, transparent 1px)", backgroundSize: "28px 28px", display: "flex" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        @keyframes spinner-rotate { to { transform: rotate(360deg); } }
+      `}</style>
 
       {/* Main content */}
       <div
@@ -837,8 +851,8 @@ export default function ResearchPage({ navigate, initialSessionId }) {
           flex: 1,
           minHeight: "100vh",
           overflowY: "auto",
-          padding: isMobile ? "1.25rem 1rem 5rem" : "2rem 2rem 4rem",
-          maxWidth: 820,
+          padding: isMobile ? "1.25rem 1rem 5rem" : "2rem 2.5rem 4rem",
+          maxWidth: 840,
           boxSizing: "border-box",
         }}
       >

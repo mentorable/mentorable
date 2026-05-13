@@ -324,11 +324,15 @@ function Message({ msg }) {
         <div
           className={isStreaming ? "streaming-bubble" : undefined}
           style={{
-            background: "#fff",
+            background: "#ffffff",
             borderRadius: "3px 16px 16px 16px",
             padding: "13px 16px",
-            border: isStreaming ? `1px solid ${ACCENT}30` : "1px solid #e8edf2",
-            boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+            border: isStreaming
+              ? `1px solid ${ACCENT}40`
+              : "1px solid rgba(29,78,216,0.1)",
+            boxShadow: isStreaming
+              ? `0 0 0 1px rgba(59,130,246,0.08), 0 4px 20px rgba(59,130,246,0.1)`
+              : "0 2px 12px rgba(29,78,216,0.06), 0 1px 4px rgba(15,23,42,0.04)",
             maxWidth: 600,
           }}
         >
@@ -389,9 +393,11 @@ function InputBar({ onSend, disabled }) {
     <div style={{ padding: "12px 24px 20px", flexShrink: 0 }}>
       <div style={{
         background: "#fff",
-        border: `1.5px solid ${value.length > MAX_INPUT ? "#ef4444" : value ? ACCENT + "50" : "#e2e8f0"}`,
+        border: `1.5px solid ${value.length > MAX_INPUT ? "#ef4444" : value ? ACCENT + "60" : "rgba(29,78,216,0.12)"}`,
         borderRadius: 14,
-        boxShadow: value ? `0 0 0 3px ${ACCENT}10` : "0 1px 6px rgba(15,23,42,0.06)",
+        boxShadow: value
+          ? `0 0 0 3px ${ACCENT}14, 0 4px 20px rgba(59,130,246,0.1)`
+          : "0 2px 12px rgba(29,78,216,0.06)",
         transition: "border-color 0.18s, box-shadow 0.18s",
         padding: "11px 11px 11px 16px",
         display: "flex", alignItems: "flex-end", gap: 10,
@@ -443,7 +449,7 @@ function WelcomeScreen({ onSend, userName }) {
   const firstName = userName?.split(" ")[0];
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 32px 24px" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 32px 24px", background: "radial-gradient(ellipse at 50% 30%, rgba(59,130,246,0.08) 0%, transparent 65%)" }}>
 
       {/* Wordmark */}
       <motion.div
@@ -670,19 +676,20 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
   }, [messages]);
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: "#fff", overflow: "hidden" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: "linear-gradient(180deg, #f8faff 0%, #ffffff 120px)", overflow: "hidden", backgroundImage: "radial-gradient(circle, rgba(59,130,246,0.05) 1px, transparent 1px)", backgroundSize: "32px 32px" }}>
 
       {/* Top bar */}
       <div style={{
         height: 54, flexShrink: 0, paddingLeft: 24, paddingRight: 16,
-        background: "rgba(255,255,255,0.95)",
-        backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
-        borderBottom: "1px solid #e8edf2",
+        background: "rgba(248,250,255,0.92)",
+        backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+        borderBottom: "1px solid rgba(29,78,216,0.1)",
+        boxShadow: "0 1px 0 0 rgba(29,78,216,0.05), 0 4px 24px rgba(29,78,216,0.03)",
         display: "flex", alignItems: "center", gap: 10, zIndex: 5,
       }}>
         <AgentAvatar size={28} />
         <div>
-          <span style={{ fontFamily: JK, fontWeight: 700, fontSize: 14, color: NAVY, letterSpacing: "-0.02em" }}>
+          <span style={{ fontFamily: JK, fontWeight: 800, fontSize: 14, color: NAVY, letterSpacing: "-0.03em" }}>
             Mentora
           </span>
           <span style={{ fontFamily: SG, fontSize: 11, color: "#94a3b8", fontWeight: 500, marginLeft: 6 }}>
@@ -690,12 +697,14 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
           </span>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-          <motion.span
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block" }}
-          />
-          <span style={{ fontFamily: SG, fontSize: 11, color: "#64748b", fontWeight: 500 }}>Ready</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.18)", borderRadius: 20, padding: "3px 9px" }}>
+            <motion.span
+              animate={{ boxShadow: ["0 0 0 0 rgba(16,185,129,0.4)", "0 0 0 4px rgba(16,185,129,0)", "0 0 0 0 rgba(16,185,129,0)"] }}
+              transition={{ duration: 2.5, repeat: Infinity }}
+              style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block" }}
+            />
+            <span style={{ fontFamily: SG, fontSize: 11, fontWeight: 700, color: "#059669" }}>Online</span>
+          </div>
           {onOpenHistory && (
             <button
               onClick={onOpenHistory}
@@ -926,7 +935,7 @@ export default function ChatPage({ navigate }) {
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.1); border-radius: 99px; }
+        ::-webkit-scrollbar-thumb { background: rgba(29,78,216,0.15); border-radius: 99px; }
         ${STREAMING_CSS}
       `}</style>
 

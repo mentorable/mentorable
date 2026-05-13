@@ -283,11 +283,12 @@ export default function ProfilePage({ navigate }) {
 
   const card = {
     background: "#ffffff",
-    border: "1px solid #e8edf5",
+    border: "1px solid rgba(29,78,216,0.1)",
+    borderTop: `3px solid ${accent}`,
     borderRadius: "1rem",
     padding: "1.5rem",
     marginBottom: "1rem",
-    boxShadow: "0 1px 8px rgba(15,23,42,0.05)",
+    boxShadow: `0 4px 20px rgba(29,78,216,0.07), 0 1px 4px rgba(15,23,42,0.04), 0 0 0 0 ${accent}`,
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -295,19 +296,23 @@ export default function ProfilePage({ navigate }) {
     <div data-sidebar-offset style={{
       minHeight: "100vh",
       background: "linear-gradient(180deg, #e8f0ff 0%, #f4f8ff 30%, #f8faff 100%)",
+      backgroundImage: "radial-gradient(circle, rgba(29,78,216,0.06) 1px, transparent 1px)",
+      backgroundSize: "28px 28px",
       fontFamily: "'Space Grotesk', sans-serif",
       paddingLeft: isMobile ? 0 : SIDEBAR_WIDTH,
       paddingBottom: isMobile ? 96 : 0,
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        .pf-input:focus  { border-color: ${accent} !important; box-shadow: 0 0 0 3px ${accent}22 !important; }
-        .pf-ta:focus     { border-color: ${accent} !important; box-shadow: 0 0 0 3px ${accent}22 !important; }
-        .pf-del:focus    { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.15) !important; }
+        .pf-input:focus  { border-color: ${accent} !important; box-shadow: 0 0 0 4px ${accent}18, 0 2px 12px ${accent}20 !important; }
+        .pf-ta:focus     { border-color: ${accent} !important; box-shadow: 0 0 0 4px ${accent}18, 0 2px 12px ${accent}20 !important; }
+        .pf-del:focus    { border-color: #ef4444 !important; box-shadow: 0 0 0 4px rgba(239,68,68,0.15) !important; }
         .pf-pill-btn:hover { border-color: #94a3b8 !important; }
+        @keyframes pf-shimmer { 0% { background-position: -400px 0 } 100% { background-position: 400px 0 } }
+        @keyframes spinner-rotate { to { transform: rotate(360deg); } }
       `}</style>
-
 
       <div style={{ maxWidth: 620, margin: "0 auto", padding: "3rem 1.5rem 6rem" }}>
 
@@ -315,23 +320,30 @@ export default function ProfilePage({ navigate }) {
         <div style={{ marginBottom: "2rem" }}>
           {!loading && (
             <div style={{ display: "flex", alignItems: "center", gap: "1.25rem", marginBottom: "0.5rem" }}>
-              {/* Avatar */}
-              <div style={{
-                width: 56, height: 56, borderRadius: "50%",
-                background: `linear-gradient(135deg, ${accent}, ${accent}bb)`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0, boxShadow: `0 4px 18px ${accent}44`,
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontWeight: 800, fontSize: "1.3rem", color: "white",
-                border: `3px solid ${accent}22`,
-              }}>
-                {(preferredName || userEmail || "?").charAt(0).toUpperCase()}
+              {/* Avatar with glow halo */}
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                <div style={{
+                  position: "absolute", inset: -6, borderRadius: "50%",
+                  background: `radial-gradient(circle, ${accent}30, transparent 70%)`,
+                  filter: "blur(8px)",
+                }} />
+                <div style={{
+                  position: "relative",
+                  width: 58, height: 58, borderRadius: "50%",
+                  background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: `0 0 0 2px ${accent}22, 0 6px 24px ${accent}40`,
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontWeight: 800, fontSize: "1.35rem", color: "white",
+                }}>
+                  {(preferredName || userEmail || "?").charAt(0).toUpperCase()}
+                </div>
               </div>
               <div>
-                <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "1.45rem", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.03em", lineHeight: 1.2 }}>
+                <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "1.5rem", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.04em", lineHeight: 1.15 }}>
                   {preferredName || "Your Profile"}
                 </h1>
-                {userEmail && <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "0.82rem", color: "#94a3b8", marginTop: "0.2rem" }}>{userEmail}</p>}
+                {userEmail && <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "0.82rem", color: "#94a3b8", marginTop: "0.25rem" }}>{userEmail}</p>}
               </div>
             </div>
           )}

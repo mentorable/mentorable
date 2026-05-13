@@ -155,9 +155,11 @@ function TaskRow({ task, onAction, actioningId }) {
         background: done ? BLUE_TINT : flagged ? "#fffbeb" : WHITE,
         borderRadius: 14,
         border: `1px solid ${done ? BLUE_SOFT : flagged ? "#fde68a" : BORDER}`,
+        borderLeft: done ? `3px solid ${BLUE}` : flagged ? `3px solid ${AMBER}` : `3px solid transparent`,
         padding: "12px 14px",
-        opacity: inactive ? 0.7 : 1,
-        transition: "background 0.2s, border 0.2s, opacity 0.2s",
+        opacity: inactive ? 0.75 : 1,
+        transition: "background 0.2s, border 0.2s, opacity 0.2s, box-shadow 0.2s",
+        boxShadow: done ? "0 0 0 0 transparent, 0 1px 6px rgba(29,78,216,0.06)" : "none",
       }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
@@ -287,15 +289,21 @@ function PhaseCard({ phase, isActive, isCompleted, isLocked, onAction, actioning
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       style={{
-        background: isLocked ? "#f8fafc" : WHITE,
+        background: isLocked ? "#f5f7fa" : WHITE,
         borderRadius: 20,
-        border: `1px solid ${borderColor}`,
+        border: isActive
+          ? `1px solid rgba(29,78,216,0.2)`
+          : isCompleted
+          ? `1px solid rgba(5,150,105,0.2)`
+          : `1px solid rgba(15,23,42,0.07)`,
         borderLeft: `4px solid ${borderColor}`,
         overflow: "hidden",
         boxShadow: isActive
-          ? "0 4px 24px rgba(29,78,216,0.08), 0 1px 4px rgba(29,78,216,0.06)"
-          : "0 1px 4px rgba(15,23,42,0.05)",
-        transition: "box-shadow 0.2s",
+          ? "0 0 0 1px rgba(29,78,216,0.06), 0 8px 40px rgba(29,78,216,0.12), 0 2px 8px rgba(29,78,216,0.08)"
+          : isCompleted
+          ? "0 4px 20px rgba(5,150,105,0.08), 0 1px 4px rgba(5,150,105,0.05)"
+          : "0 1px 4px rgba(15,23,42,0.04)",
+        transition: "box-shadow 0.25s, border-color 0.25s",
       }}
     >
       {/* Phase header */}
@@ -314,6 +322,11 @@ function PhaseCard({ phase, isActive, isCompleted, isLocked, onAction, actioning
           background: isCompleted ? GREEN : isActive ? BLUE : "#e2e8f0",
           display: "flex", alignItems: "center", justifyContent: "center",
           flexShrink: 0,
+          boxShadow: isActive
+            ? "0 0 0 3px rgba(29,78,216,0.15), 0 4px 14px rgba(29,78,216,0.3)"
+            : isCompleted
+            ? "0 0 0 3px rgba(5,150,105,0.15), 0 4px 14px rgba(5,150,105,0.25)"
+            : "none",
         }}>
           {isLocked
             ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_FAINT} strokeWidth="2.2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -396,10 +409,10 @@ function PhaseCard({ phase, isActive, isCompleted, isLocked, onAction, actioning
                 return (
                   <div key={weekNum} style={{ marginTop: 16 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                      <span style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: TEXT_FAINT }}>
+                      <span style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: BLUE, opacity: 0.7 }}>
                         Week {weekNum}
                       </span>
-                      <div style={{ flex: 1, height: 1, background: BORDER }} />
+                      <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, rgba(29,78,216,0.2), transparent)` }} />
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {weekTasks.map(task => (
@@ -500,19 +513,37 @@ function QuestBoot() {
   return (
     <div style={{
       display: "flex", flexDirection: "column", alignItems: "center",
-      justifyContent: "center", minHeight: "60vh", gap: 20, padding: "0 24px",
+      justifyContent: "center", minHeight: "60vh", gap: 24, padding: "0 24px",
+      background: "radial-gradient(ellipse at 50% 40%, rgba(29,78,216,0.08) 0%, transparent 70%)",
     }}>
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-        style={{
-          width: 48, height: 48, borderRadius: "50%",
-          border: `3px solid ${BLUE_SOFT}`,
-          borderTopColor: BLUE,
-        }}
-      />
+      <div style={{ position: "relative", width: 64, height: 64 }}>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+          style={{
+            position: "absolute", inset: 0, borderRadius: "50%",
+            border: `2px solid transparent`,
+            borderTopColor: BLUE,
+            borderRightColor: BLUE_SOFT,
+          }}
+        />
+        <motion.div
+          animate={{ scale: [1, 1.15, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          style={{
+            position: "absolute", inset: 12, borderRadius: "50%",
+            background: `linear-gradient(135deg, ${BLUE}, ${BLUE_MID})`,
+            boxShadow: "0 0 20px rgba(29,78,216,0.4)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+        </motion.div>
+      </div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: TEXT }}>
+        <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 16, color: TEXT, letterSpacing: "-0.02em" }}>
           Building your Quest
         </div>
         <AnimatePresence mode="wait">
@@ -699,10 +730,11 @@ export default function RoadmapPage({ navigate }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: BG, paddingLeft: isMobile ? 0 : SIDEBAR_WIDTH, paddingBottom: isMobile ? 96 : 48 }}>
+    <div style={{ minHeight: "100vh", background: BG, paddingLeft: isMobile ? 0 : SIDEBAR_WIDTH, paddingBottom: isMobile ? 96 : 48, backgroundImage: "radial-gradient(circle, rgba(29,78,216,0.07) 1px, transparent 1px)", backgroundSize: "28px 28px", backgroundAttachment: "local" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap');
         @keyframes quest-spin { to { transform: rotate(360deg); } }
+        @keyframes quest-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(29,78,216,0.4); } 50% { box-shadow: 0 0 0 6px rgba(29,78,216,0); } }
         * { box-sizing: border-box; }
       `}</style>
 
@@ -711,32 +743,42 @@ export default function RoadmapPage({ navigate }) {
         {/* ── Sticky header ─────────────────────────────────────────────── */}
         <div style={{
           position: "sticky", top: 0, zIndex: 20,
-          background: "rgba(248,251,255,0.92)",
-          backdropFilter: "blur(14px)",
-          WebkitBackdropFilter: "blur(14px)",
+          background: "rgba(238,244,255,0.88)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
           padding: isMobile ? "14px 0 12px" : "18px 0 14px",
-          borderBottom: `1px solid ${BORDER}`,
+          borderBottom: `1px solid rgba(29,78,216,0.12)`,
           marginBottom: 24,
+          boxShadow: "0 1px 0 0 rgba(29,78,216,0.06), 0 4px 24px rgba(29,78,216,0.04)",
         }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <h1 style={{ fontFamily: FONT, fontWeight: 800, fontSize: isMobile ? 22 : 26, color: TEXT, margin: 0, letterSpacing: "-0.03em" }}>
+                <h1 style={{ fontFamily: FONT, fontWeight: 800, fontSize: isMobile ? 22 : 27, margin: 0, letterSpacing: "-0.04em", background: "linear-gradient(135deg, #0f172a 30%, #1d4ed8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                   Quest
                 </h1>
                 <span style={{
-                  fontFamily: FONT, fontSize: 11, fontWeight: 700,
-                  letterSpacing: "0.06em", textTransform: "uppercase",
-                  color: BLUE, background: BLUE_SOFT,
+                  fontFamily: FONT, fontSize: 10, fontWeight: 700,
+                  letterSpacing: "0.07em", textTransform: "uppercase",
+                  color: BLUE, background: BLUE_TINT,
+                  border: `1px solid ${BLUE_SOFT}`,
                   borderRadius: 8, padding: "3px 9px",
+                  boxShadow: "0 0 10px rgba(29,78,216,0.1)",
                 }}>
                   {modeLabel}
                 </span>
               </div>
               {activePhase && (
-                <p style={{ fontFamily: BODY, fontSize: 13, color: TEXT_MUTED, margin: "3px 0 0" }}>
-                  Phase {activePhase.phase_number} · {doneInPhase}/{totalInPhase} tasks done
-                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                  <motion.span
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    style={{ width: 6, height: 6, borderRadius: "50%", background: BLUE, display: "inline-block", boxShadow: "0 0 6px rgba(29,78,216,0.6)" }}
+                  />
+                  <p style={{ fontFamily: BODY, fontSize: 13, color: TEXT_MUTED, margin: 0 }}>
+                    Phase {activePhase.phase_number} · {doneInPhase}/{totalInPhase} tasks done
+                  </p>
+                </div>
               )}
             </div>
 
