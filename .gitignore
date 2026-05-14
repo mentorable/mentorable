@@ -10,6 +10,7 @@ supabase/.temp/
 
 # AI development artifacts
 .claude/
+claude/
 sample_screenshots/
 CLAUDE.md
 
