@@ -760,14 +760,15 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
 // ─── ChatPage ─────────────────────────────────────────────────────────────────
 
 export default function ChatPage({ navigate }) {
-  const [user, setUser]         = useState(null);
-  const [profile, setProfile]   = useState(null);
-  const [ourMind, setOurMind]   = useState(null);
-  const [sessions, setSessions] = useState([]);
+  const [user, setUser]               = useState(null);
+  const [profile, setProfile]         = useState(null);
+  const [ourMind, setOurMind]         = useState(null);
+  const [completedQuests, setCompletedQuests] = useState([]);
+  const [sessions, setSessions]       = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [streaming, setStreaming] = useState(false);
-  const [chatError, setChatError] = useState(null);
+  const [messages, setMessages]       = useState([]);
+  const [streaming, setStreaming]     = useState(false);
+  const [chatError, setChatError]     = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -782,8 +783,8 @@ export default function ChatPage({ navigate }) {
   }, []);
 
   useEffect(() => {
-    systemPromptRef.current = buildSystemPrompt(profile, ourMind);
-  }, [profile, ourMind]);
+    systemPromptRef.current = buildSystemPrompt(profile, ourMind, completedQuests);
+  }, [profile, ourMind, completedQuests]);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -791,15 +792,22 @@ export default function ChatPage({ navigate }) {
       const uid = data.user.id;
       setUser(data.user);
 
-      const [sessionsRes, profileRes, ourMindRes] = await Promise.all([
+      const [sessionsRes, profileRes, ourMindRes, completedQuestsRes] = await Promise.all([
         supabase.from("chat_sessions").select("id, title, messages, created_at, updated_at")
           .eq("user_id", uid).order("updated_at", { ascending: false }),
         supabase.from("profiles").select("*").eq("id", uid).single(),
         supabase.from("student_canvas").select("nodes, edges").eq("user_id", uid).maybeSingle(),
+        supabase.from("quest_items")
+          .select("title, category, completed_at")
+          .eq("user_id", uid)
+          .eq("status", "completed")
+          .order("completed_at", { ascending: false })
+          .limit(20),
       ]);
 
-      if (sessionsRes.data) setSessions(sessionsRes.data);
-      if (profileRes.data)  setProfile(profileRes.data);
+      if (sessionsRes.data)         setSessions(sessionsRes.data);
+      if (profileRes.data)          setProfile(profileRes.data);
+      if (completedQuestsRes.data)  setCompletedQuests(completedQuestsRes.data);
       setOurMind({ nodes: ourMindRes.data?.nodes || [], edges: ourMindRes.data?.edges || [] });
     });
   }, []);

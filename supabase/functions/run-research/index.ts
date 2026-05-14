@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
     }
 
     // ── Load profile + Our Mind snapshot ───────────────────────────────────────
-    const [profileRes, mindRes] = await Promise.all([
+    const [profileRes, mindRes, completedQuestsRes] = await Promise.all([
       supabase.from('profiles')
         .select('interests, strengths, career_matches, grade_level, age, location_general, onboarding_summary, work_style')
         .eq('id', user.id)
@@ -150,10 +150,17 @@ Deno.serve(async (req) => {
         .select('nodes, edges')
         .eq('user_id', user.id)
         .maybeSingle(),
+      supabase.from('quest_items')
+        .select('title, category, completed_at')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: false })
+        .limit(15),
     ])
 
     const profile = profileRes.data
     const ourMindNodes = Array.isArray(mindRes.data?.nodes) ? mindRes.data.nodes : []
+    const completedQuests = completedQuestsRes.data || []
 
     const profileBlock = `STUDENT PROFILE
 - Grade: ${profile?.grade_level || 'not specified'}
@@ -170,6 +177,10 @@ Deno.serve(async (req) => {
 ${buildBoardSummary(ourMindNodes)}`
       : ''
 
+    const completedQuestsBlock = completedQuests.length > 0
+      ? `COMPLETED QUESTS\nThe student has completed these quests — use them as context for where they are in their journey:\n${completedQuests.map((q: any) => `- ${q.title} (${q.category || 'Other'}, completed ${q.completed_at ? new Date(q.completed_at).toLocaleDateString() : 'recently'})`).join('\n')}`
+      : ''
+
     // ── Step 1: Decompose query into targeted sub-queries ──────────────────────
     const decomposeRes = await anthropic.messages.create({
       model: SONNET,
@@ -180,7 +191,7 @@ Make each query distinct — vary the angle (e.g. program-name specific, eligibi
 Return ONLY valid JSON: { "subQueries": ["query1", "query2", ...] }`,
       messages: [{
         role: 'user',
-        content: `ORIGINAL QUERY: "${normalizedQuery}"\n\n${profileBlock}\n\n${mindBlock}`,
+        content: `ORIGINAL QUERY: "${normalizedQuery}"\n\n${profileBlock}\n\n${mindBlock}${completedQuestsBlock ? '\n\n' + completedQuestsBlock : ''}`,
       }],
     })
 
@@ -249,7 +260,7 @@ Return ONLY valid JSON:
 Rules: skip ads, generic directories, and low-quality pages. Omit detail fields you don't know — never write "varies" or "TBD".`,
       messages: [{
         role: 'user',
-        content: `QUERY: "${normalizedQuery}"\n\n${profileBlock}\n\n${mindBlock}\n\nRAW RESULTS (${allBraveResults.length} unique, from ${queries.length} sub-queries):\n${rawResultsText}`,
+        content: `QUERY: "${normalizedQuery}"\n\n${profileBlock}\n\n${mindBlock}${completedQuestsBlock ? '\n\n' + completedQuestsBlock : ''}\n\nRAW RESULTS (${allBraveResults.length} unique, from ${queries.length} sub-queries):\n${rawResultsText}`,
       }],
     })
 
@@ -330,7 +341,7 @@ Rules:
 - gamePlan MUST reference specific student details (name their interests, career matches, or recent work) — never write generic advice`,
       messages: [{
         role: 'user',
-        content: `STUDENT:\n${profileBlock}\n\n${mindBlock}\n\n${'─'.repeat(40)}\n\nRESULTS TO ENRICH:\n${pagesBlock}`,
+        content: `STUDENT:\n${profileBlock}\n\n${mindBlock}${completedQuestsBlock ? '\n\n' + completedQuestsBlock : ''}\n\n${'─'.repeat(40)}\n\nRESULTS TO ENRICH:\n${pagesBlock}`,
       }],
     })
 
