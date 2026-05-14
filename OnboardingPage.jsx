@@ -689,32 +689,17 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef 
         }}
       >
         <Logo />
-        <div style={{ display:"flex", alignItems:"center", gap:"1rem" }}>
-          <div style={{
-            display:"flex", alignItems:"center", gap:7,
-            padding:"5px 12px", borderRadius:100,
-            background:"rgba(34,197,94,0.08)", border:"1.5px solid rgba(34,197,94,0.2)",
-          }}>
-            <span style={{
-              width:6, height:6, borderRadius:"50%",
-              background:"#22c55e", boxShadow:"0 0 6px #22c55e",
-              animation:"ob-blink 2s ease-in-out infinite",
-            }}/>
-            <span style={{ fontFamily:SANS, fontWeight:600, fontSize:"0.72rem", color:"#16a34a", letterSpacing:"0.04em" }}>LIVE</span>
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:2 }}>
-            <span style={{
-              fontFamily:MONO, fontSize:"0.82rem", letterSpacing:"0.04em", fontWeight:500,
-              color: elapsed >= 330 ? "#ef4444" : elapsed >= 300 ? "#f59e0b" : TEXT2,
-            }}>
-              {formatTime(elapsed)}
-            </span>
-            {elapsed >= 330 && (
-              <span style={{ fontFamily:MONO, fontSize:"0.65rem", color:"#ef4444", letterSpacing:"0.03em" }}>
-                {360 - elapsed}s remaining
-              </span>
-            )}
-          </div>
+        <div style={{
+          display:"flex", alignItems:"center", gap:7,
+          padding:"5px 12px", borderRadius:100,
+          background:"rgba(34,197,94,0.08)", border:"1.5px solid rgba(34,197,94,0.2)",
+        }}>
+          <span style={{
+            width:6, height:6, borderRadius:"50%",
+            background:"#22c55e", boxShadow:"0 0 6px #22c55e",
+            animation:"ob-blink 2s ease-in-out infinite",
+          }}/>
+          <span style={{ fontFamily:SANS, fontWeight:600, fontSize:"0.72rem", color:"#16a34a", letterSpacing:"0.04em" }}>LIVE</span>
         </div>
       </motion.div>
 
@@ -772,16 +757,59 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef 
         display:"flex", flexDirection:"column", alignItems:"center", gap:"1rem",
         flexShrink:0,
       }}>
-        <div style={{ display:"flex", alignItems:"center", gap:"1rem" }}>
-          <Waveform active={true} color={isSpeaking ? ACCENT : "rgba(59,91,252,0.2)"}/>
-          <motion.span
-            animate={{ color: isSpeaking ? ACCENT : TEXT2 }}
-            transition={{ duration:0.4 }}
-            style={{ fontFamily:SANS, fontWeight:500, fontSize:"0.875rem", minWidth:220, fontFamily:SANS }}
-          >
-            {isSpeaking ? "Mentorable is speaking..." : "Your turn..."}
-          </motion.span>
+        {/* Timer */}
+        <div style={{ display:"flex", alignItems:"center", gap:"0.625rem" }}>
+          <span style={{
+            fontFamily:MONO, fontSize:"1.35rem", letterSpacing:"0.06em", fontWeight:600,
+            color: elapsed >= 330 ? "#ef4444" : elapsed >= 300 ? "#f59e0b" : TEXT2,
+            transition:"color 0.3s",
+          }}>
+            {formatTime(elapsed)}
+          </span>
+          <span style={{
+            fontFamily:SANS, fontSize:"0.72rem", fontWeight:600,
+            color: elapsed >= 330 ? "#ef4444" : "#8e8b82",
+            letterSpacing:"0.04em", textTransform:"uppercase",
+          }}>
+            {elapsed >= 330 ? `${360 - elapsed}s left` : "6:00 max"}
+          </span>
         </div>
+
+        {/* Max time banner — shown in final 5 seconds */}
+        <AnimatePresence>
+          {elapsed >= 355 && (
+            <motion.div
+              initial={{ opacity:0, y:6 }}
+              animate={{ opacity:1, y:0 }}
+              exit={{ opacity:0 }}
+              transition={{ duration:0.3 }}
+              style={{
+                background:"rgba(239,68,68,0.07)",
+                border:"1.5px solid rgba(239,68,68,0.2)",
+                borderRadius:10, padding:"0.6rem 1.25rem",
+                fontFamily:SANS, fontSize:"0.82rem", fontWeight:600,
+                color:"#dc2626", textAlign:"center", lineHeight:1.5,
+              }}
+            >
+              You've reached the maximum time for this call — wrapping up now.
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Waveform + status */}
+        {elapsed < 355 && (
+          <div style={{ display:"flex", alignItems:"center", gap:"1rem" }}>
+            <Waveform active={true} color={isSpeaking ? ACCENT : "rgba(59,91,252,0.2)"}/>
+            <motion.span
+              animate={{ color: isSpeaking ? ACCENT : TEXT2 }}
+              transition={{ duration:0.4 }}
+              style={{ fontFamily:SANS, fontWeight:500, fontSize:"0.875rem", minWidth:220 }}
+            >
+              {isSpeaking ? "Mentorable is speaking..." : "Your turn..."}
+            </motion.span>
+          </div>
+        )}
+
         <motion.button
           onClick={onEnd}
           whileHover={{ borderColor:ACCENT, color:ACCENT }}
@@ -1223,10 +1251,13 @@ export default function OnboardingPage() {
         location_general: demographics.state || null,
       }).eq("id", freshUser.id);
 
-      // Kick off Quest roadmap generation in the background — non-blocking.
-      supabase.functions.invoke("initialize-roadmap", { body: {} }).catch(e => {
+      // Initialize Quest roadmap — awaited so the user arrives with Phase 1 ready.
+      try {
+        await supabase.functions.invoke("initialize-roadmap", { body: {} });
+      } catch (e) {
         console.error("[Onboarding] initialize-roadmap error:", e);
-      });
+        // Non-fatal — RoadmapPage will retry on load
+      }
 
       window.location.href = "/quest";
     } catch (err) {

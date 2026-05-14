@@ -503,13 +503,22 @@ const BOOT_STEPS = [
   "Personalising your weekly missions…",
 ];
 
-function QuestBoot() {
+const REGEN_STEPS = [
+  "Reading your recent conversations…",
+  "Analysing your research interests…",
+  "Synthesising your current direction…",
+  "Building your new Quest…",
+];
+
+function QuestBoot({ regenerating = false }) {
   const [step, setStep] = useState(0);
+  const steps = regenerating ? REGEN_STEPS : BOOT_STEPS;
 
   useEffect(() => {
-    const t = setInterval(() => setStep(s => Math.min(s + 1, BOOT_STEPS.length - 1)), 1800);
+    setStep(0);
+    const t = setInterval(() => setStep(s => Math.min(s + 1, steps.length - 1)), 1800);
     return () => clearInterval(t);
-  }, []);
+  }, [regenerating]);
 
   return (
     <div style={{
@@ -539,13 +548,16 @@ function QuestBoot() {
           }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            {regenerating
+              ? <><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></>
+              : <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            }
           </svg>
         </motion.div>
       </div>
       <div style={{ textAlign: "center" }}>
         <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 16, color: TEXT, letterSpacing: "-0.02em" }}>
-          Building your Quest
+          {regenerating ? "Rebuilding your Quest" : "Building your Quest"}
         </div>
         <AnimatePresence mode="wait">
           <motion.p
@@ -556,12 +568,12 @@ function QuestBoot() {
             transition={{ duration: 0.3 }}
             style={{ fontFamily: BODY, fontSize: 13, color: TEXT_MUTED, margin: "6px 0 0" }}
           >
-            {BOOT_STEPS[step]}
+            {steps[step]}
           </motion.p>
         </AnimatePresence>
       </div>
       <div style={{ display: "flex", gap: 6 }}>
-        {BOOT_STEPS.map((_, i) => (
+        {steps.map((_, i) => (
           <div key={i} style={{
             width: i === step ? 20 : 6, height: 6,
             borderRadius: 99,
@@ -584,6 +596,8 @@ export default function RoadmapPage({ navigate }) {
   const [initializing, setInitializing] = useState(false);
   const [actioningId, setActioningId] = useState(null);
   const [generatingPhase, setGeneratingPhase] = useState(false);
+  const [regenerating, setRegenerating]       = useState(false);
+  const [regenConfirm, setRegenConfirm]       = useState(false);
   const [xp, setXp]                   = useState(0);
   const [xpPop, setXpPop]             = useState(null); // "+3 XP" toast
 
@@ -697,6 +711,22 @@ export default function RoadmapPage({ navigate }) {
     }
   }, [roadmap, userId, phases, loadRoadmap]);
 
+  const handleRegenerate = useCallback(async () => {
+    setRegenConfirm(false);
+    setRegenerating(true);
+    try {
+      await supabase.functions.invoke("regenerate-roadmap", { body: {} });
+      setRoadmap(null);
+      setPhases([]);
+      setXp(0);
+      await loadRoadmap(userId);
+    } catch (e) {
+      console.error("[Quest] regenerate error:", e);
+    } finally {
+      setRegenerating(false);
+    }
+  }, [userId, loadRoadmap]);
+
   // ── Derived stats ──────────────────────────────────────────────────────────
   const allTasks = phases.flatMap(p => p.tasks || []);
   const activePhase = phases.find(p => p.status === "active") || phases.find(p => {
@@ -715,7 +745,7 @@ export default function RoadmapPage({ navigate }) {
     ? roadmap.career_direction || "Career"
     : "Discovery";
 
-  if (loading || initializing) {
+  if (loading || initializing || regenerating) {
     return (
       <div style={{
         minHeight: "100vh", background: BG,
@@ -725,7 +755,7 @@ export default function RoadmapPage({ navigate }) {
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
           @keyframes quest-spin { to { transform: rotate(360deg); } }
         `}</style>
-        <QuestBoot />
+        <QuestBoot regenerating={regenerating} />
       </div>
     );
   }
@@ -833,7 +863,7 @@ export default function RoadmapPage({ navigate }) {
           </div>
 
           {/* Stats row */}
-          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
             {[
               { value: doneThisWeek, label: "this week" },
               { value: phases.length, label: `phase${phases.length !== 1 ? "s" : ""}` },
@@ -849,8 +879,102 @@ export default function RoadmapPage({ navigate }) {
                 {stat.label}
               </div>
             ))}
+            <motion.button
+              onClick={() => setRegenConfirm(v => !v)}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              style={{
+                marginLeft: "auto",
+                display: "flex", alignItems: "center", gap: 5,
+                fontFamily: FONT, fontSize: 11, fontWeight: 700,
+                color: regenConfirm ? BLUE : TEXT_MUTED,
+                background: regenConfirm ? BLUE_TINT : WHITE,
+                border: `1px solid ${regenConfirm ? BLUE_SOFT : BORDER}`,
+                borderRadius: 9, padding: "5px 11px",
+                cursor: "pointer", transition: "all 0.15s",
+                letterSpacing: "0.02em",
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 4v6h6"/><path d="M23 20v-6h-6"/>
+                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+              </svg>
+              New Quest
+            </motion.button>
           </div>
         </div>
+
+        {/* ── Regenerate confirm card ───────────────────────────────────── */}
+        <AnimatePresence>
+          {regenConfirm && (
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              style={{
+                background: WHITE,
+                border: `1.5px solid ${BLUE_SOFT}`,
+                borderRadius: 18,
+                padding: "20px 22px",
+                marginBottom: 16,
+                boxShadow: "0 4px 24px rgba(29,78,216,0.1)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                  background: BLUE_TINT, border: `1px solid ${BLUE_SOFT}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 4v6h6"/><path d="M23 20v-6h-6"/>
+                    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                  </svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14, color: TEXT, marginBottom: 5 }}>
+                    Generate a new Quest?
+                  </div>
+                  <p style={{ fontFamily: BODY, fontSize: 13, color: TEXT_MUTED, lineHeight: 1.6, margin: "0 0 14px" }}>
+                    We'll read your latest profile, recent conversations, and research searches to figure out where you are now and build a fresh roadmap around it. Your current Quest will be replaced.
+                  </p>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={handleRegenerate}
+                      style={{
+                        padding: "9px 20px", borderRadius: 10, border: "none",
+                        background: `linear-gradient(135deg, ${BLUE}, ${BLUE_MID})`,
+                        color: WHITE, fontFamily: FONT, fontWeight: 700, fontSize: 13,
+                        cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                        boxShadow: "0 4px 14px rgba(29,78,216,0.28)",
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 4v6h6"/><path d="M23 20v-6h-6"/>
+                        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                      </svg>
+                      Regenerate Quest
+                    </motion.button>
+                    <button
+                      onClick={() => setRegenConfirm(false)}
+                      style={{
+                        padding: "9px 16px", borderRadius: 10,
+                        border: `1px solid ${BORDER}`, background: "transparent",
+                        color: TEXT_MUTED, fontFamily: FONT, fontWeight: 600, fontSize: 13,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── No roadmap fallback ────────────────────────────────────────── */}
         {phases.length === 0 && (
