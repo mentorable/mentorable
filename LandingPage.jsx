@@ -435,27 +435,23 @@ function PhoneMilestone({ status="not_started", type="pencil", side="left" }) {
 
 function RoadmapCard() {
   const ref=useRef(null); const iv=useInView(ref,{once:true,margin:"-50px"});
-  // Real milestone data matching actual RoadmapPage layout
-  const milestones=[
-    {status:"completed", type:"video",    label:"Intro to Careers"},
-    {status:"completed", type:"reading",  label:"Research Fields"},
-    {status:"completed", type:"pencil",   label:"Self-Reflection"},
-    {status:"in_progress",type:"project", label:"Build Profile"},
-    {status:"not_started",type:"reading", label:"Find Mentors"},
-    {status:"locked",    type:"pencil",   label:"Set Goals"},
+  const quests=[
+    {category:"Project",   color:"#1d4ed8", bg:"#f0f5ff", time:"1–2 weeks", title:"Build a GitHub portfolio project"},
+    {category:"Research",  color:"#d97706", bg:"#fef3c7", time:"3–4 days",  title:"Explore summer programs at top universities"},
+    {category:"Learning",  color:"#7c3aed", bg:"#ede9fe", time:"1 week",    title:"Complete an intro Python course online"},
   ];
   return (
     <div ref={ref} style={{position:"relative",display:"flex",justifyContent:"center",
       alignItems:"center",padding:"3rem 0 1rem"}}>
-      {/* Large ambient blooms (without CSS filters to prevent GPU checkerboarding) */}
+      {/* Ambient blooms */}
       <div style={{position:"absolute",width:520,height:400,borderRadius:"50%",
-        background:"radial-gradient(ellipse,rgba(99,102,241,0.2),transparent 65%)",
+        background:"radial-gradient(ellipse,rgba(29,78,216,0.15),transparent 65%)",
         pointerEvents:"none",top:"10%",zIndex:0}}/>
       <div style={{position:"absolute",width:280,height:280,right:"5%",bottom:"5%",borderRadius:"50%",
-        background:"radial-gradient(circle,rgba(37,99,235,0.1),transparent 65%)",
+        background:"radial-gradient(circle,rgba(59,130,246,0.08),transparent 65%)",
         pointerEvents:"none",zIndex:0}}/>
 
-      {/* iPhone — steep Origin Finance angle: rotateX≈38, rotateY≈-8, gentle free-float */}
+      {/* iPhone — steep tilt, gentle free-float */}
       <motion.div
         initial={{opacity:0,y:80,rotateX:58,rotateY:-14}}
         animate={iv?{opacity:1,y:[0,-14,0],rotateX:38,rotateY:[-8,-6,-8],rotateZ:[0,0.6,0]}:{}}
@@ -472,198 +468,116 @@ function RoadmapCard() {
           width:290,
           borderRadius:52,
           background:"#1c1c1e",
-          boxShadow:[
-            "0 20px 60px rgba(0,0,0,0.5)",
-            "0 0 0 1.5px rgba(255,255,255,0.08)"
-          ].join(",")
+          boxShadow:["0 20px 60px rgba(0,0,0,0.5)","0 0 0 1.5px rgba(255,255,255,0.08)"].join(",")
         }}>
 
-        {/* Screen/Bezel wrapper — NO mask needed, inner corners are manually rounded */}
-        <div style={{
-          borderRadius:52,
-          border:"11px solid #1c1c1e",
-          background:"#000"
-        }}>
+        <div style={{borderRadius:52,border:"11px solid #1c1c1e",background:"#000"}}>
 
-        {/* Status bar — Dynamic Island */}
-        <div style={{height:52,background:"#000",position:"relative",borderTopLeftRadius:41,borderTopRightRadius:41}}>
-          <div style={{position:"absolute",top:10,left:"50%",transform:"translateX(-50%)",
-            width:110,height:28,borderRadius:999,background:"#000",
-            border:"1px solid rgba(255,255,255,0.07)"}}/>
-          <span style={{position:"absolute",left:14,top:15,fontFamily:SANS,fontSize:"0.6rem",
-            fontWeight:700,color:"rgba(255,255,255,0.9)"}}>9:41</span>
-          <div style={{position:"absolute",right:13,top:15,display:"flex",gap:4,alignItems:"center"}}>
-            <svg width="13" height="10" viewBox="0 0 14 10" fill="none">
-              <rect x="0" y="6" width="2.5" height="4" rx="0.6" fill="rgba(255,255,255,0.82)"/>
-              <rect x="3.8" y="4" width="2.5" height="6" rx="0.6" fill="rgba(255,255,255,0.82)"/>
-              <rect x="7.6" y="2" width="2.5" height="8" rx="0.6" fill="rgba(255,255,255,0.82)"/>
-              <rect x="11.4" y="0" width="2.5" height="10" rx="0.6" fill="rgba(255,255,255,0.25)"/>
-            </svg>
-            <div style={{display:"flex",alignItems:"center",gap:1}}>
-              <div style={{width:20,height:10,borderRadius:3,border:"1.5px solid rgba(255,255,255,0.5)",
-                padding:"1.5px",display:"flex",alignItems:"center"}}>
-                <div style={{width:"74%",height:"100%",borderRadius:1.5,background:"rgba(255,255,255,0.85)"}}/>
-              </div>
-              <div style={{width:2,height:5,borderRadius:1,background:"rgba(255,255,255,0.35)"}}/>
-            </div>
-          </div>
-        </div>
-
-        {/* App screen — exact RoadmapPage background */}
-        <div style={{height:540,position:"relative",overflow:"hidden",
-          background:"linear-gradient(180deg,#1e1b4b 0%,#312e81 25%,#6366f1 50%,#c7d2fe 70%,#f8fafc 100%)"}}>
-          {/* Stars — opacity only, no scale (scale creates per-star compositor layers) */}
-          {[{t:"3%",l:"8%"},{t:"7%",l:"22%"},{t:"2%",l:"48%"},{t:"5%",l:"65%"},{t:"9%",l:"80%"},{t:"13%",l:"40%"},{t:"16%",l:"88%"}].map((s,i)=>(
-            <motion.div key={i} animate={{opacity:[0.15,0.85,0.15]}}
-              transition={{duration:2+i*0.45,repeat:Infinity,delay:i*0.3}}
-              style={{position:"absolute",top:s.t,left:s.l,width:2,height:2,borderRadius:"50%",
-                background:"rgba(255,255,255,0.8)"}}/>
-          ))}
-          {/* Mountain silhouettes — flattened to avoid texture tearing on scale */}
-          <div style={{position:"absolute",bottom:0,left:0,right:0,height:"26%",zIndex:1}}>
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{width:"100%",height:"100%",display:"block"}}>
-              {MTN.map((m,i)=><polygon key={i} points={m.points} fill={m.color} opacity={m.opacity}/>)}
-            </svg>
-          </div>
-
-          {/* Top bar — exact match: white frosted glass, indigo wordmark, centered mode badge */}
-          <div style={{position:"absolute",top:0,left:0,right:0,zIndex:5,height:38,
-            background:"rgba(248,250,252,0.98)",
-            borderBottom:"1px solid rgba(0,0,0,0.06)",
-            display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 10px"}}>
-            {/* Left: mentorable wordmark */}
-            <div style={{display:"flex",alignItems:"center",gap:3}}>
-              <span style={{fontFamily:"system-ui,sans-serif",fontWeight:700,fontSize:"0.68rem",
-                color:"#4f46e5",letterSpacing:"-0.03em"}}>mentorable</span>
-              <div style={{width:3.5,height:3.5,borderRadius:"50%",background:"#6366f1",
-                boxShadow:"0 0 5px rgba(99,102,241,0.7)",flexShrink:0,marginBottom:1}}/>
-            </div>
-            {/* Center: mode badge */}
-            <div style={{position:"absolute",left:"50%",transform:"translateX(-50%)",
-              display:"inline-flex",alignItems:"center",gap:3,padding:"2px 7px",
-              borderRadius:999,border:"1.5px solid rgba(59,130,246,0.25)",
-              background:"rgba(59,130,246,0.06)"}}>
-              <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round">
-                <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+          {/* Status bar — Dynamic Island */}
+          <div style={{height:52,background:"#000",position:"relative",borderTopLeftRadius:41,borderTopRightRadius:41}}>
+            <div style={{position:"absolute",top:10,left:"50%",transform:"translateX(-50%)",
+              width:110,height:28,borderRadius:999,background:"#000",
+              border:"1px solid rgba(255,255,255,0.07)"}}/>
+            <span style={{position:"absolute",left:14,top:15,fontFamily:SANS,fontSize:"0.6rem",
+              fontWeight:700,color:"rgba(255,255,255,0.9)"}}>9:41</span>
+            <div style={{position:"absolute",right:13,top:15,display:"flex",gap:4,alignItems:"center"}}>
+              <svg width="13" height="10" viewBox="0 0 14 10" fill="none">
+                <rect x="0" y="6" width="2.5" height="4" rx="0.6" fill="rgba(255,255,255,0.82)"/>
+                <rect x="3.8" y="4" width="2.5" height="6" rx="0.6" fill="rgba(255,255,255,0.82)"/>
+                <rect x="7.6" y="2" width="2.5" height="8" rx="0.6" fill="rgba(255,255,255,0.82)"/>
+                <rect x="11.4" y="0" width="2.5" height="10" rx="0.6" fill="rgba(255,255,255,0.25)"/>
               </svg>
-              <span style={{fontFamily:SANS,fontSize:"0.48rem",fontWeight:700,color:"#3b82f6"}}>Discovery Mode</span>
-            </div>
-            {/* Right: confidence meter stub */}
-            <div style={{display:"flex",alignItems:"center",gap:3}}>
-              <span style={{fontFamily:SANS,fontSize:"0.46rem",color:"#64748b",fontWeight:600}}>72%</span>
-              <div style={{width:28,height:5,borderRadius:999,background:"rgba(99,102,241,0.12)",overflow:"hidden"}}>
-                <div style={{width:"72%",height:"100%",background:"linear-gradient(90deg,#6366f1,#818cf8)",borderRadius:999}}/>
+              <div style={{display:"flex",alignItems:"center",gap:1}}>
+                <div style={{width:20,height:10,borderRadius:3,border:"1.5px solid rgba(255,255,255,0.5)",
+                  padding:"1.5px",display:"flex",alignItems:"center"}}>
+                  <div style={{width:"74%",height:"100%",borderRadius:1.5,background:"rgba(255,255,255,0.85)"}}/>
+                </div>
+                <div style={{width:2,height:5,borderRadius:1,background:"rgba(255,255,255,0.35)"}}/>
               </div>
             </div>
           </div>
 
-          {/* Phase 1 header card — exact PhaseHeader style: #1e1b4b bg */}
-          <motion.div
-            initial={{opacity:0}} animate={iv?{opacity:1}:{}}
-            transition={{duration:0.5,delay:0.3}}
-            style={{position:"absolute",top:44,left:8,right:8,zIndex:3,
-              background:"#1e1b4b",borderRadius:10,padding:"8px 10px"}}>
-            {/* Gradient overlay like actual PhaseHeader */}
-            <div style={{position:"absolute",inset:0,borderRadius:10,
-              background:"linear-gradient(135deg,rgba(99,102,241,0.18) 0%,transparent 70%)",pointerEvents:"none"}}/>
-            <div style={{position:"relative",zIndex:1}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
-                <span style={{fontSize:"0.46rem",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",
-                  color:"rgba(165,180,252,0.8)"}}>Phase 1</span>
-                <span style={{fontSize:"0.46rem",fontWeight:600,color:"rgba(255,255,255,0.45)",
-                  background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",
-                  borderRadius:999,padding:"1px 5px"}}>4 weeks</span>
-              </div>
-              <div style={{fontFamily:"system-ui,sans-serif",fontWeight:700,fontSize:"0.62rem",color:"white",
-                marginBottom:2,lineHeight:1.2}}>Career Discovery</div>
-              <div style={{fontSize:"0.46rem",color:"rgba(255,255,255,0.55)",marginBottom:6,lineHeight:1.4}}>
-                Explore your strengths and interests
-              </div>
-              {/* Progress bar */}
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                <span style={{fontSize:"0.44rem",color:"rgba(255,255,255,0.4)"}}>Progress</span>
-                <span style={{fontSize:"0.44rem",color:"rgba(255,255,255,0.5)",fontWeight:600}}>3/6 milestones</span>
-              </div>
-              <div style={{height:4,background:"rgba(255,255,255,0.1)",borderRadius:999,overflow:"hidden"}}>
-                <motion.div initial={{scaleX:0}} animate={iv?{scaleX:0.5}:{}}
-                  transition={{duration:0.8,delay:0.5,ease:[0.22,1,0.36,1]}}
-                  style={{height:"100%",width:"100%",background:"linear-gradient(90deg,#6366f1,#818cf8)",
-                    borderRadius:999,transformOrigin:"0% 50%",willChange:"transform"}}/>
+          {/* App screen — Quest UI */}
+          <div style={{height:540,position:"relative",overflow:"hidden",background:"#faf9f5",
+            backgroundImage:"radial-gradient(circle,rgba(29,78,216,0.06) 1px,transparent 1px)",
+            backgroundSize:"14px 14px"}}>
+
+            {/* Quest header bar */}
+            <div style={{position:"absolute",top:0,left:0,right:0,zIndex:5,
+              background:"rgba(238,244,255,0.92)",backdropFilter:"blur(12px)",
+              borderBottom:"1px solid rgba(29,78,216,0.1)",
+              padding:"8px 10px 7px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <span style={{fontFamily:"Georgia,serif",fontWeight:600,fontSize:"0.88rem",
+                background:"linear-gradient(135deg,#0f172a 30%,#1d4ed8)",
+                WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Quest</span>
+              <div style={{display:"flex",gap:4}}>
+                <div style={{fontFamily:SANS,fontSize:"0.42rem",fontWeight:700,color:"#1d4ed8",
+                  background:"#f0f5ff",border:"1px solid #dbeafe",borderRadius:6,padding:"2px 6px",
+                  display:"flex",alignItems:"baseline",gap:2}}>
+                  <span style={{fontWeight:800,fontSize:"0.52rem"}}>3</span>active
+                </div>
+                <div style={{fontFamily:SANS,fontSize:"0.42rem",fontWeight:700,color:"#059669",
+                  background:"#d1fae5",border:"1px solid rgba(5,150,105,0.2)",borderRadius:6,padding:"2px 6px",
+                  display:"flex",alignItems:"baseline",gap:2}}>
+                  <span style={{fontWeight:800,fontSize:"0.52rem"}}>1</span>done
+                </div>
               </div>
             </div>
-          </motion.div>
 
-          {/* Path line — center vertical, exact PathLine colors */}
-          <div style={{position:"absolute",left:"50%",marginLeft:-1.5,top:148,bottom:60,width:3,zIndex:2,
-            background:"linear-gradient(180deg,#3B82F6 0%,#22C55E 50%,rgba(30,45,74,0.6) 50%,rgba(30,45,74,0.3) 100%)",
-            borderRadius:999}}/>
-
-          {/* Milestones — alternating left/right of center path */}
-          {/* Milestones — icon + label on same side, label always outside icon (away from path) */}
-          <div style={{position:"absolute",top:152,left:0,right:0,zIndex:3}}>
-            {milestones.map((m,i)=>{
-              const side = i%2===0 ? "left" : "right";
-              const labelColor = m.status==="completed"  ? "rgba(74,222,128,0.95)"
-                               : m.status==="in_progress"? "#ffffff"
-                               : m.status==="locked"     ? "rgba(148,163,184,0.55)"
-                               : "rgba(255,255,255,0.52)";
-              const labelEl = (
-                <span style={{
-                  fontSize:"0.54rem", fontWeight:m.status==="in_progress"?700:500,
-                  color:labelColor, lineHeight:1.25, letterSpacing:"0.01em",
-                  textShadow:m.status==="in_progress"?"0 0 8px rgba(59,130,246,0.7)":"none",
-                  maxWidth:50, flexShrink:0,
-                  textAlign:side==="left"?"right":"left",
-                }}>{m.label}</span>
-              );
-              return (
+            {/* Quest cards */}
+            <div style={{position:"absolute",top:40,left:8,right:8,zIndex:3,display:"flex",flexDirection:"column",gap:6}}>
+              {quests.map((q,i)=>(
                 <motion.div key={i}
-                  initial={{opacity:0}} animate={iv?{opacity:1}:{}}
-                  transition={{duration:0.4,delay:0.5+i*0.1}}
-                  style={{display:"flex",alignItems:"center",marginBottom:10}}>
-                  {/* Left half: for side=left show [label · icon] flush right; else empty */}
-                  <div style={{width:"50%",display:"flex",justifyContent:"flex-end",
-                    alignItems:"center",paddingRight:10,gap:5}}>
-                    {side==="left" && <>{labelEl}<PhoneMilestone status={m.status} type={m.type} side={side}/></>}
+                  initial={{opacity:0,y:8}} animate={iv?{opacity:1,y:0}:{}}
+                  transition={{duration:0.4,delay:0.3+i*0.15}}
+                  style={{background:"#fff",borderRadius:10,border:"1px solid #e6dfd8",
+                    padding:"8px 10px",boxShadow:"0 1px 4px rgba(15,23,42,0.05)"}}>
+                  {/* Top row: badge + time */}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                    <span style={{fontFamily:SANS,fontSize:"0.4rem",fontWeight:700,letterSpacing:"0.04em",
+                      textTransform:"uppercase",background:q.bg,color:q.color,borderRadius:5,padding:"2px 6px"}}>
+                      {q.category}
+                    </span>
+                    <span style={{fontFamily:SANS,fontSize:"0.4rem",fontWeight:700,color:"#8e8b82",
+                      background:"#faf9f5",border:"1px solid #e6dfd8",borderRadius:4,padding:"1px 5px"}}>
+                      {q.time}
+                    </span>
                   </div>
-                  {/* Right half: for side=right show [icon · label] flush left; else empty */}
-                  <div style={{width:"50%",display:"flex",justifyContent:"flex-start",
-                    alignItems:"center",paddingLeft:10,gap:5}}>
-                    {side==="right" && <><PhoneMilestone status={m.status} type={m.type} side={side}/>{labelEl}</>}
+                  {/* Title */}
+                  <div style={{fontFamily:SANS,fontWeight:600,fontSize:"0.52rem",color:"#141413",
+                    lineHeight:1.3,marginBottom:6}}>{q.title}</div>
+                  {/* Action buttons */}
+                  <div style={{display:"flex",gap:4}}>
+                    <div style={{flex:1,fontFamily:SANS,fontSize:"0.38rem",fontWeight:700,
+                      color:"#fff",background:"linear-gradient(135deg,#1d4ed8,#3b82f6)",
+                      borderRadius:5,padding:"3px 0",textAlign:"center"}}>Complete</div>
+                    <div style={{fontFamily:SANS,fontSize:"0.38rem",fontWeight:600,
+                      color:"#6c6a64",background:"#f0ede6",border:"1px solid #e6dfd8",
+                      borderRadius:5,padding:"3px 8px"}}>Remove</div>
                   </div>
                 </motion.div>
-              );
-            })}
+              ))}
+            </div>
+
+            {/* Generate more CTA at bottom */}
+            <motion.div
+              initial={{opacity:0}} animate={iv?{opacity:1}:{}}
+              transition={{duration:0.5,delay:0.9}}
+              style={{position:"absolute",bottom:12,left:8,right:8,zIndex:3,
+                background:"linear-gradient(135deg,#1d4ed8,#3b82f6)",
+                borderRadius:10,padding:"7px 10px",
+                display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+              <span style={{fontFamily:SANS,fontSize:"0.48rem",fontWeight:700,color:"#fff"}}>Generate new quests</span>
+            </motion.div>
           </div>
 
-          {/* Phase 2 locked card — visible on the light bottom of screen */}
-          <motion.div
-            initial={{opacity:0}} animate={iv?{opacity:1}:{}}
-            transition={{duration:0.5,delay:1.2}}
-            style={{position:"absolute",bottom:62,left:8,right:8,zIndex:3,
-              background:"rgba(255,255,255,0.94)",
-              border:"1.5px solid rgba(99,102,241,0.25)",
-              borderRadius:10,padding:"7px 10px",
-              boxShadow:"0 2px 12px rgba(99,102,241,0.12)",
-              display:"flex",alignItems:"center",gap:6}}>
-            <div style={{width:18,height:18,borderRadius:5,background:"rgba(99,102,241,0.08)",
-              border:"1px solid rgba(99,102,241,0.25)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round">
-                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-            </div>
-            <div>
-              <div style={{fontFamily:"system-ui,sans-serif",fontWeight:700,fontSize:"0.52rem",color:"#4338ca"}}>Phase 2: Skills Building</div>
-              <div style={{fontSize:"0.44rem",color:"#6366f1",marginTop:1,fontWeight:500}}>Complete Phase 1 to unlock</div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Home indicator */}
-        <div style={{height:20,background:"#000",display:"flex",alignItems:"center",justifyContent:"center",borderBottomLeftRadius:41,borderBottomRightRadius:41}}>
-          <div style={{width:100,height:4,borderRadius:999,background:"rgba(255,255,255,0.18)"}}/>
-        </div>
-        
+          {/* Home indicator */}
+          <div style={{height:20,background:"#000",display:"flex",alignItems:"center",justifyContent:"center",borderBottomLeftRadius:41,borderBottomRightRadius:41}}>
+            <div style={{width:100,height:4,borderRadius:999,background:"rgba(255,255,255,0.18)"}}/>
+          </div>
         </div>
       </motion.div>
     </div>
@@ -676,7 +590,7 @@ function DataFlow() {
   const steps=[
     {n:1,stat:"2 min",sub:"voice interview",title:"Voice Onboarding",desc:"Our AI listens to your 2-minute voice interview and extracts your profile, values, and career instincts automatically."},
     {n:2,stat:"92",sub:"avg score",title:"Skill Scorecard",desc:"See your 5-axis skill radar, top career path matches, and personalized strengths, all drawn from your voice data."},
-    {n:3,stat:"1",sub:"shared workspace",title:"Our Mind",desc:"A living board where your goals, tasks, and Mentorable's understanding of you stay visible, editable, and connected."},
+    {n:3,stat:"3",sub:"quests at a time",title:"Quest",desc:"AI-generated next steps tailored to where you are right now. Complete them, swap them out, and watch your path take shape."},
     {n:4,stat:"24/7",sub:"availability",title:"AI Guidance",desc:"Ask anything, anytime. Every answer is grounded in your personal data, not generic advice."},
   ];
   const NODE_X=[125,375,625,875];
@@ -1052,7 +966,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.72, ease: [0.16, 1, 0.3, 1] }}
             style={{fontFamily:SANS,fontWeight:400,fontSize:"1.05rem",color:"rgba(255,255,255,0.48)",
               lineHeight:1.9,maxWidth:480,margin:"0 0 2.75rem"}}>
-            Discover your strengths, build a shared plan in Our Mind, and find real opportunities. No counselor network required.
+            Discover your strengths, get a personalized Quest, and find real opportunities. No counselor network required.
           </motion.p>
 
           {/* Buttons */}
@@ -1137,11 +1051,11 @@ export default function LandingPage() {
               items:["5-dimension skill radar","Top career path matches","Strength and growth labels","Downloadable + shareable"],
               visual:<ScoreVisual/>,
               bg:"linear-gradient(135deg,#eef2ff 0%,#c7d2fe 55%,#eef2ff 100%)"},
-            {tag:"OUR MIND",title:"Shape your direction.",
-              desc:"A shared workspace between you and Mentorable where goals, tasks, opportunities, and self-understanding stay visible and editable.",
-              items:["Editable goals and tasks","AI perspective you can refine","Living opportunity board","Shared context that evolves with you"],
+            {tag:"QUEST",title:"Know your next move.",
+              desc:"Mentora generates a personalized set of quests based on your profile, recent activity, and goals — then adapts as you make progress.",
+              items:["3 AI-curated quests generated at a time","Additive — builds on what you've done","Mark complete or swap out anything","Completed quests inform future suggestions"],
               visual:<RoadmapCard/>,
-              bg:"linear-gradient(135deg,#faf5ff 0%,#ddd6fe 55%,#faf5ff 100%)"},
+              bg:"linear-gradient(135deg,#f0f5ff 0%,#dbeafe 55%,#f0f5ff 100%)"},
           ].map((feat,i)=>(
             <FeatureScrollBox key={feat.tag}>
               {/* Per-row wrapper */}
@@ -1230,7 +1144,7 @@ export default function LandingPage() {
             <Heading italic="Ask" rest="anything." size="clamp(2.8rem,5vw,4rem)" light/>
             <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.95rem",
               color:"rgba(255,255,255,0.48)",lineHeight:1.95,maxWidth:480,marginTop:"1.1rem"}}>
-              Every answer is grounded in your personal scorecard, Our Mind, and real-world progress. Not generic advice.
+              Every answer is grounded in your personal scorecard, Quest history, and real-world progress. Not generic advice.
             </p>
           </FadeUp>
           <FadeUp delay={0.1}>
@@ -1375,7 +1289,7 @@ export default function LandingPage() {
             {[
               {tag:"PRODUCT",title:"Introducing Mentorable: AI-powered career guidance built for every high schooler",date:"March 2025"},
               {tag:"BEHIND THE BUILD",title:"How we built the voice interview: 2 minutes that change everything",date:"February 2025"},
-              {tag:"PRODUCT",title:"Mentorable launches Our Mind: a shared workspace for student and AI",date:"January 2025"},
+              {tag:"PRODUCT",title:"Mentorable launches Quest: AI-generated next steps personalized for every student",date:"January 2025"},
             ].map(post=>(
               <motion.div key={post.title} variants={iV}
                 whileHover={{scale:1.02,boxShadow:SH_LG}}
@@ -1439,7 +1353,7 @@ export default function LandingPage() {
               </p>
             </div>
             {[
-              {heading:"Features",links:["Voice Onboarding","Scorecard","Our Mind","AI Guidance"]},
+              {heading:"Features",links:["Voice Onboarding","Scorecard","Quest","AI Guidance"]},
               {heading:"Resources",links:["About","Blog","Help Center","Legal"]},
               {heading:"Company",links:["Careers","Contact","Privacy Policy","Terms"]},
             ].map(col=>(
