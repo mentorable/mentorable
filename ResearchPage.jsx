@@ -166,6 +166,7 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
   return (
     <div style={{
       width: fullWidth ? "100%" : SESSIONS_W, flexShrink: 0,
+      height: fullWidth ? undefined : "100%",
       background: "#f5f0e8",
       borderLeft: fullWidth ? "none" : "1.5px solid rgba(29,78,216,0.1)",
       display: "flex", flexDirection: "column", overflow: "hidden",
