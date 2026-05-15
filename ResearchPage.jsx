@@ -853,7 +853,8 @@ export default function ResearchPage({ navigate, initialSessionId }) {
           minHeight: "100vh",
           overflowY: "auto",
           padding: isMobile ? "1.25rem 1rem 5rem" : "2rem 2.5rem 4rem",
-          maxWidth: 840,
+          paddingRight: isMobile ? undefined : `calc(${SESSIONS_W}px + 2.5rem)`,
+          maxWidth: isMobile ? undefined : 840 + SESSIONS_W,
           boxSizing: "border-box",
           position: "relative",
         }}
@@ -934,8 +935,12 @@ export default function ResearchPage({ navigate, initialSessionId }) {
         </AnimatePresence>
       </div>
 
-      {/* Desktop sessions panel */}
-      {!isMobile && sessionsPanel}
+      {/* Desktop sessions panel — fixed to right edge */}
+      {!isMobile && (
+        <div style={{ position: "fixed", top: 0, right: 0, height: "100vh", zIndex: 10 }}>
+          {sessionsPanel}
+        </div>
+      )}
 
       {/* Mobile sessions drawer */}
       {isMobile && (
