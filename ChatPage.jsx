@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
 import { buildSystemPrompt, streamChatResponse } from "./lib/mentora.js";
+import { getCache, setCache } from "./lib/cache.js";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import Drawer from "./components/common/Drawer.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
@@ -784,6 +785,14 @@ export default function ChatPage({ navigate }) {
       const uid = data.user.id;
       setUser(data.user);
 
+      // Hydrate from cache immediately so history panel appears without delay
+      const cachedSessions = getCache(`chat_sessions:${uid}`);
+      const cachedProfile  = getCache(`profile:${uid}`);
+      const cachedQuests   = getCache(`completed_quests:${uid}`);
+      if (cachedSessions) setSessions(cachedSessions);
+      if (cachedProfile)  { setProfile(cachedProfile); systemPromptRef.current = buildSystemPrompt(cachedProfile, cachedQuests || []); }
+      if (cachedQuests)   setCompletedQuests(cachedQuests);
+
       const [sessionsRes, profileRes, completedQuestsRes] = await Promise.all([
         supabase.from("chat_sessions").select("id, title, messages, created_at, updated_at")
           .eq("user_id", uid).order("updated_at", { ascending: false }),
@@ -796,9 +805,9 @@ export default function ChatPage({ navigate }) {
           .limit(20),
       ]);
 
-      if (sessionsRes.data)         setSessions(sessionsRes.data);
-      if (profileRes.data)          setProfile(profileRes.data);
-      if (completedQuestsRes.data)  setCompletedQuests(completedQuestsRes.data);
+      if (sessionsRes.data)        { setSessions(sessionsRes.data);       setCache(`chat_sessions:${uid}`, sessionsRes.data); }
+      if (profileRes.data)         { setProfile(profileRes.data);         setCache(`profile:${uid}`, profileRes.data); }
+      if (completedQuestsRes.data) { setCompletedQuests(completedQuestsRes.data); setCache(`completed_quests:${uid}`, completedQuestsRes.data); }
     });
   }, []);
 
@@ -814,7 +823,7 @@ export default function ChatPage({ navigate }) {
     const { data } = await supabase.from("chat_sessions")
       .select("id, title, messages, created_at, updated_at")
       .eq("user_id", userId).order("updated_at", { ascending: false });
-    if (data) setSessions(data);
+    if (data) { setSessions(data); setCache(`chat_sessions:${userId}`, data); }
   }, []);
 
   const handleNewChat    = () => { setActiveChatId(null); setMessages([]); setChatError(null); };

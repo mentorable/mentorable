@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
+import { getCache, setCache } from "./lib/cache.js";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
@@ -480,8 +481,9 @@ export default function RoadmapPage({ navigate }) {
       .neq("status", "deleted")
       .order("created_at", { ascending: true });
     if (data) {
-      // Treat legacy "active" status as "in_progress"
-      setItems(data.map(i => i.status === "active" ? { ...i, status: "in_progress" } : i));
+      const normalized = data.map(i => i.status === "active" ? { ...i, status: "in_progress" } : i);
+      setItems(normalized);
+      setCache(`quest_items:${uid}`, normalized);
     }
   }, []);
 
@@ -493,6 +495,11 @@ export default function RoadmapPage({ navigate }) {
       if (cancelled) return;
       setUserId(user.id);
       userIdRef.current = user.id;
+
+      // Show cached data immediately — no spinner on repeat visits
+      const cached = getCache(`quest_items:${user.id}`);
+      if (cached) { setItems(cached); setLoading(false); }
+
       await loadItems(user.id);
       if (!cancelled) setLoading(false);
     })();

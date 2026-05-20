@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
+import { getCache, setCache } from "./lib/cache.js";
 import Spinner from "./components/common/Spinner.jsx";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 
@@ -244,10 +245,16 @@ export default function ScorecardPage({ navigate }) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { window.location.href = "/auth"; return; }
+
+        // Show cached profile immediately — no skeleton on repeat visits
+        const cached = getCache(`profile:${user.id}`);
+        if (cached?.onboarding_completed) { setProfile(cached); setPhase("loaded"); }
+
         const { data: profileData } = await supabase
           .from("profiles").select("*").eq("id", user.id).single();
         if (!profileData?.onboarding_completed) { window.location.href = "/onboarding"; return; }
         setProfile(profileData);
+        setCache(`profile:${user.id}`, profileData);
         setPhase("loaded");
       } catch {
         setPhase("error");

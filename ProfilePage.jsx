@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
+import { getCache, setCache, invalidateCache } from "./lib/cache.js";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
@@ -175,6 +176,21 @@ export default function ProfilePage({ navigate }) {
   };
 
   useEffect(() => {
+    const applyProfile = (p) => {
+      setPreferredName(p.full_name || "");
+      setBio(p.bio || "");
+      setProfileColor(p.profile_color || ACCENT);
+      setAgentResponseStyle(p.agent_response_style || "balanced");
+      setAgentInstructions(p.agent_instructions || "");
+      setHoursPerWeek(p.roadmap_hours_per_week || "");
+      setTaskStyle(p.roadmap_task_style || "mix");
+      setDifficulty(p.roadmap_difficulty || "balanced");
+      setStrengths((p.strengths || []).join(", "));
+      setInterests((p.interests || []).join(", "));
+      setCareerMatches((p.career_matches || []).join(", "));
+      if (p.profile_color) localStorage.setItem("profileColor", p.profile_color);
+    };
+
     const load = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -182,28 +198,15 @@ export default function ProfilePage({ navigate }) {
         setUserId(user.id);
         setUserEmail(user.email || "");
 
-        const [profileRes] = await Promise.all([
-          supabase.from("profiles")
-            .select("full_name, bio, profile_color, agent_response_style, agent_instructions, roadmap_hours_per_week, roadmap_task_style, roadmap_difficulty, strengths, interests, career_matches")
-            .eq("id", user.id).single(),
-        ]);
+        // Show cached profile immediately — no loading screen on repeat visits
+        const cached = getCache(`profile:${user.id}`);
+        if (cached) { applyProfile(cached); setLoading(false); }
 
-        const p = profileRes.data;
-        if (p) {
-          setPreferredName(p.full_name || "");
-          setBio(p.bio || "");
-          setProfileColor(p.profile_color || ACCENT);
-          setAgentResponseStyle(p.agent_response_style || "balanced");
-          setAgentInstructions(p.agent_instructions || "");
-          setHoursPerWeek(p.roadmap_hours_per_week || "");
-          setTaskStyle(p.roadmap_task_style || "mix");
-          setDifficulty(p.roadmap_difficulty || "balanced");
-          setStrengths((p.strengths || []).join(", "));
-          setInterests((p.interests || []).join(", "));
-          setCareerMatches((p.career_matches || []).join(", "));
-          // persist color to localStorage for immediate use in other pages
-          if (p.profile_color) localStorage.setItem("profileColor", p.profile_color);
-        }
+        const { data: p } = await supabase.from("profiles")
+          .select("full_name, bio, profile_color, agent_response_style, agent_instructions, roadmap_hours_per_week, roadmap_task_style, roadmap_difficulty, strengths, interests, career_matches")
+          .eq("id", user.id).single();
+
+        if (p) { applyProfile(p); setCache(`profile:${user.id}`, p); }
       } catch {
         // show page anyway
       } finally {
@@ -245,6 +248,7 @@ export default function ProfilePage({ navigate }) {
         showToast("Name saved. Run the migration to save all settings.", "warn");
       } else {
         localStorage.setItem("profileColor", profileColor);
+        invalidateCache(`profile:${userId}`);
         showToast("Settings saved");
       }
     } catch {
