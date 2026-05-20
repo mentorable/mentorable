@@ -894,7 +894,7 @@ export default function ChatPage({ navigate }) {
         messages: withUser, updated_at: new Date().toISOString(),
       }).eq("id", sessionId);
     }
-  }, [user, activeChatId, messages, streaming, refreshSessions, refreshOurMind]);
+  }, [user, activeChatId, messages, streaming, refreshSessions]);
 
   const historyPanel = (
     <HistoryPanel
