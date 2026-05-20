@@ -44,36 +44,35 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    const body = await req.json().catch(() => ({}))
+    const count = Math.min(Math.max(parseInt(body.count) || 3, 1), 5)
+
     // Load all data in parallel
-    const [profileRes, activeItemsRes, completedItemsRes, chatSessionsRes, researchSessionsRes] = await Promise.all([
+    const [profileRes, existingItemsRes, completedItemsRes, chatSessionsRes, researchSessionsRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
-      supabase.from('quest_items').select('*').eq('user_id', user.id).eq('status', 'active'),
+      supabase.from('quest_items').select('title').eq('user_id', user.id).in('status', ['suggested', 'considered', 'in_progress', 'active']),
       supabase.from('quest_items').select('title, category, completed_at').eq('user_id', user.id).eq('status', 'completed').order('completed_at', { ascending: false }).limit(20),
       supabase.from('chat_sessions').select('messages').eq('user_id', user.id).order('updated_at', { ascending: false }).limit(5),
       supabase.from('research_sessions').select('query').eq('user_id', user.id).order('created_at', { ascending: false }).limit(8),
     ])
 
     const profile = profileRes.data
-    const activeItems = activeItemsRes.data || []
+    const existingItems = existingItemsRes.data || []
     const completedItems = completedItemsRes.data || []
     const chatSessions = chatSessionsRes.data || []
     const researchSessions = researchSessionsRes.data || []
 
-    // Build recent chat history snippet (last 4 messages from each session, max 20 total)
     const chatSnippets: string[] = []
     for (const session of chatSessions) {
       const messages: any[] = session.messages || []
       const last4 = messages.slice(-4)
       for (const msg of last4) {
         if (chatSnippets.length >= 20) break
-        if (msg.content?.trim()) {
-          chatSnippets.push(`[${msg.role}]: ${msg.content.slice(0, 200)}`)
-        }
+        if (msg.content?.trim()) chatSnippets.push(`[${msg.role}]: ${msg.content.slice(0, 200)}`)
       }
       if (chatSnippets.length >= 20) break
     }
 
-    // Build profile summary
     const profileSummary = [
       profile?.full_name ? `Name: ${profile.full_name}` : null,
       profile?.grade_level ? `Grade: ${profile.grade_level}` : null,
@@ -88,49 +87,56 @@ Deno.serve(async (req) => {
 
     const userPrompt = [
       `## Student Profile\n${profileSummary}`,
-      activeItems.length
-        ? `## Currently Active Quests (avoid duplicating these)\n${activeItems.map(q => `- ${q.title}`).join('\n')}`
-        : '## Currently Active Quests\nNone yet.',
+      existingItems.length
+        ? `## Current Quests (avoid duplicating these)\n${existingItems.map(q => `- ${q.title}`).join('\n')}`
+        : '## Current Quests\nNone yet.',
       completedItems.length
-        ? `## Completed Quests (context of what they've already done)\n${completedItems.map(q => `- ${q.title} (${q.category || 'Other'})`).join('\n')}`
+        ? `## Completed Quests\n${completedItems.map(q => `- ${q.title} (${q.category || 'Other'})`).join('\n')}`
         : '',
-      chatSnippets.length
-        ? `## Recent Chat Snippets\n${chatSnippets.join('\n')}`
-        : '',
-      researchSessions.length
-        ? `## Recent Research Interests\n${researchSessions.map(r => `- ${r.query}`).join('\n')}`
-        : '',
+      chatSnippets.length ? `## Recent Chat\n${chatSnippets.join('\n')}` : '',
+      researchSessions.length ? `## Recent Research\n${researchSessions.map(r => `- ${r.query}`).join('\n')}` : '',
     ].filter(Boolean).join('\n\n')
 
     const response = await anthropic.messages.create({
       model: SONNET,
-      max_tokens: 1200,
-      system: `You are Mentorable's quest engine. Generate exactly 3 specific, actionable quests for a student based on their profile and history. Quests are standalone challenges (not tasks in a hierarchy) — think: a project to build, a program to apply to, a skill to practice. Each quest should have a realistic time estimate (days or weeks) like '3–4 days', '1–2 weeks', '3 weeks'. Return ONLY valid JSON, no markdown.`,
+      max_tokens: 1600,
+      system: `You are Mentorable's quest engine. Generate exactly ${count} specific, actionable quests for a student based on their profile and history.
+
+Quests are standalone challenges — a project to build, a program to apply to, a skill to practice, an opportunity to pursue.
+
+For each quest include:
+- title: concise and specific (max 60 chars)
+- description: 1-2 sentences with concrete next steps
+- category: one of Project, Research, Application, Learning, Other
+- estimated_time: realistic estimate like "3–4 days", "1–2 weeks", "3 weeks"
+- difficulty: one of Easy, Medium, Hard (Easy = < 1 week low effort, Medium = 1-2 weeks moderate, Hard = 2+ weeks high effort)
+- why_it_matters: one short sentence (max 80 chars) explaining how this connects to their goals
+
+Return ONLY valid JSON, no markdown.`,
       messages: [{
         role: 'user',
-        content: `${userPrompt}\n\nGenerate exactly 3 new quests. Return ONLY valid JSON:\n{\n  "quests": [\n    { "title": "...", "description": "...", "category": "Project|Research|Application|Learning|Other", "estimated_time": "1–2 weeks" },\n    ...\n  ]\n}`,
+        content: `${userPrompt}\n\nGenerate exactly ${count} new quests. Return ONLY valid JSON:\n{\n  "quests": [\n    {\n      "title": "...",\n      "description": "...",\n      "category": "Project|Research|Application|Learning|Other",\n      "estimated_time": "1–2 weeks",\n      "difficulty": "Easy|Medium|Hard",\n      "why_it_matters": "..."\n    }\n  ]\n}`,
       }],
     })
 
     const responseText = response.content[0].type === 'text' ? response.content[0].text : ''
-    const parsed = parseJson<{ quests: Array<{ title: string; description: string; category: string; estimated_time: string }> }>(
-      responseText,
-      { quests: [] }
-    )
+    const parsed = parseJson<{ quests: any[] }>(responseText, { quests: [] })
 
     if (!Array.isArray(parsed.quests) || parsed.quests.length === 0) {
       return json({ error: 'Failed to generate quests' }, 500)
     }
 
     const now = new Date().toISOString()
-    const insertRows = parsed.quests.slice(0, 3).map((q, i) => ({
+    const insertRows = parsed.quests.slice(0, count).map((q, i) => ({
       user_id: user.id,
       title: q.title,
       description: q.description || null,
       category: q.category || 'Other',
       estimated_time: q.estimated_time || null,
-      status: 'active',
-      order_index: activeItems.length + i,
+      difficulty: q.difficulty || null,
+      why_it_matters: q.why_it_matters || null,
+      status: 'suggested',
+      order_index: existingItems.length + i,
       created_at: now,
       updated_at: now,
     }))

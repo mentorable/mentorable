@@ -762,7 +762,6 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
 export default function ChatPage({ navigate }) {
   const [user, setUser]               = useState(null);
   const [profile, setProfile]         = useState(null);
-  const [ourMind, setOurMind]         = useState(null);
   const [completedQuests, setCompletedQuests] = useState([]);
   const [sessions, setSessions]       = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
@@ -775,16 +774,9 @@ export default function ChatPage({ navigate }) {
   const skipHydrationRef = useRef(false);
   const systemPromptRef  = useRef("");
 
-  const refreshOurMind = useCallback(async (userId) => {
-    const { data } = await supabase.from("student_canvas").select("nodes, edges").eq("user_id", userId).maybeSingle();
-    const nextMind = { nodes: data?.nodes || [], edges: data?.edges || [] };
-    setOurMind(nextMind);
-    return nextMind;
-  }, []);
-
   useEffect(() => {
-    systemPromptRef.current = buildSystemPrompt(profile, ourMind, completedQuests);
-  }, [profile, ourMind, completedQuests]);
+    systemPromptRef.current = buildSystemPrompt(profile, completedQuests);
+  }, [profile, completedQuests]);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -792,11 +784,10 @@ export default function ChatPage({ navigate }) {
       const uid = data.user.id;
       setUser(data.user);
 
-      const [sessionsRes, profileRes, ourMindRes, completedQuestsRes] = await Promise.all([
+      const [sessionsRes, profileRes, completedQuestsRes] = await Promise.all([
         supabase.from("chat_sessions").select("id, title, messages, created_at, updated_at")
           .eq("user_id", uid).order("updated_at", { ascending: false }),
         supabase.from("profiles").select("*").eq("id", uid).single(),
-        supabase.from("student_canvas").select("nodes, edges").eq("user_id", uid).maybeSingle(),
         supabase.from("quest_items")
           .select("title, category, completed_at")
           .eq("user_id", uid)
@@ -808,7 +799,6 @@ export default function ChatPage({ navigate }) {
       if (sessionsRes.data)         setSessions(sessionsRes.data);
       if (profileRes.data)          setProfile(profileRes.data);
       if (completedQuestsRes.data)  setCompletedQuests(completedQuestsRes.data);
-      setOurMind({ nodes: ourMindRes.data?.nodes || [], edges: ourMindRes.data?.edges || [] });
     });
   }, []);
 
@@ -891,24 +881,6 @@ export default function ChatPage({ navigate }) {
             messages: finalMessages, updated_at: new Date().toISOString(),
           }).eq("id", sessionId);
           if (saveError) console.error("[Chat] failed to save messages:", saveError.message);
-          try {
-            const syncPrompt = [
-              `User said: ${text}`,
-              `Mentorable replied: ${fullText.slice(0, 900)}`,
-              "Update Our Mind with any new identity signal, memory, agent behavior adjustment, or weekly mission that should exist because of this conversation.",
-            ].join("\n\n");
-
-            const { data: syncedMind } = await supabase.functions.invoke("refine-our-mind", {
-              body: { eventType: "chat", prompt: syncPrompt },
-            });
-            if (syncedMind?.nodes) {
-              setOurMind({ nodes: syncedMind.nodes || [], edges: syncedMind.edges || [] });
-            } else {
-              await refreshOurMind(user.id);
-            }
-          } catch (mindError) {
-            console.error("[Chat] failed to sync Our Mind:", mindError);
-          }
           await refreshSessions(user.id);
           skipHydrationRef.current = false;
         },

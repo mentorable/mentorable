@@ -650,7 +650,6 @@ export default function ResearchPage({ navigate, initialSessionId }) {
   const [activeQuery, setActiveQuery]   = useState("");
   const [cached, setCached]             = useState(false);
   const [error, setError]               = useState(null);
-  const [mindSyncNote, setMindSyncNote] = useState("");
   const [sessions, setSessions]         = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(initialSessionId || null);
   const [sessionsOpen, setSessionsOpen] = useState(false);
@@ -711,33 +710,6 @@ export default function ResearchPage({ navigate, initialSessionId }) {
     if (stepTimerRef.current) { clearInterval(stepTimerRef.current); stepTimerRef.current = null; }
   }
 
-  async function syncResultsIntoOurMind(searchQuery, nextResults) {
-    try {
-      const payload = (nextResults || []).slice(0, 4).map((result) => ({
-        type: result.type,
-        name: result.name || result.title,
-        description: result.description,
-        details: result.details || {},
-        relevance_note: result.relevance_note || "",
-        url: result.url,
-      }));
-
-      const { error: syncError } = await supabase.functions.invoke("refine-our-mind", {
-        body: {
-          eventType: "research",
-          prompt: `The student researched: "${searchQuery}". Add the most useful opportunities, deadlines, and next-step missions into Our Mind.`,
-          researchResults: payload,
-        },
-      });
-
-      if (syncError) throw syncError;
-      setMindSyncNote("New opportunities and deadlines were added to Our Mind.");
-      window.setTimeout(() => setMindSyncNote(""), 4200);
-    } catch (syncErr) {
-      console.error("[Research] failed to sync Our Mind:", syncErr);
-    }
-  }
-
   async function handleSearch() {
     if (!query.trim() || loading) return;
     setError(null);
@@ -776,8 +748,6 @@ export default function ResearchPage({ navigate, initialSessionId }) {
       setSources(data.sources || []);
       setActiveQuery(query.trim());
       setCached(!!data.cached);
-      syncResultsIntoOurMind(query.trim(), data.results || []);
-
       setSessions((prev) => prev.map((s) => s.id === sessionId ? { ...s, status: "completed", results: { results: data.results, sources: data.sources }, updated_at: new Date().toISOString() } : s));
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
@@ -902,19 +872,6 @@ export default function ResearchPage({ navigate, initialSessionId }) {
               style={{ background: "rgba(239,68,68,0.05)", border: "1.5px solid rgba(239,68,68,0.14)", borderRadius: "0.75rem", padding: "0.75rem 1.125rem", marginBottom: "1.25rem", fontFamily: FONT, fontSize: "0.86rem", color: "#dc2626", fontWeight: 600 }}
             >
               {error}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {mindSyncNote && !error && (
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              style={{ background: "rgba(16,185,129,0.06)", border: "1.5px solid rgba(16,185,129,0.16)", borderRadius: "0.75rem", padding: "0.75rem 1.125rem", marginBottom: "1rem", fontFamily: FONT, fontSize: "0.82rem", color: "#047857", fontWeight: 700 }}
-            >
-              {mindSyncNote}
             </motion.div>
           )}
         </AnimatePresence>

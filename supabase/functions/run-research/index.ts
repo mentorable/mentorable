@@ -1,6 +1,5 @@
 import Anthropic from 'npm:@anthropic-ai/sdk'
 import { createClient } from 'npm:@supabase/supabase-js'
-import { buildBoardSummary } from '../_shared/ourMind.ts'
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') })
 const BRAVE_API_KEY = Deno.env.get('BRAVE_API_KEY') || ''
@@ -140,16 +139,12 @@ Deno.serve(async (req) => {
       return json({ error: 'Search service not configured.' }, 503)
     }
 
-    // ── Load profile + Our Mind snapshot ───────────────────────────────────────
-    const [profileRes, mindRes, completedQuestsRes] = await Promise.all([
+    // ── Load profile + quest context ───────────────────────────────────────────
+    const [profileRes, completedQuestsRes] = await Promise.all([
       supabase.from('profiles')
         .select('interests, strengths, career_matches, grade_level, age, location_general, onboarding_summary, work_style')
         .eq('id', user.id)
         .single(),
-      supabase.from('student_canvas')
-        .select('nodes, edges')
-        .eq('user_id', user.id)
-        .maybeSingle(),
       supabase.from('quest_items')
         .select('title, category, completed_at')
         .eq('user_id', user.id)
@@ -159,7 +154,6 @@ Deno.serve(async (req) => {
     ])
 
     const profile = profileRes.data
-    const ourMindNodes = Array.isArray(mindRes.data?.nodes) ? mindRes.data.nodes : []
     const completedQuests = completedQuestsRes.data || []
 
     const profileBlock = `STUDENT PROFILE
@@ -171,11 +165,6 @@ Deno.serve(async (req) => {
 - Career matches: ${JSON.stringify(profile?.career_matches || [])}
 - Work style: ${profile?.work_style || 'not specified'}
 - Background: ${profile?.onboarding_summary || 'not available'}`
-
-    const mindBlock = ourMindNodes.length
-      ? `OUR MIND SNAPSHOT
-${buildBoardSummary(ourMindNodes)}`
-      : ''
 
     const completedQuestsBlock = completedQuests.length > 0
       ? `COMPLETED QUESTS\nThe student has completed these quests — use them as context for where they are in their journey:\n${completedQuests.map((q: any) => `- ${q.title} (${q.category || 'Other'}, completed ${q.completed_at ? new Date(q.completed_at).toLocaleDateString() : 'recently'})`).join('\n')}`
@@ -191,7 +180,7 @@ Make each query distinct — vary the angle (e.g. program-name specific, eligibi
 Return ONLY valid JSON: { "subQueries": ["query1", "query2", ...] }`,
       messages: [{
         role: 'user',
-        content: `ORIGINAL QUERY: "${normalizedQuery}"\n\n${profileBlock}\n\n${mindBlock}${completedQuestsBlock ? '\n\n' + completedQuestsBlock : ''}`,
+        content: `ORIGINAL QUERY: "${normalizedQuery}"\n\n${profileBlock}${completedQuestsBlock ? '\n\n' + completedQuestsBlock : ''}`,
       }],
     })
 
@@ -260,7 +249,7 @@ Return ONLY valid JSON:
 Rules: skip ads, generic directories, and low-quality pages. Omit detail fields you don't know — never write "varies" or "TBD".`,
       messages: [{
         role: 'user',
-        content: `QUERY: "${normalizedQuery}"\n\n${profileBlock}\n\n${mindBlock}${completedQuestsBlock ? '\n\n' + completedQuestsBlock : ''}\n\nRAW RESULTS (${allBraveResults.length} unique, from ${queries.length} sub-queries):\n${rawResultsText}`,
+        content: `QUERY: "${normalizedQuery}"\n\n${profileBlock}${completedQuestsBlock ? '\n\n' + completedQuestsBlock : ''}\n\nRAW RESULTS (${allBraveResults.length} unique, from ${queries.length} sub-queries):\n${rawResultsText}`,
       }],
     })
 
@@ -341,7 +330,7 @@ Rules:
 - gamePlan MUST reference specific student details (name their interests, career matches, or recent work) — never write generic advice`,
       messages: [{
         role: 'user',
-        content: `STUDENT:\n${profileBlock}\n\n${mindBlock}${completedQuestsBlock ? '\n\n' + completedQuestsBlock : ''}\n\n${'─'.repeat(40)}\n\nRESULTS TO ENRICH:\n${pagesBlock}`,
+        content: `STUDENT:\n${profileBlock}${completedQuestsBlock ? '\n\n' + completedQuestsBlock : ''}\n\n${'─'.repeat(40)}\n\nRESULTS TO ENRICH:\n${pagesBlock}`,
       }],
     })
 

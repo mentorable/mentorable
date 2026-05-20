@@ -13,6 +13,8 @@ const json = (data: unknown, status = 200) =>
     headers: { 'Content-Type': 'application/json', ...corsHeaders },
   })
 
+const VALID_STATUSES = ['suggested', 'considered', 'in_progress', 'completed', 'deleted']
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
@@ -33,9 +35,13 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { itemId, action } = await req.json()
+    const { itemId, action, status } = await req.json()
     if (!itemId) return json({ error: 'itemId is required' }, 400)
-    if (action !== 'complete' && action !== 'delete') return json({ error: 'action must be "complete" or "delete"' }, 400)
+
+    const validActions = ['complete', 'delete', 'move']
+    if (!validActions.includes(action)) {
+      return json({ error: `action must be one of: ${validActions.join(', ')}` }, 400)
+    }
 
     const now = new Date().toISOString()
     const updatePayload: Record<string, any> = { updated_at: now }
@@ -43,8 +49,14 @@ Deno.serve(async (req) => {
     if (action === 'complete') {
       updatePayload.status = 'completed'
       updatePayload.completed_at = now
-    } else {
+    } else if (action === 'delete') {
       updatePayload.status = 'deleted'
+    } else if (action === 'move') {
+      if (!status || !VALID_STATUSES.includes(status)) {
+        return json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` }, 400)
+      }
+      updatePayload.status = status
+      if (status === 'completed') updatePayload.completed_at = now
     }
 
     const { error: updateError } = await supabase

@@ -426,7 +426,7 @@ export default function ProfilePage({ navigate }) {
             <div style={card}>
               <SectionHeading>Career Profile</SectionHeading>
                 <Hint style={{ marginBottom: "1.25rem", display: "block" }}>
-                These come from your onboarding conversation. Edit freely — they shape Our Mind and your agent responses.
+                These come from your onboarding conversation. Edit freely — they shape your agent responses.
               </Hint>
 
               <div style={{ marginBottom: "1.25rem", marginTop: "0.75rem" }}>
@@ -450,7 +450,7 @@ export default function ProfilePage({ navigate }) {
                   onChange={(e) => setInterests(e.target.value)}
                   placeholder="e.g. Biology, Technology, Creative writing"
                 />
-                <Hint>Comma-separated. Influences career suggestions and what shows up in Our Mind.</Hint>
+                <Hint>Comma-separated. Influences career suggestions and your agent responses.</Hint>
               </div>
 
               <div>
@@ -622,7 +622,7 @@ export default function ProfilePage({ navigate }) {
             >
               <p style={{ fontSize: "1.05rem", fontWeight: 700, color: "#141413", marginBottom: "0.5rem" }}>Delete your account?</p>
               <p style={{ fontSize: "0.875rem", color: "#6c6a64", lineHeight: 1.6, marginBottom: "1.25rem" }}>
-                This permanently deletes your account, profile, Our Mind workspace, and chat history. This cannot be undone.
+                This permanently deletes your account, profile, and chat history. This cannot be undone.
               </p>
 
               <div style={{ marginBottom: "1.25rem" }}>

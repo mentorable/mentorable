@@ -79,8 +79,6 @@ export default function App() {
         <Route path="/research/:sessionId" element={<ResearchRoute />} />
         <Route path="/research" element={<ResearchRoute />} />
         <Route path="/quest" element={<ErrorBoundary><QuestRoute /></ErrorBoundary>} />
-        <Route path="/our-mind" element={<Navigate to="/quest" replace />} />
-        <Route path="/canvas" element={<Navigate to="/quest" replace />} />
         <Route path="/roadmap" element={<Navigate to="/quest" replace />} />
         <Route path="/roadmap/*" element={<Navigate to="/quest" replace />} />
         <Route path="/roadmap-preview" element={<Navigate to="/quest" replace />} />

@@ -80,7 +80,7 @@ export default function AuthPage() {
           .eq("id", data.user.id)
           .single();
         if (profile?.onboarding_completed) {
-          window.location.href = "/our-mind";
+          window.location.href = "/quest";
         } else {
           window.location.href = "/onboarding";
         }

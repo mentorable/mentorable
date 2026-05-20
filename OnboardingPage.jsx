@@ -322,7 +322,7 @@ function DemographicsPhase({ onContinue, submitting }) {
             A bit about you
           </h2>
           <p style={{ fontFamily:SANS, fontSize:"1rem", color:TEXT2, lineHeight:1.65, margin:0 }}>
-            This helps us personalize Our Mind and gives your AI guide the right context before your conversation.
+            This helps us personalize your experience and gives your AI guide the right context before your conversation.
           </p>
         </motion.div>
 
@@ -867,7 +867,7 @@ function ProcessingPhase() {
         transition={{ delay:0.2, duration:0.6 }}
         style={{ fontFamily:SERIF, fontWeight:700, fontSize:"1.75rem", color:TEXT, letterSpacing:"-0.03em", marginBottom:"0.875rem" }}
       >
-        Building Our Mind...
+        Setting up your profile...
       </motion.h2>
       <motion.p
         initial={{ opacity:0, y:12 }}
@@ -1080,7 +1080,7 @@ export default function OnboardingPage() {
       if (!user) { window.location.href = "/auth"; return; }
       const { data: profile } = await supabase
         .from("profiles").select("onboarding_completed").eq("id", user.id).single();
-      if (profile?.onboarding_completed) { window.location.href = "/our-mind"; return; }
+      if (profile?.onboarding_completed) { window.location.href = "/quest"; return; }
       setUser(user);
       setPhase("demographics");
     };
@@ -1332,7 +1332,7 @@ export default function OnboardingPage() {
         {phase === "intro"      && <IntroPhase      key="intro"      onStart={startConversation} loading={startingConv} retryNotice={retryNotice}/>}
         {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} transcriptEndRef={transcriptEndRef}/>}
         {phase === "processing" && <ProcessingPhase key="processing"/>}
-        {phase === "recovery"   && <RecoveryPhase   key="recovery"   userId={user?.id} onSuccess={() => { window.location.href = "/our-mind"; }} onRetry={() => { setPhase("intro"); }}/>}
+        {phase === "recovery"   && <RecoveryPhase   key="recovery"   userId={user?.id} onSuccess={() => { window.location.href = "/quest"; }} onRetry={() => { setPhase("intro"); }}/>}
         {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("demographics"); }}/>}
         {phase === "mic-denied" && <MicDeniedPhase  key="mic-denied" onRetry={() => setPhase("intro")}/>}
       </AnimatePresence>

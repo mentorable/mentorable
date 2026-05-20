@@ -402,8 +402,6 @@ export default function ScorecardPage({ navigate }) {
     transition: "border-color 0.3s ease, box-shadow 0.3s ease",
   };
 
-  const goToOurMind = () => navigate ? navigate("/our-mind") : (window.location.href = "/our-mind");
-
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div data-sidebar-offset style={{
@@ -750,23 +748,6 @@ export default function ScorecardPage({ navigate }) {
                   Share image
                 </button>
 
-                <button
-                  onClick={goToOurMind}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: "0.5rem",
-                    padding: "0.675rem 1.2rem",
-                    border: "none", borderRadius: "0.75rem",
-                    background: theme.accent, color: "white",
-                    fontSize: "0.875rem", fontWeight: 700,
-                    cursor: "pointer",
-                    boxShadow: `0 4px 14px ${theme.glow}`,
-                    fontFamily: "'Inter', -apple-system, sans-serif",
-                    whiteSpace: "nowrap",
-                    transition: "all 300ms ease",
-                  }}
-                >
-                  Open Our Mind →
-                </button>
               </motion.div>
             </motion.div>
 
