@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
-import { getCache, setCache } from "./lib/cache.js";
+import { getCache, setCache, getKnownUserId, setKnownUserId } from "./lib/cache.js";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
@@ -459,9 +459,9 @@ function CountPicker({ onSelect, onClose }) {
 // ─── RoadmapPage ──────────────────────────────────────────────────────────────
 export default function RoadmapPage({ navigate }) {
   const isMobile = useIsMobile();
-  const [userId, setUserId]           = useState(null);
-  const [items, setItems]             = useState([]);
-  const [loading, setLoading]         = useState(true);
+  const [userId, setUserId]           = useState(getKnownUserId);
+  const [items, setItems]             = useState(() => getCache(`quest_items:${getKnownUserId()}`) || []);
+  const [loading, setLoading]         = useState(() => !getCache(`quest_items:${getKnownUserId()}`));
   const [generating, setGenerating]   = useState(false);
   const [draggingId, setDraggingId]   = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
@@ -494,11 +494,8 @@ export default function RoadmapPage({ navigate }) {
       if (!user) { window.location.href = "/auth"; return; }
       if (cancelled) return;
       setUserId(user.id);
+      setKnownUserId(user.id);
       userIdRef.current = user.id;
-
-      // Show cached data immediately — no spinner on repeat visits
-      const cached = getCache(`quest_items:${user.id}`);
-      if (cached) { setItems(cached); setLoading(false); }
 
       await loadItems(user.id);
       if (!cancelled) setLoading(false);

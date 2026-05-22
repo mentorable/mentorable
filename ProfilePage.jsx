@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
-import { getCache, setCache, invalidateCache } from "./lib/cache.js";
+import { getCache, setCache, invalidateCache, getKnownUserId, setKnownUserId } from "./lib/cache.js";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
@@ -132,28 +132,31 @@ function PillSelector({ options, value, onChange, accent = ACCENT }) {
 
 export default function ProfilePage({ navigate }) {
   const isMobile = useIsMobile();
-  const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState(null);
+  const [loading, setLoading] = useState(() => !getCache(`profile:${getKnownUserId()}`));
+  const [userId, setUserId]   = useState(getKnownUserId);
   const [userEmail, setUserEmail] = useState("");
 
+  // Initialise fields from cache synchronously so the form renders immediately
+  const _cp = getCache(`profile:${getKnownUserId()}`);
+
   // Identity
-  const [preferredName, setPreferredName] = useState("");
-  const [bio, setBio] = useState("");
-  const [profileColor, setProfileColor] = useState(ACCENT);
+  const [preferredName, setPreferredName] = useState(_cp?.full_name || "");
+  const [bio, setBio] = useState(_cp?.bio || "");
+  const [profileColor, setProfileColor] = useState(_cp?.profile_color || ACCENT);
 
   // Agent behavior
-  const [agentResponseStyle, setAgentResponseStyle] = useState("balanced");
-  const [agentInstructions, setAgentInstructions] = useState("");
+  const [agentResponseStyle, setAgentResponseStyle] = useState(_cp?.agent_response_style || "balanced");
+  const [agentInstructions, setAgentInstructions] = useState(_cp?.agent_instructions || "");
 
   // Career profile (editable)
-  const [strengths, setStrengths]         = useState("");
-  const [interests, setInterests]         = useState("");
-  const [careerMatches, setCareerMatches] = useState("");
+  const [strengths, setStrengths]         = useState((_cp?.strengths || []).join(", "));
+  const [interests, setInterests]         = useState((_cp?.interests || []).join(", "));
+  const [careerMatches, setCareerMatches] = useState((_cp?.career_matches || []).join(", "));
 
   // Guidance prefs
-  const [hoursPerWeek, setHoursPerWeek] = useState("");
-  const [taskStyle, setTaskStyle] = useState("mix");
-  const [difficulty, setDifficulty] = useState("balanced");
+  const [hoursPerWeek, setHoursPerWeek] = useState(_cp?.roadmap_hours_per_week || "");
+  const [taskStyle, setTaskStyle] = useState(_cp?.roadmap_task_style || "mix");
+  const [difficulty, setDifficulty] = useState(_cp?.roadmap_difficulty || "balanced");
 
   // Save state
   const [saving, setSaving] = useState(false);
@@ -196,11 +199,8 @@ export default function ProfilePage({ navigate }) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { nav("/auth"); return; }
         setUserId(user.id);
+        setKnownUserId(user.id);
         setUserEmail(user.email || "");
-
-        // Show cached profile immediately — no loading screen on repeat visits
-        const cached = getCache(`profile:${user.id}`);
-        if (cached) { applyProfile(cached); setLoading(false); }
 
         const { data: p } = await supabase.from("profiles")
           .select("full_name, bio, profile_color, agent_response_style, agent_instructions, roadmap_hours_per_week, roadmap_task_style, roadmap_difficulty, strengths, interests, career_matches")

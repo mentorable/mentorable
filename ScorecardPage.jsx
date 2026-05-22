@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
-import { getCache, setCache } from "./lib/cache.js";
+import { getCache, setCache, getKnownUserId, setKnownUserId } from "./lib/cache.js";
 import Spinner from "./components/common/Spinner.jsx";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 
@@ -226,8 +226,8 @@ function SkeletonLayout({ theme }) {
 
 // ─── ScorecardPage ────────────────────────────────────────────────────────────
 export default function ScorecardPage({ navigate }) {
-  const [phase, setPhase] = useState("loading");
-  const [profile, setProfile] = useState(null);
+  const [phase, setPhase]     = useState(() => { const uid = getKnownUserId(); return (uid && getCache(`profile:${uid}`)) ? "loaded" : "loading"; });
+  const [profile, setProfile] = useState(() => { const uid = getKnownUserId(); return uid ? getCache(`profile:${uid}`) : null; });
   const [theme, setTheme] = useState(themes[0]);
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -245,10 +245,7 @@ export default function ScorecardPage({ navigate }) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { window.location.href = "/auth"; return; }
-
-        // Show cached profile immediately — no skeleton on repeat visits
-        const cached = getCache(`profile:${user.id}`);
-        if (cached?.onboarding_completed) { setProfile(cached); setPhase("loaded"); }
+        setKnownUserId(user.id);
 
         const { data: profileData } = await supabase
           .from("profiles").select("*").eq("id", user.id).single();

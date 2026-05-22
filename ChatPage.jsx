@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
 import { buildSystemPrompt, streamChatResponse } from "./lib/mentora.js";
-import { getCache, setCache } from "./lib/cache.js";
+import { getCache, setCache, getKnownUserId, setKnownUserId } from "./lib/cache.js";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import Drawer from "./components/common/Drawer.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
@@ -762,9 +762,9 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
 
 export default function ChatPage({ navigate }) {
   const [user, setUser]               = useState(null);
-  const [profile, setProfile]         = useState(null);
-  const [completedQuests, setCompletedQuests] = useState([]);
-  const [sessions, setSessions]       = useState([]);
+  const [profile, setProfile]         = useState(() => getCache(`profile:${getKnownUserId()}`) || null);
+  const [completedQuests, setCompletedQuests] = useState(() => getCache(`completed_quests:${getKnownUserId()}`) || []);
+  const [sessions, setSessions]       = useState(() => getCache(`chat_sessions:${getKnownUserId()}`) || []);
   const [activeChatId, setActiveChatId] = useState(null);
   const [messages, setMessages]       = useState([]);
   const [streaming, setStreaming]     = useState(false);
@@ -784,14 +784,7 @@ export default function ChatPage({ navigate }) {
       if (!data?.user) { navigate("/auth"); return; }
       const uid = data.user.id;
       setUser(data.user);
-
-      // Hydrate from cache immediately so history panel appears without delay
-      const cachedSessions = getCache(`chat_sessions:${uid}`);
-      const cachedProfile  = getCache(`profile:${uid}`);
-      const cachedQuests   = getCache(`completed_quests:${uid}`);
-      if (cachedSessions) setSessions(cachedSessions);
-      if (cachedProfile)  { setProfile(cachedProfile); systemPromptRef.current = buildSystemPrompt(cachedProfile, cachedQuests || []); }
-      if (cachedQuests)   setCompletedQuests(cachedQuests);
+      setKnownUserId(uid);
 
       const [sessionsRes, profileRes, completedQuestsRes] = await Promise.all([
         supabase.from("chat_sessions").select("id, title, messages, created_at, updated_at")
