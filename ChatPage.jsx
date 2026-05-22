@@ -764,6 +764,9 @@ export default function ChatPage({ navigate }) {
   const [user, setUser]               = useState(null);
   const [profile, setProfile]         = useState(() => getCache(`profile:${getKnownUserId()}`) || null);
   const [completedQuests, setCompletedQuests] = useState(() => getCache(`completed_quests:${getKnownUserId()}`) || []);
+  const [activeQuests, setActiveQuests]       = useState(() => getCache(`active_quests:${getKnownUserId()}`) || []);
+  const [deletedQuestTitles, setDeletedQuestTitles] = useState(() => getCache(`deleted_quest_titles:${getKnownUserId()}`) || []);
+  const [recentResearch, setRecentResearch]   = useState(() => getCache(`recent_research:${getKnownUserId()}`) || []);
   const [sessions, setSessions]       = useState(() => getCache(`chat_sessions:${getKnownUserId()}`) || []);
   const [activeChatId, setActiveChatId] = useState(null);
   const [messages, setMessages]       = useState([]);
@@ -776,8 +779,20 @@ export default function ChatPage({ navigate }) {
   const systemPromptRef  = useRef("");
 
   useEffect(() => {
-    systemPromptRef.current = buildSystemPrompt(profile, completedQuests);
-  }, [profile, completedQuests]);
+    const chatTopics = sessions.slice(0, 8).map(s => {
+      if (s.title) return s.title;
+      const firstUser = s.messages?.find(m => m.role === "user");
+      return firstUser?.content?.split("\n")[0]?.slice(0, 60) || null;
+    }).filter(Boolean);
+    systemPromptRef.current = buildSystemPrompt(profile, {
+      completedQuests,
+      activeQuests,
+      deletedQuestTitles,
+      recentResearch,
+      chatTopics,
+      mindNotes: profile?.mind_notes || [],
+    });
+  }, [profile, completedQuests, activeQuests, deletedQuestTitles, recentResearch, sessions]);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -786,21 +801,36 @@ export default function ChatPage({ navigate }) {
       setUser(data.user);
       setKnownUserId(uid);
 
-      const [sessionsRes, profileRes, completedQuestsRes] = await Promise.all([
+      const [sessionsRes, profileRes, allQuestsRes, researchRes] = await Promise.all([
         supabase.from("chat_sessions").select("id, title, messages, created_at, updated_at")
           .eq("user_id", uid).order("updated_at", { ascending: false }),
         supabase.from("profiles").select("*").eq("id", uid).single(),
         supabase.from("quest_items")
-          .select("title, category, completed_at")
+          .select("title, category, status, completed_at")
           .eq("user_id", uid)
-          .eq("status", "completed")
-          .order("completed_at", { ascending: false })
-          .limit(20),
+          .in("status", ["completed", "in_progress", "considered", "deleted"])
+          .order("completed_at", { ascending: false }),
+        supabase.from("research_sessions")
+          .select("query")
+          .eq("user_id", uid)
+          .order("created_at", { ascending: false })
+          .limit(10),
       ]);
 
-      if (sessionsRes.data)        { setSessions(sessionsRes.data);       setCache(`chat_sessions:${uid}`, sessionsRes.data); }
-      if (profileRes.data)         { setProfile(profileRes.data);         setCache(`profile:${uid}`, profileRes.data); }
-      if (completedQuestsRes.data) { setCompletedQuests(completedQuestsRes.data); setCache(`completed_quests:${uid}`, completedQuestsRes.data); }
+      if (sessionsRes.data)  { setSessions(sessionsRes.data); setCache(`chat_sessions:${uid}`, sessionsRes.data); }
+      if (profileRes.data)   { setProfile(profileRes.data);   setCache(`profile:${uid}`, profileRes.data); }
+      if (allQuestsRes.data) {
+        const completed = allQuestsRes.data.filter(q => q.status === "completed");
+        const active    = allQuestsRes.data.filter(q => ["in_progress", "considered"].includes(q.status));
+        const deleted   = allQuestsRes.data.filter(q => q.status === "deleted").map(q => q.title);
+        setCompletedQuests(completed);    setCache(`completed_quests:${uid}`, completed);
+        setActiveQuests(active);          setCache(`active_quests:${uid}`, active);
+        setDeletedQuestTitles(deleted);   setCache(`deleted_quest_titles:${uid}`, deleted);
+      }
+      if (researchRes.data) {
+        const queries = researchRes.data.map(r => r.query).filter(Boolean);
+        setRecentResearch(queries);       setCache(`recent_research:${uid}`, queries);
+      }
     });
   }, []);
 
