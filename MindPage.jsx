@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import brainImg from "./components/brain_image.png";
 import { supabase } from "./lib/supabase.js";
@@ -30,92 +30,176 @@ const LOBES = {
   voice:     { label: "Voice",     subtitle: "How Mentora speaks to you", color: "#60a5fa", sections: ["agent_instructions"] },
 };
 
-// ─── Brain image quadrant config ─────────────────────────────────────────────
-// brain_image.png is already split into 4 color zones (top-left view):
-//   Core (TL, dark blue) · Drive (TR, light blue) ·
-//   Curiosity (BL, medium blue) · Voice (BR, periwinkle)
+// ─── Brain pixel classifier ───────────────────────────────────────────────────
+// Maps an RGB pixel from brain_image.png to one of the 4 lobe IDs.
+// The image has 4 distinct blue color zones — we classify by brightness + hue.
+function classifyBrainPixel(r, g, b) {
+  if (r > 220 && g > 220 && b > 220) return null;  // white background
+  const brightness = (r + g + b) / 3;
+  if (brightness < 130)          return "core";      // dark blue   (TL)
+  if (g > 185 && b > 220)        return "drive";     // light cyan  (TR)
+  if (r > 120 && g > 140)        return "voice";     // periwinkle  (BR)
+  return "curiosity";                                 // medium blue (BL)
+}
 
 // ─── Brain image component ────────────────────────────────────────────────────
-// Uses brain_image.png exactly as-is. Overlays 4 transparent quadrant regions
-// for interaction. Dims non-selected quadrants with a page-colored veil.
-//
-// Quadrant → lobe mapping (matches the 4 colors already in the image):
-//   TL (dark blue)    → Core      TR (light cyan) → Drive
-//   BL (medium blue)  → Curiosity BR (periwinkle)  → Voice
+// Loads brain_image.png into a hidden canvas, pre-renders 5 versions
+// (default + one per active lobe), and uses pixel-accurate hit-testing so
+// hover/click follow the image's own organic color boundaries exactly.
 
 function BrainSVG({ selected, hovered, onLobeClick, onLobeHover, mini = false }) {
-  const size = mini ? 130 : 420;
+  const size   = mini ? 130 : 420;
+  const srcRef = useRef(null);                 // hidden canvas for hit-testing
+  const [urls, setUrls] = useState(null);      // pre-rendered data URLs
 
-  // Which quadrant each lobe occupies
-  const isRight = (id) => id === "drive" || id === "voice";
-  const isBot   = (id) => id === "curiosity" || id === "voice";
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      const W = img.naturalWidth;
+      const H = img.naturalHeight;
+
+      // Source canvas — pixel data for hit-testing
+      const src = document.createElement("canvas");
+      src.width = W; src.height = H;
+      src.getContext("2d").drawImage(img, 0, 0);
+      srcRef.current = src;
+
+      const { data } = src.getContext("2d").getImageData(0, 0, W, H);
+
+      // Pre-classify every pixel once
+      const LOBE_IDX = { core: 1, drive: 2, curiosity: 3, voice: 4 };
+      const IDX_LOBE = [null, "core", "drive", "curiosity", "voice"];
+      const map = new Uint8Array(W * H);
+      for (let i = 0; i < W * H; i++) {
+        const lobe = classifyBrainPixel(data[i*4], data[i*4+1], data[i*4+2]);
+        map[i] = lobe ? LOBE_IDX[lobe] : 0;
+      }
+
+      // Render one version of the image per active-lobe state
+      // active=null → default (full colour, no dimming)
+      // active=id   → that lobe brightened, others dimmed toward page bg
+      const render = (active) => {
+        const c = document.createElement("canvas");
+        c.width = W; c.height = H;
+        const ctx = c.getContext("2d");
+        const out = ctx.createImageData(W, H);
+        const BG = [250, 249, 245]; // PAGE_BG rgb
+
+        for (let i = 0; i < W * H; i++) {
+          const idx = i * 4;
+          const r = data[idx], g = data[idx+1], b = data[idx+2];
+          const lobeIdx = map[i];
+
+          if (lobeIdx === 0) {
+            out.data[idx+3] = 0; // transparent (white background)
+            continue;
+          }
+
+          const lobeId   = IDX_LOBE[lobeIdx];
+          const isActive = !active || lobeId === active;
+
+          if (!active) {
+            // Default: show as-is
+            out.data[idx]   = r;
+            out.data[idx+1] = g;
+            out.data[idx+2] = b;
+          } else if (isActive) {
+            // Brighten the active lobe
+            out.data[idx]   = Math.min(255, Math.round(r * 1.25));
+            out.data[idx+1] = Math.min(255, Math.round(g * 1.2));
+            out.data[idx+2] = Math.min(255, Math.round(b * 1.15));
+          } else {
+            // Dim inactive lobes — blend toward page background
+            const f = 0.35;
+            out.data[idx]   = Math.round(r * f + BG[0] * (1 - f));
+            out.data[idx+1] = Math.round(g * f + BG[1] * (1 - f));
+            out.data[idx+2] = Math.round(b * f + BG[2] * (1 - f));
+          }
+          out.data[idx+3] = 255;
+        }
+
+        ctx.putImageData(out, 0, 0);
+        return c.toDataURL("image/png");
+      };
+
+      setUrls({
+        default:   render(null),
+        core:      render("core"),
+        drive:     render("drive"),
+        curiosity: render("curiosity"),
+        voice:     render("voice"),
+      });
+    };
+    img.src = brainImg;
+  }, []);
+
+  const active  = selected || hovered;
+  const dispSrc = urls ? (active ? urls[active] : urls.default) : null;
+
+  function hitTest(e) {
+    const canvas = srcRef.current;
+    if (!canvas) return null;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.round((e.clientX - rect.left) * canvas.width  / rect.width);
+    const y = Math.round((e.clientY - rect.top)  * canvas.height / rect.height);
+    if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) return null;
+    try {
+      const [r, g, b] = canvas.getContext("2d").getImageData(x, y, 1, 1).data;
+      return classifyBrainPixel(r, g, b);
+    } catch { return null; }
+  }
+
+  // Approximate visual center of each color zone in the image
+  const LABEL_POS = {
+    core:      { left: "26%", top: "33%" },
+    drive:     { left: "74%", top: "33%" },
+    curiosity: { left: "26%", top: "67%" },
+    voice:     { left: "74%", top: "67%" },
+  };
 
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-      {/* The actual image — untouched */}
-      <img
-        src={brainImg}
-        alt="Brain"
-        draggable={false}
-        style={{ width: "100%", height: "100%", objectFit: "contain", display: "block",
-                 userSelect: "none", pointerEvents: "none" }}
-      />
+      {/* While processing: show original with blend-mode to hide white bg */}
+      {!dispSrc && (
+        <img src={brainImg} draggable={false}
+          style={{ width: "100%", height: "100%", objectFit: "contain",
+                   display: "block", mixBlendMode: "multiply" }} />
+      )}
 
-      {/* Dim overlay on each non-selected quadrant */}
-      {Object.keys(LOBES).map((id) => {
-        const isDimmed = !!selected && selected !== id;
-        if (!isDimmed) return null;
-        return (
-          <div key={`dim-${id}`} style={{
-            position: "absolute",
-            top:    isBot(id)   ? "50%" : "0",
-            left:   isRight(id) ? "50%" : "0",
-            width:  "50%", height: "50%",
-            background: `${PAGE_BG}cc`,  // page off-white at ~80% opacity
-            pointerEvents: "none",
-            transition: "background 0.22s",
-          }} />
-        );
-      })}
-
-      {/* Clickable quadrant regions */}
-      {Object.keys(LOBES).map((id) => (
-        <div key={id} style={{
-          position: "absolute",
-          top:    isBot(id)   ? "50%" : "0",
-          left:   isRight(id) ? "50%" : "0",
-          width:  "50%", height: "50%",
-          cursor: "pointer",
-        }}
-          onClick={() => onLobeClick(id)}
-          onMouseEnter={() => onLobeHover(id)}
+      {/* Processed image: transparent background, pixel-accurate per-lobe dimming */}
+      {dispSrc && (
+        <img src={dispSrc} draggable={false}
+          style={{ width: "100%", height: "100%", objectFit: "contain",
+                   display: "block", cursor: "pointer", userSelect: "none" }}
+          onMouseMove={(e) => onLobeHover(hitTest(e))}
           onMouseLeave={() => onLobeHover(null)}
+          onClick={(e) => { const l = hitTest(e); if (l) onLobeClick(l); }}
         />
-      ))}
+      )}
 
-      {/* Lobe labels — full size only */}
+      {/* Lobe labels — hidden in mini mode */}
       {!mini && Object.entries(LOBES).map(([id, lobe]) => {
         const isDimmed = !!selected && selected !== id;
+        const pos = LABEL_POS[id];
         return (
-          <div key={`lbl-${id}`} style={{
-            position: "absolute",
-            top:       isBot(id)   ? "72%" : "28%",
-            left:      isRight(id) ? "75%" : "25%",
+          <div key={id} style={{
+            position: "absolute", top: pos.top, left: pos.left,
             transform: "translate(-50%, -50%)",
-            textAlign: "center",
-            pointerEvents: "none",
-            opacity: isDimmed ? 0.12 : 1,
+            textAlign: "center", pointerEvents: "none",
+            opacity: isDimmed ? 0.08 : 1,
             transition: "opacity 0.22s",
           }}>
             <div style={{
-              fontFamily: FONT_HEAD, fontWeight: 700, fontSize: 14, color: "#fff", lineHeight: 1.1,
-              textShadow: "0 1px 5px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.4)",
+              fontFamily: FONT_HEAD, fontWeight: 700, fontSize: 14,
+              color: "#fff", lineHeight: 1.1,
+              textShadow: "0 1px 6px rgba(0,0,0,0.95), 0 0 14px rgba(0,0,0,0.5)",
             }}>
               {lobe.label}
             </div>
             <div style={{
-              fontFamily: FONT_BODY, fontSize: 9.5, color: "rgba(255,255,255,0.82)",
-              textShadow: "0 1px 4px rgba(0,0,0,0.8)", marginTop: 3,
+              fontFamily: FONT_BODY, fontSize: 9.5, marginTop: 3,
+              color: "rgba(255,255,255,0.85)",
+              textShadow: "0 1px 5px rgba(0,0,0,0.95)",
             }}>
               {lobe.subtitle}
             </div>
@@ -466,8 +550,8 @@ export default function MindPage({ navigate }) {
   const ml = isMobile ? 0 : SIDEBAR_WIDTH;
   const pb = isMobile ? 80 : 0;
 
-  const brainW = isMobile ? 320 : Math.min(420, (window?.innerWidth || 900) - SIDEBAR_WIDTH - 80);
-  const brainH = brainW; // image is square
+  const brainW = isMobile ? 310 : Math.min(400, (window?.innerWidth || 900) - SIDEBAR_WIDTH - 80);
+  const brainH = brainW;
 
   return (
     <div style={{ marginLeft: ml, minHeight: "100vh", background: PAGE_BG, paddingBottom: pb }}>
