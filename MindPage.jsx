@@ -29,258 +29,256 @@ const LOBES = {
   voice:     { label: "Voice",     subtitle: "How Mentora speaks to you", color: "#60a5fa", sections: ["agent_instructions"] },
 };
 
-// ─── Cartoon brain SVG data (viewBox 0 0 560 460) ───────────────────────────
-// Modelled after the classic cartoon side-view brain illustration.
-// Front faces LEFT, back faces RIGHT.
-// Colors: Mentorable blue palette, thick dark outlines like the original image.
+// ─── Cartoon brain SVG (viewBox 0 0 520 430) ────────────────────────────────
+// Traced from the classic cartoon side-view brain illustration.
+// Front LEFT · Back RIGHT · Mentorable blue palette · thick dark outlines.
 
-const C_OUTLINE  = "#0d1b4b";   // near-black navy — replaces the thick black lines
-const C_BASE     = "#2563eb";   // medium blue — main gyri fill
-const C_LIGHT    = "#60a5fa";   // light blue — gyri highlights
-const C_LIGHTER  = "#bfdbfe";   // very light — specular crown highlights
-const C_DARK     = "#1d4ed8";   // darker blue — shadowed sulcal areas
-const C_DEEP     = "#1e3a8a";   // deep blue — deepest sulci / cerebellum base
-const C_CBL      = "#1e40af";   // cerebellum fill
-const C_CBL_RDG  = "#1d4ed8";   // cerebellum ridge fill
-const C_STEM     = "#1e3a8a";   // brain stem
+const C_OUT  = "#0d1b4b";  // thick outlines (replaces the black in the image)
+const C_BASE = "#2563eb";  // gyri body
+const C_HI   = "#60a5fa";  // gyri mid-highlight
+const C_TOP  = "#bfdbfe";  // gyri crown (brightest)
+const C_DEEP = "#1e3a8a";  // dark fill between gyri / base
+const C_CBL  = "#1e40af";  // cerebellum body
+const C_CBLD = "#1a3380";  // cerebellum ridge shadow
 
 // ── Outer brain silhouette ─────────────────────────────────────────────────
-
-// The main cerebrum shape. Front-facing left, strongly bumpy top like the image.
+// The bumpy outer boundary of the cerebrum.
 const BRAIN_OUTER =
-  "M 132,68 " +
-  "C 110,54 88,50 72,62 " +       // front-upper forehead slope
-  "C 56,74 46,96 44,122 " +       // front face going down
-  "C 42,148 48,176 60,200 " +     // front-lower face
-  "C 70,220 84,238 100,252 " +    // transition to temporal
-  "C 116,266 138,274 162,278 " +  // temporal front
-  "C 188,284 218,286 248,284 " +  // temporal floor
-  "C 278,282 308,276 332,264 " +  // temporal back
-  "C 356,250 372,230 378,206 " +  // back-lower
-  "C 386,180 386,152 376,128 " +  // back
-  "C 364,102 344,82 320,70 " +    // back-upper
-  "C 294,56 264,50 234,52 " +     // top-right
-  "C 204,50 176,54 158,62 " +     // top-center
-  "C 148,66 140,68 132,68 Z";     // close at front-top
+  "M 155,66 " +
+  "C 134,56 108,52 88,62 " +
+  "C 68,72 52,94 48,122 " +
+  "C 44,150 52,180 68,204 " +
+  "C 80,222 96,236 112,246 " +
+  "C 124,254 136,258 148,260 " +
+  "C 168,264 194,265 222,263 " +
+  "C 248,262 272,258 292,250 " +
+  "C 314,240 330,226 338,208 " +
+  "C 348,186 346,160 334,138 " +
+  "C 322,116 302,100 284,92 " +
+  "C 270,86 256,84 242,88 " +
+  "C 230,82 216,72 200,66 " +
+  "C 182,60 168,62 155,66 Z";
 
-// ── Individual gyri (raised folds) ────────────────────────────────────────
-// Each gyrus is a distinct filled blob with thick outline — matching cartoon style.
+// This outer shape is the base cerebrum. Gyri push *outward* from inside it,
+// and the cerebellum is a separate shape below-right.
 
-// Gyri are drawn bottom-up so lower ones don't cover upper ones.
-const GYRI_SHAPES = [
-  // ── TEMPORAL LOBE GYRI (bottom region) ──
+// ── Cerebellum & stem ─────────────────────────────────────────────────────
+const CBL_OUTER =
+  "M 278,242 C 298,238 324,236 346,240 " +
+  "C 368,244 384,256 386,272 " +
+  "C 388,288 376,302 356,308 " +
+  "C 334,314 308,312 290,300 " +
+  "C 272,288 268,266 278,248 Z";
 
-  // Inferior temporal gyrus — large horizontal blob at very bottom
-  { id: "g-inf-temp",
-    fill: C_BASE, light: C_LIGHT,
-    path: "M 140,268 C 160,260 200,256 240,256 C 280,256 316,260 340,268 C 356,274 360,282 348,288 C 332,296 300,298 264,298 C 228,298 190,296 162,288 C 144,282 130,274 140,268 Z",
-    hilite: "M 168,262 C 196,256 228,254 258,258 C 282,262 298,268 296,274 C 290,278 268,278 242,276 C 210,272 182,266 168,262 Z",
-  },
-  // Superior temporal gyrus — slightly above, curves front to back
-  { id: "g-sup-temp",
-    fill: C_BASE, light: C_LIGHT,
-    path: "M 114,232 C 134,220 168,214 208,212 C 248,210 286,214 316,224 C 340,232 354,244 346,254 C 336,264 308,268 272,266 C 236,264 196,260 162,250 C 138,242 104,242 114,232 Z",
-    hilite: "M 142,222 C 168,214 204,210 240,212 C 272,214 298,222 302,230 C 298,236 272,238 244,236 C 210,232 178,226 142,222 Z",
-  },
+const CBL_RIDGES = [
+  "M 282,254 C 304,248 330,246 352,252 C 368,256 376,264 372,272",
+  "M 280,266 C 302,260 328,258 350,264 C 366,268 374,276 370,284",
+  "M 280,278 C 302,272 326,270 346,276 C 362,280 370,290 364,298",
+  "M 284,290 C 304,286 326,284 344,290 C 358,296 364,306 356,312",
+];
 
-  // ── FRONTAL LOBE GYRI (left/front region) ──
+const STEM_PATH =
+  "M 174,256 C 170,274 168,294 174,310 " +
+  "C 180,326 194,332 206,328 " +
+  "C 218,324 222,310 218,294 " +
+  "C 214,278 206,262 200,256 Z";
 
-  // Inferior frontal gyrus — the C-shaped front scroll (very distinctive in image)
-  { id: "g-inf-front",
-    fill: C_BASE, light: C_LIGHT,
-    path: "M 52,178 C 44,158 46,136 60,118 C 72,102 90,94 108,96 C 126,98 138,112 140,130 C 142,148 134,166 120,176 C 106,186 86,188 70,182 C 62,178 54,178 52,178 Z",
-    hilite: "M 68,118 C 84,108 104,104 118,112 C 128,120 130,132 122,140 C 114,148 98,150 86,144 C 76,138 68,128 68,118 Z",
-  },
-  // Middle frontal gyrus — horizontal slab above the Sylvian region
-  { id: "g-mid-front",
-    fill: C_BASE, light: C_LIGHT,
-    path: "M 72,154 C 80,140 98,130 120,128 C 142,126 162,132 172,144 C 180,154 178,168 166,176 C 152,184 128,184 108,178 C 88,170 66,166 72,154 Z",
-    hilite: "M 94,136 C 112,128 136,128 152,136 C 162,142 164,150 156,156 C 146,162 126,162 110,156 C 98,150 90,142 94,136 Z",
-  },
-  // Superior frontal gyrus — top-left large bump
-  { id: "g-sup-front",
-    fill: C_BASE, light: C_LIGHT,
-    path: "M 72,124 C 68,104 74,82 90,70 C 104,58 124,56 144,62 C 162,68 174,82 174,98 C 174,114 162,128 144,136 C 124,144 98,142 84,132 C 76,126 74,124 72,124 Z",
-    hilite: "M 92,72 C 108,62 130,62 146,72 C 158,80 160,94 150,102 C 138,110 118,110 104,102 C 94,94 88,82 92,72 Z",
+// ── Gyri — each one is an individually outlined raised blob ───────────────
+// The image style: lighter fill blobs sitting on a dark base, thick outlines.
+// `lobe` maps to LOBES keys for dim/highlight on interaction.
+
+const GYRI = [
+  // ─ BIG PARIETAL DOME (top-right, the most prominent feature) ─
+  {
+    id: "sup-par",
+    lobe: "drive",
+    body: "M 220,84 C 238,64 268,52 302,52 C 336,52 364,70 374,98 C 384,126 372,156 348,168 C 322,180 290,178 266,162 C 240,144 222,114 220,90 Z",
+    crown: "M 250,66 C 270,52 298,50 322,60 C 342,68 352,86 346,104 C 338,118 318,124 296,116 C 270,106 250,88 248,70 Z",
   },
 
-  // ── PARIETAL LOBE GYRI (top-center) ──
-
-  // Inferior parietal lobule — large central mass
-  { id: "g-inf-par",
-    fill: C_BASE, light: C_LIGHT,
-    path: "M 178,156 C 182,136 196,118 218,110 C 240,102 266,104 284,116 C 300,128 306,146 300,162 C 294,178 278,188 256,190 C 232,192 208,184 194,170 C 184,160 176,158 178,156 Z",
-    hilite: "M 200,118 C 218,108 244,108 262,120 C 274,130 276,144 266,152 C 254,160 234,160 220,152 C 208,144 200,132 200,118 Z",
-  },
-  // Superior parietal — top-center large dome (biggest bump)
-  { id: "g-sup-par",
-    fill: C_BASE, light: C_LIGHT,
-    path: "M 190,110 C 188,88 198,66 218,54 C 238,42 264,42 284,54 C 302,64 312,84 308,104 C 304,122 288,136 266,140 C 242,144 216,136 202,122 C 194,114 190,112 190,110 Z",
-    hilite: "M 210,60 C 230,48 258,50 274,62 C 286,72 286,90 274,100 C 260,110 238,110 224,100 C 212,90 208,74 210,60 Z",
+  // ─ UPPER-LEFT FRONTAL GYRUS ─
+  {
+    id: "sup-front",
+    lobe: "core",
+    body: "M 84,100 C 88,80 106,68 128,68 C 152,68 170,84 170,106 C 170,126 154,140 132,140 C 108,140 84,122 84,104 Z",
+    crown: "M 102,80 C 116,70 138,70 152,82 C 160,90 158,104 146,110 C 130,116 110,110 100,96 C 94,88 96,80 102,80 Z",
   },
 
-  // ── OCCIPITAL / BACK REGION ──
-
-  // Parieto-occipital — top-right bump
-  { id: "g-par-occ",
-    fill: C_BASE, light: C_LIGHT,
-    path: "M 296,112 C 296,90 308,68 328,58 C 348,48 372,52 386,68 C 398,82 398,104 386,120 C 374,136 352,144 330,138 C 310,132 296,124 296,112 Z",
-    hilite: "M 318,66 C 336,56 358,60 370,76 C 378,88 374,106 360,114 C 346,120 328,116 318,104 C 310,92 310,76 318,66 Z",
+  // ─ INFERIOR FRONTAL / SCROLL GYRUS (front-left, the distinctive C-scroll) ─
+  {
+    id: "inf-front",
+    lobe: "core",
+    body: "M 50,168 C 44,146 48,122 64,108 C 78,96 96,94 112,102 C 128,110 134,128 128,148 C 122,166 106,176 88,174 C 70,170 52,170 50,168 Z",
+    crown: "M 66,110 C 80,98 100,96 114,108 C 122,116 120,130 110,138 C 96,146 76,142 66,128 C 60,118 62,110 66,110 Z",
   },
-  // Occipital — back rounded region
-  { id: "g-occ",
-    fill: C_BASE, light: C_LIGHT,
-    path: "M 332,140 C 340,120 356,104 376,100 C 394,96 410,106 416,124 C 422,142 416,164 400,178 C 384,192 360,196 342,186 C 326,176 324,158 332,140 Z",
-    hilite: "M 360,108 C 376,102 392,112 396,128 C 400,144 390,160 374,166 C 360,170 346,162 342,148 C 338,134 346,114 360,108 Z",
+
+  // ─ MIDDLE FRONTAL GYRUS ─
+  {
+    id: "mid-front",
+    lobe: "core",
+    body: "M 84,150 C 88,132 106,122 128,122 C 152,122 170,136 170,156 C 170,174 154,186 130,186 C 104,186 82,168 84,154 Z",
+    crown: "M 100,132 C 116,122 140,124 154,136 C 162,144 158,158 146,164 C 128,170 106,164 96,150 C 90,140 92,132 100,132 Z",
+  },
+
+  // ─ INFERIOR PARIETAL (center mass, between frontal and big dome) ─
+  {
+    id: "inf-par",
+    lobe: "drive",
+    body: "M 168,104 C 176,84 198,72 222,76 C 246,80 260,98 256,120 C 252,140 234,152 212,150 C 188,148 166,130 168,108 Z",
+    crown: "M 188,82 C 206,72 228,76 240,90 C 248,100 244,116 230,122 C 214,128 194,120 184,104 C 178,92 180,82 188,82 Z",
+  },
+
+  // ─ OCCIPITAL / BACK UPPER ─
+  {
+    id: "occ-up",
+    lobe: "voice",
+    body: "M 280,88 C 294,68 318,58 342,62 C 366,66 382,84 378,108 C 374,130 354,142 330,138 C 304,132 278,110 280,92 Z",
+    crown: "M 302,70 C 320,60 344,64 358,80 C 364,90 360,106 344,112 C 326,118 304,108 294,90 C 288,78 292,70 302,70 Z",
+  },
+
+  // ─ OCCIPITAL BACK-LOWER ─
+  {
+    id: "occ-low",
+    lobe: "voice",
+    body: "M 298,142 C 308,122 330,112 354,116 C 378,120 394,140 388,164 C 382,186 360,196 336,190 C 310,182 292,162 298,146 Z",
+    crown: "M 322,120 C 342,112 364,118 374,134 C 380,146 372,162 356,168 C 336,174 312,164 304,148 C 298,134 304,122 322,120 Z",
+  },
+
+  // ─ SUPERIOR TEMPORAL GYRUS ─
+  {
+    id: "sup-temp",
+    lobe: "curiosity",
+    body: "M 84,196 C 92,176 116,166 144,168 C 172,170 192,188 190,210 C 188,230 168,242 144,240 C 118,238 82,214 84,200 Z",
+    crown: "M 106,176 C 126,166 154,170 168,184 C 176,194 172,210 158,216 C 138,222 112,216 100,200 C 92,188 96,176 106,176 Z",
+  },
+
+  // ─ MIDDLE TEMPORAL GYRUS ─
+  {
+    id: "mid-temp",
+    lobe: "curiosity",
+    body: "M 168,210 C 178,192 204,182 232,186 C 260,190 278,208 274,230 C 270,250 248,260 222,256 C 194,252 166,232 168,214 Z",
+    crown: "M 192,192 C 212,182 240,186 256,202 C 264,212 260,228 246,234 C 226,242 200,234 188,216 C 180,204 184,192 192,192 Z",
+  },
+
+  // ─ INFERIOR TEMPORAL / BACK-LOWER ─
+  {
+    id: "inf-temp",
+    lobe: "curiosity",
+    body: "M 250,222 C 262,202 290,192 316,198 C 342,204 356,224 350,248 C 344,270 320,280 294,274 C 266,266 248,244 250,226 Z",
+    crown: "M 276,202 C 298,192 324,198 338,216 C 346,228 340,246 324,252 C 304,260 278,252 266,232 C 258,218 262,202 276,202 Z",
   },
 ];
 
-// ── Sulci (deep dark grooves between gyri) ─────────────────────────────────
-
-const SULCI_PATHS = [
-  // Sylvian / lateral fissure — major horizontal groove
-  "M 60,200 C 90,194 130,190 172,190 C 214,190 256,194 294,202 C 318,208 338,218 352,230",
-  // Central sulcus — divides frontal from parietal
-  "M 184,100 C 184,126 182,154 180,178 C 178,196 174,208 170,218",
+// ── Deep sulci — thick dark grooves between the gyri ──────────────────────
+const SULCI = [
+  // Sylvian fissure (the dominant horizontal groove)
+  "M 60,188 C 88,182 124,178 162,178 C 200,178 238,184 270,196 C 294,206 312,220 324,236",
+  // Central sulcus
+  "M 170,90 C 168,116 164,146 158,172 C 152,192 144,208 136,220",
   // Superior frontal sulcus
-  "M 80,122 C 86,140 90,160 88,180 C 86,196 82,210 78,220",
+  "M 106,104 C 104,126 100,150 96,172 C 92,190 88,206 84,218",
   // Intraparietal sulcus
-  "M 284,108 C 284,130 282,154 278,174 C 274,190 268,204 262,214",
+  "M 252,80 C 250,108 246,138 240,162 C 234,182 224,198 212,210",
   // Parieto-occipital sulcus
-  "M 330,96 C 330,118 328,142 322,162 C 316,180 308,196 298,208",
+  "M 318,80 C 316,106 310,134 302,158 C 294,178 282,194 268,206",
   // Temporal sulci
-  "M 120,248 C 160,242 204,238 248,238 C 292,238 330,242 356,250",
-  "M 130,264 C 166,258 208,254 250,254 C 290,254 326,258 348,266",
-  // Frontal operculum (the deep fold in front)
-  "M 134,130 C 138,148 140,168 138,188 C 136,202 132,214 128,224",
+  "M 90,228 C 120,222 156,218 196,218 C 236,218 272,222 302,230",
+  "M 96,244 C 124,238 160,234 198,234 C 236,234 270,238 298,246",
 ];
 
-// ── Lobe interactive regions ───────────────────────────────────────────────
-// Simple rectangles clipped to brain shape for pointer events.
-// Core=front, Drive=top-center, Curiosity=bottom, Voice=back
-
+// ── Interactive lobe regions ───────────────────────────────────────────────
 const LOBE_RECTS = {
-  core:      { x: 40,  y: 40,  w: 160, h: 200 },  // x<200
-  drive:     { x: 200, y: 40,  w: 120, h: 165 },  // 200≤x<320, y<205
-  curiosity: { x: 40,  y: 200, w: 280, h: 100 },  // y≥200, x<320
-  voice:     { x: 310, y: 40,  w: 100, h: 250 },  // x≥310
+  core:      { x: 42,  y: 58,  w: 132, h: 160 },  // front (left)
+  drive:     { x: 174, y: 50,  w: 118, h: 140 },  // top-center
+  curiosity: { x: 42,  y: 176, w: 250, h: 100 },  // bottom
+  voice:     { x: 292, y: 58,  w:  96, h: 200 },  // back (right)
 };
 
 const LOBE_LABEL_POS = {
-  core:      { x: 112, y: 205 },
-  drive:     { x: 250, y: 175 },
-  curiosity: { x: 210, y: 270 },
-  voice:     { x: 358, y: 175 },
+  core:      { x: 106, y: 210 },
+  drive:     { x: 232, y: 170 },
+  curiosity: { x: 200, y: 280 },
+  voice:     { x: 340, y: 200 },
 };
-
-// ── Cerebellum ─────────────────────────────────────────────────────────────
-
-const CEREBELLUM_OUTER =
-  "M 320,258 C 336,250 358,244 378,244 " +
-  "C 400,244 418,254 422,270 " +
-  "C 426,286 416,304 398,314 " +
-  "C 378,324 352,326 332,316 " +
-  "C 310,304 306,282 320,258 Z";
-
-const CEREBELLUM_RIDGES = [
-  "M 322,270 C 344,262 370,260 392,266 C 408,270 416,278 412,284",
-  "M 320,282 C 342,274 368,272 390,278 C 406,282 414,290 410,296",
-  "M 322,294 C 342,288 366,286 386,292 C 400,296 408,304 402,310",
-  "M 328,306 C 346,300 366,300 382,306 C 394,310 400,318 394,322",
-];
-
-// ── Brain stem ─────────────────────────────────────────────────────────────
-
-const STEM_PATH =
-  "M 188,272 C 184,292 182,314 188,332 " +
-  "C 194,350 208,358 222,354 " +
-  "C 236,350 240,336 236,316 " +
-  "C 232,298 224,278 218,272 Z";
 
 // ─── Brain SVG component ──────────────────────────────────────────────────────
 
 function BrainSVG({ selected, hovered, onLobeClick, onLobeHover, mini = false, prefix = "b" }) {
-  const W = mini ? 150 : 560;
-  const H = mini ? 98  : 370;
-  const clipId = `${prefix}-brain-clip`;
+  const W = mini ? 148 : 520;
+  const H = mini ? 122 : 430;
+  const clipId = `${prefix}-bc`;
 
   return (
-    <svg viewBox="0 0 560 370" width={W} height={H} style={{ display: "block", overflow: "visible" }}>
+    <svg viewBox="0 0 520 430" width={W} height={H} style={{ display: "block", overflow: "visible" }}>
       <defs>
         <clipPath id={clipId}>
           <path d={BRAIN_OUTER} />
         </clipPath>
       </defs>
 
-      {/* ── Brain stem (drawn first, behind brain) ── */}
-      <path d={STEM_PATH} fill={C_STEM} stroke={C_OUTLINE} strokeWidth="3.5" strokeLinejoin="round" />
+      {/* ── Brain stem (behind everything) ── */}
+      <path d={STEM_PATH} fill={C_DEEP} stroke={C_OUT} strokeWidth="3.5" strokeLinejoin="round" />
 
-      {/* ── Cerebellum (drawn behind brain) ── */}
-      <path d={CEREBELLUM_OUTER}
-        fill={C_CBL}
-        stroke={C_OUTLINE} strokeWidth="3.5" strokeLinejoin="round"
-        opacity={selected && selected !== "voice" ? 0.4 : 1}
+      {/* ── Cerebellum (behind main brain) ── */}
+      <path d={CBL_OUTER}
+        fill={C_CBL} stroke={C_OUT} strokeWidth="3.5" strokeLinejoin="round"
+        opacity={selected && selected !== "voice" ? 0.35 : 1}
         style={{ transition: "opacity 0.25s" }}
       />
-      {CEREBELLUM_RIDGES.map((d, i) => (
-        <path key={i} d={d} fill="none"
-          stroke={C_CBL_RDG} strokeWidth="3" strokeLinecap="round"
-          opacity={selected && selected !== "voice" ? 0.4 : 1}
-          style={{ transition: "opacity 0.25s" }}
+      {CBL_RIDGES.map((d, i) => (
+        <path key={`cr${i}`} d={d} fill="none"
+          stroke={C_CBLD} strokeWidth="3.5" strokeLinecap="round"
+          opacity={selected && selected !== "voice" ? 0.35 : 1}
+          style={{ transition: "opacity 0.25s", pointerEvents: "none" }}
         />
       ))}
+      {/* cerebellum outline again on top of ridges */}
+      <path d={CBL_OUTER} fill="none" stroke={C_OUT} strokeWidth="3.5"
+        opacity={selected && selected !== "voice" ? 0.35 : 1}
+        style={{ transition: "opacity 0.25s", pointerEvents: "none" }}
+      />
 
-      {/* ── Base brain fill (dark background under gyri) ── */}
+      {/* ── Dark base fill (shows between gyri as sulci) ── */}
       <path d={BRAIN_OUTER} fill={C_DEEP} />
 
       {/* ── Individual gyri blobs ── */}
-      {GYRI_SHAPES.map(({ id, path, hilite }) => {
-        // Determine which lobe this gyrus belongs to for dimming
-        const lobeId = (() => {
-          if (["g-inf-front","g-mid-front","g-sup-front"].includes(id)) return "core";
-          if (["g-inf-par","g-sup-par"].includes(id)) return "drive";
-          if (["g-inf-temp","g-sup-temp"].includes(id)) return "curiosity";
-          return "voice";
-        })();
-        const isDimmed = !!selected && selected !== lobeId;
-        const isActive = hovered === lobeId || selected === lobeId;
-
+      {GYRI.map(({ id, lobe, body, crown }) => {
+        const isDimmed = !!selected && selected !== lobe;
+        const isLit    = hovered === lobe || selected === lobe;
         return (
-          <g key={id} style={{ transition: "opacity 0.25s", opacity: isDimmed ? 0.28 : 1 }}>
+          <g key={id} style={{ transition: "opacity 0.22s", opacity: isDimmed ? 0.25 : 1 }}>
             {/* Gyrus body */}
-            <path d={path}
-              fill={isActive ? C_LIGHT : C_BASE}
-              stroke={C_OUTLINE} strokeWidth="3" strokeLinejoin="round"
-              style={{ transition: "fill 0.2s" }}
+            <path d={body}
+              fill={isLit ? C_HI : C_BASE}
+              stroke={C_OUT} strokeWidth="3" strokeLinejoin="round"
+              style={{ transition: "fill 0.18s" }}
             />
-            {/* Crown highlight */}
-            <path d={hilite}
-              fill={isActive ? C_LIGHTER : C_LIGHT}
-              style={{ pointerEvents: "none", transition: "fill 0.2s" }}
+            {/* Crown specular */}
+            <path d={crown}
+              fill={isLit ? C_TOP : C_HI}
+              style={{ pointerEvents: "none", transition: "fill 0.18s" }}
             />
           </g>
         );
       })}
 
-      {/* ── Sulci strokes (dark carved grooves) ── */}
+      {/* ── Sulci strokes on top (dark deep grooves) ── */}
       <g clipPath={`url(#${clipId})`} style={{ pointerEvents: "none" }}>
-        {SULCI_PATHS.map((d, i) => (
-          <path key={i} d={d} fill="none"
-            stroke={C_OUTLINE} strokeWidth="4.5" strokeLinecap="round"
+        {SULCI.map((d, i) => (
+          <path key={`s${i}`} d={d} fill="none"
+            stroke={C_OUT} strokeWidth="5" strokeLinecap="round"
           />
         ))}
       </g>
 
-      {/* ── Brain outer outline ── */}
-      <path d={BRAIN_OUTER} fill="none" stroke={C_OUTLINE} strokeWidth="4.5" strokeLinejoin="round"
+      {/* ── Outer brain outline (drawn last so it's always crisp) ── */}
+      <path d={BRAIN_OUTER} fill="none" stroke={C_OUT} strokeWidth="5" strokeLinejoin="round"
         style={{ pointerEvents: "none" }} />
 
-      {/* ── Interactive lobe overlay (transparent, pointer events only) ── */}
+      {/* ── Transparent interactive regions (pointer events) ── */}
       <g clipPath={`url(#${clipId})`}>
         {Object.entries(LOBE_RECTS).map(([id, r]) => (
-          <rect
-            key={id}
-            x={r.x} y={r.y} width={r.w} height={r.h}
+          <rect key={id} x={r.x} y={r.y} width={r.w} height={r.h}
             fill="transparent"
             style={{ cursor: "pointer", pointerEvents: "visiblePainted" }}
             onClick={() => onLobeClick(id)}
@@ -290,21 +288,21 @@ function BrainSVG({ selected, hovered, onLobeClick, onLobeHover, mini = false, p
         ))}
       </g>
 
-      {/* ── Lobe labels (full mode only) ── */}
+      {/* ── Lobe labels (full size only) ── */}
       {!mini && Object.entries(LOBE_LABEL_POS).map(([id, pos]) => {
         const isDimmed = !!selected && selected !== id;
         const lobe = LOBES[id];
         return (
-          <g key={id} style={{ pointerEvents: "none", userSelect: "none", transition: "opacity 0.25s", opacity: isDimmed ? 0.15 : 1 }}>
+          <g key={id} style={{ pointerEvents: "none", userSelect: "none", transition: "opacity 0.22s", opacity: isDimmed ? 0.12 : 1 }}>
             <text x={pos.x} y={pos.y} textAnchor="middle"
-              fill="rgba(255,255,255,0.97)" fontSize="14" fontWeight="700"
+              fill="#fff" fontSize="13" fontWeight="700"
               fontFamily={FONT_HEAD} letterSpacing="-0.2"
-              style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.7))" }}>
+              style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.8))" }}>
               {lobe.label}
             </text>
-            <text x={pos.x} y={pos.y + 16} textAnchor="middle"
-              fill="rgba(255,255,255,0.6)" fontSize="9.5" fontFamily={FONT_BODY} fontWeight="500"
-              style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.6))" }}>
+            <text x={pos.x} y={pos.y + 15} textAnchor="middle"
+              fill="rgba(255,255,255,0.65)" fontSize="9" fontFamily={FONT_BODY} fontWeight="500"
+              style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.7))" }}>
               {lobe.subtitle}
             </text>
           </g>
@@ -654,8 +652,8 @@ export default function MindPage({ navigate }) {
   const ml = isMobile ? 0 : SIDEBAR_WIDTH;
   const pb = isMobile ? 80 : 0;
 
-  const brainW = isMobile ? 340 : Math.min(520, (window?.innerWidth || 900) - SIDEBAR_WIDTH - 80);
-  const brainH = Math.round(brainW * (370 / 560));
+  const brainW = isMobile ? 340 : Math.min(500, (window?.innerWidth || 900) - SIDEBAR_WIDTH - 80);
+  const brainH = Math.round(brainW * (430 / 520));
 
   return (
     <div style={{ marginLeft: ml, minHeight: "100vh", background: PAGE_BG, paddingBottom: pb }}>
