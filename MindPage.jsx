@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import brainImg from "./components/brain_image.png";
 import { supabase } from "./lib/supabase.js";
 import { buildPromptSections, SECTION_LABELS } from "./lib/mentora.js";
 import { getCache, setCache, getKnownUserId, setKnownUserId } from "./lib/cache.js";
@@ -29,286 +30,99 @@ const LOBES = {
   voice:     { label: "Voice",     subtitle: "How Mentora speaks to you", color: "#60a5fa", sections: ["agent_instructions"] },
 };
 
-// ─── Cartoon brain SVG (viewBox 0 0 520 430) ────────────────────────────────
-// Traced from the classic cartoon side-view brain illustration.
-// Front LEFT · Back RIGHT · Mentorable blue palette · thick dark outlines.
+// ─── Brain image quadrant config ─────────────────────────────────────────────
+// brain_image.png is already split into 4 color zones (top-left view):
+//   Core (TL, dark blue) · Drive (TR, light blue) ·
+//   Curiosity (BL, medium blue) · Voice (BR, periwinkle)
 
-const C_OUT  = "#0d1b4b";  // thick outlines (replaces the black in the image)
-const C_BASE = "#2563eb";  // gyri body
-const C_HI   = "#60a5fa";  // gyri mid-highlight
-const C_TOP  = "#bfdbfe";  // gyri crown (brightest)
-const C_DEEP = "#1e3a8a";  // dark fill between gyri / base
-const C_CBL  = "#1e40af";  // cerebellum body
-const C_CBLD = "#1a3380";  // cerebellum ridge shadow
+// ─── Brain image component ────────────────────────────────────────────────────
+// Uses brain_image.png exactly as-is. Overlays 4 transparent quadrant regions
+// for interaction. Dims non-selected quadrants with a page-colored veil.
+//
+// Quadrant → lobe mapping (matches the 4 colors already in the image):
+//   TL (dark blue)    → Core      TR (light cyan) → Drive
+//   BL (medium blue)  → Curiosity BR (periwinkle)  → Voice
 
-// ── Outer brain silhouette ─────────────────────────────────────────────────
-// The bumpy outer boundary of the cerebrum.
-const BRAIN_OUTER =
-  "M 155,66 " +
-  "C 134,56 108,52 88,62 " +
-  "C 68,72 52,94 48,122 " +
-  "C 44,150 52,180 68,204 " +
-  "C 80,222 96,236 112,246 " +
-  "C 124,254 136,258 148,260 " +
-  "C 168,264 194,265 222,263 " +
-  "C 248,262 272,258 292,250 " +
-  "C 314,240 330,226 338,208 " +
-  "C 348,186 346,160 334,138 " +
-  "C 322,116 302,100 284,92 " +
-  "C 270,86 256,84 242,88 " +
-  "C 230,82 216,72 200,66 " +
-  "C 182,60 168,62 155,66 Z";
+function BrainSVG({ selected, hovered, onLobeClick, onLobeHover, mini = false }) {
+  const size = mini ? 130 : 420;
 
-// This outer shape is the base cerebrum. Gyri push *outward* from inside it,
-// and the cerebellum is a separate shape below-right.
-
-// ── Cerebellum & stem ─────────────────────────────────────────────────────
-const CBL_OUTER =
-  "M 278,242 C 298,238 324,236 346,240 " +
-  "C 368,244 384,256 386,272 " +
-  "C 388,288 376,302 356,308 " +
-  "C 334,314 308,312 290,300 " +
-  "C 272,288 268,266 278,248 Z";
-
-const CBL_RIDGES = [
-  "M 282,254 C 304,248 330,246 352,252 C 368,256 376,264 372,272",
-  "M 280,266 C 302,260 328,258 350,264 C 366,268 374,276 370,284",
-  "M 280,278 C 302,272 326,270 346,276 C 362,280 370,290 364,298",
-  "M 284,290 C 304,286 326,284 344,290 C 358,296 364,306 356,312",
-];
-
-const STEM_PATH =
-  "M 174,256 C 170,274 168,294 174,310 " +
-  "C 180,326 194,332 206,328 " +
-  "C 218,324 222,310 218,294 " +
-  "C 214,278 206,262 200,256 Z";
-
-// ── Gyri — each one is an individually outlined raised blob ───────────────
-// The image style: lighter fill blobs sitting on a dark base, thick outlines.
-// `lobe` maps to LOBES keys for dim/highlight on interaction.
-
-const GYRI = [
-  // ─ BIG PARIETAL DOME (top-right, the most prominent feature) ─
-  {
-    id: "sup-par",
-    lobe: "drive",
-    body: "M 220,84 C 238,64 268,52 302,52 C 336,52 364,70 374,98 C 384,126 372,156 348,168 C 322,180 290,178 266,162 C 240,144 222,114 220,90 Z",
-    crown: "M 250,66 C 270,52 298,50 322,60 C 342,68 352,86 346,104 C 338,118 318,124 296,116 C 270,106 250,88 248,70 Z",
-  },
-
-  // ─ UPPER-LEFT FRONTAL GYRUS ─
-  {
-    id: "sup-front",
-    lobe: "core",
-    body: "M 84,100 C 88,80 106,68 128,68 C 152,68 170,84 170,106 C 170,126 154,140 132,140 C 108,140 84,122 84,104 Z",
-    crown: "M 102,80 C 116,70 138,70 152,82 C 160,90 158,104 146,110 C 130,116 110,110 100,96 C 94,88 96,80 102,80 Z",
-  },
-
-  // ─ INFERIOR FRONTAL / SCROLL GYRUS (front-left, the distinctive C-scroll) ─
-  {
-    id: "inf-front",
-    lobe: "core",
-    body: "M 50,168 C 44,146 48,122 64,108 C 78,96 96,94 112,102 C 128,110 134,128 128,148 C 122,166 106,176 88,174 C 70,170 52,170 50,168 Z",
-    crown: "M 66,110 C 80,98 100,96 114,108 C 122,116 120,130 110,138 C 96,146 76,142 66,128 C 60,118 62,110 66,110 Z",
-  },
-
-  // ─ MIDDLE FRONTAL GYRUS ─
-  {
-    id: "mid-front",
-    lobe: "core",
-    body: "M 84,150 C 88,132 106,122 128,122 C 152,122 170,136 170,156 C 170,174 154,186 130,186 C 104,186 82,168 84,154 Z",
-    crown: "M 100,132 C 116,122 140,124 154,136 C 162,144 158,158 146,164 C 128,170 106,164 96,150 C 90,140 92,132 100,132 Z",
-  },
-
-  // ─ INFERIOR PARIETAL (center mass, between frontal and big dome) ─
-  {
-    id: "inf-par",
-    lobe: "drive",
-    body: "M 168,104 C 176,84 198,72 222,76 C 246,80 260,98 256,120 C 252,140 234,152 212,150 C 188,148 166,130 168,108 Z",
-    crown: "M 188,82 C 206,72 228,76 240,90 C 248,100 244,116 230,122 C 214,128 194,120 184,104 C 178,92 180,82 188,82 Z",
-  },
-
-  // ─ OCCIPITAL / BACK UPPER ─
-  {
-    id: "occ-up",
-    lobe: "voice",
-    body: "M 280,88 C 294,68 318,58 342,62 C 366,66 382,84 378,108 C 374,130 354,142 330,138 C 304,132 278,110 280,92 Z",
-    crown: "M 302,70 C 320,60 344,64 358,80 C 364,90 360,106 344,112 C 326,118 304,108 294,90 C 288,78 292,70 302,70 Z",
-  },
-
-  // ─ OCCIPITAL BACK-LOWER ─
-  {
-    id: "occ-low",
-    lobe: "voice",
-    body: "M 298,142 C 308,122 330,112 354,116 C 378,120 394,140 388,164 C 382,186 360,196 336,190 C 310,182 292,162 298,146 Z",
-    crown: "M 322,120 C 342,112 364,118 374,134 C 380,146 372,162 356,168 C 336,174 312,164 304,148 C 298,134 304,122 322,120 Z",
-  },
-
-  // ─ SUPERIOR TEMPORAL GYRUS ─
-  {
-    id: "sup-temp",
-    lobe: "curiosity",
-    body: "M 84,196 C 92,176 116,166 144,168 C 172,170 192,188 190,210 C 188,230 168,242 144,240 C 118,238 82,214 84,200 Z",
-    crown: "M 106,176 C 126,166 154,170 168,184 C 176,194 172,210 158,216 C 138,222 112,216 100,200 C 92,188 96,176 106,176 Z",
-  },
-
-  // ─ MIDDLE TEMPORAL GYRUS ─
-  {
-    id: "mid-temp",
-    lobe: "curiosity",
-    body: "M 168,210 C 178,192 204,182 232,186 C 260,190 278,208 274,230 C 270,250 248,260 222,256 C 194,252 166,232 168,214 Z",
-    crown: "M 192,192 C 212,182 240,186 256,202 C 264,212 260,228 246,234 C 226,242 200,234 188,216 C 180,204 184,192 192,192 Z",
-  },
-
-  // ─ INFERIOR TEMPORAL / BACK-LOWER ─
-  {
-    id: "inf-temp",
-    lobe: "curiosity",
-    body: "M 250,222 C 262,202 290,192 316,198 C 342,204 356,224 350,248 C 344,270 320,280 294,274 C 266,266 248,244 250,226 Z",
-    crown: "M 276,202 C 298,192 324,198 338,216 C 346,228 340,246 324,252 C 304,260 278,252 266,232 C 258,218 262,202 276,202 Z",
-  },
-];
-
-// ── Deep sulci — thick dark grooves between the gyri ──────────────────────
-const SULCI = [
-  // Sylvian fissure (the dominant horizontal groove)
-  "M 60,188 C 88,182 124,178 162,178 C 200,178 238,184 270,196 C 294,206 312,220 324,236",
-  // Central sulcus
-  "M 170,90 C 168,116 164,146 158,172 C 152,192 144,208 136,220",
-  // Superior frontal sulcus
-  "M 106,104 C 104,126 100,150 96,172 C 92,190 88,206 84,218",
-  // Intraparietal sulcus
-  "M 252,80 C 250,108 246,138 240,162 C 234,182 224,198 212,210",
-  // Parieto-occipital sulcus
-  "M 318,80 C 316,106 310,134 302,158 C 294,178 282,194 268,206",
-  // Temporal sulci
-  "M 90,228 C 120,222 156,218 196,218 C 236,218 272,222 302,230",
-  "M 96,244 C 124,238 160,234 198,234 C 236,234 270,238 298,246",
-];
-
-// ── Interactive lobe regions ───────────────────────────────────────────────
-const LOBE_RECTS = {
-  core:      { x: 42,  y: 58,  w: 132, h: 160 },  // front (left)
-  drive:     { x: 174, y: 50,  w: 118, h: 140 },  // top-center
-  curiosity: { x: 42,  y: 176, w: 250, h: 100 },  // bottom
-  voice:     { x: 292, y: 58,  w:  96, h: 200 },  // back (right)
-};
-
-const LOBE_LABEL_POS = {
-  core:      { x: 106, y: 210 },
-  drive:     { x: 232, y: 170 },
-  curiosity: { x: 200, y: 280 },
-  voice:     { x: 340, y: 200 },
-};
-
-// ─── Brain SVG component ──────────────────────────────────────────────────────
-
-function BrainSVG({ selected, hovered, onLobeClick, onLobeHover, mini = false, prefix = "b" }) {
-  const W = mini ? 148 : 520;
-  const H = mini ? 122 : 430;
-  const clipId = `${prefix}-bc`;
+  // Which quadrant each lobe occupies
+  const isRight = (id) => id === "drive" || id === "voice";
+  const isBot   = (id) => id === "curiosity" || id === "voice";
 
   return (
-    <svg viewBox="0 0 520 430" width={W} height={H} style={{ display: "block", overflow: "visible" }}>
-      <defs>
-        <clipPath id={clipId}>
-          <path d={BRAIN_OUTER} />
-        </clipPath>
-      </defs>
-
-      {/* ── Brain stem (behind everything) ── */}
-      <path d={STEM_PATH} fill={C_DEEP} stroke={C_OUT} strokeWidth="3.5" strokeLinejoin="round" />
-
-      {/* ── Cerebellum (behind main brain) ── */}
-      <path d={CBL_OUTER}
-        fill={C_CBL} stroke={C_OUT} strokeWidth="3.5" strokeLinejoin="round"
-        opacity={selected && selected !== "voice" ? 0.35 : 1}
-        style={{ transition: "opacity 0.25s" }}
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      {/* The actual image — untouched */}
+      <img
+        src={brainImg}
+        alt="Brain"
+        draggable={false}
+        style={{ width: "100%", height: "100%", objectFit: "contain", display: "block",
+                 userSelect: "none", pointerEvents: "none" }}
       />
-      {CBL_RIDGES.map((d, i) => (
-        <path key={`cr${i}`} d={d} fill="none"
-          stroke={C_CBLD} strokeWidth="3.5" strokeLinecap="round"
-          opacity={selected && selected !== "voice" ? 0.35 : 1}
-          style={{ transition: "opacity 0.25s", pointerEvents: "none" }}
+
+      {/* Dim overlay on each non-selected quadrant */}
+      {Object.keys(LOBES).map((id) => {
+        const isDimmed = !!selected && selected !== id;
+        if (!isDimmed) return null;
+        return (
+          <div key={`dim-${id}`} style={{
+            position: "absolute",
+            top:    isBot(id)   ? "50%" : "0",
+            left:   isRight(id) ? "50%" : "0",
+            width:  "50%", height: "50%",
+            background: `${PAGE_BG}cc`,  // page off-white at ~80% opacity
+            pointerEvents: "none",
+            transition: "background 0.22s",
+          }} />
+        );
+      })}
+
+      {/* Clickable quadrant regions */}
+      {Object.keys(LOBES).map((id) => (
+        <div key={id} style={{
+          position: "absolute",
+          top:    isBot(id)   ? "50%" : "0",
+          left:   isRight(id) ? "50%" : "0",
+          width:  "50%", height: "50%",
+          cursor: "pointer",
+        }}
+          onClick={() => onLobeClick(id)}
+          onMouseEnter={() => onLobeHover(id)}
+          onMouseLeave={() => onLobeHover(null)}
         />
       ))}
-      {/* cerebellum outline again on top of ridges */}
-      <path d={CBL_OUTER} fill="none" stroke={C_OUT} strokeWidth="3.5"
-        opacity={selected && selected !== "voice" ? 0.35 : 1}
-        style={{ transition: "opacity 0.25s", pointerEvents: "none" }}
-      />
 
-      {/* ── Dark base fill (shows between gyri as sulci) ── */}
-      <path d={BRAIN_OUTER} fill={C_DEEP} />
-
-      {/* ── Individual gyri blobs ── */}
-      {GYRI.map(({ id, lobe, body, crown }) => {
-        const isDimmed = !!selected && selected !== lobe;
-        const isLit    = hovered === lobe || selected === lobe;
-        return (
-          <g key={id} style={{ transition: "opacity 0.22s", opacity: isDimmed ? 0.25 : 1 }}>
-            {/* Gyrus body */}
-            <path d={body}
-              fill={isLit ? C_HI : C_BASE}
-              stroke={C_OUT} strokeWidth="3" strokeLinejoin="round"
-              style={{ transition: "fill 0.18s" }}
-            />
-            {/* Crown specular */}
-            <path d={crown}
-              fill={isLit ? C_TOP : C_HI}
-              style={{ pointerEvents: "none", transition: "fill 0.18s" }}
-            />
-          </g>
-        );
-      })}
-
-      {/* ── Sulci strokes on top (dark deep grooves) ── */}
-      <g clipPath={`url(#${clipId})`} style={{ pointerEvents: "none" }}>
-        {SULCI.map((d, i) => (
-          <path key={`s${i}`} d={d} fill="none"
-            stroke={C_OUT} strokeWidth="5" strokeLinecap="round"
-          />
-        ))}
-      </g>
-
-      {/* ── Outer brain outline (drawn last so it's always crisp) ── */}
-      <path d={BRAIN_OUTER} fill="none" stroke={C_OUT} strokeWidth="5" strokeLinejoin="round"
-        style={{ pointerEvents: "none" }} />
-
-      {/* ── Transparent interactive regions (pointer events) ── */}
-      <g clipPath={`url(#${clipId})`}>
-        {Object.entries(LOBE_RECTS).map(([id, r]) => (
-          <rect key={id} x={r.x} y={r.y} width={r.w} height={r.h}
-            fill="transparent"
-            style={{ cursor: "pointer", pointerEvents: "visiblePainted" }}
-            onClick={() => onLobeClick(id)}
-            onMouseEnter={() => onLobeHover(id)}
-            onMouseLeave={() => onLobeHover(null)}
-          />
-        ))}
-      </g>
-
-      {/* ── Lobe labels (full size only) ── */}
-      {!mini && Object.entries(LOBE_LABEL_POS).map(([id, pos]) => {
+      {/* Lobe labels — full size only */}
+      {!mini && Object.entries(LOBES).map(([id, lobe]) => {
         const isDimmed = !!selected && selected !== id;
-        const lobe = LOBES[id];
         return (
-          <g key={id} style={{ pointerEvents: "none", userSelect: "none", transition: "opacity 0.22s", opacity: isDimmed ? 0.12 : 1 }}>
-            <text x={pos.x} y={pos.y} textAnchor="middle"
-              fill="#fff" fontSize="13" fontWeight="700"
-              fontFamily={FONT_HEAD} letterSpacing="-0.2"
-              style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.8))" }}>
+          <div key={`lbl-${id}`} style={{
+            position: "absolute",
+            top:       isBot(id)   ? "72%" : "28%",
+            left:      isRight(id) ? "75%" : "25%",
+            transform: "translate(-50%, -50%)",
+            textAlign: "center",
+            pointerEvents: "none",
+            opacity: isDimmed ? 0.12 : 1,
+            transition: "opacity 0.22s",
+          }}>
+            <div style={{
+              fontFamily: FONT_HEAD, fontWeight: 700, fontSize: 14, color: "#fff", lineHeight: 1.1,
+              textShadow: "0 1px 5px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.4)",
+            }}>
               {lobe.label}
-            </text>
-            <text x={pos.x} y={pos.y + 15} textAnchor="middle"
-              fill="rgba(255,255,255,0.65)" fontSize="9" fontFamily={FONT_BODY} fontWeight="500"
-              style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.7))" }}>
+            </div>
+            <div style={{
+              fontFamily: FONT_BODY, fontSize: 9.5, color: "rgba(255,255,255,0.82)",
+              textShadow: "0 1px 4px rgba(0,0,0,0.8)", marginTop: 3,
+            }}>
               {lobe.subtitle}
-            </text>
-          </g>
+            </div>
+          </div>
         );
       })}
-    </svg>
+    </div>
   );
 }
 
@@ -652,8 +466,8 @@ export default function MindPage({ navigate }) {
   const ml = isMobile ? 0 : SIDEBAR_WIDTH;
   const pb = isMobile ? 80 : 0;
 
-  const brainW = isMobile ? 340 : Math.min(500, (window?.innerWidth || 900) - SIDEBAR_WIDTH - 80);
-  const brainH = Math.round(brainW * (430 / 520));
+  const brainW = isMobile ? 320 : Math.min(420, (window?.innerWidth || 900) - SIDEBAR_WIDTH - 80);
+  const brainH = brainW; // image is square
 
   return (
     <div style={{ marginLeft: ml, minHeight: "100vh", background: PAGE_BG, paddingBottom: pb }}>
@@ -705,7 +519,7 @@ export default function MindPage({ navigate }) {
                   selected={null} hovered={hovered}
                   onLobeClick={id => setSelected(id)}
                   onLobeHover={setHovered}
-                  mini={false} prefix="main"
+                  mini={false}
                 />
               </div>
             )}
@@ -744,7 +558,7 @@ export default function MindPage({ navigate }) {
                   selected={selected} hovered={hovered}
                   onLobeClick={id => setSelected(id)}
                   onLobeHover={setHovered}
-                  mini={true} prefix="mini"
+                  mini={true}
                 />
               </div>
 
