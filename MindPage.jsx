@@ -65,7 +65,7 @@ function classifyBrainPixel(r, g, b) {
 // so the work happens once per page load, not on every mount/unmount cycle.
 // CLASSIFIER_VER must be bumped whenever classifyBrainPixel changes, so that
 // Vite HMR during development doesn't serve stale pre-rendered URLs.
-const CLASSIFIER_VER = "4";
+const CLASSIFIER_VER = "5";
 let _brainUrlCache = null;
 let _brainUrlCacheVer = null;
 let _brainLoadCallbacks = [];
@@ -101,36 +101,73 @@ function getOrBuildBrainUrls(callback) {
       map[i] = lobe ? LOBE_IDX[lobe] : 0;
     }
 
-    // Render one image version per state (null = default, "x" = lobe x active)
-    const BG = [250, 249, 245]; // PAGE_BG as RGB
+    // Pre-compute a dilated edge mask for each lobe so we can draw an
+    // organic outline border around whichever lobe is active.
+    const buildEdgeMask = (lobeId) => {
+      const aIdx = LOBE_IDX[lobeId];
+      const raw  = new Uint8Array(W * H);
+      // Mark pixels that are this lobe AND border a different lobe or bg
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          if (map[y * W + x] !== aIdx) continue;
+          for (const [dx, dy] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || nx >= W || ny < 0 || ny >= H || map[ny * W + nx] !== aIdx) {
+              raw[y * W + x] = 1; break;
+            }
+          }
+        }
+      }
+      // Dilate 2 px so the outline is ~5 px wide and visible
+      const dilated = new Uint8Array(W * H);
+      const DR = 2;
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          if (!raw[y * W + x]) continue;
+          for (let dy = -DR; dy <= DR; dy++) {
+            for (let dx = -DR; dx <= DR; dx++) {
+              const nx = x + dx, ny = y + dy;
+              if (nx >= 0 && nx < W && ny >= 0 && ny < H) dilated[ny * W + nx] = 1;
+            }
+          }
+        }
+      }
+      return dilated;
+    };
+
+    // Render one image version per state:
+    //   default → original image, transparent bg
+    //   "lobe"  → same original image + bright white border on that lobe's edges
+    //             (NO dimming of other lobes — they stay at full original brightness)
     const render = (active) => {
       const c = document.createElement("canvas");
       c.width = W; c.height = H;
       const ctx = c.getContext("2d");
       const out = ctx.createImageData(W, H);
+      const edgeMask = active ? buildEdgeMask(active) : null;
+
       for (let i = 0; i < W * H; i++) {
         const idx = i * 4;
         const r = data[idx], g = data[idx+1], b = data[idx+2];
         const lobeIdx = map[i];
+
         if (lobeIdx === 0) {
-          // Transparent background
-          out.data[idx+3] = 0;
+          out.data[idx+3] = 0; // transparent background
           continue;
         }
-        const lobeId  = IDX_LOBE[lobeIdx];
-        const isActive = !active || lobeId === active;
-        if (!active || isActive) {
-          // Default and active lobe: show at original brightness — no changes
-          out.data[idx] = r; out.data[idx+1] = g; out.data[idx+2] = b;
+
+        if (active && edgeMask[i] && IDX_LOBE[lobeIdx] === active) {
+          // Outline pixel of the active lobe — draw as bright white stroke
+          out.data[idx]   = Math.min(255, Math.round(r * 0.4 + 255 * 0.6));
+          out.data[idx+1] = Math.min(255, Math.round(g * 0.4 + 255 * 0.6));
+          out.data[idx+2] = Math.min(255, Math.round(b * 0.4 + 255 * 0.6));
         } else {
-          // Inactive lobes: gently fade toward page background (70% original)
-          const f = 0.52;
-          out.data[idx]   = Math.round(r * f + BG[0] * (1 - f));
-          out.data[idx+1] = Math.round(g * f + BG[1] * (1 - f));
-          out.data[idx+2] = Math.round(b * f + BG[2] * (1 - f));
+          // All other brain pixels — original colour, no dimming
+          out.data[idx] = r; out.data[idx+1] = g; out.data[idx+2] = b;
         }
         out.data[idx+3] = 255;
       }
+
       ctx.putImageData(out, 0, 0);
       return c.toDataURL("image/png");
     };
@@ -181,7 +218,7 @@ function BrainSVG({ selected, hovered, onLobeClick, onLobeHover, mini = false, s
       // Pixel is a white wrinkle highlight or dark outline stroke (returns null).
       // Sample a small region around the cursor and return whichever lobe
       // dominates — this keeps wrinkles "inside" their section.
-      const R = 5; // search radius
+      const R = 10; // search radius — covers strokes/highlights up to ~20px wide
       const region = ctx.getImageData(
         Math.max(0, x - R), Math.max(0, y - R),
         Math.min(R*2+1, cache.srcCanvas.width),
