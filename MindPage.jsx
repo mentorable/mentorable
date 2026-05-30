@@ -65,7 +65,7 @@ function classifyBrainPixel(r, g, b) {
 // so the work happens once per page load, not on every mount/unmount cycle.
 // CLASSIFIER_VER must be bumped whenever classifyBrainPixel changes, so that
 // Vite HMR during development doesn't serve stale pre-rendered URLs.
-const CLASSIFIER_VER = "3";
+const CLASSIFIER_VER = "4";
 let _brainUrlCache = null;
 let _brainUrlCacheVer = null;
 let _brainLoadCallbacks = [];
@@ -119,16 +119,12 @@ function getOrBuildBrainUrls(callback) {
         }
         const lobeId  = IDX_LOBE[lobeIdx];
         const isActive = !active || lobeId === active;
-        if (!active) {
+        if (!active || isActive) {
+          // Default and active lobe: show at original brightness — no changes
           out.data[idx] = r; out.data[idx+1] = g; out.data[idx+2] = b;
-        } else if (isActive) {
-          // Brighten active lobe
-          out.data[idx]   = Math.min(255, Math.round(r * 1.25));
-          out.data[idx+1] = Math.min(255, Math.round(g * 1.2));
-          out.data[idx+2] = Math.min(255, Math.round(b * 1.15));
         } else {
-          // Dim inactive lobes toward page background
-          const f = 0.32;
+          // Inactive lobes: gently fade toward page background (70% original)
+          const f = 0.52;
           out.data[idx]   = Math.round(r * f + BG[0] * (1 - f));
           out.data[idx+1] = Math.round(g * f + BG[1] * (1 - f));
           out.data[idx+2] = Math.round(b * f + BG[2] * (1 - f));
@@ -250,22 +246,28 @@ function BrainSVG({ selected, hovered, onLobeClick, onLobeHover, mini = false, s
             position: "absolute", top: pos.top, left: pos.left,
             transform: "translate(-50%, -50%)",
             textAlign: "center", pointerEvents: "none",
-            opacity: isDimmed ? 0.08 : 1,
+            opacity: isDimmed ? 0.12 : 1,
             transition: "opacity 0.2s",
           }}>
             <div style={{
-              fontFamily: FONT_HEAD, fontWeight: 700, fontSize: 13,
-              color: "#fff", lineHeight: 1.1,
-              textShadow: "0 1px 6px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.5)",
+              display: "inline-flex", flexDirection: "column", alignItems: "center",
+              gap: 3, padding: "7px 13px", borderRadius: 10,
+              background: "rgba(10,20,60,0.52)",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
             }}>
-              {lobe.label}
-            </div>
-            <div style={{
-              fontFamily: FONT_BODY, fontSize: 9, marginTop: 3,
-              color: "rgba(255,255,255,0.85)",
-              textShadow: "0 1px 5px rgba(0,0,0,0.9)",
-            }}>
-              {lobe.subtitle}
+              <span style={{
+                fontFamily: FONT_HEAD, fontWeight: 800, fontSize: 15,
+                color: "#fff", lineHeight: 1, letterSpacing: "-0.02em",
+              }}>
+                {lobe.label}
+              </span>
+              <span style={{
+                fontFamily: FONT_BODY, fontSize: 9.5,
+                color: "rgba(255,255,255,0.75)", lineHeight: 1,
+              }}>
+                {lobe.subtitle}
+              </span>
             </div>
           </div>
         );
@@ -529,11 +531,6 @@ function Toast({ message }) {
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 
 const CSS = `
-@keyframes brain-float {
-  0%,100% { transform: translateY(0px);   filter: drop-shadow(0 14px 44px rgba(29,78,216,0.28)) drop-shadow(0 4px 12px rgba(0,0,0,0.08)); }
-  50%      { transform: translateY(-8px); filter: drop-shadow(0 22px 56px rgba(29,78,216,0.38)) drop-shadow(0 8px 20px rgba(0,0,0,0.1)); }
-}
-.brain-float { animation: brain-float 4.2s ease-in-out infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
@@ -678,13 +675,12 @@ export default function MindPage({ navigate }) {
               </p>
             </div>
 
-            <div className={loading ? undefined : "brain-float"} style={{ width: brainSz }}>
+            <div style={{ width: brainSz }}>
               {loading ? (
                 <div style={{
                   width: brainSz, height: brainSz,
                   background: "linear-gradient(135deg, rgba(59,130,246,0.12), rgba(29,78,216,0.06))",
                   borderRadius: "46% 54% 50% 50% / 42% 42% 58% 58%",
-                  animation: "brain-float 3s ease-in-out infinite",
                 }} />
               ) : (
                 <BrainSVG
