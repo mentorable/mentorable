@@ -30,39 +30,54 @@ const LOBES = {
 };
 
 // ─── Brain pixel classifier ───────────────────────────────────────────────────
-// brain_image.png has 4 blue color zones (top-down view, 2×2 quadrants):
-//   TL = Core (dark navy), TR = Drive (light cyan),
-//   BL = Curiosity (medium blue), BR = Voice (periwinkle)
-//
-// Classification by brightness + green-excess:
-//   Core:      darkest zone → low brightness
-//   Drive:     light CYAN → G significantly exceeds R (cyan has green in it)
-//   Voice:     light PERIWINKLE → R elevated, G-R gap small
-//   Curiosity: medium blue → everything else
+// Thresholds derived from sampling brain_image.png actual pixel values:
+//   Core  (dark navy):  r≈0-6,   g≈47-95,  b≈170-236  brightness≈72-112
+//   Drive (light cyan): r≈0-89,  g≈165-218, b≈229-254  — G far exceeds R
+//   Voice (periwinkle): r≈110-174, g≈142-196, b≈252-253 — R notably elevated
+//   Curiosity (med blue): r≈25-65, g≈119-142, b≈252-254 — moderate G
+//   Outlines (black):   r<30, g<30, b<60 — cartoon strokes throughout
 function classifyBrainPixel(r, g, b) {
-  // Background / white margin
-  if (r > 215 && g > 215 && b > 215) return null;
+  // White / near-white background (any pixel where all channels ≥ 210)
+  if (Math.min(r, g, b) >= 210) return null;
+  // Black cartoon outlines — all channels very low.
+  // MUST be excluded before the brightness check or every outline
+  // pixel activates Core (they share low brightness).
+  if (r < 30 && g < 30 && b < 60) return null;
+
   const brightness = (r + g + b) / 3;
-  // Core: the darkest region (dark navy blue)
-  if (brightness < 145) return "core";
-  // Drive: cyan — G well exceeds R, high B
-  // Key: pure cyan has G-R ≈ 80-90 at medium brightness
-  if (g - r > 65 && b > r + 80) return "drive";
-  // Voice: periwinkle — R is notably elevated vs pure blue
-  // Distinguished from Curiosity by R being > ~125
-  if (r > 125) return "voice";
-  // Curiosity: medium pure blue
+
+  // Core: dark NAVY blue — low brightness, blue dominant, NOT cyan (g < 110)
+  if (brightness < 145 && b > 100 && g < 110) return "core";
+
+  // Drive: CYAN — low R (< 90) AND high G (> 165).
+  // Curiosity's max G is ≈142, so g>165 cleanly separates them.
+  if (r < 90 && g > 165) return "drive";
+
+  // Voice: PERIWINKLE — R channel elevated to ≥ 110
+  if (r >= 110) return "voice";
+
+  // Curiosity: MEDIUM BLUE — everything remaining
   return "curiosity";
 }
 
 // ─── Brain URL cache (module-level) ──────────────────────────────────────────
 // Pre-rendering 5 image versions is expensive; cache across BrainSVG instances
 // so the work happens once per page load, not on every mount/unmount cycle.
+// CLASSIFIER_VER must be bumped whenever classifyBrainPixel changes, so that
+// Vite HMR during development doesn't serve stale pre-rendered URLs.
+const CLASSIFIER_VER = "3";
 let _brainUrlCache = null;
+let _brainUrlCacheVer = null;
 let _brainLoadCallbacks = [];
 
 function getOrBuildBrainUrls(callback) {
-  if (_brainUrlCache) { callback(_brainUrlCache); return; }
+  if (_brainUrlCache && _brainUrlCacheVer === CLASSIFIER_VER) {
+    callback(_brainUrlCache); return;
+  }
+  // Stale or missing — reset and rebuild
+  _brainUrlCache = null;
+  _brainUrlCacheVer = null;
+  _brainLoadCallbacks = [];
   _brainLoadCallbacks.push(callback);
   if (_brainLoadCallbacks.length > 1) return; // already loading
 
@@ -132,6 +147,7 @@ function getOrBuildBrainUrls(callback) {
       curiosity: render("curiosity"),
       voice:     render("voice"),
     };
+    _brainUrlCacheVer = CLASSIFIER_VER;
 
     const cbs = _brainLoadCallbacks;
     _brainLoadCallbacks = [];
