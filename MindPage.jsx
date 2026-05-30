@@ -65,7 +65,7 @@ function classifyBrainPixel(r, g, b) {
 // so the work happens once per page load, not on every mount/unmount cycle.
 // CLASSIFIER_VER must be bumped whenever classifyBrainPixel changes, so that
 // Vite HMR during development doesn't serve stale pre-rendered URLs.
-const CLASSIFIER_VER = "8";
+const CLASSIFIER_VER = "9";
 let _brainUrlCache = null;
 let _brainUrlCacheVer = null;
 let _brainLoadCallbacks = [];
@@ -100,7 +100,10 @@ function getOrBuildBrainUrls(callback) {
 
     // Single static render: original colors + gray dividing lines between sections.
     // A null pixel becomes gray if it has at least 2 different lobes within NR px.
-    const NR = 12;
+    // NR=8 with ≥1 nearby lobe:
+    // - covers all wrinkle/fold strokes within sections (fills black gaps)
+    // - keeps outer border thin (~8px native = ~2px at display size)
+    const NR = 8;
     const c = document.createElement("canvas");
     c.width = W; c.height = H;
     const ctx = c.getContext("2d");
@@ -113,7 +116,6 @@ function getOrBuildBrainUrls(callback) {
         const lobeIdx = map[i];
 
         if (lobeIdx !== 0) {
-          // Colored brain pixel — original color
           out.data[idx]   = data[idx];
           out.data[idx+1] = data[idx+1];
           out.data[idx+2] = data[idx+2];
@@ -121,23 +123,20 @@ function getOrBuildBrainUrls(callback) {
           continue;
         }
 
-        // Null pixel — check how many distinct lobes are nearby
-        const nearby = new Set();
+        // Null pixel — gray if any lobe is within NR pixels, transparent otherwise
+        let hasLobe = false;
         done: for (let dy = -NR; dy <= NR; dy++) {
           for (let dx = -NR; dx <= NR; dx++) {
             const nx = x + dx, ny = y + dy;
             if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
-            const n = map[ny * W + nx];
-            if (n !== 0) { nearby.add(n); if (nearby.size >= 2) break done; }
+            if (map[ny * W + nx] !== 0) { hasLobe = true; break done; }
           }
         }
 
-        if (nearby.size >= 2) {
-          // Sits between two sections — render as muted gray
+        if (hasLobe) {
           out.data[idx] = 120; out.data[idx+1] = 130; out.data[idx+2] = 148;
           out.data[idx+3] = 255;
         } else {
-          // Background or inner-section stroke — transparent
           out.data[idx+3] = 0;
         }
       }
