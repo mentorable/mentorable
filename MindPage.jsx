@@ -65,7 +65,7 @@ function classifyBrainPixel(r, g, b) {
 // so the work happens once per page load, not on every mount/unmount cycle.
 // CLASSIFIER_VER must be bumped whenever classifyBrainPixel changes, so that
 // Vite HMR during development doesn't serve stale pre-rendered URLs.
-const CLASSIFIER_VER = "7";
+const CLASSIFIER_VER = "6";
 let _brainUrlCache = null;
 let _brainUrlCacheVer = null;
 let _brainLoadCallbacks = [];
@@ -109,7 +109,7 @@ function getOrBuildBrainUrls(callback) {
     const buildBoundaryNullMask = (lobeId) => {
       const aIdx = LOBE_IDX[lobeId];
       const mask = new Uint8Array(W * H);
-      const NR   = 15; // search radius — covers full stroke width and reaches corners
+      const NR   = 5; // search radius covers the full width of cartoon stroke lines
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
           if (map[y * W + x] !== 0) continue; // only null pixels
@@ -154,8 +154,8 @@ function getOrBuildBrainUrls(callback) {
 
         if (lobeIdx === 0) {
           if (bnMask && bnMask[i]) {
-            // Dividing stroke between this lobe and a neighbour — steel blue-gray
-            out.data[idx] = 140; out.data[idx+1] = 155; out.data[idx+2] = 175;
+            // Dividing stroke between this lobe and a neighbour — glow white
+            out.data[idx] = 255; out.data[idx+1] = 255; out.data[idx+2] = 255;
             out.data[idx+3] = 255;
           } else {
             out.data[idx+3] = 0; // transparent (background or inner-section stroke)
