@@ -173,8 +173,28 @@ function BrainSVG({ selected, hovered, onLobeClick, onLobeHover, mini = false, s
     const y = Math.round((clientY - rect.top)  * cache.srcCanvas.height / rect.height);
     if (x < 0 || x >= cache.srcCanvas.width || y < 0 || y >= cache.srcCanvas.height) return null;
     try {
-      const [r, g, b] = cache.srcCanvas.getContext("2d").getImageData(x, y, 1, 1).data;
-      return classifyBrainPixel(r, g, b);
+      const ctx = cache.srcCanvas.getContext("2d");
+      const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
+      const direct = classifyBrainPixel(r, g, b);
+      if (direct !== null) return direct;
+
+      // Pixel is a white wrinkle highlight or dark outline stroke (returns null).
+      // Sample a small region around the cursor and return whichever lobe
+      // dominates — this keeps wrinkles "inside" their section.
+      const R = 5; // search radius
+      const region = ctx.getImageData(
+        Math.max(0, x - R), Math.max(0, y - R),
+        Math.min(R*2+1, cache.srcCanvas.width),
+        Math.min(R*2+1, cache.srcCanvas.height)
+      );
+      const counts = {};
+      for (let i = 0; i < region.data.length; i += 4) {
+        const lobe = classifyBrainPixel(region.data[i], region.data[i+1], region.data[i+2]);
+        if (lobe) counts[lobe] = (counts[lobe] || 0) + 1;
+      }
+      const entries = Object.entries(counts);
+      if (!entries.length) return null;
+      return entries.sort((a, b) => b[1] - a[1])[0][0];
     } catch { return null; }
   }
 
