@@ -65,7 +65,7 @@ function classifyBrainPixel(r, g, b) {
 // so the work happens once per page load, not on every mount/unmount cycle.
 // CLASSIFIER_VER must be bumped whenever classifyBrainPixel changes, so that
 // Vite HMR during development doesn't serve stale pre-rendered URLs.
-const CLASSIFIER_VER = "6";
+const CLASSIFIER_VER = "8";
 let _brainUrlCache = null;
 let _brainUrlCacheVer = null;
 let _brainLoadCallbacks = [];
@@ -74,12 +74,11 @@ function getOrBuildBrainUrls(callback) {
   if (_brainUrlCache && _brainUrlCacheVer === CLASSIFIER_VER) {
     callback(_brainUrlCache); return;
   }
-  // Stale or missing — reset and rebuild
   _brainUrlCache = null;
   _brainUrlCacheVer = null;
   _brainLoadCallbacks = [];
   _brainLoadCallbacks.push(callback);
-  if (_brainLoadCallbacks.length > 1) return; // already loading
+  if (_brainLoadCallbacks.length > 1) return;
 
   const img = new Image();
   img.onload = () => {
@@ -92,94 +91,61 @@ function getOrBuildBrainUrls(callback) {
 
     const { data } = src.getContext("2d").getImageData(0, 0, W, H);
 
-    // Pre-classify every pixel once
     const LOBE_IDX = { core: 1, drive: 2, curiosity: 3, voice: 4 };
-    const IDX_LOBE = [null, "core", "drive", "curiosity", "voice"];
     const map = new Uint8Array(W * H);
     for (let i = 0; i < W * H; i++) {
       const lobe = classifyBrainPixel(data[i*4], data[i*4+1], data[i*4+2]);
       map[i] = lobe ? LOBE_IDX[lobe] : 0;
     }
 
-    // Pre-compute a "boundary null" mask for each lobe.
-    // A null pixel (black cartoon stroke or transparent bg) is in this mask only if
-    // it has BOTH the active lobe AND a different lobe within NR pixels — meaning it
-    // sits on the dividing line between two sections, not on the outer perimeter.
-    // This avoids the outer-perimeter-glow bug entirely.
-    const buildBoundaryNullMask = (lobeId) => {
-      const aIdx = LOBE_IDX[lobeId];
-      const mask = new Uint8Array(W * H);
-      const NR   = 5; // search radius covers the full width of cartoon stroke lines
-      for (let y = 0; y < H; y++) {
-        for (let x = 0; x < W; x++) {
-          if (map[y * W + x] !== 0) continue; // only null pixels
-          let hasActive = false, hasOther = false;
-          outer: for (let dy = -NR; dy <= NR; dy++) {
-            for (let dx = -NR; dx <= NR; dx++) {
-              const nx = x + dx, ny = y + dy;
-              if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
-              const n = map[ny * W + nx];
-              if (n === aIdx)   hasActive = true;
-              else if (n !== 0) hasOther  = true;
-              if (hasActive && hasOther) break outer;
-            }
-          }
-          if (hasActive && hasOther) mask[y * W + x] = 1;
-        }
-      }
-      return mask;
-    };
+    // Single static render: original colors + gray dividing lines between sections.
+    // A null pixel becomes gray if it has at least 2 different lobes within NR px.
+    const NR = 12;
+    const c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const ctx = c.getContext("2d");
+    const out = ctx.createImageData(W, H);
 
-    // Pre-compute masks for all 4 lobes up-front (reused across render calls)
-    const bnMasks = {};
-    for (const lobeId of Object.keys(LOBE_IDX)) {
-      bnMasks[lobeId] = buildBoundaryNullMask(lobeId);
-    }
-
-    // Render one image per hover state.
-    //   default → original image, transparent background
-    //   "lobe"  → original image + dividing strokes between that lobe and its
-    //             neighbours turned bright white (no dimming of other lobes)
-    const render = (active) => {
-      const c = document.createElement("canvas");
-      c.width = W; c.height = H;
-      const ctx = c.getContext("2d");
-      const out = ctx.createImageData(W, H);
-      const bnMask = active ? bnMasks[active] : null;
-
-      for (let i = 0; i < W * H; i++) {
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i   = y * W + x;
         const idx = i * 4;
-        const r = data[idx], g = data[idx+1], b = data[idx+2];
         const lobeIdx = map[i];
 
-        if (lobeIdx === 0) {
-          if (bnMask && bnMask[i]) {
-            // Dividing stroke between this lobe and a neighbour — glow white
-            out.data[idx] = 255; out.data[idx+1] = 255; out.data[idx+2] = 255;
-            out.data[idx+3] = 255;
-          } else {
-            out.data[idx+3] = 0; // transparent (background or inner-section stroke)
-          }
+        if (lobeIdx !== 0) {
+          // Colored brain pixel — original color
+          out.data[idx]   = data[idx];
+          out.data[idx+1] = data[idx+1];
+          out.data[idx+2] = data[idx+2];
+          out.data[idx+3] = 255;
           continue;
         }
 
-        // Brain pixel — always show at original brightness, no dimming
-        out.data[idx] = r; out.data[idx+1] = g; out.data[idx+2] = b;
-        out.data[idx+3] = 255;
+        // Null pixel — check how many distinct lobes are nearby
+        const nearby = new Set();
+        done: for (let dy = -NR; dy <= NR; dy++) {
+          for (let dx = -NR; dx <= NR; dx++) {
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+            const n = map[ny * W + nx];
+            if (n !== 0) { nearby.add(n); if (nearby.size >= 2) break done; }
+          }
+        }
+
+        if (nearby.size >= 2) {
+          // Sits between two sections — render as muted gray
+          out.data[idx] = 120; out.data[idx+1] = 130; out.data[idx+2] = 148;
+          out.data[idx+3] = 255;
+        } else {
+          // Background or inner-section stroke — transparent
+          out.data[idx+3] = 0;
+        }
       }
+    }
 
-      ctx.putImageData(out, 0, 0);
-      return c.toDataURL("image/png");
-    };
+    ctx.putImageData(out, 0, 0);
 
-    _brainUrlCache = {
-      srcCanvas: src,
-      default:   render(null),
-      core:      render("core"),
-      drive:     render("drive"),
-      curiosity: render("curiosity"),
-      voice:     render("voice"),
-    };
+    _brainUrlCache = { srcCanvas: src, staticUrl: c.toDataURL("image/png") };
     _brainUrlCacheVer = CLASSIFIER_VER;
 
     const cbs = _brainLoadCallbacks;
@@ -200,8 +166,7 @@ function BrainSVG({ selected, hovered, onLobeClick, onLobeHover, mini = false, s
     getOrBuildBrainUrls((c) => setCache_(c));
   }, []);
 
-  const active  = selected || hovered;
-  const dispSrc = cache ? (active ? cache[active] : cache.default) : null;
+  const dispSrc = cache?.staticUrl || null;
 
   function hitTestXY(clientX, clientY, element) {
     if (!cache?.srcCanvas) return null;
