@@ -65,7 +65,7 @@ function classifyBrainPixel(r, g, b) {
 // so the work happens once per page load, not on every mount/unmount cycle.
 // CLASSIFIER_VER must be bumped whenever classifyBrainPixel changes, so that
 // Vite HMR during development doesn't serve stale pre-rendered URLs.
-const CLASSIFIER_VER = "9";
+const CLASSIFIER_VER = "10";
 let _brainUrlCache = null;
 let _brainUrlCacheVer = null;
 let _brainLoadCallbacks = [];
@@ -100,9 +100,12 @@ function getOrBuildBrainUrls(callback) {
 
     // Single static render: original colors + gray dividing lines between sections.
     // A null pixel becomes gray if it has at least 2 different lobes within NR px.
-    // NR=8 with ≥1 nearby lobe:
-    // - covers all wrinkle/fold strokes within sections (fills black gaps)
-    // - keeps outer border thin (~8px native = ~2px at display size)
+    // Rendering uses a tighter null definition than the hit-test classifier:
+    //   true background: Math.min(r,g,b) >= 240  (only pure/near-pure white)
+    //   black outline:   r<30 && g<30 && b<60
+    // Everything else — including the 210-239 light gyri highlights — is
+    // kept at its original color. This eliminates the "white patch" problem
+    // caused by 452K highlight pixels being treated as transparent.
     const NR = 8;
     const c = document.createElement("canvas");
     c.width = W; c.height = H;
@@ -113,17 +116,19 @@ function getOrBuildBrainUrls(callback) {
       for (let x = 0; x < W; x++) {
         const i   = y * W + x;
         const idx = i * 4;
-        const lobeIdx = map[i];
+        const r = data[idx], g = data[idx+1], b = data[idx+2];
 
-        if (lobeIdx !== 0) {
-          out.data[idx]   = data[idx];
-          out.data[idx+1] = data[idx+1];
-          out.data[idx+2] = data[idx+2];
+        // Determine render-null: true white background or black outline stroke
+        const isRenderNull = (Math.min(r, g, b) >= 240) || (r < 30 && g < 30 && b < 60);
+
+        if (!isRenderNull) {
+          // Colored lobe pixel OR light gyri highlight → keep original color
+          out.data[idx] = r; out.data[idx+1] = g; out.data[idx+2] = b;
           out.data[idx+3] = 255;
           continue;
         }
 
-        // Null pixel — gray if any lobe is within NR pixels, transparent otherwise
+        // Black outline or true background — gray if any lobe within NR pixels
         let hasLobe = false;
         done: for (let dy = -NR; dy <= NR; dy++) {
           for (let dx = -NR; dx <= NR; dx++) {
@@ -137,7 +142,7 @@ function getOrBuildBrainUrls(callback) {
           out.data[idx] = 120; out.data[idx+1] = 130; out.data[idx+2] = 148;
           out.data[idx+3] = 255;
         } else {
-          out.data[idx+3] = 0;
+          out.data[idx+3] = 0; // true background — transparent
         }
       }
     }
