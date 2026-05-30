@@ -65,7 +65,7 @@ function classifyBrainPixel(r, g, b) {
 // so the work happens once per page load, not on every mount/unmount cycle.
 // CLASSIFIER_VER must be bumped whenever classifyBrainPixel changes, so that
 // Vite HMR during development doesn't serve stale pre-rendered URLs.
-const CLASSIFIER_VER = "5";
+const CLASSIFIER_VER = "6";
 let _brainUrlCache = null;
 let _brainUrlCacheVer = null;
 let _brainLoadCallbacks = [];
@@ -101,50 +101,51 @@ function getOrBuildBrainUrls(callback) {
       map[i] = lobe ? LOBE_IDX[lobe] : 0;
     }
 
-    // Pre-compute a dilated edge mask for each lobe so we can draw an
-    // organic outline border around whichever lobe is active.
-    const buildEdgeMask = (lobeId) => {
+    // Pre-compute a "boundary null" mask for each lobe.
+    // A null pixel (black cartoon stroke or transparent bg) is in this mask only if
+    // it has BOTH the active lobe AND a different lobe within NR pixels — meaning it
+    // sits on the dividing line between two sections, not on the outer perimeter.
+    // This avoids the outer-perimeter-glow bug entirely.
+    const buildBoundaryNullMask = (lobeId) => {
       const aIdx = LOBE_IDX[lobeId];
-      const raw  = new Uint8Array(W * H);
-      // Mark pixels that are this lobe AND border a different lobe or bg
+      const mask = new Uint8Array(W * H);
+      const NR   = 5; // search radius covers the full width of cartoon stroke lines
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
-          if (map[y * W + x] !== aIdx) continue;
-          for (const [dx, dy] of [[-1,0],[1,0],[0,-1],[0,1]]) {
-            const nx = x + dx, ny = y + dy;
-            if (nx < 0 || nx >= W || ny < 0 || ny >= H || map[ny * W + nx] !== aIdx) {
-              raw[y * W + x] = 1; break;
-            }
-          }
-        }
-      }
-      // Dilate 2 px so the outline is ~5 px wide and visible
-      const dilated = new Uint8Array(W * H);
-      const DR = 2;
-      for (let y = 0; y < H; y++) {
-        for (let x = 0; x < W; x++) {
-          if (!raw[y * W + x]) continue;
-          for (let dy = -DR; dy <= DR; dy++) {
-            for (let dx = -DR; dx <= DR; dx++) {
+          if (map[y * W + x] !== 0) continue; // only null pixels
+          let hasActive = false, hasOther = false;
+          outer: for (let dy = -NR; dy <= NR; dy++) {
+            for (let dx = -NR; dx <= NR; dx++) {
               const nx = x + dx, ny = y + dy;
-              if (nx >= 0 && nx < W && ny >= 0 && ny < H) dilated[ny * W + nx] = 1;
+              if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+              const n = map[ny * W + nx];
+              if (n === aIdx)   hasActive = true;
+              else if (n !== 0) hasOther  = true;
+              if (hasActive && hasOther) break outer;
             }
           }
+          if (hasActive && hasOther) mask[y * W + x] = 1;
         }
       }
-      return dilated;
+      return mask;
     };
 
-    // Render one image version per state:
-    //   default → original image, transparent bg
-    //   "lobe"  → same original image + bright white border on that lobe's edges
-    //             (NO dimming of other lobes — they stay at full original brightness)
+    // Pre-compute masks for all 4 lobes up-front (reused across render calls)
+    const bnMasks = {};
+    for (const lobeId of Object.keys(LOBE_IDX)) {
+      bnMasks[lobeId] = buildBoundaryNullMask(lobeId);
+    }
+
+    // Render one image per hover state.
+    //   default → original image, transparent background
+    //   "lobe"  → original image + dividing strokes between that lobe and its
+    //             neighbours turned bright white (no dimming of other lobes)
     const render = (active) => {
       const c = document.createElement("canvas");
       c.width = W; c.height = H;
       const ctx = c.getContext("2d");
       const out = ctx.createImageData(W, H);
-      const edgeMask = active ? buildEdgeMask(active) : null;
+      const bnMask = active ? bnMasks[active] : null;
 
       for (let i = 0; i < W * H; i++) {
         const idx = i * 4;
@@ -152,19 +153,18 @@ function getOrBuildBrainUrls(callback) {
         const lobeIdx = map[i];
 
         if (lobeIdx === 0) {
-          out.data[idx+3] = 0; // transparent background
+          if (bnMask && bnMask[i]) {
+            // Dividing stroke between this lobe and a neighbour — glow white
+            out.data[idx] = 255; out.data[idx+1] = 255; out.data[idx+2] = 255;
+            out.data[idx+3] = 255;
+          } else {
+            out.data[idx+3] = 0; // transparent (background or inner-section stroke)
+          }
           continue;
         }
 
-        if (active && edgeMask[i] && IDX_LOBE[lobeIdx] === active) {
-          // Outline pixel of the active lobe — draw as bright white stroke
-          out.data[idx]   = Math.min(255, Math.round(r * 0.4 + 255 * 0.6));
-          out.data[idx+1] = Math.min(255, Math.round(g * 0.4 + 255 * 0.6));
-          out.data[idx+2] = Math.min(255, Math.round(b * 0.4 + 255 * 0.6));
-        } else {
-          // All other brain pixels — original colour, no dimming
-          out.data[idx] = r; out.data[idx+1] = g; out.data[idx+2] = b;
-        }
+        // Brain pixel — always show at original brightness, no dimming
+        out.data[idx] = r; out.data[idx+1] = g; out.data[idx+2] = b;
         out.data[idx+3] = 255;
       }
 
