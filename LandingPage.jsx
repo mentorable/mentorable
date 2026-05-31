@@ -944,6 +944,7 @@ export default function LandingPage() {
             <span style={{
               fontFamily:SANS, fontWeight:700,
               fontSize:"clamp(3rem,6vw,6.5rem)", lineHeight:0.97,
+              paddingBottom:"0.15em",
               background:"linear-gradient(135deg,#ffffff 0%,#93c5fd 55%,#60a5fa 100%)",
               WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
               backgroundClip:"text", display:"block",
