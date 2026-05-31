@@ -1261,65 +1261,6 @@ export default function LandingPage() {
       </section>
 
       {/* light → BG2 */}
-      <SG from={BG} to={BG2} h={80}/>
-
-      {/* ── PLAN YOUR PATH ────────────────────────────────────────────────────── */}
-      <section style={{padding:"4rem 2.5rem 7rem",background:BG2}}>
-        <div style={{maxWidth:1100,margin:"0 auto"}}>
-          <FadeUp style={{marginBottom:"4.5rem"}}>
-            <Heading italic="Plan" rest="your path." size="clamp(2.8rem,5vw,4rem)"/>
-            <p style={{fontFamily:BODY,fontWeight:300,fontSize:"0.95rem",color:FG3,
-              lineHeight:1.95,maxWidth:500,marginTop:"1.1rem"}}>
-              Model your future, from college applications to first jobs, and see how every action moves you closer to your goals.
-            </p>
-          </FadeUp>
-          <DataFlow/>
-        </div>
-      </section>
-
-      {/* BG2 → BG2 (skip testimonials) */}
-      <SG from={BG2} to={BG2} h={0}/>
-
-      {/* ── DISCOVER WHAT'S NEW ───────────────────────────────────────────────── */}
-      <section style={{padding:"4rem 2.5rem 7rem",background:BG2}}>
-        <div style={{maxWidth:1100,margin:"0 auto"}}>
-          <FadeUp style={{marginBottom:"3rem"}}>
-            <Heading italic="Discover" rest="what's new." size="clamp(2.4rem,4.5vw,3.4rem)"/>
-          </FadeUp>
-          <Stagger className="lp-fg" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1.25rem"}}>
-            {[
-              {tag:"PRODUCT",title:"Introducing Mentorable: AI-powered career guidance built for every high schooler",date:"March 2025"},
-              {tag:"BEHIND THE BUILD",title:"How we built the voice interview: 2 minutes that change everything",date:"February 2025"},
-              {tag:"PRODUCT",title:"Mentorable launches Quest: AI-generated next steps personalized for every student",date:"January 2025"},
-            ].map(post=>(
-              <motion.div key={post.title} variants={iV}
-                whileHover={{scale:1.02,boxShadow:SH_LG}}
-                style={{border:`1px solid ${BDR}`,borderRadius:18,overflow:"hidden",
-                  display:"flex",flexDirection:"column",height:"100%",
-                  background:BG3,cursor:"pointer",boxShadow:SH}}>
-                <div style={{height:148,background:`linear-gradient(135deg,${BG2},rgba(37,99,235,0.1))`,
-                  borderBottom:`1px solid ${BDR2}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <div style={{fontFamily:SANS,fontWeight:700,fontSize:"0.65rem",color:P,letterSpacing:"0.12em",
-                    textTransform:"uppercase",border:`1px solid ${BDR}`,padding:"5px 13px",borderRadius:999,
-                    background:`rgba(37,99,235,0.06)`}}>{post.tag}</div>
-                </div>
-                <div style={{padding:"1.4rem",flex:1,display:"flex",flexDirection:"column",gap:14}}>
-                  <p style={{fontFamily:BODY,fontWeight:500,fontSize:"0.875rem",color:FG,lineHeight:1.55,flex:1}}>{post.title}</p>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <span style={{fontFamily:SANS,fontSize:"0.7rem",color:FG3}}>{post.date}</span>
-                    <span style={{fontFamily:SANS,fontSize:"0.72rem",color:P,display:"flex",alignItems:"center",gap:4,fontWeight:600}}>
-                      Read more <ArrowRight color={P} size={14}/>
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </Stagger>
-        </div>
-      </section>
-
-      {/* BG2 → light */}
-      <SG from={BG2} to={BG} h={80}/>
 
       {/* ── NEWSLETTER ───────────────────────────────────────────────────────── */}
       <section style={{padding:"5rem 2.5rem",background:BG}}>
