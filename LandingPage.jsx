@@ -7,8 +7,8 @@ import { VoicePoweredOrb } from "./components/common/VoicePoweredOrb";
 import HeroVisual from "./components/HeroVisual";
 
 // ─── Tokens ────────────────────────────────────────────────────────────────────
-const SANS  = "'Space Grotesk', Arial, sans-serif";
-const SERIF = "'DM Serif Display', Georgia, serif";
+const SANS  = "'Space Grotesk', sans-serif";
+const BODY  = "'Plus Jakarta Sans', sans-serif";
 const BG    = "#faf9f5";
 const BG2   = "#f0ede6";
 const BG3   = "#ffffff";
@@ -200,7 +200,7 @@ function Heading({ italic, rest, size = "3rem", light = false }) {
   const iv  = useInView(ref, { once: true });
   return (
     <h2 ref={ref} style={{ margin:0, lineHeight:1.08 }}>
-      <em style={{ fontFamily:SERIF, fontStyle:"italic", fontWeight:400, fontSize:size,
+      <em style={{ fontFamily:BODY, fontStyle:"italic", fontWeight:400, fontSize:size,
         background: light ? "linear-gradient(135deg,#93c5fd,#fff)" : GRAD,
         WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
         backgroundClip:"text", display:"inline",
@@ -277,7 +277,7 @@ function VoiceBlob() {
               transformOrigin:"center"}}/>
         ))}
       </div>
-      <div style={{fontFamily:SANS,fontSize:"0.75rem",color:FG3,fontStyle:"italic",textAlign:"center",maxWidth:300,lineHeight:1.7}}>
+      <div style={{fontFamily:BODY,fontSize:"0.75rem",color:FG3,fontStyle:"italic",textAlign:"center",maxWidth:300,lineHeight:1.7}}>
         "I really enjoy solving problems and building things..."
       </div>
     </div>
@@ -660,7 +660,7 @@ function DataFlow() {
             </div>
             <div>
               <div style={{fontFamily:SANS,fontWeight:700,fontSize:"0.95rem",color:FG,marginBottom:8}}>{s.title}</div>
-              <div style={{fontFamily:SANS,fontWeight:300,fontSize:"0.8rem",color:FG3,lineHeight:1.78}}>{s.desc}</div>
+              <div style={{fontFamily:BODY,fontWeight:300,fontSize:"0.8rem",color:FG3,lineHeight:1.78}}>{s.desc}</div>
             </div>
           </motion.div>
         ))}
@@ -852,7 +852,7 @@ function IntroAnimation({ onComplete }) {
       <div ref={bgRef} style={{ position: "absolute", inset: 0, backgroundColor: "#FAFAFA", zIndex: 1 }} />
       <div style={{ position: "relative", width: 800, height: 600, zIndex: 5 }}>
         <div ref={textContRef} style={{ position: "absolute", top: 180, left: 0, right: 0, display: "flex", justifyContent: "center", alignItems: "center", zIndex: 10 }}>
-          <h1 ref={brandRef} style={{ fontFamily: "'Inter', Arial, sans-serif", fontSize: 84, fontWeight: 500, color: "#2A2B2E", margin: 0, letterSpacing: "-2px" }}>mentorable</h1>
+          <h1 ref={brandRef} style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 84, fontWeight: 500, color: "#2A2B2E", margin: 0, letterSpacing: "-2px" }}>mentorable</h1>
         </div>
         <svg ref={svgRef} viewBox="0 0 800 600" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 15, overflow: "visible" }}>
           <defs>
@@ -870,7 +870,7 @@ function IntroAnimation({ onComplete }) {
         </svg>
       </div>
       <div style={{ position: "fixed", inset: 0, display: "flex", justifyContent: "center", alignItems: "center", zIndex: 50, pointerEvents: "none" }}>
-        <h1 ref={finalTextRef} style={{ fontFamily: "'Inter', Arial, sans-serif", fontSize: 80, fontWeight: 600, color: "#FFFFFF", margin: 0, letterSpacing: "-2.5px", textAlign: "center", lineHeight: 1.1, maxWidth: 1200, padding: "0 40px" }}></h1>
+        <h1 ref={finalTextRef} style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 80, fontWeight: 600, color: "#FFFFFF", margin: 0, letterSpacing: "-2.5px", textAlign: "center", lineHeight: 1.1, maxWidth: 1200, padding: "0 40px" }}></h1>
       </div>
     </div>
   );
@@ -894,7 +894,7 @@ export default function LandingPage() {
   useEffect(() => { const t = setTimeout(() => setShowVisual(true), 600); return () => clearTimeout(t); }, []);
 
   return (
-    <div style={{background:BG,minHeight:"100vh",color:FG,fontFamily:SANS,fontSize:16,lineHeight:"150%",overflowX:"hidden"}}>
+    <div style={{background:BG,minHeight:"100vh",color:FG,fontFamily:BODY,fontSize:16,lineHeight:"150%",overflowX:"hidden"}}>
       {showIntro && <IntroAnimation onComplete={() => { _introPlayed = true; window.scrollTo(0, 0); setShowIntro(false); }} />}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
@@ -957,15 +957,15 @@ export default function LandingPage() {
             initial={{ y: 28, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            style={{fontFamily:SANS,fontWeight:500,fontSize:"1.3rem",color:"rgba(255,255,255,0.85)",
+            style={{fontFamily:BODY,fontWeight:500,fontSize:"1.3rem",color:"rgba(255,255,255,0.85)",
               lineHeight:1.75,maxWidth:520,margin:"0 0 0.7rem"}}>
-            Your personal college and career advisor — the kind of support that used to cost $300 a session, now free.
+            Your personal college and career advisor. The kind of support that used to cost $300 a session, now free.
           </motion.p>
           <motion.p
             initial={{ y: 28, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.72, ease: [0.16, 1, 0.3, 1] }}
-            style={{fontFamily:SANS,fontWeight:400,fontSize:"1.05rem",color:"rgba(255,255,255,0.48)",
+            style={{fontFamily:BODY,fontWeight:400,fontSize:"1.05rem",color:"rgba(255,255,255,0.48)",
               lineHeight:1.9,maxWidth:480,margin:"0 0 2.75rem"}}>
             Discover your strengths, get a personalized Quest, and find real opportunities. No counselor network required.
           </motion.p>
@@ -1029,8 +1029,8 @@ export default function LandingPage() {
             color:"#0f172a",lineHeight:1.65,margin:"0 0 0.875rem",letterSpacing:"-0.01em"}}>
             Most students don't have access to a counselor who knows their name, their goals, or their situation.
           </p>
-          <p style={{fontFamily:SANS,fontSize:"1rem",color:"#64748b",lineHeight:1.75,margin:0,fontWeight:400}}>
-            That access gap has always determined who gets in, who gets funded, and who gets left behind. Mentorable exists to close it — giving every student the same quality of guidance that used to be reserved for a privileged few.
+          <p style={{fontFamily:BODY,fontSize:"1rem",color:"#64748b",lineHeight:1.75,margin:0,fontWeight:400}}>
+            That access gap has always determined who gets in, who gets funded, and who gets left behind. Mentorable exists to close it, giving every student the same quality of guidance that used to be reserved for a privileged few.
           </p>
         </FadeUp>
       </section>
@@ -1053,8 +1053,8 @@ export default function LandingPage() {
               visual:<ScoreVisual/>,
               bg:"linear-gradient(135deg,#eef2ff 0%,#c7d2fe 55%,#eef2ff 100%)"},
             {tag:"QUEST",title:"Know your next move.",
-              desc:"Mentora generates a personalized set of quests based on your profile, recent activity, and goals — then adapts as you make progress.",
-              items:["3 AI-curated quests generated at a time","Additive — builds on what you've done","Mark complete or swap out anything","Completed quests inform future suggestions"],
+              desc:"Mentora generates a personalized set of quests based on your profile, recent activity, and goals, then adapts as you make progress.",
+              items:["3 AI-curated quests generated at a time","Builds on what you've already done","Mark complete or swap out anything","Completed quests inform future suggestions"],
               visual:<RoadmapCard/>,
               bg:"linear-gradient(135deg,#f0f5ff 0%,#dbeafe 55%,#f0f5ff 100%)"},
           ].map((feat,i)=>(
@@ -1097,7 +1097,7 @@ export default function LandingPage() {
                         <Label>{feat.tag}</Label>
                         <h3 style={{fontFamily:SANS,fontWeight:700,fontSize:"clamp(2rem,3.5vw,2.6rem)",
                           lineHeight:1.12,color:FG,marginBottom:"1rem",letterSpacing:"-0.02em"}}>{feat.title}</h3>
-                        <p style={{fontFamily:SANS,fontWeight:400,fontSize:"0.92rem",color:FG3,
+                        <p style={{fontFamily:BODY,fontWeight:400,fontSize:"0.92rem",color:FG3,
                           lineHeight:1.9,marginBottom:"1.75rem",maxWidth:380}}>{feat.desc}</p>
                         <ul style={{listStyle:"none",display:"flex",flexDirection:"column",gap:13}}>
                           {feat.items.map(it=>(
@@ -1106,7 +1106,7 @@ export default function LandingPage() {
                                 border:`1px solid rgba(37,99,235,0.18)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                                 <Check/>
                               </div>
-                              <span style={{fontFamily:SANS,fontSize:"0.875rem",color:FG2,fontWeight:500}}>{it}</span>
+                              <span style={{fontFamily:BODY,fontSize:"0.875rem",color:FG2,fontWeight:500}}>{it}</span>
                             </li>
                           ))}
                         </ul>
@@ -1143,7 +1143,7 @@ export default function LandingPage() {
         <div style={{maxWidth:900,margin:"0 auto",position:"relative",zIndex:1}}>
           <FadeUp style={{marginBottom:"3.5rem"}}>
             <Heading italic="Ask" rest="anything." size="clamp(2.8rem,5vw,4rem)" light/>
-            <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.95rem",
+            <p style={{fontFamily:BODY,fontWeight:300,fontSize:"0.95rem",
               color:"rgba(255,255,255,0.48)",lineHeight:1.95,maxWidth:480,marginTop:"1.1rem"}}>
               Every answer is grounded in your personal scorecard, Quest history, and real-world progress. Not generic advice.
             </p>
@@ -1198,7 +1198,7 @@ export default function LandingPage() {
                             letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"0.85rem"}}>Insight</div>
                           <motion.p initial={{opacity:0,y:8}} animate={{opacity:1,y:0}}
                             transition={{duration:0.45,delay:0.1}}
-                            style={{fontFamily:SANS,fontWeight:400,fontSize:"0.875rem",
+                            style={{fontFamily:BODY,fontWeight:400,fontSize:"0.875rem",
                               color:FG,lineHeight:1.9}}>
                             {cur.r}
                           </motion.p>
@@ -1215,7 +1215,7 @@ export default function LandingPage() {
                                   borderRadius:10}}>
                                 <div style={{width:5,height:5,borderRadius:"50%",background:P,flexShrink:0,
                                   boxShadow:`0 0 6px rgba(37,99,235,0.5)`}}/>
-                                <span style={{fontFamily:SANS,fontSize:"0.82rem",fontWeight:500,color:FG2}}>{tag}</span>
+                                <span style={{fontFamily:BODY,fontSize:"0.82rem",fontWeight:500,color:FG2}}>{tag}</span>
                               </motion.div>
                             ))}
                           </div>
@@ -1240,7 +1240,7 @@ export default function LandingPage() {
             <FadeUp style={{flex:"0 0 36%"}}>
               <Label>Mentorable AI</Label>
               <Heading italic="Grow" rest="your potential." size="clamp(2.4rem,4vw,3.2rem)"/>
-              <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.95rem",color:FG3,
+              <p style={{fontFamily:BODY,fontWeight:300,fontSize:"0.95rem",color:FG3,
                 lineHeight:1.95,marginTop:"1.25rem",maxWidth:360}}>
                 Mentorable AI synthesizes your voice interview, scorecard, and real-world progress to guide you toward any career domain, and many more beyond these eight.
               </p>
@@ -1268,7 +1268,7 @@ export default function LandingPage() {
         <div style={{maxWidth:1100,margin:"0 auto"}}>
           <FadeUp style={{marginBottom:"4.5rem"}}>
             <Heading italic="Plan" rest="your path." size="clamp(2.8rem,5vw,4rem)"/>
-            <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.95rem",color:FG3,
+            <p style={{fontFamily:BODY,fontWeight:300,fontSize:"0.95rem",color:FG3,
               lineHeight:1.95,maxWidth:500,marginTop:"1.1rem"}}>
               Model your future, from college applications to first jobs, and see how every action moves you closer to your goals.
             </p>
@@ -1304,7 +1304,7 @@ export default function LandingPage() {
                     background:`rgba(37,99,235,0.06)`}}>{post.tag}</div>
                 </div>
                 <div style={{padding:"1.4rem",flex:1,display:"flex",flexDirection:"column",gap:14}}>
-                  <p style={{fontFamily:SANS,fontWeight:500,fontSize:"0.875rem",color:FG,lineHeight:1.55,flex:1}}>{post.title}</p>
+                  <p style={{fontFamily:BODY,fontWeight:500,fontSize:"0.875rem",color:FG,lineHeight:1.55,flex:1}}>{post.title}</p>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                     <span style={{fontFamily:SANS,fontSize:"0.7rem",color:FG3}}>{post.date}</span>
                     <span style={{fontFamily:SANS,fontSize:"0.72rem",color:P,display:"flex",alignItems:"center",gap:4,fontWeight:600}}>
@@ -1326,12 +1326,12 @@ export default function LandingPage() {
         <div style={{maxWidth:520,margin:"0 auto",textAlign:"center"}}>
           <FadeUp>
             <h3 style={{fontFamily:SANS,fontWeight:300,fontSize:"2rem",color:FG,marginBottom:"0.75rem",letterSpacing:"-0.02em"}}>Stay in the loop</h3>
-            <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.9rem",color:FG3,lineHeight:1.9,marginBottom:"1.75rem"}}>
+            <p style={{fontFamily:BODY,fontWeight:300,fontSize:"0.9rem",color:FG3,lineHeight:1.9,marginBottom:"1.75rem"}}>
               Sign up for updates on new features, career insights, and Mentorable news.
             </p>
             <div style={{display:"flex",gap:8}}>
               <input type="email" placeholder="Enter your email"
-                style={{flex:1,fontFamily:SANS,fontSize:"0.875rem",padding:"0.85rem 1.1rem",borderRadius:999,
+                style={{flex:1,fontFamily:BODY,fontSize:"0.875rem",padding:"0.85rem 1.1rem",borderRadius:999,
                   background:BG3,border:`1px solid ${BDR}`,color:FG,outline:"none",
                   boxShadow:`0 2px 20px rgba(37,99,235,0.08)`}}/>
               <GradBtn onClick={()=>{}}>Subscribe</GradBtn>
@@ -1349,7 +1349,7 @@ export default function LandingPage() {
           <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",gap:"3rem",marginBottom:"3rem"}}>
             <div>
               <div style={{fontFamily:SANS,fontWeight:700,fontSize:"1.05rem",color:"#fff",marginBottom:"0.75rem",letterSpacing:"-0.03em"}}>mentorable</div>
-              <p style={{fontFamily:SANS,fontWeight:300,fontSize:"0.8rem",color:"rgba(255,255,255,0.6)",lineHeight:1.85,maxWidth:240}}>
+              <p style={{fontFamily:BODY,fontWeight:300,fontSize:"0.8rem",color:"rgba(255,255,255,0.6)",lineHeight:1.85,maxWidth:240}}>
                 AI-powered career guidance for high school students.
               </p>
             </div>
