@@ -648,10 +648,10 @@ function Navbar() {
       borderBottom: sc ? `1px solid ${BDR}` : "1px solid transparent",
       boxShadow: sc ? "0 2px 30px rgba(37,99,235,0.08)" : "none",
       transition: "background .4s, box-shadow .4s, border-color .4s" }}>
-      <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", letterSpacing: "-0.03em", color: sc ? P : "#fff", transition: "color .4s" }}>mentorable</div>
+      <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", letterSpacing: "-0.03em", color: P, transition: "color .4s" }}>mentorable</div>
       <div style={{ display: "flex", alignItems: "center", gap: "1.1rem" }}>
         <button onClick={() => go("/auth")} style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 500,
-          color: sc ? MUT : "rgba(255,255,255,0.78)", background: "transparent", border: "none", cursor: "pointer",
+          color: "#1a1a1a", background: "transparent", border: "none", cursor: "pointer",
           transition: "color .2s" }}>Log In</button>
         <SolidBtn onClick={() => go("/auth")} style={{ padding: "0.7rem 1.4rem", fontSize: "0.85rem" }}>Get Started <ArrowRight/></SolidBtn>
       </div>
@@ -878,11 +878,13 @@ export default function LandingPage() {
           visual={<SkillRadar/>}
           flip={true}/>
 
-        <FeatureRow
-          label="Step 03" italic="Your" rest="personalized path."
-          body="AI-generated next steps tailored to where you are right now. Complete them, swap them out, and watch your path take shape."
-          visual={<PhoneQuest/>}
-          flip={false}/>
+        <div style={{ marginTop: "-6.5rem" }}>
+          <FeatureRow
+            label="Step 03" italic="Your" rest="personalized path."
+            body="AI-generated next steps tailored to where you are right now. Complete them, swap them out, and watch your path take shape."
+            visual={<PhoneQuest/>}
+            flip={false}/>
+        </div>
       </div>
 
       {/* Step 04 — centered climax */}
