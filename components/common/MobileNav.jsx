@@ -25,17 +25,6 @@ const NAV_ITEMS = [
     ),
   },
   {
-    key: "mind",
-    label: "Mind",
-    path: "/mind",
-    icon: (_active) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.07-3.33A3 3 0 0 1 4.46 8.1a3 3 0 0 1 .5-5.6A2.5 2.5 0 0 1 9.5 2Z"/>
-        <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.07-3.33A3 3 0 0 0 19.54 8.1a3 3 0 0 0-.5-5.6A2.5 2.5 0 0 0 14.5 2Z"/>
-      </svg>
-    ),
-  },
-  {
     key: "research",
     label: "Research",
     path: "/research",

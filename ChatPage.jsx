@@ -790,7 +790,6 @@ export default function ChatPage({ navigate }) {
       deletedQuestTitles,
       recentResearch,
       chatTopics,
-      mindNotes: profile?.mind_notes || [],
     });
   }, [profile, completedQuests, activeQuests, deletedQuestTitles, recentResearch, sessions]);
 
