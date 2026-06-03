@@ -226,6 +226,7 @@ export default function ContextPage({ navigate }) {
       fontFamily: FONT,
     }}>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@400;500;600;700;800&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         .ctx-h2     { display:block; font-weight:700; font-size:0.875rem; color:${BLUE}; letter-spacing:-0.01em; margin-bottom:0.1rem; }
         .ctx-bullet { display:block; padding-left:1.1rem; }
@@ -245,10 +246,10 @@ export default function ContextPage({ navigate }) {
         {/* ── Header ── */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1.75rem" }}>
           <div>
-            <h1 style={{ fontFamily: FONT, fontSize: "1.7rem", fontWeight: 800, color: "#141413", letterSpacing: "-0.03em", lineHeight: 1 }}>
+            <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(2rem, 3vw, 2.6rem)", color: "#141413", lineHeight: 1.1, letterSpacing: "-0.02em" }}>
               Context
             </h1>
-            <p style={{ fontFamily: FONT, fontSize: "0.84rem", color: "#8e8b82", marginTop: "0.4rem", lineHeight: 1.5 }}>
+            <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: "#6c6a64", marginTop: "0.4rem", lineHeight: 1.75, fontWeight: 500 }}>
               Everything Mentora knows about you.{" "}
               <span style={{ color: "#b0aaa2" }}>
                 {isMobile ? "Tap a section to add a note." : "Select any text to annotate."}
