@@ -339,7 +339,12 @@ export default function ContextPage({ navigate }) {
                         {SECTION_LABELS[section.id] || section.id}
                       </span>
                       {hasStale && (
-                        <span title="One or more replacements may be outdated" style={{ fontSize: "0.72rem", lineHeight: 1 }}>⚠️</span>
+                        <span title="One or more replacements may be outdated" style={{ color: "#f59e0b", display: "flex" }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                          </svg>
+                        </span>
                       )}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -387,7 +392,12 @@ export default function ContextPage({ navigate }) {
                       onMouseEnter={e => { e.currentTarget.style.background = "rgba(253,224,71,0.22)"; }}
                       onMouseLeave={e => { e.currentTarget.style.background = "rgba(253,224,71,0.12)"; }}
                     >
-                      <span style={{ fontSize: "0.7rem", marginTop: "0.1rem", flexShrink: 0 }}>📝</span>
+                      <span style={{ color: "#92400e", display: "flex", marginTop: "0.15rem", flexShrink: 0 }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </span>
                       <span style={{ fontFamily: FONT, fontSize: "0.8rem", color: "#374151", lineHeight: 1.5 }}>
                         {ann.annotation_text}
                       </span>
@@ -514,7 +524,19 @@ function AnnotationPopover({ popover, form, setForm, onSave, onDelete, onClose, 
               cursor: "pointer", fontFamily: FONT, transition: "all 0.12s",
             }}
           >
-            {type === "note" ? "📝 Note" : "✏️ Replace"}
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+              {type === "note" ? (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                </svg>
+              )}
+              {type === "note" ? "Note" : "Replace"}
+            </span>
           </button>
         ))}
       </div>
@@ -601,64 +623,170 @@ function AnnotationPopover({ popover, form, setForm, onSave, onDelete, onClose, 
 
 // ─── Help Modal ───────────────────────────────────────────────────────────────
 
-function HelpModal({ onClose }) {
-  const steps = [
-    { icon: "👁️", title: "See what Mentora knows", body: "Every section on this page is part of the context Mentora receives in every conversation — your profile, quests, research, and more." },
-    { icon: "📝", title: "Add notes", body: "On desktop, select any text and choose Note. On mobile, tap + Note on a section. Notes add context without changing the original." },
-    { icon: "✏️", title: "Correct mistakes", body: "Select text and choose Replace to swap out something Mentora got wrong. The corrected version is used instead." },
-    { icon: "⚠️", title: "Stale replacements", body: "If your profile updates and a replacement no longer matches, you'll see a warning badge. Tap it to review." },
-    { icon: "🔄", title: "Applied to every chat", body: "Annotations take effect immediately in all new conversations with Mentora." },
-  ];
+const HELP_STEPS = [
+  {
+    title: "What you're looking at",
+    body: "Every section here is exactly what Mentora sees before each conversation — your profile, quests, research, and more.",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+      </svg>
+    ),
+    accent: "#1d4ed8",
+    bg: "rgba(29,78,216,0.07)",
+  },
+  {
+    title: "Select text to annotate",
+    body: "On desktop, drag to highlight any text, then choose Note or Replace. On mobile, tap + Note on any section.",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+    ),
+    accent: "#7c3aed",
+    bg: "rgba(124,58,237,0.07)",
+  },
+  {
+    title: "Notes vs. Replacements",
+    body: "A Note adds context alongside the original — shown in yellow. A Replace swaps the text entirely — shown as strikethrough + correction in green.",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+      </svg>
+    ),
+    accent: "#0891b2",
+    bg: "rgba(8,145,178,0.07)",
+  },
+  {
+    title: "Edit or delete anytime",
+    body: "Click any highlighted span to reopen its popover. Update the text or hit the trash icon to remove it.",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+      </svg>
+    ),
+    accent: "#dc2626",
+    bg: "rgba(220,38,38,0.06)",
+  },
+  {
+    title: "Live in every conversation",
+    body: "Annotations are injected into Mentora's context immediately — no need to restart a chat.",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+    ),
+    accent: "#059669",
+    bg: "rgba(5,150,105,0.07)",
+  },
+];
 
+function HelpModal({ onClose }) {
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       transition={{ duration: 0.15 }}
-      style={{ position: "fixed", inset: 0, zIndex: 600, background: "rgba(15,23,42,0.48)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}
+      style={{ position: "fixed", inset: 0, zIndex: 600, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.96, opacity: 0 }}
-        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+        initial={{ scale: 0.95, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 12 }}
+        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
         onClick={e => e.stopPropagation()}
         style={{
-          background: "#fff", borderRadius: "1rem",
-          padding: "1.75rem", width: "100%", maxWidth: 410,
-          boxShadow: "0 25px 60px rgba(0,0,0,0.18)",
-          fontFamily: FONT,
+          background: "#faf9f5", borderRadius: "1.25rem",
+          width: "100%", maxWidth: 440,
+          boxShadow: "0 32px 72px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.06)",
+          fontFamily: FONT, overflow: "hidden",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
-          <h2 style={{ fontSize: "1rem", fontWeight: 800, color: "#141413" }}>How Context works</h2>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#8e8b82", padding: 4, display: "flex" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        {/* Header band */}
+        <div style={{
+          background: BLUE, padding: "1.25rem 1.5rem",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
+          <div>
+            <p style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", marginBottom: "0.2rem" }}>
+              Guide
+            </p>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "1.45rem", fontWeight: 600, color: "#fff", lineHeight: 1.1, letterSpacing: "-0.01em" }}>
+              How Context works
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: "rgba(255,255,255,0.12)", border: "none", cursor: "pointer",
+              color: "rgba(255,255,255,0.8)", padding: 8, borderRadius: "0.5rem",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background 0.12s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.22)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
         </div>
 
-        {steps.map(({ icon, title, body }) => (
-          <div key={title} style={{ display: "flex", gap: "0.8rem", marginBottom: "0.9rem" }}>
-            <span style={{ fontSize: "1rem", flexShrink: 0, marginTop: 2 }}>{icon}</span>
-            <div>
-              <p style={{ fontWeight: 700, fontSize: "0.84rem", color: "#141413", marginBottom: "0.15rem" }}>{title}</p>
-              <p style={{ fontSize: "0.79rem", color: "#6b7280", lineHeight: 1.55 }}>{body}</p>
-            </div>
-          </div>
-        ))}
+        {/* Steps */}
+        <div style={{ padding: "1.25rem 1.5rem 1rem" }}>
+          {HELP_STEPS.map(({ title, body, icon, accent, bg }, i) => (
+            <motion.div
+              key={title}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: 0.05 + i * 0.055, ease: [0.22, 1, 0.36, 1] }}
+              style={{ display: "flex", gap: "0.875rem", marginBottom: i < HELP_STEPS.length - 1 ? "0.75rem" : 0 }}
+            >
+              {/* Step number + icon column */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                <div style={{
+                  width: 34, height: 34, borderRadius: "0.625rem",
+                  background: bg, color: accent,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  {icon}
+                </div>
+                {i < HELP_STEPS.length - 1 && (
+                  <div style={{ width: 1, flex: 1, minHeight: 10, background: "rgba(0,0,0,0.07)", marginTop: 4 }} />
+                )}
+              </div>
 
-        <button
-          onClick={onClose}
-          style={{
-            width: "100%", marginTop: "0.5rem", padding: "0.7rem",
-            background: BLUE, border: "none", borderRadius: "0.75rem",
-            color: "white", fontWeight: 700, fontSize: "0.875rem",
-            cursor: "pointer", fontFamily: FONT,
-          }}
-        >
-          Got it
-        </button>
+              {/* Content */}
+              <div style={{ paddingBottom: i < HELP_STEPS.length - 1 ? "0.75rem" : 0 }}>
+                <p style={{ fontWeight: 700, fontSize: "0.84rem", color: "#141413", marginBottom: "0.2rem", lineHeight: 1.3 }}>
+                  {title}
+                </p>
+                <p style={{ fontSize: "0.79rem", color: "#6b7280", lineHeight: 1.6 }}>
+                  {body}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "0 1.5rem 1.5rem" }}>
+          <button
+            onClick={onClose}
+            style={{
+              width: "100%", padding: "0.75rem",
+              background: "#141413", border: "none", borderRadius: "0.75rem",
+              color: "white", fontWeight: 700, fontSize: "0.875rem",
+              cursor: "pointer", fontFamily: FONT,
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = BLUE; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "#141413"; }}
+          >
+            Got it
+          </button>
+        </div>
       </motion.div>
     </motion.div>
   );
