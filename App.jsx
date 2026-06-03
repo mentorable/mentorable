@@ -7,13 +7,14 @@ import ChatPage from "./ChatPage.jsx";
 import ProfilePage from "./ProfilePage.jsx";
 import ResearchPage from "./ResearchPage.jsx";
 import RoadmapPage from "./RoadmapPage.jsx";
+import ContextPage from "./ContextPage.jsx";
 import Sidebar from "./components/common/Sidebar.jsx";
 import MobileNav from "./components/common/MobileNav.jsx";
 import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
 // Routes that show the persistent sidebar
-const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/research", "/quest"];
+const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/research", "/quest", "/context"];
 
 function AppShell({ children }) {
   const location = useLocation();
@@ -65,6 +66,11 @@ function QuestRoute() {
   return <RoadmapPage navigate={navigate} />;
 }
 
+function ContextRoute() {
+  const navigate = useNavigate();
+  return <ContextPage navigate={navigate} />;
+}
+
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -79,6 +85,7 @@ export default function App() {
         <Route path="/research/:sessionId" element={<ResearchRoute />} />
         <Route path="/research" element={<ResearchRoute />} />
         <Route path="/quest" element={<ErrorBoundary><QuestRoute /></ErrorBoundary>} />
+        <Route path="/context" element={<ContextRoute />} />
         <Route path="/roadmap" element={<Navigate to="/quest" replace />} />
         <Route path="/roadmap/*" element={<Navigate to="/quest" replace />} />
         <Route path="/roadmap-preview" element={<Navigate to="/quest" replace />} />
