@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS usage_tracking (
 
 ALTER TABLE usage_tracking ENABLE ROW LEVEL SECURITY;
 
--- Users can only read their own row; writes happen via SECURITY DEFINER RPC only
+DROP POLICY IF EXISTS "users read own usage" ON usage_tracking;
 CREATE POLICY "users read own usage"
   ON usage_tracking FOR SELECT
   USING (auth.uid() = user_id);
