@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useInView, useScroll, useTransform, useSpring 
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 const SANS = "'Space Grotesk', sans-serif";
-const BODY = "'Plus Jakarta Sans', sans-serif";
+const BODY = "'Space Grotesk', sans-serif";
 const MONO = "'Roboto Mono', monospace";
 const P    = "#1d4ed8";
 const B2   = "#2563eb";
@@ -842,7 +842,7 @@ export default function LandingPage() {
   return (
     <div style={{ background: BG, minHeight: "100vh", color: FG, fontFamily: BODY, overflowX: "hidden" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Roboto+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap');
         html,body { overflow-x: hidden; max-width: 100%; }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         ::selection { background: rgba(37,99,235,0.25); }

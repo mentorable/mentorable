@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
+import { fetchUsage, LIMITS } from "./lib/usage.js";
+import LimitModal from "./components/common/LimitModal.jsx";
 import Drawer from "./components/common/Drawer.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
@@ -653,12 +655,15 @@ export default function ResearchPage({ navigate, initialSessionId }) {
   const [sessions, setSessions]         = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(initialSessionId || null);
   const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [researchUsed, setResearchUsed] = useState(0);
+  const [limitModal, setLimitModal]     = useState(false);
   const isMobile = useIsMobile();
 
   const stepTimerRef = useRef(null);
 
   useEffect(() => {
     loadSessions();
+    fetchUsage(supabase).then((u) => setResearchUsed(u.research_queries_used));
   }, []);
 
   // Load a session from URL param on mount
@@ -742,7 +747,11 @@ export default function ResearchPage({ navigate, initialSessionId }) {
         headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
       });
 
-      if (fnError || data?.error) throw new Error(data?.error || fnError?.message || "Research failed");
+      if (fnError || data?.error) {
+        const msg = data?.error || fnError?.message || "Research failed";
+        if (msg === 'LIMIT_REACHED') { setLimitModal(true); setResearchUsed(LIMITS.research); return; }
+        throw new Error(msg);
+      }
 
       setResults(data.results || []);
       setSources(data.sources || []);
@@ -864,6 +873,17 @@ export default function ResearchPage({ navigate, initialSessionId }) {
         )}
 
         <SearchBar value={query} onChange={setQuery} onSubmit={handleSearch} loading={loading} />
+        {(() => {
+          const left = Math.max(0, LIMITS.research - researchUsed);
+          return (
+            <div style={{ textAlign: "right", marginTop: 6, marginBottom: 4 }}>
+              <span style={{ fontFamily: FONT, fontSize: 11, fontWeight: 600,
+                color: left <= 1 ? "#dc2626" : "#9ca3af" }}>
+                {left === 0 ? "No research queries remaining" : `${left} research quer${left === 1 ? "y" : "ies"} remaining`}
+              </span>
+            </div>
+          );
+        })()}
 
         <AnimatePresence>
           {error && (
@@ -906,6 +926,8 @@ export default function ResearchPage({ navigate, initialSessionId }) {
           {sessionsPanel}
         </Drawer>
       )}
+
+      {limitModal && <LimitModal feature="research" onClose={() => setLimitModal(false)} />}
     </div>
   );
 }

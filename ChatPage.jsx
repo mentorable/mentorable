@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
 import { buildSystemPrompt, streamChatResponse } from "./lib/mentora.js";
 import { getCache, setCache, getKnownUserId, setKnownUserId } from "./lib/cache.js";
+import { fetchUsage, LIMITS } from "./lib/usage.js";
+import LimitModal from "./components/common/LimitModal.jsx";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import Drawer from "./components/common/Drawer.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
@@ -668,7 +670,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
 
 // ─── ChatMain ─────────────────────────────────────────────────────────────────
 
-function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, onOpenHistory }) {
+function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, onOpenHistory, chatUsed = 0 }) {
   const bottomRef = useRef(null);
   const isNew = activeChatId === null;
 
@@ -753,6 +755,18 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
         )}
       </div>
 
+      {/* Usage counter */}
+      {(() => {
+        const left = Math.max(0, LIMITS.chat - chatUsed);
+        return (
+          <div style={{ padding: "4px 16px 6px", textAlign: "center" }}>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 11, fontWeight: 600,
+              color: left <= 3 ? "#dc2626" : "#9ca3af" }}>
+              {left === 0 ? "No messages remaining" : `${left} message${left === 1 ? "" : "s"} remaining`}
+            </span>
+          </div>
+        );
+      })()}
       <InputBar onSend={onSend} disabled={disabled} />
     </div>
   );
@@ -774,6 +788,8 @@ export default function ChatPage({ navigate }) {
   const [streaming, setStreaming]     = useState(false);
   const [chatError, setChatError]     = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [chatUsed, setChatUsed]       = useState(0);
+  const [limitModal, setLimitModal]   = useState(false);
   const isMobile = useIsMobile();
 
   const skipHydrationRef = useRef(false);
@@ -836,6 +852,9 @@ export default function ChatPage({ navigate }) {
       if (annsRes.data) {
         setAnnotations(annsRes.data);     setCache(`annotations:${uid}`, annsRes.data);
       }
+
+      // Load lifetime usage
+      fetchUsage(supabase).then((u) => setChatUsed(u.chat_messages_used));
     });
   }, []);
 
@@ -925,8 +944,13 @@ export default function ChatPage({ navigate }) {
     } catch (err) {
       skipHydrationRef.current = false;
       setMessages((prev) => prev.filter((m) => m.id !== aiMsgId));
-      setChatError("The agent couldn't respond right now. Please try again.");
       setStreaming(false);
+      if (err?.message?.includes('LIMIT_REACHED') || err?.message?.includes('429')) {
+        setLimitModal(true);
+        setChatUsed(LIMITS.chat);
+      } else {
+        setChatError("The agent couldn't respond right now. Please try again.");
+      }
       await supabase.from("chat_sessions").update({
         messages: withUser, updated_at: new Date().toISOString(),
       }).eq("id", sessionId);
@@ -969,11 +993,12 @@ export default function ChatPage({ navigate }) {
         <ChatMain
           activeChatId={activeChatId}
           messages={messages}
-          disabled={streaming}
+          disabled={streaming || chatUsed >= LIMITS.chat}
           onSend={handleSend}
           userName={profile?.full_name || ""}
           error={chatError}
           onOpenHistory={isMobile ? () => setHistoryOpen(true) : null}
+          chatUsed={chatUsed}
         />
         {!isMobile && historyPanel}
       </div>
@@ -984,6 +1009,8 @@ export default function ChatPage({ navigate }) {
           {historyPanel}
         </Drawer>
       )}
+
+      {limitModal && <LimitModal feature="chat" onClose={() => setLimitModal(false)} />}
     </>
   );
 }

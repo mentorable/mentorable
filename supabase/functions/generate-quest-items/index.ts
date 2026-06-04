@@ -44,6 +44,17 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // ── Rate limit check ────────────────────────────────────────────────────
+    const QUEST_GEN_LIMIT = 3
+    const { data: usage, error: usageErr } = await supabase.rpc('check_and_increment_usage', {
+      p_user_id: user.id,
+      p_feature: 'quest_gen',
+      p_limit: QUEST_GEN_LIMIT,
+    })
+    if (usageErr || !usage?.allowed) {
+      return json({ error: 'LIMIT_REACHED', feature: 'quest_gen', used: usage?.used ?? QUEST_GEN_LIMIT, limit: QUEST_GEN_LIMIT }, 429)
+    }
+
     const body = await req.json().catch(() => ({}))
     const count = Math.min(Math.max(parseInt(body.count) || 3, 1), 5)
 

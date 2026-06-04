@@ -10,6 +10,24 @@ const FONT = "'Inter', -apple-system, sans-serif";
 const BG   = "#faf9f5";
 const BLUE = "#1d4ed8";
 
+// ─── Section icons + accent colours ──────────────────────────────────────────
+
+const SECTION_META = {
+  student_profile:    { color: "#1d4ed8", bg: "rgba(29,78,216,0.08)",   icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
+  summary:            { color: "#7c3aed", bg: "rgba(124,58,237,0.08)",  icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
+  strengths:          { color: "#0891b2", bg: "rgba(8,145,178,0.08)",   icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> },
+  growth_areas:       { color: "#059669", bg: "rgba(5,150,105,0.08)",   icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> },
+  interests:          { color: "#db2777", bg: "rgba(219,39,119,0.08)",  icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> },
+  work_style:         { color: "#d97706", bg: "rgba(217,119,6,0.08)",   icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg> },
+  career_matches:     { color: "#1d4ed8", bg: "rgba(29,78,216,0.08)",   icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> },
+  agent_instructions: { color: "#6d28d9", bg: "rgba(109,40,217,0.08)",  icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg> },
+  completed_quests:   { color: "#059669", bg: "rgba(5,150,105,0.08)",   icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> },
+  active_quests:      { color: "#d97706", bg: "rgba(217,119,6,0.08)",   icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+  dismissed_quests:   { color: "#9ca3af", bg: "rgba(156,163,175,0.08)", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> },
+  recent_research:    { color: "#0891b2", bg: "rgba(8,145,178,0.08)",   icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> },
+  chat_topics:        { color: "#7c3aed", bg: "rgba(124,58,237,0.08)",  icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
+};
+
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 function escapeHtml(s) {
@@ -49,11 +67,15 @@ function buildAnnotatedHtml(rawContent, sectionAnnotations) {
 
   html = html.split("\n").map(line => {
     if (line.startsWith("## "))
-      return `<span class="ctx-h2">${line.slice(3)}</span>`;
+      return `<span class="ctx-h2-hidden"></span>`;
     if (line.startsWith("- "))
-      return `<span class="ctx-bullet">• ${line.slice(2)}</span>`;
+      return `<span class="ctx-bullet"><span class="ctx-dot"></span><span>${line.slice(2)}</span></span>`;
     if (line.trim() === "")
       return `<span class="ctx-blank"></span>`;
+    // Key: Value pattern (key is ≤ 30 chars, no colon in key)
+    const kv = line.match(/^([^:]{2,30}):\s+(.+)$/);
+    if (kv)
+      return `<span class="ctx-kv"><span class="ctx-key">${kv[1]}</span><span class="ctx-sep">:</span><span class="ctx-val"> ${kv[2]}</span></span>`;
     return `<span class="ctx-line">${line}</span>`;
   }).join("\n");
 
@@ -228,14 +250,19 @@ export default function ContextPage({ navigate }) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@400;500;600;700;800&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        .ctx-h2     { display:block; font-weight:700; font-size:0.875rem; color:${BLUE}; letter-spacing:-0.01em; margin-bottom:0.1rem; }
-        .ctx-bullet { display:block; padding-left:1.1rem; }
-        .ctx-line   { display:block; }
-        .ctx-blank  { display:block; height:0.3rem; }
-        .ctx-note   { background:rgba(253,224,71,0.55); cursor:pointer; border-radius:2px; padding:0 1px; transition:background 0.12s; }
+        .ctx-h2-hidden { display:none; }
+        .ctx-kv   { display:flex; align-items:baseline; gap:0; padding:0.18rem 0; flex-wrap:wrap; }
+        .ctx-key  { font-weight:600; color:#141413; font-size:0.875rem; }
+        .ctx-sep  { color:#9ca3af; font-weight:400; margin-right:0.3rem; }
+        .ctx-val  { color:#4b5563; font-size:0.875rem; }
+        .ctx-bullet { display:flex; align-items:baseline; gap:0.55rem; padding:0.22rem 0; }
+        .ctx-dot  { display:inline-block; width:4px; height:4px; border-radius:50%; background:currentColor; opacity:0.35; flex-shrink:0; margin-bottom:2px; }
+        .ctx-line { display:block; padding:0.15rem 0; font-size:0.875rem; color:#4b5563; line-height:1.7; }
+        .ctx-blank { display:block; height:0.25rem; }
+        .ctx-note   { background:rgba(253,224,71,0.55); cursor:pointer; border-radius:2px; padding:0 2px; transition:background 0.12s; }
         .ctx-note:hover { background:rgba(253,224,71,0.88); }
         .ctx-replace { cursor:pointer; }
-        .ctx-replace del { background:rgba(254,202,202,0.65); text-decoration:line-through; color:#dc2626; border-radius:2px; padding:0 1px; }
+        .ctx-replace del { background:rgba(254,202,202,0.65); text-decoration:line-through; color:#dc2626; border-radius:2px; padding:0 2px; }
         .ctx-replace ins { text-decoration:none; color:#16a34a; font-weight:600; margin-left:3px; }
         .ctx-replace:hover del { background:rgba(254,202,202,0.92); }
         ::selection { background:rgba(59,130,246,0.18); }

@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const CHAT_LIMIT = 15
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -30,6 +32,23 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
+    }
+
+    // ── Rate limit check ────────────────────────────────────────────────────
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+    const { data: usage, error: usageErr } = await serviceClient.rpc('check_and_increment_usage', {
+      p_user_id: user.id,
+      p_feature: 'chat',
+      p_limit: CHAT_LIMIT,
+    })
+    if (usageErr || !usage?.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'LIMIT_REACHED', feature: 'chat', used: usage?.used ?? CHAT_LIMIT, limit: CHAT_LIMIT }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     const { systemPrompt, messages } = await req.json()

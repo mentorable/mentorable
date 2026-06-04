@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./lib/supabase.js";
 import { getCache, setCache, getKnownUserId, setKnownUserId } from "./lib/cache.js";
+import { fetchUsage, LIMITS } from "./lib/usage.js";
+import LimitModal from "./components/common/LimitModal.jsx";
 import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
@@ -470,6 +472,8 @@ export default function RoadmapPage({ navigate }) {
   const [showPicker, setShowPicker]   = useState(false);
   const [mobileTab, setMobileTab]     = useState("suggested");
   const [dismissingId, setDismissingId] = useState(null);
+  const [questGenUsed, setQuestGenUsed] = useState(0);
+  const [limitModal, setLimitModal]     = useState(false);
   const userIdRef = useRef(null);
 
   // ── Data loading ────────────────────────────────────────────────────────────
@@ -498,6 +502,7 @@ export default function RoadmapPage({ navigate }) {
       userIdRef.current = user.id;
 
       await loadItems(user.id);
+      fetchUsage(supabase).then((u) => setQuestGenUsed(u.quest_generations_used));
       if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -509,9 +514,15 @@ export default function RoadmapPage({ navigate }) {
     setGenerating(true);
     setShowPicker(false);
     try {
-      const { error } = await supabase.functions.invoke("generate-quest-items", { body: { count } });
+      const { data, error } = await supabase.functions.invoke("generate-quest-items", { body: { count } });
+      if (data?.error === 'LIMIT_REACHED' || error?.message?.includes('LIMIT_REACHED')) {
+        setLimitModal(true);
+        setQuestGenUsed(LIMITS.quest_gen);
+        return;
+      }
       if (error) throw error;
       await loadItems(userIdRef.current);
+      setQuestGenUsed((prev) => Math.min(prev + 1, LIMITS.quest_gen));
     } catch (e) {
       console.error("[Quest] generate error:", e);
     } finally {
@@ -665,7 +676,7 @@ export default function RoadmapPage({ navigate }) {
           {mobileTab === "suggested" && (
             <div style={{ marginBottom: 14 }}>
               <button
-                onClick={() => setShowPicker(v => !v)}
+                onClick={() => questGenUsed >= LIMITS.quest_gen ? setLimitModal(true) : setShowPicker(v => !v)}
                 disabled={generating}
                 style={{
                   width: "100%", fontFamily: FONT, fontSize: 14, fontWeight: 700,
@@ -731,6 +742,17 @@ export default function RoadmapPage({ navigate }) {
                   </motion.div>
                 )}
               </AnimatePresence>
+              {(() => {
+                const left = Math.max(0, LIMITS.quest_gen - questGenUsed);
+                return (
+                  <div style={{ textAlign: "center", marginTop: 6 }}>
+                    <span style={{ fontFamily: FONT, fontSize: 11, fontWeight: 600,
+                      color: left === 0 ? "#dc2626" : "#9ca3af" }}>
+                      {left === 0 ? "No generations remaining" : `${left} generation${left === 1 ? "" : "s"} remaining`}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -885,7 +907,7 @@ export default function RoadmapPage({ navigate }) {
                 {isSugg && (
                   <div style={{ position: "relative" }}>
                     <button
-                      onClick={() => setShowPicker(v => !v)}
+                      onClick={() => questGenUsed >= LIMITS.quest_gen ? setLimitModal(true) : setShowPicker(v => !v)}
                       disabled={generating}
                       style={{
                         fontFamily: FONT, fontSize: 11, fontWeight: 700,
@@ -924,6 +946,15 @@ export default function RoadmapPage({ navigate }) {
                     </AnimatePresence>
                   </div>
                 )}
+                {isSugg && (() => {
+                  const left = Math.max(0, LIMITS.quest_gen - questGenUsed);
+                  return (
+                    <span style={{ fontFamily: FONT, fontSize: 10, fontWeight: 600,
+                      color: left === 0 ? "#dc2626" : "#9ca3af", whiteSpace: "nowrap" }}>
+                      {left === 0 ? "No generations left" : `${left} left`}
+                    </span>
+                  );
+                })()}
               </div>
 
               {/* Cards list */}
@@ -997,6 +1028,7 @@ export default function RoadmapPage({ navigate }) {
       />
 
       {celebrating && <Confetti />}
+      {limitModal && <LimitModal feature="quest_gen" onClose={() => setLimitModal(false)} />}
     </div>
   );
 }
