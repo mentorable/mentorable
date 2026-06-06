@@ -57,13 +57,15 @@ async def extract_signals(user_id: str, messages: list[dict]) -> None:
         )
 
         raw = response.content[0].text.strip()
-        # Strip markdown code fences if present
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
 
-        signals = json.loads(raw)
+        # Extract JSON object robustly — works regardless of markdown fences or prose
+        import re
+        match = re.search(r'\{[\s\S]*\}', raw)
+        if not match:
+            logger.info(f"[extract_signals] No JSON object found in response for {user_id}")
+            return
+
+        signals = json.loads(match.group(0))
         summary = signals.get("summary")
 
         if not summary:
