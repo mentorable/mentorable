@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from anthropic import AsyncAnthropic
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
@@ -164,14 +164,15 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
 
 class ResearchRequest(BaseModel):
     query: str
-    session_id: str
+    session_id: str = ""  # default so we can log missing values gracefully
 
 
 @app.post("/research")
-async def research(request: ResearchRequest, user_id: str = Depends(verify_jwt)):
+async def research(request: ResearchRequest, raw: Request, user_id: str = Depends(verify_jwt)):
+    logger.info(f"[research] body received: query={request.query!r} session_id={request.session_id!r}")
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query is required")
-    if not request.session_id:
+    if not request.session_id.strip():
         raise HTTPException(status_code=400, detail="session_id is required")
 
     # Rate limit check
