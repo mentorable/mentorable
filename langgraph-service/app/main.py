@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 
 from app.auth import verify_jwt
 from app.config import CORS_ORIGIN
-from app.db.checkpointer import lifespan_checkpointer
+from app.db.checkpointer import lifespan_checkpointer, checkpointer_status
 from app.db.supabase import get_supabase
 
 
@@ -35,7 +35,12 @@ app.add_middleware(
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "mentorable-langgraph", "version": "0.1.0"}
+    return {
+        "status": "ok",
+        "service": "mentorable-langgraph",
+        "version": "0.1.0",
+        "checkpointer": checkpointer_status(),
+    }
 
 
 # ── Profile probe (Sprint 1 verification endpoint) ────────────────────────────
