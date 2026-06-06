@@ -95,6 +95,18 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
     return sections
 
 
+def _inject_chat_signals(profile: dict, prompt: str) -> str:
+    """Append accumulated chat signals from previous sessions to the prompt."""
+    signals = profile.get("chat_signals")
+    if not signals or not isinstance(signals, list):
+        return prompt
+    recent = [s for s in signals if s and isinstance(s, str)][-10:]
+    if not recent:
+        return prompt
+    lines = "\n".join(f"- {s}" for s in recent)
+    return prompt + f"\n\n## Memory from Previous Conversations\nThings the student has shared across past sessions — treat these as known facts about them:\n{lines}"
+
+
 def build_system_prompt(profile: dict, data: dict) -> str:
     annotations   = data.get("annotations", [])
     name           = (profile.get("full_name") or "the student").strip() or "the student"
@@ -138,6 +150,7 @@ def build_system_prompt(profile: dict, data: dict) -> str:
         "- Do not mention that you have a \"system prompt\" or that you were \"given\" this information — you simply know them."
     )
 
+    prompt = _inject_chat_signals(profile, prompt)
     return prompt.strip()
 
 
