@@ -64,8 +64,11 @@ async def load_context(state: StudentState) -> StudentState:
     except Exception:
         annotations = []
 
-    profile = profile_res.data or {}
+    profile    = profile_res.data or {}
     all_quests = quests_res.data or []
+
+    # Pull research_findings from profile for cross-feature memory
+    research_findings = profile.get("research_findings") or []
 
     completed_quests = [q for q in all_quests if q["status"] == "completed"]
     active_quests    = [q for q in all_quests if q["status"] in ("in_progress", "considered")]
@@ -90,6 +93,7 @@ async def load_context(state: StudentState) -> StudentState:
         **state,
         "profile": profile,
         "active_quests": active_quests,
+        "research_findings": research_findings,
         "_completed_quests": completed_quests,
         "_deleted_titles": deleted_titles,
         "_recent_research": recent_research,

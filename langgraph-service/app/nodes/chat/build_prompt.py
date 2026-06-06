@@ -154,6 +154,20 @@ def build_system_prompt(profile: dict, data: dict) -> str:
     return prompt.strip()
 
 
+def _inject_research_findings(findings: list, prompt: str) -> str:
+    """Append top research findings from previous sessions into the system prompt."""
+    if not findings or not isinstance(findings, list):
+        return prompt
+    recent = findings[:5]
+    lines = "\n".join(
+        f"- {f.get('title', 'Unknown')} ({f.get('type', 'resource')}): {f.get('summary', '')[:120]}"
+        for f in recent if f.get("title")
+    )
+    if not lines:
+        return prompt
+    return prompt + f"\n\n## Research the Student Has Done\nOpportunities and resources they've looked into — reference these when relevant:\n{lines}"
+
+
 async def build_prompt(state: StudentState) -> StudentState:
     profile = state.get("profile") or {}
     data = {
@@ -165,4 +179,5 @@ async def build_prompt(state: StudentState) -> StudentState:
         "annotations":      state.get("_annotations", []),
     }
     system_prompt = build_system_prompt(profile, data)
+    system_prompt = _inject_research_findings(state.get("research_findings", []), system_prompt)
     return {**state, "_system_prompt": system_prompt}

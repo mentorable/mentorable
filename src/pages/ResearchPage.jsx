@@ -8,6 +8,7 @@ import Drawer from "../components/common/Drawer.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const FONT   = "'Inter', -apple-system, sans-serif";
+const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL; // reuse same base URL
 const BODY   = "'Inter', -apple-system, sans-serif";
 const NAVY   = "#141413";
 const BLUE   = "#1d4ed8";
@@ -742,10 +743,26 @@ export default function ResearchPage({ navigate, initialSessionId }) {
       navigate(`/research/${sessionId}`);
 
       const { data: { session } } = await supabase.auth.getSession();
-      const { data, error: fnError } = await supabase.functions.invoke("run-research", {
-        body: { query: query.trim(), sessionId },
-        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-      });
+
+      let data, fnError;
+      if (LANGGRAPH_URL) {
+        // Route through LangGraph FastAPI
+        const res = await fetch(`${LANGGRAPH_URL}/research`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
+          body: JSON.stringify({ query: query.trim(), session_id: sessionId }),
+        });
+        if (res.status === 429) { setLimitModal(true); setResearchUsed(LIMITS.research); return; }
+        if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.detail || "Research failed"); }
+        data = await res.json();
+      } else {
+        // Fall back to Supabase edge function
+        const result = await supabase.functions.invoke("run-research", {
+          body: { query: query.trim(), sessionId },
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        });
+        data = result.data; fnError = result.error;
+      }
 
       if (fnError || data?.error) {
         const msg = data?.error || fnError?.message || "Research failed";

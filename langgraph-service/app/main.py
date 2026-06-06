@@ -16,6 +16,7 @@ from app.db.checkpointer import get_checkpointer, lifespan_checkpointer, checkpo
 from app.db.supabase import get_supabase
 from app.graphs.chat import create_chat_graph
 from app.nodes.chat.extract_signals import extract_signals
+from app.nodes.research.run import run_research
 from app.rate_limit import check_rate_limit
 
 logger = logging.getLogger(__name__)
@@ -161,9 +162,29 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
 
 # ── Placeholder routes (Sprint 3–5) ───────────────────────────────────────────
 
+class ResearchRequest(BaseModel):
+    query: str
+    session_id: str
+
+
 @app.post("/research")
-async def research_placeholder(user_id: str = Depends(verify_jwt)):
-    return {"error": "Not implemented yet — Sprint 3", "user_id": user_id}
+async def research(request: ResearchRequest, user_id: str = Depends(verify_jwt)):
+    if not request.query.strip():
+        raise HTTPException(status_code=400, detail="Query is required")
+    if not request.session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
+
+    # Rate limit check
+    await check_rate_limit(user_id, "research")
+
+    try:
+        result = await run_research(user_id, request.query, request.session_id)
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        logger.error(f"[research] Unexpected error for {user_id}: {exc}")
+        raise HTTPException(status_code=500, detail="Research failed")
 
 
 @app.post("/quests/generate")
