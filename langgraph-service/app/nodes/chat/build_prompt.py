@@ -48,7 +48,7 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
         profile_lines.append(f"Location: {location}")
     sections.append({"id": "student_profile", "content": "## Student Profile\n" + "\n".join(profile_lines)})
 
-    if profile.get("onboarding_summary"):
+    if profile.get("onboarding_summary") or "":
         sections.append({"id": "summary", "content": f"About them: {profile['onboarding_summary']}"})
     if profile.get("strengths"):
         sections.append({"id": "strengths", "content": f"Strengths: {', '.join(profile['strengths'])}"})
@@ -56,12 +56,12 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
         sections.append({"id": "growth_areas", "content": f"Areas for growth: {', '.join(profile['weaknesses'])}"})
     if profile.get("interests"):
         sections.append({"id": "interests", "content": f"Interests: {', '.join(profile['interests'])}"})
-    if profile.get("work_style"):
+    if profile.get("work_style") or "":
         sections.append({"id": "work_style", "content": f"Work style: {profile['work_style']}"})
     if profile.get("career_matches"):
         sections.append({"id": "career_matches", "content": f"Top career matches: {', '.join(profile['career_matches'])}"})
-    if profile.get("agent_instructions", "").strip():
-        sections.append({"id": "agent_instructions", "content": f"## Custom Instructions\nThe student has asked Mentora to follow these guidelines:\n{profile['agent_instructions'].strip()}"})
+    if (profile.get("agent_instructions") or "").strip():
+        sections.append({"id": "agent_instructions", "content": f"## Custom Instructions\nThe student has asked Mentora to follow these guidelines:\n{(profile['agent_instructions'] or '').strip()}"})
 
     if completed_quests:
         from datetime import datetime
@@ -97,8 +97,8 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
 
 def build_system_prompt(profile: dict, data: dict) -> str:
     annotations   = data.get("annotations", [])
-    name          = profile.get("full_name") or "the student"
-    first_name    = name.split()[0]
+    name           = (profile.get("full_name") or "the student").strip() or "the student"
+    first_name     = name.split()[0]
     response_style = profile.get("agent_response_style") or "balanced"
     style_guide   = STYLE_GUIDE.get(response_style, "")
 
