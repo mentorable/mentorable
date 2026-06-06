@@ -160,26 +160,26 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
     )
 
 
-# ── Placeholder routes (Sprint 3–5) ───────────────────────────────────────────
-
-class ResearchRequest(BaseModel):
-    query: str
-    session_id: str = ""  # default so we can log missing values gracefully
-
-
 @app.post("/research")
-async def research(request: ResearchRequest, raw: Request, user_id: str = Depends(verify_jwt)):
-    logger.info(f"[research] body received: query={request.query!r} session_id={request.session_id!r}")
-    if not request.query.strip():
+async def research(raw: Request, user_id: str = Depends(verify_jwt)):
+    try:
+        body = await raw.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {exc}")
+
+    query      = (body.get("query") or "").strip()
+    session_id = (body.get("session_id") or body.get("sessionId") or "").strip()
+    logger.info(f"[research] keys={list(body.keys())} query={query!r} session_id={session_id!r}")
+
+    if not query:
         raise HTTPException(status_code=400, detail="Query is required")
-    if not request.session_id.strip():
+    if not session_id:
         raise HTTPException(status_code=400, detail="session_id is required")
 
-    # Rate limit check
     await check_rate_limit(user_id, "research")
 
     try:
-        result = await run_research(user_id, request.query, request.session_id)
+        result = await run_research(user_id, query, session_id)
         return result
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
