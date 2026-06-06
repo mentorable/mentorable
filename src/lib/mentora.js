@@ -148,6 +148,10 @@ function sanitizeInput(text) {
   return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
 }
 
+// Feature flag — set VITE_LANGGRAPH_CHAT_URL to route chat through FastAPI.
+// Leave empty to keep using the Supabase edge function.
+const LANGGRAPH_CHAT_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
+
 export async function streamChatResponse({ systemPrompt, history, onChunk, onDone }) {
   const anthropicMessages = history
     .filter((m) => m.content && m.content.trim())
@@ -167,19 +171,21 @@ export async function streamChatResponse({ systemPrompt, history, onChunk, onDon
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Not authenticated");
 
+  // Route to LangGraph FastAPI if flag is set, otherwise fall back to edge function.
+  const url = LANGGRAPH_CHAT_URL
+    ? `${LANGGRAPH_CHAT_URL}/chat`
+    : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+
+  const body = LANGGRAPH_CHAT_URL
+    ? JSON.stringify({ messages: normalized })           // LangGraph builds prompt server-side
+    : JSON.stringify({ systemPrompt, messages: normalized });
+
+  const headers = LANGGRAPH_CHAT_URL
+    ? { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` }
+    : { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}`, "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY };
+
   const res = await withRetry(
-    () => fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ systemPrompt, messages: normalized }),
-      }
-    ),
+    () => fetch(url, { method: "POST", headers, body }),
     { maxAttempts: 3, baseDelayMs: 500 }
   );
 
