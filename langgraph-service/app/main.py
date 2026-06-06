@@ -52,7 +52,7 @@ async def get_profile(user_id: str = Depends(verify_jwt)):
     supabase = get_supabase()
     result = (
         supabase.from_("profiles")
-        .select("id, full_name, email, grade_level, education_level, onboarding_completed, career_matches")
+        .select("id, full_name, grade_level, education_level, onboarding_completed, career_matches")
         .eq("id", user_id)
         .maybe_single()
         .execute()
