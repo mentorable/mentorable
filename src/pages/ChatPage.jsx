@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "./lib/supabase.js";
-import { buildSystemPrompt, streamChatResponse } from "./lib/mentora.js";
-import { getCache, setCache, getKnownUserId, setKnownUserId } from "./lib/cache.js";
-import { fetchUsage, LIMITS } from "./lib/usage.js";
-import LimitModal from "./components/common/LimitModal.jsx";
-import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
-import Drawer from "./components/common/Drawer.jsx";
-import { useIsMobile } from "./hooks/useIsMobile.js";
+import { supabase } from "../lib/supabase.js";
+import { buildSystemPrompt, streamChatResponse } from "../lib/mentora.js";
+import { getCache, setCache, getKnownUserId, setKnownUserId } from "../lib/cache.js";
+import { fetchUsage, LIMITS } from "../lib/usage.js";
+import LimitModal from "../components/common/LimitModal.jsx";
+import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
+import Drawer from "../components/common/Drawer.jsx";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const ACCENT  = "#3b82f6";
 const NAVY    = "#141413";

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { supabase } from "./lib/supabase.js";
-import { getCache, setCache, getKnownUserId, setKnownUserId } from "./lib/cache.js";
-import Spinner from "./components/common/Spinner.jsx";
-import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
+import { supabase } from "../lib/supabase.js";
+import { getCache, setCache, getKnownUserId, setKnownUserId } from "../lib/cache.js";
+import Spinner from "../components/common/Spinner.jsx";
+import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 
 // ─── Themes ───────────────────────────────────────────────────────────────────
 const themes = [

@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "./lib/supabase.js";
-import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
-import { fetchUsage, LIMITS } from "./lib/usage.js";
-import LimitModal from "./components/common/LimitModal.jsx";
-import Drawer from "./components/common/Drawer.jsx";
-import { useIsMobile } from "./hooks/useIsMobile.js";
+import { supabase } from "../lib/supabase.js";
+import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
+import { fetchUsage, LIMITS } from "../lib/usage.js";
+import LimitModal from "../components/common/LimitModal.jsx";
+import Drawer from "../components/common/Drawer.jsx";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const FONT   = "'Inter', -apple-system, sans-serif";
 const BODY   = "'Inter', -apple-system, sans-serif";

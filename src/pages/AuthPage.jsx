@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "./lib/supabase.js";
-import Spinner from "./components/common/Spinner.jsx";
+import { supabase } from "../lib/supabase.js";
+import Spinner from "../components/common/Spinner.jsx";
 
 // ─── Mode content ─────────────────────────────────────────────────────────
 const CONTENT = {

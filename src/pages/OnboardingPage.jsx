@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useConversation } from "@elevenlabs/react";
-import { supabase } from "./lib/supabase.js";
-import Spinner from "./components/common/Spinner.jsx";
-import { VoicePoweredOrb } from "./components/common/VoicePoweredOrb.jsx";
+import { supabase } from "../lib/supabase.js";
+import Spinner from "../components/common/Spinner.jsx";
+import { VoicePoweredOrb } from "../components/common/VoicePoweredOrb.jsx";
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
 const MAX_CALL_SECONDS = 360; // ElevenLabs hard-cuts at ~6:05 — end on our side first

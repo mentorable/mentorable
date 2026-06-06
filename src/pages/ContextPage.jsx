@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "./lib/supabase.js";
-import { buildSections, SECTION_LABELS } from "./lib/mentora.js";
-import { getKnownUserId, setKnownUserId } from "./lib/cache.js";
-import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
-import { useIsMobile } from "./hooks/useIsMobile.js";
+import { supabase } from "../lib/supabase.js";
+import { buildSections, SECTION_LABELS } from "../lib/mentora.js";
+import { getKnownUserId, setKnownUserId } from "../lib/cache.js";
+import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const FONT = "'Inter', -apple-system, sans-serif";
 const BG   = "#faf9f5";

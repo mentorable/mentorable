@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "./lib/supabase.js";
-import { getCache, setCache, invalidateCache, getKnownUserId, setKnownUserId } from "./lib/cache.js";
-import { SIDEBAR_WIDTH } from "./components/common/Sidebar.jsx";
-import { useIsMobile } from "./hooks/useIsMobile.js";
+import { supabase } from "../lib/supabase.js";
+import { getCache, setCache, invalidateCache, getKnownUserId, setKnownUserId } from "../lib/cache.js";
+import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
