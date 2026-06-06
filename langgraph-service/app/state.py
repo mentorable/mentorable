@@ -86,5 +86,13 @@ class StudentState(TypedDict, total=False):
     research_results: Optional[list[dict[str, Any]]]
     generated_quests: Optional[list[QuestItem]]
 
+    # ── Chat graph internals (passed between load_context → build_prompt) ─────
+    _completed_quests: list[dict[str, Any]]
+    _deleted_titles: list[str]
+    _recent_research: list[str]
+    _chat_topics: list[str]
+    _annotations: list[dict[str, Any]]
+    _system_prompt: str
+
     # ── Metadata ──────────────────────────────────────────────────────────────
     errors: list[str]
