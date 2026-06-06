@@ -16,6 +16,7 @@ from app.db.checkpointer import get_checkpointer, lifespan_checkpointer, checkpo
 from app.db.supabase import get_supabase
 from app.graphs.chat import create_chat_graph
 from app.nodes.chat.extract_signals import extract_signals
+from app.nodes.quest.generate import generate_quest_items
 from app.nodes.research.run import run_research
 from app.rate_limit import check_rate_limit
 
@@ -189,8 +190,25 @@ async def research(raw: Request, user_id: str = Depends(verify_jwt)):
 
 
 @app.post("/quests/generate")
-async def quest_placeholder(user_id: str = Depends(verify_jwt)):
-    return {"error": "Not implemented yet — Sprint 4", "user_id": user_id}
+async def quests_generate(raw: Request, user_id: str = Depends(verify_jwt)):
+    try:
+        body = await raw.json()
+    except Exception:
+        body = {}
+
+    count = int(body.get("count") or 3)
+    count = max(1, min(count, 5))
+
+    await check_rate_limit(user_id, "quest_gen")
+
+    try:
+        result = await generate_quest_items(user_id, count)
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        logger.error(f"[quest_gen] Unexpected error for {user_id}: {exc}")
+        raise HTTPException(status_code=500, detail="Quest generation failed")
 
 
 @app.post("/onboarding/extract")

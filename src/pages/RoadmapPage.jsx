@@ -7,6 +7,8 @@ import LimitModal from "../components/common/LimitModal.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
+const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
+
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const BG          = "#faf9f5";
 const WHITE       = "#ffffff";
@@ -514,15 +516,30 @@ export default function RoadmapPage({ navigate }) {
     setGenerating(true);
     setShowPicker(false);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-quest-items", { body: { count } });
-      if (data?.error === 'LIMIT_REACHED' || error?.message?.includes('LIMIT_REACHED')) {
-        setLimitModal(true);
-        setQuestGenUsed(LIMITS.quest_gen);
-        return;
+      if (LANGGRAPH_URL) {
+        // Route through LangGraph FastAPI
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`${LANGGRAPH_URL}/quests/generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
+          body: JSON.stringify({ count }),
+        });
+        if (res.status === 429) { setLimitModal(true); setQuestGenUsed(LIMITS.quest_gen); return; }
+        if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.detail || "Quest generation failed"); }
+        await loadItems(userIdRef.current);
+        setQuestGenUsed((prev) => Math.min(prev + 1, LIMITS.quest_gen));
+      } else {
+        // Fall back to Supabase edge function
+        const { data, error } = await supabase.functions.invoke("generate-quest-items", { body: { count } });
+        if (data?.error === 'LIMIT_REACHED' || error?.message?.includes('LIMIT_REACHED')) {
+          setLimitModal(true);
+          setQuestGenUsed(LIMITS.quest_gen);
+          return;
+        }
+        if (error) throw error;
+        await loadItems(userIdRef.current);
+        setQuestGenUsed((prev) => Math.min(prev + 1, LIMITS.quest_gen));
       }
-      if (error) throw error;
-      await loadItems(userIdRef.current);
-      setQuestGenUsed((prev) => Math.min(prev + 1, LIMITS.quest_gen));
     } catch (e) {
       console.error("[Quest] generate error:", e);
     } finally {
