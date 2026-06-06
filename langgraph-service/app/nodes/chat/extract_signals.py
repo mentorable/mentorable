@@ -15,18 +15,16 @@ _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
 EXTRACTION_PROMPT = """You are analyzing a conversation between a student and an AI career mentor.
 
-Extract any HIGH-SIGNAL profile updates — things the student revealed that would meaningfully change how the mentor should understand them. Only extract if genuinely significant (new career interest, major life event, significant mindset shift, new skill, completed achievement).
+Extract anything the student mentioned about themselves — interests, goals, concerns, experiences, achievements, or career thoughts. Even small details are useful.
 
-Do NOT extract: casual mentions, generic statements, things already known, small talk.
-
-Return JSON with this exact shape (omit any key if nothing meaningful found):
-{
-  "new_interests": ["..."],
-  "career_shifts": ["..."],
-  "new_achievements": ["..."],
-  "mindset_signals": ["..."],
-  "summary": "one sentence describing what changed, or null if nothing significant"
-}
+Return JSON with this exact shape. Every key is required. Use empty arrays if nothing found for that category:
+{{
+  "new_interests": ["list any interests, hobbies, or subjects mentioned"],
+  "career_thoughts": ["list any career goals, fields, or job types mentioned"],
+  "achievements": ["list any accomplishments or completed things mentioned"],
+  "concerns": ["list any worries or challenges mentioned"],
+  "summary": "one sentence summarizing what the student shared, or null if they shared nothing personal"
+}}
 
 Conversation:
 {conversation}"""
