@@ -1243,14 +1243,6 @@ export default function OnboardingPage() {
         location_general: demographics.state || null,
       }).eq("id", freshUser.id);
 
-      // Initialize Quest roadmap — awaited so the user arrives with Phase 1 ready.
-      try {
-        await supabase.functions.invoke("initialize-roadmap", { body: {} });
-      } catch (e) {
-        console.error("[Onboarding] initialize-roadmap error:", e);
-        // Non-fatal — RoadmapPage will retry on load
-      }
-
       window.location.href = "/quest";
     } catch (err) {
       console.error("[Onboarding] endConversation error:", err);

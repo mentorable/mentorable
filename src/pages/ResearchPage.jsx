@@ -744,30 +744,19 @@ export default function ResearchPage({ navigate, initialSessionId }) {
 
       const { data: { session } } = await supabase.auth.getSession();
 
-      let data, fnError;
-      if (LANGGRAPH_URL) {
-        // Route through LangGraph FastAPI
-        const res = await fetch(`${LANGGRAPH_URL}/research`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
-          body: JSON.stringify({ query: query.trim(), session_id: sessionId }),
-        });
-        if (res.status === 429) { setLimitModal(true); setResearchUsed(LIMITS.research); return; }
-        if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.detail || "Research failed"); }
-        data = await res.json();
-      } else {
-        // Fall back to Supabase edge function
-        const result = await supabase.functions.invoke("run-research", {
-          body: { query: query.trim(), sessionId },
-          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-        });
-        data = result.data; fnError = result.error;
-      }
+      // Route through LangGraph FastAPI
+      const res = await fetch(`${LANGGRAPH_URL}/research`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ query: query.trim(), session_id: sessionId }),
+      });
+      if (res.status === 429) { setLimitModal(true); setResearchUsed(LIMITS.research); return; }
+      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.detail || "Research failed"); }
+      const data = await res.json();
 
-      if (fnError || data?.error) {
-        const msg = data?.error || fnError?.message || "Research failed";
-        if (msg === 'LIMIT_REACHED') { setLimitModal(true); setResearchUsed(LIMITS.research); return; }
-        throw new Error(msg);
+      if (data?.error) {
+        if (data.error === 'LIMIT_REACHED') { setLimitModal(true); setResearchUsed(LIMITS.research); return; }
+        throw new Error(data.error);
       }
 
       setResults(data.results || []);

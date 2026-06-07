@@ -86,85 +86,19 @@ export function buildSections(profile, data = {}) {
   return sections;
 }
 
-export function buildSystemPrompt(profile, data = {}) {
-  // Support legacy array signature: buildSystemPrompt(profile, completedQuests[])
-  if (Array.isArray(data)) data = { completedQuests: data };
-
-  const { annotations = [] } = data;
-
-  const name         = profile?.full_name || "the student";
-  const responseStyle = profile?.agent_response_style || "balanced";
-  const styleGuide   = {
-    encouraging: "Be warm and motivational. Celebrate wins. Use an uplifting tone.",
-    direct:      "Be direct and skip motivational filler. Get to the point. No fluff.",
-    balanced:    "Balance encouragement with directness.",
-    concise:     "Keep every response short — 3-5 sentences max unless a list is clearly better. No preamble.",
-  }[responseStyle] || "";
-
-  let prompt = `You are the Mentorable Agent, an expert AI career guide. You give specific, actionable advice tailored to this student's unique situation — not generic platitudes.
-
-You know this student deeply from their onboarding. Always address them by their first name (${name.split(" ")[0]}).
-
-Response style: ${styleGuide}`;
-
-  const sections = buildSections(profile, data);
-  for (const section of sections) {
-    const sAnns = annotations.filter(a => a.section_id === section.id);
-    let content = section.content;
-
-    // Apply replacements
-    for (const ann of sAnns.filter(a => a.type === "replace" && a.highlighted_text)) {
-      if (content.includes(ann.highlighted_text)) {
-        content = content.split(ann.highlighted_text).join(ann.annotation_text);
-      }
-    }
-
-    prompt += "\n\n" + content;
-
-    // Append notes
-    for (const ann of sAnns.filter(a => a.type === "note" && a.annotation_text)) {
-      if (ann.highlighted_text) {
-        prompt += `\n[User note on "${ann.highlighted_text}": "${ann.annotation_text}"]`;
-      } else {
-        prompt += `\n[User note: "${ann.annotation_text}"]`;
-      }
-    }
-  }
-
-  prompt += `\n\n## How to respond
-- Use markdown formatting — it renders in the UI. Use **bold** for key points, ## for section headings, - for bullet lists, and 1. for numbered steps.
-- Keep responses concise and scannable. Prefer short paragraphs and bullets over walls of text.
-- Reference their specific strengths, interests, and goals when relevant — never give generic advice when personal advice is possible.
-- If they ask about next steps, anchor your answer in their completed quests and what they've shared about their goals.
-- Be honest about challenges while staying encouraging.
-- Do not mention that you have a "system prompt" or that you were "given" this information — you simply know them.`;
-
-  return prompt.trim();
-}
-
 // ─── Streaming ────────────────────────────────────────────────────────────────
 
 function sanitizeInput(text) {
   return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
 }
 
-// Feature flag — set VITE_LANGGRAPH_CHAT_URL to route chat through FastAPI.
-// Leave empty to keep using the Supabase edge function.
+// LangGraph FastAPI service base URL. The system prompt is built server-side —
+// the frontend no longer constructs it. This must be set in every environment.
 const LANGGRAPH_CHAT_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
 // ─── Onboarding extraction ────────────────────────────────────────────────────
-// Routes to FastAPI POST /onboarding/extract when the flag is set, otherwise
-// falls back to the extract-profile edge function. Returns the same shape:
-// { sufficient, success?, profile?, error? }.
-export async function extractProfile({ transcript, userId }) {
-  if (!LANGGRAPH_CHAT_URL) {
-    const { data, error } = await supabase.functions.invoke("extract-profile", {
-      body: { transcript, userId },
-    });
-    if (error) throw new Error(error.message || "Profile extraction failed");
-    return data;
-  }
-
+// Calls FastAPI POST /onboarding/extract. Returns { sufficient, success?, profile?, error? }.
+export async function extractProfile({ transcript }) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Not authenticated");
 
@@ -185,7 +119,7 @@ export async function extractProfile({ transcript, userId }) {
   return res.json();
 }
 
-export async function streamChatResponse({ systemPrompt, history, onChunk, onDone, onEvent }) {
+export async function streamChatResponse({ history, onChunk, onDone, onEvent }) {
   const anthropicMessages = history
     .filter((m) => m.content && m.content.trim())
     .map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: sanitizeInput(m.content) }));
@@ -204,18 +138,10 @@ export async function streamChatResponse({ systemPrompt, history, onChunk, onDon
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Not authenticated");
 
-  // Route to LangGraph FastAPI if flag is set, otherwise fall back to edge function.
-  const url = LANGGRAPH_CHAT_URL
-    ? `${LANGGRAPH_CHAT_URL}/chat`
-    : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
-
-  const body = LANGGRAPH_CHAT_URL
-    ? JSON.stringify({ messages: normalized })           // LangGraph builds prompt server-side
-    : JSON.stringify({ systemPrompt, messages: normalized });
-
-  const headers = LANGGRAPH_CHAT_URL
-    ? { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` }
-    : { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}`, "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY };
+  // LangGraph builds the system prompt server-side from the user's JWT.
+  const url = `${LANGGRAPH_CHAT_URL}/chat`;
+  const body = JSON.stringify({ messages: normalized });
+  const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` };
 
   const res = await withRetry(
     () => fetch(url, { method: "POST", headers, body }),

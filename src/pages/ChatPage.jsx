@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
-import { buildSystemPrompt, streamChatResponse } from "../lib/mentora.js";
+import { streamChatResponse } from "../lib/mentora.js";
 import { getCache, setCache, getKnownUserId, setKnownUserId } from "../lib/cache.js";
 import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
@@ -795,23 +795,6 @@ export default function ChatPage({ navigate }) {
   const isMobile = useIsMobile();
 
   const skipHydrationRef = useRef(false);
-  const systemPromptRef  = useRef("");
-
-  useEffect(() => {
-    const chatTopics = sessions.slice(0, 8).map(s => {
-      if (s.title) return s.title;
-      const firstUser = s.messages?.find(m => m.role === "user");
-      return firstUser?.content?.split("\n")[0]?.slice(0, 60) || null;
-    }).filter(Boolean);
-    systemPromptRef.current = buildSystemPrompt(profile, {
-      completedQuests,
-      activeQuests,
-      deletedQuestTitles,
-      recentResearch,
-      chatTopics,
-      annotations,
-    });
-  }, [profile, completedQuests, activeQuests, deletedQuestTitles, recentResearch, sessions, annotations]);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -919,7 +902,6 @@ export default function ChatPage({ navigate }) {
 
     try {
       await streamChatResponse({
-        systemPrompt: systemPromptRef.current,
         history: withUser,
         onChunk: (chunk) => {
           setMessages((prev) => {

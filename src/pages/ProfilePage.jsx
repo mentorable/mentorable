@@ -27,25 +27,6 @@ const RESPONSE_STYLES = [
   { value: "concise",     label: "Concise",     desc: "Short replies unless detail is needed" },
 ];
 
-const HOURS_OPTIONS = [
-  { value: "1-2", label: "1–2 hrs/week", desc: "Light touch" },
-  { value: "3-5", label: "3–5 hrs/week", desc: "Steady pace" },
-  { value: "6+",  label: "6+ hrs/week",  desc: "Full commitment" },
-];
-
-const TASK_STYLES = [
-  { value: "mix",      label: "Mix it up",         desc: "Variety of formats" },
-  { value: "reading",  label: "Research & Reading", desc: "Articles, docs, deep dives" },
-  { value: "hands_on", label: "Hands-on",           desc: "Projects & building" },
-  { value: "videos",   label: "Video-based",        desc: "Tutorials & talks" },
-];
-
-const DIFFICULTY_OPTIONS = [
-  { value: "gradual",     label: "Gradual",     desc: "Ease in, build slowly" },
-  { value: "balanced",    label: "Balanced",    desc: "Mix of easy and hard" },
-  { value: "challenging", label: "Challenging", desc: "Push me from day one" },
-];
-
 // ─── Atom components ──────────────────────────────────────────────────────────
 
 const SG = "'Inter', -apple-system, sans-serif";
@@ -148,11 +129,6 @@ export default function ProfilePage({ navigate }) {
   const [agentResponseStyle, setAgentResponseStyle] = useState(_cp?.agent_response_style || "balanced");
   const [agentInstructions, setAgentInstructions] = useState(_cp?.agent_instructions || "");
 
-  // Guidance prefs
-  const [hoursPerWeek, setHoursPerWeek] = useState(_cp?.roadmap_hours_per_week || "");
-  const [taskStyle, setTaskStyle] = useState(_cp?.roadmap_task_style || "mix");
-  const [difficulty, setDifficulty] = useState(_cp?.roadmap_difficulty || "balanced");
-
   // Save state
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
@@ -180,9 +156,6 @@ export default function ProfilePage({ navigate }) {
       setProfileColor(p.profile_color || ACCENT);
       setAgentResponseStyle(p.agent_response_style || "balanced");
       setAgentInstructions(p.agent_instructions || "");
-      setHoursPerWeek(p.roadmap_hours_per_week || "");
-      setTaskStyle(p.roadmap_task_style || "mix");
-      setDifficulty(p.roadmap_difficulty || "balanced");
       if (p.profile_color) localStorage.setItem("profileColor", p.profile_color);
     };
 
@@ -195,7 +168,7 @@ export default function ProfilePage({ navigate }) {
         setUserEmail(user.email || "");
 
         const { data: p } = await supabase.from("profiles")
-          .select("full_name, bio, profile_color, agent_response_style, agent_instructions, roadmap_hours_per_week, roadmap_task_style, roadmap_difficulty")
+          .select("full_name, bio, profile_color, agent_response_style, agent_instructions")
           .eq("id", user.id).single();
 
         if (p) { applyProfile(p); setCache(`profile:${user.id}`, p); }
@@ -224,9 +197,6 @@ export default function ProfilePage({ navigate }) {
         profile_color: profileColor || null,
         agent_response_style: agentResponseStyle || null,
         agent_instructions: agentInstructions.trim() || null,
-        roadmap_hours_per_week: hoursPerWeek || null,
-        roadmap_task_style: taskStyle || null,
-        roadmap_difficulty: difficulty || null,
       };
       const { error: extErr } = await supabase.from("profiles").update(extendedPayload).eq("id", userId);
       if (extErr) {
@@ -448,48 +418,6 @@ export default function ProfilePage({ navigate }) {
                     {agentInstructions.length}/1000
                   </span>
                 </div>
-              </div>
-            </div>
-
-            {/* ── Guidance preferences ─────────────────────────────────────── */}
-            <div style={card}>
-              <SectionHeading>Guidance Preferences</SectionHeading>
-              <Hint style={{ marginBottom: "1.25rem", display: "block" }}>
-                These shape how Mentorable suggests tasks, goals, and next steps.
-              </Hint>
-
-              <div style={{ marginBottom: "1.25rem", marginTop: "0.75rem" }}>
-                <Label>Weekly time available</Label>
-                <div style={{ marginTop: "0.5rem" }}>
-                  <PillSelector options={HOURS_OPTIONS} value={hoursPerWeek} onChange={setHoursPerWeek} accent={accent} />
-                </div>
-                <Hint>Helps size your tasks realistically.</Hint>
-              </div>
-
-              <Divider />
-
-              <div style={{ marginBottom: "1.25rem" }}>
-                <Label>Learning style</Label>
-                <div style={{ marginTop: "0.5rem" }}>
-                  <PillSelector options={TASK_STYLES} value={taskStyle} onChange={setTaskStyle} accent={accent} />
-                </div>
-                {(() => {
-                  const s = TASK_STYLES.find((o) => o.value === taskStyle);
-                  return s ? <Hint>{s.desc}</Hint> : null;
-                })()}
-              </div>
-
-              <Divider />
-
-              <div>
-                <Label>Difficulty preference</Label>
-                <div style={{ marginTop: "0.5rem" }}>
-                  <PillSelector options={DIFFICULTY_OPTIONS} value={difficulty} onChange={setDifficulty} accent={accent} />
-                </div>
-                {(() => {
-                  const d = DIFFICULTY_OPTIONS.find((o) => o.value === difficulty);
-                  return d ? <Hint>{d.desc}</Hint> : null;
-                })()}
               </div>
             </div>
 
