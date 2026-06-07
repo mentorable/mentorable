@@ -20,7 +20,9 @@ supabase db push   # apply pending migrations
 
 ## Architecture
 
-**Mentorable** is a React 19 SPA (Vite) backed by Supabase (Postgres + Auth + Edge Functions) and deployed on Vercel. All fonts are **Space Grotesk** (primary, headings, labels, body, buttons everywhere). No component library — all styling is inline styles.
+**Mentorable** is a React 19 SPA (Vite) backed by Supabase (Postgres + Auth) and a **Python + LangGraph service on Railway** (the agentic backend), deployed on Vercel. All fonts are **Space Grotesk** (primary, headings, labels, body, buttons everywhere). No component library — all styling is inline styles.
+
+The agentic backend (chat, research, quest generation, onboarding extraction) lives in `langgraph-service/` (FastAPI). The Anthropic key lives only there. The frontend reaches it via `VITE_LANGGRAPH_CHAT_URL` (one base URL reused for all four endpoints). A handful of non-AI edge functions remain in Supabase. See `.claude/LANGGRAPH_MIGRATION.md` for the migration history.
 
 ### Frontend (React SPA)
 
@@ -29,7 +31,7 @@ supabase db push   # apply pending migrations
 - `components/common/` — `Sidebar`, `MobileNav`, `Drawer`, `Spinner`, `ErrorBoundary`, `VoicePoweredOrb`, `LimitModal`.
 - `lib/`:
   - `supabase.js` — single Supabase client (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`)
-  - `mentora.js` — builds AI system prompt from user profile + streams chat via `chat` edge function (SSE)
+  - `mentora.js` — `streamChatResponse` (SSE from LangGraph `/chat`), `extractProfile` (LangGraph `/onboarding/extract`), and `buildSections`/`SECTION_LABELS` (used by ContextPage). The chat system prompt is built **server-side** now.
   - `usage.js` — fetches lifetime usage counts from `usage_tracking`; exports `LIMITS` constants
   - `onet.js` — calls `onet-proxy` edge function
   - `retry.js` — `withRetry` utility
@@ -39,54 +41,56 @@ supabase db push   # apply pending migrations
 
 **LandingPage** — cinematic scroll-driven marketing page. Mountain hero image (`/public/hero-mountains.png`), shimmer headline, 4 feature sections (laptop mockup, radar chart, phone mockup, chat window), newsletter, footer. Uses framer-motion throughout.
 
-**OnboardingPage** — voice onboarding via `@elevenlabs/react` (`useConversation`). Max 360s call. After call ends, calls `extract-profile` edge function → structured profile. Then calls `initialize-roadmap`.
+**OnboardingPage** — voice onboarding via `@elevenlabs/react` (`useConversation`). Max 360s call. After call ends, calls LangGraph `POST /onboarding/extract` (via `extractProfile`) → structured profile, then redirects to `/quest`.
 
-**ChatPage** — streams responses from `claude-sonnet-4-6` via `chat` edge function (SSE). System prompt built client-side in `lib/mentora.js` from profile + quest history + research queries + annotations. Shows inline "X messages remaining" counter. `LimitModal` on 429 `LIMIT_REACHED`.
+**ChatPage** — streams `claude-sonnet-4-6` responses via LangGraph `POST /chat` (SSE). System prompt is built server-side. Mentora can add quests to the board via the `add_quest_to_board` tool (emits a `quest_added` SSE event → toast). Shows inline "X messages remaining" counter; `LimitModal` on 429 `LIMIT_REACHED`.
 
-**ResearchPage** — calls `run-research` edge function (Brave Search + Claude synthesis). Shows inline "X queries remaining" counter. `LimitModal` on limit hit. Sessions stored in `research_sessions`.
+**ResearchPage** — calls LangGraph `POST /research` (Brave Search + Claude synthesis). Shows inline "X queries remaining" counter. `LimitModal` on limit hit. Sessions stored in `research_sessions`.
 
-**RoadmapPage** — Kanban board: Suggestions → Considered → In Progress → Completed. Quest items generated via `generate-quest-items`. Desktop: drag-and-drop + trash zone. Mobile: tab switcher + "Move to" dropdown. Shows "X generations remaining" counter near generate button.
+**RoadmapPage** — the live **Quest Kanban board** (over `quest_items`), not a roadmap. Columns: Suggestions → Considered → In Progress → Completed. Items generated via LangGraph `POST /quests/generate`; status changes via `update-quest-item` edge function. Desktop: drag-and-drop + trash zone. Mobile: tab switcher + "Move to" dropdown. Shows "X generations remaining" counter near the generate button.
 
 **ScorecardPage** — displays the 5-axis skill radar from `profiles.strengths` + career matches.
 
 **ProfilePage** — editable profile fields, agent instructions, response style.
 
+### LangGraph Service (`langgraph-service/`)
+
+Python + FastAPI on Railway. Holds the Anthropic key. JWT-authed (`verify_jwt` validates the Supabase token). Chat uses an `AsyncPostgresSaver` checkpointer; `load_context` re-fetches from Supabase on every request, so state is just an assembled view. Cross-feature memory: research findings (`profiles.research_findings`) flow into chat context and quest generation; chat signals (`profiles.chat_signals`) persist across sessions via a Haiku background task.
+
+| Endpoint | Purpose | Calls |
+|---|---|---|
+| `POST /chat` | Streams Sonnet 4.6 (SSE), tool-use loop for `add_quest_to_board`. Rate-limited: 15/lifetime | Anthropic |
+| `POST /research` | Brave Search → page fetch → Sonnet synthesis. Rate-limited: 3/lifetime | Brave, Anthropic |
+| `POST /quests/generate` | 1–5 quest suggestions from profile + research findings. Rate-limited: 3/lifetime | Anthropic |
+| `POST /onboarding/extract` | ElevenLabs transcript → 17-field profile (Haiku sufficiency check + Sonnet extraction) | Anthropic |
+| `GET /health`, `GET /profile` | Health + profile probes | — |
+
 ### Supabase Edge Functions (`supabase/functions/`)
 
-All Deno/TypeScript. Anthropic API key never touches the client.
+Only non-AI functions remain (Deno/TypeScript):
 
 | Function | Purpose | Calls |
 |---|---|---|
-| `chat` | Streams Claude Sonnet 4.6 responses (SSE). Rate-limited: 15/lifetime | Anthropic |
-| `run-research` | Brave Search → page fetch → Claude synthesis. Rate-limited: 3/lifetime | Brave, Anthropic |
-| `extract-profile` | Parses ElevenLabs transcript → 17-field structured profile (Haiku sufficiency check + Sonnet extraction) | Anthropic |
-| `generate-quest-items` | Generates 1–5 quest suggestions from profile + history. Rate-limited: 3/lifetime | Anthropic |
-| `generate-phase` | Generates a 2-week roadmap phase (6–8 tasks) with O*NET + programs context | Anthropic, O*NET |
-| `initialize-roadmap` | Creates first active roadmap, delegates to `generate-phase` | — |
-| `regenerate-roadmap` | Synthesizes new direction from chat/research history, rebuilds roadmap | Anthropic |
-| `complete-task` | Marks phase task complete/flagged, updates confidence score | — |
 | `update-quest-item` | Updates quest item status (move/complete/delete) | — |
-| `onet-proxy` | Proxies O*NET My Next Move API with auth | O*NET |
+| `onet-proxy` | Proxies O*NET My Next Move API with auth (uses `_shared/onet.ts` `mnmSearch()`) | O*NET |
 | `delete-account` | Full cascade user deletion | Supabase Admin |
 
-Shared utilities in `supabase/functions/_shared/`:
-- `onet.ts` — `mnmSearch()` wrapper with rate limit handling
-- `programs.ts` + `programs.json` — curated opportunities dataset (summer programs, courses, internships, scholarships) injected into phase generation
+> `extract-profile` is still deployed as a temporary rollback net while onboarding-via-LangGraph is monitored; retire it once verified.
 
 ### Database (Supabase Postgres)
 
 Key tables:
-- `profiles` — 20+ fields from voice onboarding (strengths, interests, career_matches, work_style, agent_instructions, etc.)
+- `profiles` — 20+ fields from voice onboarding (strengths, interests, career_matches, work_style, agent_instructions, etc.); plus `research_findings` and `chat_signals` JSONB for cross-feature memory
 - `quest_items` — standalone quests with status (`suggested`/`considered`/`in_progress`/`completed`/`deleted`), difficulty, why_it_matters
-- `quests` — roadmap metadata (mode, career_direction, confidence_score)
-- `quest_phases` / `quest_tasks` — structured roadmap phases and tasks
 - `chat_sessions` — full message history (JSONB), title, timestamps
 - `research_sessions` — query + results (JSONB) + 7-day cache
-- `confidence_history` — score change log
+- `context_annotations` — per-section notes/replacements applied to the chat system prompt
 - `usage_tracking` — lifetime usage counters (chat_messages_used, research_queries_used, quest_generations_used)
 - `waitlist` — emails for paid plan interest
 
 RLS is enabled on all tables (`auth.uid() = user_id`).
+
+The phase-based roadmap (`quests`/`quest_phases`/`quest_tasks`/`confidence_history`) was removed. `20260607_drop_roadmap.sql` drops those dead tables + the `roadmap_*` profile columns — apply with `supabase db push`.
 
 ### Rate Limits (Demo)
 
@@ -97,7 +101,7 @@ Lifetime caps enforced via `check_and_increment_usage` Postgres RPC (atomic chec
 
 Dev bypass: accounts in the `dev_emails` array inside `check_and_increment_usage` (currently `app.mentora.ai@gmail.com`) get `allowed: true` with no counter increment.
 
-When a limit is hit, edge functions return `429 { error: 'LIMIT_REACHED' }`. The frontend shows `LimitModal` with a waitlist email capture.
+When a limit is hit, the LangGraph endpoints return `429 { error: 'LIMIT_REACHED' }`. The frontend shows `LimitModal` with a waitlist email capture.
 
 ### Environment Variables
 
@@ -106,31 +110,27 @@ Client (`.env.local`):
 VITE_SUPABASE_URL
 VITE_SUPABASE_ANON_KEY
 VITE_ELEVENLABS_AGENT_ID
+VITE_LANGGRAPH_CHAT_URL     # base URL of the Railway LangGraph service (required)
 ```
 
-Edge Functions (Supabase secrets):
+LangGraph service (Railway):
 ```
+SUPABASE_URL
+SUPABASE_ANON_KEY           # for JWT verification
+SUPABASE_SERVICE_ROLE_KEY   # for check_and_increment_usage RPC + DB writes
 ANTHROPIC_API_KEY
 BRAVE_API_KEY
-CORS_ORIGIN
-SUPABASE_SERVICE_ROLE_KEY   # for check_and_increment_usage RPC
+DATABASE_URL                # Supabase session pooler (IPv4) for the checkpointer
+CORS_ORIGIN                 # comma-separated allowed origins
+DEV_BYPASS_EMAILS           # comma-separated, e.g. app.mentora.ai@gmail.com
 ```
 
 ### Deployment
 
 - Frontend → Vercel. `vercel.json` rewrites all routes to `index.html`.
-- Edge functions → Supabase (`supabase functions deploy <name>`).
+- LangGraph service → Railway (auto-deploys on push to `main`).
+- Remaining edge functions → Supabase (`supabase functions deploy <name>`).
 - DB migrations → `supabase db push`.
-
----
-
-## Upcoming: LangGraph Migration
-
-The agentic backend is being migrated from disconnected Supabase edge functions to a Python + LangGraph service on Railway. See `.claude/LANGGRAPH_MIGRATION.md` for the full plan.
-
-**TL;DR:** Chat, Research, and Quest graphs share a `StudentState` backed by Supabase Postgres. Research findings automatically flow into quest generation and chat context. System prompt moves server-side. Token spend drops ~35–45%. Parallel deployment with feature flags — no big-bang cutover.
-
-The 4 edge functions that will remain after migration: `delete-account`, `onet-proxy`, `update-quest-item`, `complete-task`.
 
 ---
 
