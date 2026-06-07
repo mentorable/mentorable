@@ -17,6 +17,7 @@ from app.db.supabase import get_supabase
 from app.graphs.chat import create_chat_graph
 from app.nodes.chat.extract_signals import extract_signals
 from app.nodes.chat.tools import CHAT_TOOLS, execute_chat_tool
+from app.nodes.onboarding.extract import extract_profile
 from app.nodes.quest.generate import generate_quest_items
 from app.nodes.research.run import run_research
 from app.rate_limit import check_rate_limit
@@ -243,5 +244,17 @@ async def quests_generate(raw: Request, user_id: str = Depends(verify_jwt)):
 
 
 @app.post("/onboarding/extract")
-async def onboarding_placeholder(user_id: str = Depends(verify_jwt)):
-    return {"error": "Not implemented yet — Sprint 5", "user_id": user_id}
+async def onboarding_extract(raw: Request, user_id: str = Depends(verify_jwt)):
+    try:
+        body = await raw.json()
+    except Exception:
+        body = {}
+
+    transcript = (body.get("transcript") or "").strip()
+    # user_id comes from the verified JWT — body userId (if any) is ignored for safety.
+
+    try:
+        return await extract_profile(user_id, transcript)
+    except Exception as exc:
+        logger.error(f"[onboarding] Unexpected error for {user_id}: {exc}")
+        raise HTTPException(status_code=500, detail="Profile extraction failed")

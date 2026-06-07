@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useConversation } from "@elevenlabs/react";
 import { supabase } from "../lib/supabase.js";
+import { extractProfile } from "../lib/mentora.js";
 import Spinner from "../components/common/Spinner.jsx";
 import { VoicePoweredOrb } from "../components/common/VoicePoweredOrb.jsx";
 
@@ -1013,10 +1014,7 @@ function RecoveryPhase({ userId, onSuccess, onRetry }) {
       const saved = profile?.raw_voice_transcript;
       if (!saved) throw new Error("No saved transcript found. Please record a new conversation.");
 
-      const { data: result, error: fnError } = await supabase.functions.invoke("extract-profile", {
-        body: { transcript: saved, userId },
-      });
-      if (fnError) throw new Error(fnError.message || "Extraction failed");
+      const result = await extractProfile({ transcript: saved, userId });
       if (!result?.success) throw new Error(result?.error || "Could not process your conversation.");
       onSuccess();
     } catch (err) {
@@ -1214,16 +1212,10 @@ export default function OnboardingPage() {
         ? messages.map((m) => `${m.role === "agent" ? "Mentorable" : "Student"}: ${m.message}`).join("\n")
         : "";
 
-      // Delegate sufficiency check + extraction + DB save to the server-side edge function.
-      // This keeps the Anthropic key off the client entirely.
-      const { data: result, error: fnError } = await supabase.functions.invoke("extract-profile", {
-        body: { transcript: transcriptText, userId: freshUser.id },
-      });
-
-      if (fnError) {
-        console.error("[Onboarding] extract-profile error:", fnError);
-        throw new Error(fnError.message || "Profile extraction failed");
-      }
+      // Delegate sufficiency check + extraction + DB save to the server.
+      // Routes to LangGraph FastAPI when the flag is set, else the edge function.
+      // Either way the Anthropic key stays off the client.
+      const result = await extractProfile({ transcript: transcriptText, userId: freshUser.id });
 
       if (!result?.sufficient) {
         // Not enough info — clear saved partial transcript and offer a retry

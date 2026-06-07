@@ -152,6 +152,39 @@ function sanitizeInput(text) {
 // Leave empty to keep using the Supabase edge function.
 const LANGGRAPH_CHAT_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
+// ─── Onboarding extraction ────────────────────────────────────────────────────
+// Routes to FastAPI POST /onboarding/extract when the flag is set, otherwise
+// falls back to the extract-profile edge function. Returns the same shape:
+// { sufficient, success?, profile?, error? }.
+export async function extractProfile({ transcript, userId }) {
+  if (!LANGGRAPH_CHAT_URL) {
+    const { data, error } = await supabase.functions.invoke("extract-profile", {
+      body: { transcript, userId },
+    });
+    if (error) throw new Error(error.message || "Profile extraction failed");
+    return data;
+  }
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
+
+  const res = await fetch(`${LANGGRAPH_CHAT_URL}/onboarding/extract`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ transcript }),
+  });
+
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { const j = await res.json(); detail = j.detail || j.error || detail; } catch {}
+    throw new Error(`Profile extraction failed (${res.status}): ${detail}`);
+  }
+  return res.json();
+}
+
 export async function streamChatResponse({ systemPrompt, history, onChunk, onDone, onEvent }) {
   const anthropicMessages = history
     .filter((m) => m.content && m.content.trim())
