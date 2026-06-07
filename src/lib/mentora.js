@@ -152,7 +152,7 @@ function sanitizeInput(text) {
 // Leave empty to keep using the Supabase edge function.
 const LANGGRAPH_CHAT_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
-export async function streamChatResponse({ systemPrompt, history, onChunk, onDone }) {
+export async function streamChatResponse({ systemPrompt, history, onChunk, onDone, onEvent }) {
   const anthropicMessages = history
     .filter((m) => m.content && m.content.trim())
     .map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: sanitizeInput(m.content) }));
@@ -213,6 +213,7 @@ export async function streamChatResponse({ systemPrompt, history, onChunk, onDon
       try {
         const parsed = JSON.parse(data);
         if (parsed.text) { fullText += parsed.text; onChunk(parsed.text); }
+        if (parsed.event && onEvent) onEvent(parsed);
         if (parsed.error) throw new Error(parsed.error);
       } catch (e) {
         if (e.message === parsed?.error) throw e;

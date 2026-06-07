@@ -790,6 +790,8 @@ export default function ChatPage({ navigate }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [chatUsed, setChatUsed]       = useState(0);
   const [limitModal, setLimitModal]   = useState(false);
+  const [questToast, setQuestToast]   = useState(null);
+  const questToastTimer = useRef(null);
   const isMobile = useIsMobile();
 
   const skipHydrationRef = useRef(false);
@@ -928,6 +930,13 @@ export default function ChatPage({ navigate }) {
             return updated;
           });
         },
+        onEvent: (evt) => {
+          if (evt.event === "quest_added" && evt.quest?.title) {
+            setQuestToast({ title: evt.quest.title, column: evt.quest.column });
+            if (questToastTimer.current) clearTimeout(questToastTimer.current);
+            questToastTimer.current = setTimeout(() => setQuestToast(null), 5000);
+          }
+        },
         onDone: async (fullText) => {
           const aiMsgFinal  = { ...aiMsgBase, content: fullText, streaming: false };
           const finalMessages = [...withUser, aiMsgFinal];
@@ -979,7 +988,37 @@ export default function ChatPage({ navigate }) {
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(29,78,216,0.15); border-radius: 99px; }
         ${STREAMING_CSS}
+        @keyframes questToastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
+
+      {questToast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            maxWidth: 340,
+            padding: "12px 16px",
+            background: "#1d4ed8",
+            color: "#fff",
+            borderRadius: 12,
+            boxShadow: "0 8px 24px rgba(29,78,216,0.32)",
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontSize: 14,
+            animation: "questToastIn 0.25s ease",
+          }}
+        >
+          <span style={{ fontSize: 16 }}>✓</span>
+          <span>
+            Added <strong>{questToast.title}</strong>
+            {questToast.column ? ` to ${questToast.column}` : ""}
+          </span>
+        </div>
+      )}
 
       <div
         data-sidebar-offset

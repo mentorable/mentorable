@@ -180,4 +180,15 @@ async def build_prompt(state: StudentState) -> StudentState:
     }
     system_prompt = build_system_prompt(profile, data)
     system_prompt = _inject_research_findings(state.get("research_findings", []), system_prompt)
+    system_prompt += QUEST_BOARD_CAPABILITY
     return {**state, "_system_prompt": system_prompt}
+
+
+QUEST_BOARD_CAPABILITY = """
+
+## Managing the Quest Board
+You can add quests directly to the student's quest board with the add_quest_to_board tool. The board has three columns: **Suggestions**, **Considered**, and **In Progress**.
+- When the student asks you to add something, or clearly agrees to a suggestion you made, actually call the tool. NEVER claim you added a quest without calling it — if you didn't call the tool, it did not happen.
+- Ask which column they want unless it's obvious from what they said (e.g. "I'm starting this" → In Progress, "maybe later" → Considered). If they don't indicate, default to Suggestions.
+- After the tool succeeds, confirm in one short line what you added and to which column.
+- Add one quest per tool call. Only add quests the student actually wants — never speculatively."""

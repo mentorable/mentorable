@@ -16,6 +16,7 @@ from app.db.checkpointer import get_checkpointer, lifespan_checkpointer, checkpo
 from app.db.supabase import get_supabase
 from app.graphs.chat import create_chat_graph
 from app.nodes.chat.extract_signals import extract_signals
+from app.nodes.chat.tools import CHAT_TOOLS, execute_chat_tool
 from app.nodes.quest.generate import generate_quest_items
 from app.nodes.research.run import run_research
 from app.rate_limit import check_rate_limit
@@ -128,23 +129,53 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
         raise HTTPException(status_code=500, detail="Failed to build system prompt")
 
     async def generate():
-        full_text = ""
+        conversation: list[dict] = list(normalized)
+        final_text = ""
         try:
-            async with _anthropic.messages.stream(
-                model="claude-sonnet-4-6",
-                max_tokens=2048,
-                system=system_prompt,
-                messages=normalized,
-            ) as stream:
-                async for text in stream.text_stream:
-                    full_text += text
-                    yield f"data: {json.dumps({'text': text})}\n\n"
+            # Tool-use loop: stream text, and if the model calls a tool, run it,
+            # feed the result back, and continue so it can confirm to the student.
+            while True:
+                turn_text = ""
+                async with _anthropic.messages.stream(
+                    model="claude-sonnet-4-6",
+                    max_tokens=2048,
+                    system=system_prompt,
+                    messages=conversation,
+                    tools=CHAT_TOOLS,
+                ) as stream:
+                    async for text in stream.text_stream:
+                        turn_text += text
+                        yield f"data: {json.dumps({'text': text})}\n\n"
+                    final_message = await stream.get_final_message()
+
+                final_text = turn_text
+
+                if final_message.stop_reason != "tool_use":
+                    break
+
+                # Record the assistant turn (text + tool_use blocks) verbatim.
+                conversation.append({"role": "assistant", "content": final_message.content})
+
+                tool_results = []
+                for block in final_message.content:
+                    if getattr(block, "type", None) != "tool_use":
+                        continue
+                    result = await execute_chat_tool(user_id, block.name, dict(block.input))
+                    if result.get("success"):
+                        yield f"data: {json.dumps({'event': 'quest_added', 'quest': result})}\n\n"
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": json.dumps(result),
+                    })
+                conversation.append({"role": "user", "content": tool_results})
+                # loop again for the model's natural-language confirmation
 
             yield "data: [DONE]\n\n"
 
-            # Fire-and-forget signal extraction after streaming completes
-            all_messages = normalized + [{"role": "assistant", "content": full_text}]
-            asyncio.create_task(extract_signals(user_id, all_messages))
+            # Fire-and-forget signal extraction. Pass a clean text-only transcript.
+            transcript = normalized + [{"role": "assistant", "content": final_text}]
+            asyncio.create_task(extract_signals(user_id, transcript))
 
         except Exception as exc:
             logger.error(f"[chat] stream error for {user_id}: {exc}")
