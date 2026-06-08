@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
+import { getKnownUserId, setKnownUserId } from "../lib/cache.js";
+import { getActiveResearch, setActiveResearch } from "../lib/liveState.js";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
@@ -654,29 +656,35 @@ export default function ResearchPage({ navigate, initialSessionId }) {
   const [cached, setCached]             = useState(false);
   const [error, setError]               = useState(null);
   const [sessions, setSessions]         = useState([]);
-  const [activeSessionId, setActiveSessionId] = useState(initialSessionId || null);
+  const [activeSessionId, setActiveSessionId] = useState(initialSessionId || getActiveResearch(getKnownUserId()) || null);
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [researchUsed, setResearchUsed] = useState(0);
   const [limitModal, setLimitModal]     = useState(false);
   const isMobile = useIsMobile();
 
   const stepTimerRef = useRef(null);
+  const pollRef = useRef(null);
 
   useEffect(() => {
     loadSessions();
     fetchUsage(supabase).then((u) => setResearchUsed(u.research_queries_used));
+    return () => { if (pollRef.current) clearInterval(pollRef.current); stopLoadingSteps(); };
   }, []);
 
-  // Load a session from URL param on mount
+  // Remember which research session was open so returning reopens it.
+  useEffect(() => { setActiveResearch(getKnownUserId(), activeSessionId); }, [activeSessionId]);
+
+  // On mount, reopen the session from the URL — or, if returning without one,
+  // the last session we were viewing.
   useEffect(() => {
-    if (initialSessionId) {
-      loadSession(initialSessionId);
-    }
+    const id = initialSessionId || getActiveResearch(getKnownUserId());
+    if (id) loadSession(id);
   }, [initialSessionId]);
 
   async function loadSessions() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    setKnownUserId(user.id);
     const { data } = await supabase
       .from("research_sessions")
       .select("id, query, status, results, created_at, updated_at")
@@ -692,14 +700,50 @@ export default function ResearchPage({ navigate, initialSessionId }) {
       .select("id, query, status, results, created_at, updated_at")
       .eq("id", id)
       .single();
-    if (data?.status === "completed" && data.results) {
+    if (!data) return;
+
+    setActiveSessionId(id);
+    setActiveQuery(data.query);
+    setQuery(data.query);
+
+    if (data.status === "completed" && data.results) {
       const payload = data.results;
       setResults(payload.results || payload);
       setSources(payload.sources || []);
-      setActiveQuery(data.query);
-      setQuery(data.query);
       setCached(true);
-      setActiveSessionId(id);
+      setLoading(false);
+      stopLoadingSteps();
+    } else if (data.status === "pending") {
+      // Still running in the background — show loading and poll until it finishes.
+      setResults(null);
+      setSources([]);
+      setLoading(true);
+      startLoadingSteps();
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = setInterval(async () => {
+        const { data: row } = await supabase
+          .from("research_sessions")
+          .select("status, query, results")
+          .eq("id", id)
+          .single();
+        if (!row || row.status === "pending") return;
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+        stopLoadingSteps();
+        setLoading(false);
+        if (row.status === "completed" && row.results) {
+          const payload = row.results;
+          setResults(payload.results || payload);
+          setSources(payload.sources || []);
+          setActiveQuery(row.query);
+          setCached(true);
+        } else {
+          setError("That research run didn't finish. Please try again.");
+        }
+      }, 2000);
+    } else {
+      // error / unknown
+      setLoading(false);
     }
   }
 

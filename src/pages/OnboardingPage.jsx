@@ -1243,7 +1243,8 @@ export default function OnboardingPage() {
         location_general: demographics.state || null,
       }).eq("id", freshUser.id);
 
-      window.location.href = "/quest";
+      // First-time completion → show the scorecard first.
+      window.location.href = "/scorecard";
     } catch (err) {
       console.error("[Onboarding] endConversation error:", err);
       setError(err?.message || "Something went wrong processing your profile. Please try again.");
@@ -1316,7 +1317,7 @@ export default function OnboardingPage() {
         {phase === "intro"      && <IntroPhase      key="intro"      onStart={startConversation} loading={startingConv} retryNotice={retryNotice}/>}
         {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} transcriptEndRef={transcriptEndRef}/>}
         {phase === "processing" && <ProcessingPhase key="processing"/>}
-        {phase === "recovery"   && <RecoveryPhase   key="recovery"   userId={user?.id} onSuccess={() => { window.location.href = "/quest"; }} onRetry={() => { setPhase("intro"); }}/>}
+        {phase === "recovery"   && <RecoveryPhase   key="recovery"   userId={user?.id} onSuccess={() => { window.location.href = "/scorecard"; }} onRetry={() => { setPhase("intro"); }}/>}
         {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("demographics"); }}/>}
         {phase === "mic-denied" && <MicDeniedPhase  key="mic-denied" onRetry={() => setPhase("intro")}/>}
       </AnimatePresence>

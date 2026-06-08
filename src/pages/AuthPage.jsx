@@ -41,7 +41,13 @@ export default function AuthPage() {
 
     try {
       if (isSignUp) {
-        const { data, error: err } = await supabase.auth.signUp({ email, password });
+        const { data, error: err } = await supabase.auth.signUp({
+          email,
+          password,
+          // Return into the app after email confirmation. App-level routing then
+          // forwards to onboarding (or quest if already onboarded).
+          options: { emailRedirectTo: `${window.location.origin}/onboarding` },
+        });
         if (err) {
           const msg = err.message?.toLowerCase() ?? "";
           if (msg.includes("password")) {

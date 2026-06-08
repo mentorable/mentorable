@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { Routes, Route, useNavigate, useParams, useLocation, Navigate } from "react-router-dom";
+import { supabase } from "./lib/supabase.js";
 import LandingPage from "./pages/LandingPage.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import OnboardingPage from "./pages/OnboardingPage.jsx";
@@ -16,10 +18,45 @@ import { useIsMobile } from "./hooks/useIsMobile.js";
 // Routes that show the persistent sidebar
 const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/research", "/quest", "/context"];
 
+// Captured at module load, before the Supabase client strips the URL hash.
+// After clicking the email-confirmation link the user lands here with auth
+// tokens in the hash — that's our signal to forward them into the app.
+const INITIAL_HASH = typeof window !== "undefined" ? window.location.hash : "";
+const CAME_FROM_AUTH = /access_token|type=signup|type=recovery/.test(INITIAL_HASH);
+
+// Decide where a freshly-authenticated user should land:
+// onboarded → quest board; not yet → continue onboarding.
+async function routeAfterAuth(userId, navigate) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("onboarding_completed")
+    .eq("id", userId)
+    .single();
+  navigate(profile?.onboarding_completed ? "/quest" : "/onboarding", { replace: true });
+}
+
 function AppShell({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+
+  // Post-auth routing — handles the email-confirmation redirect (which lands on
+  // "/") and any sign-in that happens while the app is open. Only acts from the
+  // entry points so it never hijacks a logged-in user browsing the landing page.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.user) return;
+      const path = window.location.pathname;
+      if (CAME_FROM_AUTH || path === "/auth") routeAfterAuth(session.user.id, navigate);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== "SIGNED_IN" || !session?.user) return;
+      const path = window.location.pathname;
+      if (path === "/" || path === "/auth") routeAfterAuth(session.user.id, navigate);
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const showSidebar = SIDEBAR_ROUTES.some(
     (p) => location.pathname === p || location.pathname.startsWith(p + "/")

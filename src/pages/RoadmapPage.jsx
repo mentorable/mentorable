@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
 import { getCache, setCache, getKnownUserId, setKnownUserId } from "../lib/cache.js";
+import { getQuestGenerating, setQuestGenerating } from "../lib/liveState.js";
 import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
@@ -466,7 +467,7 @@ export default function RoadmapPage({ navigate }) {
   const [userId, setUserId]           = useState(getKnownUserId);
   const [items, setItems]             = useState(() => getCache(`quest_items:${getKnownUserId()}`) || []);
   const [loading, setLoading]         = useState(() => !getCache(`quest_items:${getKnownUserId()}`));
-  const [generating, setGenerating]   = useState(false);
+  const [generating, setGenerating]   = useState(() => getQuestGenerating(getKnownUserId()));
   const [draggingId, setDraggingId]   = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
   const [dragOverTrash, setDragOverTrash] = useState(false);
@@ -506,6 +507,22 @@ export default function RoadmapPage({ navigate }) {
       await loadItems(user.id);
       fetchUsage(supabase).then((u) => setQuestGenUsed(u.quest_generations_used));
       if (!cancelled) setLoading(false);
+
+      // If a generation was still running when we left, keep showing the
+      // spinner and reload items when it finishes (it persists server-side).
+      if (getQuestGenerating(user.id)) {
+        setGenerating(true);
+        const started = Date.now();
+        const poll = setInterval(async () => {
+          if (!getQuestGenerating(user.id) || Date.now() - started > 90_000) {
+            clearInterval(poll);
+            if (cancelled) return;
+            setGenerating(false);
+            await loadItems(user.id);
+            fetchUsage(supabase).then((u) => setQuestGenUsed(u.quest_generations_used));
+          }
+        }, 1500);
+      }
     })();
     return () => { cancelled = true; };
   }, [loadItems]);
@@ -514,6 +531,7 @@ export default function RoadmapPage({ navigate }) {
   const handleGenerate = useCallback(async (count = 3) => {
     if (!userIdRef.current || generating) return;
     setGenerating(true);
+    setQuestGenerating(userIdRef.current, true);  // survives navigation away mid-gen
     setShowPicker(false);
     try {
       // Route through LangGraph FastAPI
@@ -531,6 +549,7 @@ export default function RoadmapPage({ navigate }) {
       console.error("[Quest] generate error:", e);
     } finally {
       setGenerating(false);
+      setQuestGenerating(userIdRef.current, false);
     }
   }, [generating, loadItems]);
 

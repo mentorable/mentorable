@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
 import { streamChatResponse } from "../lib/mentora.js";
 import { getCache, setCache, getKnownUserId, setKnownUserId } from "../lib/cache.js";
+import { getActiveChat, setActiveChat, isChatGenerating, markChatGenerating, clearChatGenerating } from "../lib/liveState.js";
 import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
@@ -783,7 +784,7 @@ export default function ChatPage({ navigate }) {
   const [recentResearch, setRecentResearch]   = useState(() => getCache(`recent_research:${getKnownUserId()}`) || []);
   const [sessions, setSessions]       = useState(() => getCache(`chat_sessions:${getKnownUserId()}`) || []);
   const [annotations, setAnnotations] = useState(() => getCache(`annotations:${getKnownUserId()}`) || []);
-  const [activeChatId, setActiveChatId] = useState(null);
+  const [activeChatId, setActiveChatId] = useState(() => getActiveChat(getKnownUserId()));
   const [messages, setMessages]       = useState([]);
   const [streaming, setStreaming]     = useState(false);
   const [chatError, setChatError]     = useState(null);
@@ -851,6 +852,46 @@ export default function ChatPage({ navigate }) {
     setChatError(null);
   }, [activeChatId, sessions]);
 
+  // Remember which chat was open so returning to this page reopens it.
+  useEffect(() => { if (user) setActiveChat(user.id, activeChatId); }, [user, activeChatId]);
+
+  // Resume a reply that was still generating when the user navigated away. The
+  // background stream keeps running and saves to chat_sessions on its own; here
+  // we just show the in-progress state and poll until the assistant reply lands.
+  const resumeCheckedRef = useRef(false);
+  useEffect(() => {
+    if (!user || resumeCheckedRef.current) return;
+    if (!sessions.length || !activeChatId) return;
+    resumeCheckedRef.current = true;
+    if (!isChatGenerating(user.id, activeChatId)) return;
+
+    const session = sessions.find((s) => s.id === activeChatId);
+    const base = session?.messages || [];
+    const last = base[base.length - 1];
+    if (last && last.role !== "user") { clearChatGenerating(user.id, activeChatId); return; }
+
+    skipHydrationRef.current = true;
+    setStreaming(true);
+    setMessages([...base, { id: "m_resume", role: "ai", content: "", streaming: true, time: "", created_at: new Date().toISOString() }]);
+
+    const started = Date.now();
+    const poll = setInterval(async () => {
+      const { data } = await supabase.from("chat_sessions")
+        .select("messages").eq("id", activeChatId).single();
+      const msgs = data?.messages || [];
+      const lastMsg = msgs[msgs.length - 1];
+      if ((lastMsg && lastMsg.role !== "user") || Date.now() - started > 90_000) {
+        clearInterval(poll);
+        clearChatGenerating(user.id, activeChatId);
+        skipHydrationRef.current = false;
+        setStreaming(false);
+        if (msgs.length) setMessages(msgs);  // drop the resume placeholder
+        refreshSessions(user.id);
+      }
+    }, 1500);
+    return () => clearInterval(poll);
+  }, [user, sessions, activeChatId]);
+
   const refreshSessions = useCallback(async (userId) => {
     const { data } = await supabase.from("chat_sessions")
       .select("id, title, messages, created_at, updated_at")
@@ -899,6 +940,7 @@ export default function ChatPage({ navigate }) {
       const withUser = [...historyBeforeSend.filter((m) => m.id !== aiMsgId)];
     setMessages([...withUser, aiMsgBase]);
     setStreaming(true);
+    markChatGenerating(user.id, sessionId);  // survives navigation away mid-reply
 
     try {
       await streamChatResponse({
@@ -928,12 +970,14 @@ export default function ChatPage({ navigate }) {
             messages: finalMessages, updated_at: new Date().toISOString(),
           }).eq("id", sessionId);
           if (saveError) console.error("[Chat] failed to save messages:", saveError.message);
+          clearChatGenerating(user.id, sessionId);
           await refreshSessions(user.id);
           skipHydrationRef.current = false;
         },
       });
     } catch (err) {
       skipHydrationRef.current = false;
+      clearChatGenerating(user.id, sessionId);
       setMessages((prev) => prev.filter((m) => m.id !== aiMsgId));
       setStreaming(false);
       if (err?.message?.includes('LIMIT_REACHED') || err?.message?.includes('429')) {
