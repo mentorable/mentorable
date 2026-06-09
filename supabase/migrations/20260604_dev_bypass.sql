@@ -8,7 +8,7 @@ CREATE OR REPLACE FUNCTION check_and_increment_usage(
 DECLARE
   current_count INT;
   user_email    TEXT;
-  dev_emails    TEXT[] := ARRAY['app.mentora.ai@gmail.com'];
+  dev_emails    TEXT[] := ARRAY['app.mentora.ai@gmail.com', 'kwu.1600@gmail.com'];
 BEGIN
   -- Dev bypass: infinite limits, no counter increment
   SELECT email INTO user_email FROM auth.users WHERE id = p_user_id;
