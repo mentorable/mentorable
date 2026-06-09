@@ -908,6 +908,7 @@ export default function RoadmapPage({ navigate }) {
                 transition: "border-color 0.14s",
                 flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "space-between",
+                minHeight: 50,
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: col.accent }} />
