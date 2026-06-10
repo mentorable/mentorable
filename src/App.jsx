@@ -25,14 +25,14 @@ const INITIAL_HASH = typeof window !== "undefined" ? window.location.hash : "";
 const CAME_FROM_AUTH = /access_token|type=signup|type=recovery/.test(INITIAL_HASH);
 
 // Decide where a freshly-authenticated user should land:
-// onboarded → quest board; not yet → continue onboarding.
+// onboarded → scorecard (the home/welcome); not yet → continue onboarding.
 async function routeAfterAuth(userId, navigate) {
   const { data: profile } = await supabase
     .from("profiles")
     .select("onboarding_completed")
     .eq("id", userId)
     .single();
-  navigate(profile?.onboarding_completed ? "/quest" : "/onboarding", { replace: true });
+  navigate(profile?.onboarding_completed ? "/scorecard" : "/onboarding", { replace: true });
 }
 
 function AppShell({ children }) {

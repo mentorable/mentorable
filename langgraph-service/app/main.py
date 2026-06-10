@@ -19,6 +19,7 @@ from app.nodes.chat.extract_signals import extract_signals
 from app.nodes.chat.tools import CHAT_TOOLS, execute_chat_tool
 from app.nodes.onboarding.extract import extract_profile
 from app.nodes.quest.generate import generate_quest_items
+from app.nodes.scorecard.improve import improve_axis
 from app.nodes.research.run import run_research
 from app.rate_limit import check_rate_limit
 from app.scoring import award_axis
@@ -247,6 +248,27 @@ async def quests_generate(raw: Request, user_id: str = Depends(verify_jwt)):
     except Exception as exc:
         logger.error(f"[quest_gen] Unexpected error for {user_id}: {exc}")
         raise HTTPException(status_code=500, detail="Quest generation failed")
+
+
+@app.post("/scorecard/improve")
+async def scorecard_improve(raw: Request, user_id: str = Depends(verify_jwt)):
+    try:
+        body = await raw.json()
+    except Exception:
+        body = {}
+    axis = (body.get("axis") or "").strip().lower()
+    if not axis:
+        raise HTTPException(status_code=400, detail="axis is required")
+
+    await check_rate_limit(user_id, "axis_boost")
+
+    try:
+        return await improve_axis(user_id, axis)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        logger.error(f"[scorecard] improve error for {user_id}: {exc}")
+        raise HTTPException(status_code=500, detail="Could not generate suggestions")
 
 
 @app.post("/onboarding/extract")

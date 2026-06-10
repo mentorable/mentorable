@@ -86,7 +86,7 @@ export default function AuthPage() {
           .eq("id", data.user.id)
           .single();
         if (profile?.onboarding_completed) {
-          window.location.href = "/quest";
+          window.location.href = "/scorecard";
         } else {
           window.location.href = "/onboarding";
         }

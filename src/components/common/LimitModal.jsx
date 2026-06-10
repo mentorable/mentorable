@@ -7,6 +7,7 @@ const FEATURE_COPY = {
   chat:     { title: "You've used all 15 demo messages", body: "You've reached the chat limit for the Mentorable demo. Join the waitlist to get full access when we launch." },
   research: { title: "You've used all 3 research queries", body: "You've reached the research limit for the Mentorable demo. Join the waitlist to get full access when we launch." },
   quest_gen:{ title: "You've used all 3 quest generations", body: "You've reached the quest generation limit for the Mentorable demo. Join the waitlist to get full access when we launch." },
+  axis_boost:{ title: "You've used all 5 skill boosts", body: "You've reached the limit for generating skill-improvement quests in the demo. Join the waitlist to get full access when we launch." },
 }
 
 export default function LimitModal({ feature, onClose }) {

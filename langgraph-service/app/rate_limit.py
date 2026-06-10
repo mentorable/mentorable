@@ -6,6 +6,7 @@ LIMITS = {
     "chat": 15,
     "research": 3,
     "quest_gen": 3,
+    "axis_boost": 5,
 }
 
 
