@@ -43,6 +43,15 @@ Deno.serve(async (req) => {
       return json({ error: `action must be one of: ${validActions.join(', ')}` }, 400)
     }
 
+    // Fetch current state first — needed to award axis points exactly once on
+    // the transition into "completed", and to know the quest's target axis.
+    const { data: existing } = await supabase
+      .from('quest_items')
+      .select('status, target_axis, difficulty, title')
+      .eq('id', itemId)
+      .eq('user_id', user.id)
+      .single()
+
     const now = new Date().toISOString()
     const updatePayload: Record<string, any> = { updated_at: now }
 
@@ -68,6 +77,22 @@ Deno.serve(async (req) => {
     if (updateError) {
       console.error('[update-quest-item] update error:', updateError)
       return json({ error: 'Failed to update quest item', details: updateError.message }, 500)
+    }
+
+    // Award axis points on a genuine transition into completed (not a re-complete).
+    const becameCompleted = updatePayload.status === 'completed' && existing?.status !== 'completed'
+    if (becameCompleted) {
+      const DIFF_POINTS: Record<string, number> = { Easy: 3, Medium: 5, Hard: 8 }
+      const base = DIFF_POINTS[existing?.difficulty as string] ?? 5
+      const axis = (existing?.target_axis as string) || 'execution'  // legacy untagged → Execution
+      const { error: awardErr } = await supabase.rpc('award_axis_points', {
+        p_user_id: user.id,
+        p_axis: axis,
+        p_base: base,
+        p_reason: existing?.title ? `Completed: ${existing.title}` : 'Completed a quest',
+        p_source: 'quest',
+      })
+      if (awardErr) console.error('[update-quest-item] award_axis_points error:', awardErr)
     }
 
     return json({ success: true })

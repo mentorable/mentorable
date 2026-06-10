@@ -24,6 +24,7 @@ from anthropic import AsyncAnthropic
 
 from app.config import ANTHROPIC_API_KEY, BRAVE_API_KEY
 from app.db.supabase import get_supabase
+from app.scoring import award_axis
 
 logger = logging.getLogger(__name__)
 
@@ -293,6 +294,8 @@ async def run_research(user_id: str, query: str, session_id: str) -> dict:
 
     # ── 9. Write top 3 findings to LangGraph memory (profiles.research_findings) ─
     asyncio.create_task(_save_research_findings(user_id, normalized, final_results[:3], session_id))
+    # Scorecard: a real research run builds Resourcefulness (background, never blocks).
+    asyncio.create_task(award_axis(user_id, "resourcefulness", 3, f"Researched: {normalized[:60]}", "research"))
 
     logger.info(f"[research] Completed for user {user_id} — {len(final_results)} results")
     return {"results": final_results, "sources": synthesized["sources"], "cached": False}

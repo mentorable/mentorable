@@ -20,6 +20,14 @@ logger = logging.getLogger(__name__)
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 SONNET = "claude-sonnet-4-6"
 
+_AXES = {"communication", "leadership", "technicality", "resourcefulness", "execution"}
+
+
+def _coerce_axis(value) -> str:
+    """Normalize a model-supplied target axis; default to execution."""
+    v = (value or "").strip().lower()
+    return v if v in _AXES else "execution"
+
 
 def _parse_json(text: str, fallback):
     try:
@@ -160,6 +168,10 @@ async def generate_quest_items(user_id: str, count: int = 3) -> dict:
             "- category: one of Project, Research, Application, Learning, Other\n"
             "- estimated_time: realistic estimate like \"3–4 days\", \"1–2 weeks\", \"3 weeks\"\n"
             "- difficulty: one of Easy, Medium, Hard (Easy = < 1 week low effort, Medium = 1-2 weeks moderate, Hard = 2+ weeks high effort)\n"
+            "- target_axis: the ONE skill this quest most builds — communication, leadership, technicality, resourcefulness, or execution. "
+            "(communication = articulating ideas/presenting; leadership = initiative, organizing, leading others; "
+            "technicality = deepening domain knowledge/skills; resourcefulness = self-directed research/learning; "
+            "execution = building/shipping/completing something concrete.)\n"
             "- why_it_matters: one short sentence (max 80 chars) explaining how this connects to their goals\n\n"
             "Return ONLY valid JSON, no markdown."
         ),
@@ -168,7 +180,7 @@ async def generate_quest_items(user_id: str, count: int = 3) -> dict:
             "content": (
                 f"{user_prompt}\n\n"
                 f"Generate exactly {count} new quests. Return ONLY valid JSON:\n"
-                '{"quests":[{"title":"...","description":"...","category":"Project|Research|Application|Learning|Other","estimated_time":"1–2 weeks","difficulty":"Easy|Medium|Hard","why_it_matters":"..."}]}'
+                '{"quests":[{"title":"...","description":"...","category":"Project|Research|Application|Learning|Other","estimated_time":"1–2 weeks","difficulty":"Easy|Medium|Hard","target_axis":"communication|leadership|technicality|resourcefulness|execution","why_it_matters":"..."}]}'
             ),
         }],
     )
@@ -190,6 +202,7 @@ async def generate_quest_items(user_id: str, count: int = 3) -> dict:
             "category":       q.get("category") or "Other",
             "estimated_time": q.get("estimated_time"),
             "difficulty":     q.get("difficulty"),
+            "target_axis":    _coerce_axis(q.get("target_axis")),
             "why_it_matters": q.get("why_it_matters"),
             "status":         "suggested",
             "order_index":    len(existing_items) + i,

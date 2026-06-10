@@ -40,6 +40,12 @@ IMPORTANT RULES:
 - "motivations" are what the student values in a career — pull from what they said excites them or matters to them (e.g. "income", "creativity", "helping others", "stability", "flexibility", "prestige", "impact").
 - "biggest_concern" is the single most prominent fear or worry the student expressed about their future, if any. Null if none detected.
 - "external_influences" is a short description of any outside factors shaping their choices — family pressure, financial need, geographic limits, etc. Null if none detected.
+- "axis_scores" rates the student 0-100 on five fixed dimensions, based ONLY on evidence in the transcript. Calibrate for a student: a typical motivated student sits around 40-65 on most axes; reserve 80+ for clearly demonstrated excellence and use lower values where there's little evidence. Do not inflate. The five axes:
+    - communication: how clearly and confidently they articulate themselves in conversation
+    - leadership: initiative, ownership, guiding or influencing others
+    - technicality: depth of knowledge and proficiency in their field(s) of interest
+    - resourcefulness: capacity to self-educate, find resources, and figure things out independently
+    - execution: ability to apply knowledge and actually ship/complete things, follow-through
 
 {{
   "strengths": ["3-5 specific strengths mentioned or demonstrated"],
@@ -56,11 +62,28 @@ IMPORTANT RULES:
   "self_confidence_level": "low | medium | high",
   "personality_signals": ["short descriptive tags"],
   "own_words_keywords": ["short phrases from the student's own speech"],
-  "conversation_tone": "excited | anxious | uncertain | motivated | mixed"
+  "conversation_tone": "excited | anxious | uncertain | motivated | mixed",
+  "axis_scores": {{ "communication": 0-100, "leadership": 0-100, "technicality": 0-100, "resourcefulness": 0-100, "execution": 0-100 }}
 }}
 
 Transcript:
 {transcript}"""
+
+
+AXES = ["communication", "leadership", "technicality", "resourcefulness", "execution"]
+
+
+def _coerce_axis_scores(raw) -> dict:
+    """Clamp the model's axis scores to ints 0-100; default missing axes to 40."""
+    raw = raw if isinstance(raw, dict) else {}
+    out = {}
+    for axis in AXES:
+        try:
+            v = int(round(float(raw.get(axis, 40))))
+        except (TypeError, ValueError):
+            v = 40
+        out[axis] = max(0, min(100, v))
+    return out
 
 
 def _parse_profile(text: str):
@@ -140,6 +163,7 @@ async def extract_profile(user_id: str, transcript: str) -> dict:
             "personality_signals":   profile.get("personality_signals"),
             "own_words_keywords":    profile.get("own_words_keywords"),
             "conversation_tone":     profile.get("conversation_tone"),
+            "axis_scores":           _coerce_axis_scores(profile.get("axis_scores")),
             "raw_voice_transcript":  None,  # clear once extracted
             "updated_at":            datetime.now(timezone.utc).isoformat(),
         }).eq("id", user_id).execute()

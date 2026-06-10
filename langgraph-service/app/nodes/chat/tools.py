@@ -23,6 +23,13 @@ COLUMN_TO_STATUS = {
     "inprogress":  "in_progress",
 }
 
+_AXES = {"communication", "leadership", "technicality", "resourcefulness", "execution"}
+
+
+def _coerce_axis(value) -> str:
+    v = (value or "").strip().lower()
+    return v if v in _AXES else "execution"
+
 CHAT_TOOLS = [
     {
         "name": "add_quest_to_board",
@@ -64,6 +71,11 @@ CHAT_TOOLS = [
                     "type": "string",
                     "enum": ["Easy", "Medium", "Hard"],
                     "description": "Effort level.",
+                },
+                "target_axis": {
+                    "type": "string",
+                    "enum": ["communication", "leadership", "technicality", "resourcefulness", "execution"],
+                    "description": "The ONE scorecard skill this quest most builds. Completing it raises that axis.",
                 },
                 "why_it_matters": {
                     "type": "string",
@@ -107,6 +119,7 @@ async def _add_quest_to_board(user_id: str, args: dict) -> dict:
         "category":       args.get("category") or "Other",
         "estimated_time": args.get("estimated_time"),
         "difficulty":     args.get("difficulty"),
+        "target_axis":    _coerce_axis(args.get("target_axis")),
         "why_it_matters": args.get("why_it_matters"),
         "status":         status,
         "order_index":    next_index,
