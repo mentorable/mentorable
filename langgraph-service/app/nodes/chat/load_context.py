@@ -6,6 +6,7 @@ Runs on every request so the state reflects live data.
 import logging
 from app.state import StudentState
 from app.db.supabase import get_supabase
+from app.nodes.memory.synthesize import maybe_refresh_living_profile
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,9 @@ async def load_context(state: StudentState) -> StudentState:
 
     recent_research = [r["query"] for r in (research_res.data or []) if r.get("query")]
     chat_topics     = [s["title"] for s in (chat_res.data or []) if s.get("title")]
+
+    # Living profile: if enough activity has accrued, refresh it in the background.
+    await maybe_refresh_living_profile(user_id, profile.get("living_events_since_sync"))
 
     return {
         **state,

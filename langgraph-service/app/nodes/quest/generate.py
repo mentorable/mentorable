@@ -14,6 +14,7 @@ from anthropic import AsyncAnthropic
 
 from app.config import ANTHROPIC_API_KEY
 from app.db.supabase import get_supabase
+from app.nodes.memory.synthesize import maybe_refresh_living_profile
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +98,19 @@ async def generate_quest_items(user_id: str, count: int = 3) -> dict:
     completed_items = completed_res.data or []
     chat_sessions   = chats_res.data or []
     research_queries = [r["query"] for r in (research_res.data or []) if r.get("query")]
+
+    # Prefer the evolving living_profile over the frozen baseline.
+    _living = profile.get("living_profile") or {}
+    if _living:
+        profile = {
+            **profile,
+            "onboarding_summary": _living.get("current_summary") or profile.get("onboarding_summary"),
+            "strengths":          _living.get("strengths") or profile.get("strengths"),
+            "interests":          _living.get("interests") or profile.get("interests"),
+            "career_matches":     ([_living["career_direction"]] if _living.get("career_direction") else profile.get("career_matches")),
+        }
+    # Refresh living profile in the background if enough activity has accrued.
+    await maybe_refresh_living_profile(user_id, (profile_res.data or {}).get("living_events_since_sync"))
 
     # ── Build chat snippets ───────────────────────────────────────────────────
     chat_snippets = []

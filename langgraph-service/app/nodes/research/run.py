@@ -25,6 +25,7 @@ from anthropic import AsyncAnthropic
 from app.config import ANTHROPIC_API_KEY, BRAVE_API_KEY
 from app.db.supabase import get_supabase
 from app.scoring import award_axis
+from app.nodes.memory.synthesize import maybe_refresh_living_profile
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +136,9 @@ async def run_research(user_id: str, query: str, session_id: str) -> dict:
     """
     supabase = get_supabase()
     normalized = query.strip()
+
+    # Living profile: refresh in the background if enough activity has accrued.
+    await maybe_refresh_living_profile(user_id)
 
     # ── 1. Cache check ────────────────────────────────────────────────────────
     seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()

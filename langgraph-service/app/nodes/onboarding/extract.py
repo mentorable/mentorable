@@ -73,6 +73,13 @@ Transcript:
 AXES = ["communication", "leadership", "technicality", "resourcefulness", "execution"]
 
 
+AXIS_LABELS = {
+    "communication": "Communication", "leadership": "Leadership",
+    "technicality": "Technicality", "resourcefulness": "Resourcefulness",
+    "execution": "Execution",
+}
+
+
 def _coerce_axis_scores(raw) -> dict:
     """Clamp the model's axis scores to ints 0-100; default missing axes to 40."""
     raw = raw if isinstance(raw, dict) else {}
@@ -84,6 +91,22 @@ def _coerce_axis_scores(raw) -> dict:
             v = 40
         out[axis] = max(0, min(100, v))
     return out
+
+
+def _initial_living_profile(profile: dict, axis_scores: dict) -> dict:
+    """Seed the living profile from the onboarding extraction (no extra AI call).
+    Baseline == living on day 1; it diverges as the student acts."""
+    matches = profile.get("career_matches") or []
+    weakest = sorted(axis_scores.items(), key=lambda kv: kv[1])[:2]
+    return {
+        "current_summary": profile.get("onboarding_summary") or "",
+        "strengths":       profile.get("strengths") or [],
+        "interests":       profile.get("interests") or [],
+        "career_direction": matches[0] if matches else "",
+        "current_focus":   "Just getting started — explore your first quests.",
+        "growth_areas":    [AXIS_LABELS[k] for k, _ in weakest],
+        "momentum":        "Just getting started.",
+    }
 
 
 def _parse_profile(text: str):
@@ -145,6 +168,8 @@ async def extract_profile(user_id: str, transcript: str) -> dict:
         return {"sufficient": True, "success": False, "error": "Failed to parse profile from AI response"}
 
     # ── Step 4: Persist to Supabase ───────────────────────────────────────────
+    axis_scores = _coerce_axis_scores(profile.get("axis_scores"))
+    living = _initial_living_profile(profile, axis_scores)
     try:
         supabase.from_("profiles").update({
             "strengths":             profile.get("strengths"),
@@ -163,7 +188,10 @@ async def extract_profile(user_id: str, transcript: str) -> dict:
             "personality_signals":   profile.get("personality_signals"),
             "own_words_keywords":    profile.get("own_words_keywords"),
             "conversation_tone":     profile.get("conversation_tone"),
-            "axis_scores":           _coerce_axis_scores(profile.get("axis_scores")),
+            "axis_scores":           axis_scores,
+            "living_profile":        living,
+            "living_synced_at":      datetime.now(timezone.utc).isoformat(),
+            "living_events_since_sync": 0,
             "raw_voice_transcript":  None,  # clear once extracted
             "updated_at":            datetime.now(timezone.utc).isoformat(),
         }).eq("id", user_id).execute()

@@ -168,8 +168,31 @@ def _inject_research_findings(findings: list, prompt: str) -> str:
     return prompt + f"\n\n## Research the Student Has Done\nOpportunities and resources they've looked into — reference these when relevant:\n{lines}"
 
 
+def _effective_profile(profile: dict) -> dict:
+    """Prefer the evolving living_profile over the frozen baseline for prompts."""
+    living = profile.get("living_profile") or {}
+    if not living:
+        return profile
+    eff = dict(profile)
+    if living.get("current_summary"):  eff["onboarding_summary"] = living["current_summary"]
+    if living.get("strengths"):        eff["strengths"] = living["strengths"]
+    if living.get("interests"):        eff["interests"] = living["interests"]
+    if living.get("growth_areas"):     eff["weaknesses"] = living["growth_areas"]
+    if living.get("career_direction"): eff["career_matches"] = [living["career_direction"]]
+    return eff
+
+
+def _inject_living(living: dict, prompt: str) -> str:
+    extras = []
+    if (living or {}).get("current_focus"): extras.append(f"Current focus: {living['current_focus']}")
+    if (living or {}).get("momentum"):      extras.append(f"Recent trajectory: {living['momentum']}")
+    if not extras:
+        return prompt
+    return prompt + "\n\n## Where they are right now\n" + "\n".join(extras)
+
+
 async def build_prompt(state: StudentState) -> StudentState:
-    profile = state.get("profile") or {}
+    profile = _effective_profile(state.get("profile") or {})
     data = {
         "completed_quests": state.get("_completed_quests", []),
         "active_quests":    state.get("_active_quests", state.get("active_quests", [])),
@@ -180,6 +203,7 @@ async def build_prompt(state: StudentState) -> StudentState:
     }
     system_prompt = build_system_prompt(profile, data)
     system_prompt = _inject_research_findings(state.get("research_findings", []), system_prompt)
+    system_prompt = _inject_living(profile.get("living_profile") or {}, system_prompt)
     system_prompt += QUEST_BOARD_CAPABILITY
     return {**state, "_system_prompt": system_prompt}
 
