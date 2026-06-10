@@ -53,18 +53,6 @@ async def load_context(state: StudentState) -> StudentState:
         .execute()
     )
 
-    # Annotations (table may not exist on all envs — swallow error)
-    try:
-        ann_res = (
-            supabase.from_("context_annotations")
-            .select("*")
-            .eq("user_id", user_id)
-            .execute()
-        )
-        annotations = ann_res.data or []
-    except Exception:
-        annotations = []
-
     profile    = profile_res.data or {}
     all_quests = quests_res.data or []
 
@@ -102,5 +90,4 @@ async def load_context(state: StudentState) -> StudentState:
         "_deleted_titles": deleted_titles,
         "_recent_research": recent_research,
         "_chat_topics": chat_topics,
-        "_annotations": annotations,
     }

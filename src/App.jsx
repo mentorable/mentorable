@@ -9,14 +9,13 @@ import ChatPage from "./pages/ChatPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import ResearchPage from "./pages/ResearchPage.jsx";
 import RoadmapPage from "./pages/RoadmapPage.jsx";
-import ContextPage from "./pages/ContextPage.jsx";
 import Sidebar from "./components/common/Sidebar.jsx";
 import MobileNav from "./components/common/MobileNav.jsx";
 import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
 // Routes that show the persistent sidebar
-const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/research", "/quest", "/context"];
+const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/research", "/quest"];
 
 // Captured at module load, before the Supabase client strips the URL hash.
 // After clicking the email-confirmation link the user lands here with auth
@@ -103,11 +102,6 @@ function QuestRoute() {
   return <RoadmapPage navigate={navigate} />;
 }
 
-function ContextRoute() {
-  const navigate = useNavigate();
-  return <ContextPage navigate={navigate} />;
-}
-
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -122,7 +116,6 @@ export default function App() {
         <Route path="/research/:sessionId" element={<ResearchRoute />} />
         <Route path="/research" element={<ResearchRoute />} />
         <Route path="/quest" element={<ErrorBoundary><QuestRoute /></ErrorBoundary>} />
-        <Route path="/context" element={<ContextRoute />} />
         <Route path="/roadmap" element={<Navigate to="/quest" replace />} />
         <Route path="/roadmap/*" element={<Navigate to="/quest" replace />} />
         <Route path="/roadmap-preview" element={<Navigate to="/quest" replace />} />

@@ -31,7 +31,7 @@ The agentic backend (chat, research, quest generation, onboarding extraction) li
 - `components/common/` — `Sidebar`, `MobileNav`, `Drawer`, `Spinner`, `ErrorBoundary`, `VoicePoweredOrb`, `LimitModal`.
 - `lib/`:
   - `supabase.js` — single Supabase client (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`)
-  - `mentora.js` — `streamChatResponse` (SSE from LangGraph `/chat`), `extractProfile` (LangGraph `/onboarding/extract`), and `buildSections`/`SECTION_LABELS` (used by ContextPage). The chat system prompt is built **server-side** now.
+  - `mentora.js` — `streamChatResponse` (SSE from LangGraph `/chat`) and `extractProfile` (LangGraph `/onboarding/extract`). The chat system prompt is built **server-side** now.
   - `usage.js` — fetches lifetime usage counts from `usage_tracking`; exports `LIMITS` constants
   - `onet.js` — calls `onet-proxy` edge function
   - `retry.js` — `withRetry` utility
@@ -84,7 +84,6 @@ Key tables:
 - `quest_items` — standalone quests with status (`suggested`/`considered`/`in_progress`/`completed`/`deleted`), difficulty, why_it_matters
 - `chat_sessions` — full message history (JSONB), title, timestamps
 - `research_sessions` — query + results (JSONB) + 7-day cache
-- `context_annotations` — per-section notes/replacements applied to the chat system prompt
 - `usage_tracking` — lifetime usage counters (chat_messages_used, research_queries_used, quest_generations_used)
 - `waitlist` — emails for paid plan interest
 

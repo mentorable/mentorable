@@ -783,7 +783,6 @@ export default function ChatPage({ navigate }) {
   const [deletedQuestTitles, setDeletedQuestTitles] = useState(() => getCache(`deleted_quest_titles:${getKnownUserId()}`) || []);
   const [recentResearch, setRecentResearch]   = useState(() => getCache(`recent_research:${getKnownUserId()}`) || []);
   const [sessions, setSessions]       = useState(() => getCache(`chat_sessions:${getKnownUserId()}`) || []);
-  const [annotations, setAnnotations] = useState(() => getCache(`annotations:${getKnownUserId()}`) || []);
   const [activeChatId, setActiveChatId] = useState(() => getActiveChat(getKnownUserId()));
   const [messages, setMessages]       = useState([]);
   const [streaming, setStreaming]     = useState(false);
@@ -804,7 +803,7 @@ export default function ChatPage({ navigate }) {
       setUser(data.user);
       setKnownUserId(uid);
 
-      const [sessionsRes, profileRes, allQuestsRes, researchRes, annsRes] = await Promise.all([
+      const [sessionsRes, profileRes, allQuestsRes, researchRes] = await Promise.all([
         supabase.from("chat_sessions").select("id, title, messages, created_at, updated_at")
           .eq("user_id", uid).order("updated_at", { ascending: false }),
         supabase.from("profiles").select("*").eq("id", uid).single(),
@@ -818,7 +817,6 @@ export default function ChatPage({ navigate }) {
           .eq("user_id", uid)
           .order("created_at", { ascending: false })
           .limit(10),
-        supabase.from("context_annotations").select("*").eq("user_id", uid),
       ]);
 
       if (sessionsRes.data)  { setSessions(sessionsRes.data); setCache(`chat_sessions:${uid}`, sessionsRes.data); }
@@ -834,9 +832,6 @@ export default function ChatPage({ navigate }) {
       if (researchRes.data) {
         const queries = researchRes.data.map(r => r.query).filter(Boolean);
         setRecentResearch(queries);       setCache(`recent_research:${uid}`, queries);
-      }
-      if (annsRes.data) {
-        setAnnotations(annsRes.data);     setCache(`annotations:${uid}`, annsRes.data);
       }
 
       // Load lifetime usage

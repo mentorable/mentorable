@@ -108,7 +108,6 @@ def _inject_chat_signals(profile: dict, prompt: str) -> str:
 
 
 def build_system_prompt(profile: dict, data: dict) -> str:
-    annotations   = data.get("annotations", [])
     name           = (profile.get("full_name") or "the student").strip() or "the student"
     first_name     = name.split()[0]
     response_style = profile.get("agent_response_style") or "balanced"
@@ -121,24 +120,8 @@ def build_system_prompt(profile: dict, data: dict) -> str:
         f"Response style: {style_guide}"
     )
 
-    sections = _build_sections(profile, data)
-    for section in sections:
-        s_anns = [a for a in annotations if a.get("section_id") == section["id"]]
-        content = section["content"]
-
-        # Apply replacements
-        for ann in [a for a in s_anns if a.get("type") == "replace" and a.get("highlighted_text")]:
-            if ann["highlighted_text"] in content:
-                content = content.replace(ann["highlighted_text"], ann.get("annotation_text", ""))
-
-        prompt += "\n\n" + content
-
-        # Append notes
-        for ann in [a for a in s_anns if a.get("type") == "note" and a.get("annotation_text")]:
-            if ann.get("highlighted_text"):
-                prompt += f'\n[User note on "{ann["highlighted_text"]}": "{ann["annotation_text"]}"]'
-            else:
-                prompt += f'\n[User note: "{ann["annotation_text"]}"]'
+    for section in _build_sections(profile, data):
+        prompt += "\n\n" + section["content"]
 
     prompt += (
         "\n\n## How to respond\n"
@@ -199,7 +182,6 @@ async def build_prompt(state: StudentState) -> StudentState:
         "deleted_titles":   state.get("_deleted_titles", []),
         "recent_research":  state.get("_recent_research", []),
         "chat_topics":      state.get("_chat_topics", []),
-        "annotations":      state.get("_annotations", []),
     }
     system_prompt = build_system_prompt(profile, data)
     system_prompt = _inject_research_findings(state.get("research_findings", []), system_prompt)
