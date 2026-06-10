@@ -7,7 +7,7 @@ import Spinner from "../components/common/Spinner.jsx";
 import { VoicePoweredOrb } from "../components/common/VoicePoweredOrb.jsx";
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
-const MAX_CALL_SECONDS = 360; // ElevenLabs hard-cuts at ~6:05 — end on our side first
+const MAX_CALL_SECONDS = 180; // ~3 min cap — keeps ElevenLabs credit cost down; the agent is prompted to wrap up by ~2.5 min
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const BG      = "#fafbff";
