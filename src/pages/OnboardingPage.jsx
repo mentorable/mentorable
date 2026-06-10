@@ -762,23 +762,23 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef 
         <div style={{ display:"flex", alignItems:"center", gap:"0.625rem" }}>
           <span style={{
             fontFamily:MONO, fontSize:"1.35rem", letterSpacing:"0.06em", fontWeight:600,
-            color: elapsed >= 330 ? "#ef4444" : elapsed >= 300 ? "#f59e0b" : TEXT2,
+            color: elapsed >= MAX_CALL_SECONDS - 30 ? "#ef4444" : elapsed >= MAX_CALL_SECONDS - 60 ? "#f59e0b" : TEXT2,
             transition:"color 0.3s",
           }}>
             {formatTime(elapsed)}
           </span>
           <span style={{
             fontFamily:SANS, fontSize:"0.72rem", fontWeight:600,
-            color: elapsed >= 330 ? "#ef4444" : "#8e8b82",
+            color: elapsed >= MAX_CALL_SECONDS - 30 ? "#ef4444" : "#8e8b82",
             letterSpacing:"0.04em", textTransform:"uppercase",
           }}>
-            {elapsed >= 330 ? `${360 - elapsed}s left` : "6:00 max"}
+            {elapsed >= MAX_CALL_SECONDS - 30 ? `${MAX_CALL_SECONDS - elapsed}s left` : `${Math.floor(MAX_CALL_SECONDS / 60)}:00 max`}
           </span>
         </div>
 
         {/* Max time banner — shown in final 5 seconds */}
         <AnimatePresence>
-          {elapsed >= 355 && (
+          {elapsed >= MAX_CALL_SECONDS - 5 && (
             <motion.div
               initial={{ opacity:0, y:6 }}
               animate={{ opacity:1, y:0 }}
