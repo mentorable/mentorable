@@ -452,7 +452,11 @@ export default function ScorecardPage({ navigate }) {
   const ranked = scores.map((s, i) => ({ key: AXES[i].key, s })).sort((a, b) => a.s - b.s);
   const weakSet = new Set(ranked.slice(0, 2).map((r) => r.key));
   const first = (profile?.full_name || "there").split(" ")[0];
-  const careerMatches = (profile?.career_matches || []).slice(0, 3);
+  const living = profile?.living_profile || {};
+  // career_direction (evolving) wins over the frozen baseline matches.
+  const careerMatches = living.career_direction
+    ? [living.career_direction]
+    : (profile?.career_matches || []).slice(0, 3);
 
   return (
     <div data-sidebar-offset style={{
@@ -511,6 +515,25 @@ export default function ScorecardPage({ navigate }) {
                 </p>
               </div>
             </motion.div>
+
+            {/* "Where you are now" strip — the evolving living profile */}
+            {(living.current_focus || living.momentum) && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.12 }}
+                style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1.5rem" }}>
+                {living.current_focus && (
+                  <div style={{ flex: "1 1 240px", background: "#fff", border: `1.5px solid ${theme.accent}33`, borderRadius: 14, padding: "0.9rem 1.1rem", boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
+                    <p style={{ fontFamily: SANS, fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: theme.accent, marginBottom: 5 }}>Current focus</p>
+                    <p style={{ fontFamily: SANS, fontSize: "0.92rem", color: "#141413", lineHeight: 1.45 }}>{living.current_focus}</p>
+                  </div>
+                )}
+                {living.momentum && (
+                  <div style={{ flex: "1 1 240px", background: "#fff", border: "1.5px solid #e6dfd8", borderRadius: 14, padding: "0.9rem 1.1rem", boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
+                    <p style={{ fontFamily: SANS, fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: "#8e8b82", marginBottom: 5 }}>Momentum</p>
+                    <p style={{ fontFamily: SANS, fontSize: "0.92rem", color: "#141413", lineHeight: 1.45 }}>{living.momentum}</p>
+                  </div>
+                )}
+              </motion.div>
+            )}
 
             {/* Main grid: radar card + axis breakdown */}
             <div className="sc-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.15fr) minmax(0, 1fr)", gap: "1.5rem", alignItems: "start" }}>
