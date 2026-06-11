@@ -577,7 +577,7 @@ function IntroPhase({ onStart, loading, retryNotice }) {
               fontWeight:400, margin:0,
             }}
           >
-            Your personal college and career guide — the kind of support that used to cost hundreds of dollars per session, now free.
+            Your personal college and career guide. The kind of support that used to cost hundreds of dollars per session, now free.
           </motion.p>
 
           {/* Access framing */}
@@ -792,7 +792,7 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef 
                 color:"#dc2626", textAlign:"center", lineHeight:1.5,
               }}
             >
-              You've reached the maximum time for this call — wrapping up now.
+              You've reached the maximum time for this call. Wrapping up now.
             </motion.div>
           )}
         </AnimatePresence>
@@ -1039,7 +1039,7 @@ function RecoveryPhase({ userId, onSuccess, onRetry }) {
         Processing hiccup
       </h2>
       <p style={{ fontFamily: "'Inter', -apple-system, sans-serif", color: TEXT2, fontSize: "0.95rem", lineHeight: 1.68, maxWidth: 360, marginBottom: "0.5rem" }}>
-        We ran into an issue turning your conversation into a profile. Your transcript was saved — click below to try again.
+        We ran into an issue turning your conversation into a profile. Your transcript was saved, so click below to try again.
       </p>
       {error && <p style={{ fontFamily: "'Inter', -apple-system, sans-serif", color: "#ef4444", fontSize: "0.85rem", marginBottom: "1rem", maxWidth: 360 }}>{error}</p>}
       <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.5rem", flexWrap: "wrap", justifyContent: "center" }}>
@@ -1223,7 +1223,7 @@ export default function OnboardingPage() {
         setTranscript([]);
         transcriptRef.current = [];
         setElapsed(0);
-        setRetryNotice("It looks like the conversation ended before we got to know you. No worries — just start it again and share a bit about yourself when you're ready.");
+        setRetryNotice("It looks like the conversation ended before we got to know you. No worries, just start it again and share a bit about yourself when you're ready.");
         setPhase("intro");
         return;
       }

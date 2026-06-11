@@ -60,8 +60,6 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
         sections.append({"id": "work_style", "content": f"Work style: {profile['work_style']}"})
     if profile.get("career_matches"):
         sections.append({"id": "career_matches", "content": f"Top career matches: {', '.join(profile['career_matches'])}"})
-    if (profile.get("agent_instructions") or "").strip():
-        sections.append({"id": "agent_instructions", "content": f"## Custom Instructions\nThe student has asked Mentora to follow these guidelines:\n{(profile['agent_instructions'] or '').strip()}"})
 
     if completed_quests:
         from datetime import datetime
@@ -134,6 +132,18 @@ def build_system_prompt(profile: dict, data: dict) -> str:
     )
 
     prompt = _inject_chat_signals(profile, prompt)
+
+    # The student's own custom instructions — placed last and given top priority.
+    custom = (profile.get("agent_instructions") or "").strip()
+    if custom:
+        prompt += (
+            "\n\n## The student's custom instructions — TOP PRIORITY\n"
+            "The student has explicitly set these instructions for how you should behave. "
+            "Follow them carefully, and prioritize them over the general guidance above wherever "
+            "they conflict (as long as they're safe and appropriate):\n"
+            f"{custom}"
+        )
+
     return prompt.strip()
 
 

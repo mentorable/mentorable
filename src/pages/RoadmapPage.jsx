@@ -71,7 +71,7 @@ const COLUMNS = [
     accent: GREEN,
     soft: GREEN_SOFT,
     border: "#6ee7b7",
-    emptyText: "Drag quests here when you finish them. 🎉",
+    emptyText: "Drag quests here when you finish them.",
   },
 ];
 
@@ -158,7 +158,7 @@ function SkeletonCard({ delay = 0 }) {
 }
 
 // ─── Quest card ───────────────────────────────────────────────────────────────
-function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove, isDismissing }) {
+function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove, isDismissing, onOpen }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -188,6 +188,8 @@ function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove,
       draggable={!isMobile}
       onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; onDragStart(item.id); }}
       onDragEnd={onDragEnd}
+      onClick={() => onOpen?.(item)}
+      title="Click for full details"
       style={{
         background: WHITE,
         borderRadius: 14,
@@ -196,7 +198,7 @@ function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove,
         boxShadow: isDragging
           ? "0 10px 32px rgba(0,0,0,0.13)"
           : "0 1px 3px rgba(15,23,42,0.04)",
-        cursor: isMobile ? "default" : "grab",
+        cursor: isMobile ? "pointer" : "grab",
         userSelect: "none",
         position: "relative",
         transformOrigin: "top center",
@@ -279,7 +281,7 @@ function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove,
 
       {/* Mobile: move menu */}
       {isMobile && (
-        <div style={{ marginTop: 10, position: "relative" }} ref={menuRef}>
+        <div style={{ marginTop: 10, position: "relative" }} ref={menuRef} onClick={(e) => e.stopPropagation()}>
           <button
             onClick={() => setMenuOpen(v => !v)}
             style={{
@@ -357,6 +359,60 @@ function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove,
   );
 }
 
+// ─── Quest detail modal ───────────────────────────────────────────────────────
+function QuestDetailModal({ item, onClose }) {
+  if (!item) return null;
+  const catStyle  = CATEGORY_STYLES[item.category] || CATEGORY_STYLES.Other;
+  const diffStyle = item.difficulty ? (DIFFICULTY_STYLES[item.difficulty] || null) : null;
+  const Badge = ({ bg, color, children }) => (
+    <span style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", background: bg, color, borderRadius: 6, padding: "3px 9px" }}>{children}</span>
+  );
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(20,20,19,0.45)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 22, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.97 }}
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        onClick={(e) => e.stopPropagation()}
+        style={{ width: "100%", maxWidth: 520, maxHeight: "85vh", overflowY: "auto", background: WHITE, borderRadius: 20, border: `1px solid ${BORDER}`, boxShadow: "0 30px 80px rgba(0,0,0,0.3)", padding: "1.75rem" }}
+      >
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
+          <Badge bg={catStyle.bg} color={catStyle.color}>{item.category || "Other"}</Badge>
+          {diffStyle && <Badge bg={diffStyle.bg} color={diffStyle.color}>{item.difficulty}</Badge>
+          }
+          {item.target_axis && <Badge bg={BLUE_TINT} color={BLUE}>Builds {AXIS_LABELS[item.target_axis] || item.target_axis}</Badge>}
+          {item.estimated_time && <span style={{ marginLeft: "auto", fontFamily: FONT, fontSize: 12, fontWeight: 600, color: TEXT_FAINT }}>{item.estimated_time}</span>}
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.5rem", lineHeight: 1, color: TEXT_FAINT, padding: 0, marginLeft: item.estimated_time ? 8 : "auto" }}>×</button>
+        </div>
+
+        <h2 style={{ fontFamily: FONT, fontWeight: 800, fontSize: "1.4rem", color: TEXT, letterSpacing: "-0.01em", lineHeight: 1.25, marginBottom: item.description ? 12 : 0 }}>
+          {item.title}
+        </h2>
+
+        {item.description && (
+          <p style={{ fontFamily: FONT, fontSize: "0.98rem", color: TEXT_MID, lineHeight: 1.6, margin: 0 }}>{item.description}</p>
+        )}
+
+        {item.why_it_matters && (
+          <div style={{ marginTop: 16, padding: "0.9rem 1.1rem", background: BLUE_TINT, borderRadius: 12, borderLeft: `3px solid ${BLUE}` }}>
+            <p style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: BLUE, marginBottom: 5 }}>Why it matters</p>
+            <p style={{ fontFamily: FONT, fontSize: "0.92rem", color: TEXT_MID, lineHeight: 1.55, margin: 0 }}>{item.why_it_matters}</p>
+          </div>
+        )}
+
+        {item.status === "completed" && item.completed_at && (
+          <p style={{ marginTop: 16, fontFamily: FONT, fontSize: "0.85rem", color: GREEN, fontWeight: 600 }}>
+            Completed {new Date(item.completed_at).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
+          </p>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ─── Trash drop zone ──────────────────────────────────────────────────────────
 function TrashZone({ visible, isOver, onDragOver, onDragLeave, onDrop }) {
   return (
@@ -393,9 +449,13 @@ function TrashZone({ visible, isOver, onDragOver, onDragLeave, onDrop }) {
           <motion.span
             animate={{ scale: isOver ? 1.3 : 1 }}
             transition={{ duration: 0.15 }}
-            style={{ fontSize: 18, lineHeight: 1 }}
+            style={{ lineHeight: 1, color: isOver ? RED : TEXT_MUTED, display: "inline-flex" }}
           >
-            🗑️
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
           </motion.span>
           <span style={{
             fontFamily: FONT, fontSize: 13, fontWeight: 700,
@@ -483,6 +543,7 @@ export default function RoadmapPage({ navigate }) {
   const [questGenUsed, setQuestGenUsed] = useState(0);
   const [limitModal, setLimitModal]     = useState(false);
   const [scoreToast, setScoreToast]     = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
   const scoreToastTimer = useRef(null);
   const userIdRef = useRef(null);
 
@@ -662,7 +723,9 @@ export default function RoadmapPage({ navigate }) {
             boxShadow: "0 14px 36px rgba(0,0,0,0.3)", fontFamily: FONT,
           }}
         >
-          <span style={{ fontSize: 18 }}>⚡</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#34d399" stroke="none" style={{ flexShrink: 0 }}>
+            <path d="M13 2L4.5 13.5H11l-1 8.5L19.5 10H13l1-8z"/>
+          </svg>
           <span style={{ fontWeight: 800, fontSize: "1.1rem", color: "#34d399" }}>+{scoreToast.delta}</span>
           <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>{AXIS_LABELS[scoreToast.axis] || scoreToast.axis}</span>
           <button onClick={() => navigate("/scorecard")}
@@ -671,6 +734,13 @@ export default function RoadmapPage({ navigate }) {
           </button>
         </motion.div>
       )}
+    </AnimatePresence>
+  );
+
+  // Quest detail modal (shared by both layouts).
+  const detailModalEl = (
+    <AnimatePresence>
+      {selectedItem && <QuestDetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />}
     </AnimatePresence>
   );
 
@@ -841,6 +911,7 @@ export default function RoadmapPage({ navigate }) {
                   isMobile={true}
                   onMove={handleMove}
                   isDismissing={dismissingId === item.id}
+                  onOpen={setSelectedItem}
                 />
               </motion.div>
             ))}
@@ -861,7 +932,7 @@ export default function RoadmapPage({ navigate }) {
               }}>
                 <div style={{ width: 16, height: 16, borderRadius: "50%", background: `${activeCol.accent}35` }} />
               </div>
-              <p style={{ fontFamily: FONT, fontSize: 14, color: TEXT_MUTED, lineHeight: 1.6, margin: 0 }}>
+              <p style={{ fontFamily: FONT, fontSize: 15.5, fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.6, margin: 0, maxWidth: 280 }}>
                 {activeCol.emptyText}
               </p>
             </motion.div>
@@ -870,6 +941,7 @@ export default function RoadmapPage({ navigate }) {
 
         {celebrating && <Confetti />}
         {scoreToastEl}
+        {detailModalEl}
       </div>
     );
   }
@@ -955,17 +1027,17 @@ export default function RoadmapPage({ navigate }) {
                 minHeight: 50,
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: col.accent }} />
+                  <div style={{ width: 9, height: 9, borderRadius: "50%", background: col.accent }} />
                   <span style={{
-                    fontFamily: FONT, fontWeight: 800, fontSize: 11,
-                    color: TEXT, letterSpacing: "0.07em", textTransform: "uppercase",
+                    fontFamily: FONT, fontWeight: 800, fontSize: 13,
+                    color: TEXT, letterSpacing: "0.05em", textTransform: "uppercase",
                   }}>
                     {col.label}
                   </span>
                   <span style={{
-                    fontFamily: FONT, fontWeight: 700, fontSize: 10.5,
+                    fontFamily: FONT, fontWeight: 700, fontSize: 11,
                     color: col.accent, background: col.soft,
-                    borderRadius: 5, padding: "1px 6px",
+                    borderRadius: 5, padding: "1px 7px",
                   }}>
                     {cards.length}
                   </span>
@@ -1042,6 +1114,7 @@ export default function RoadmapPage({ navigate }) {
                       isMobile={false}
                       onMove={handleMove}
                       isDismissing={dismissingId === item.id}
+                      onOpen={setSelectedItem}
                     />
                   ))}
                 </AnimatePresence>
@@ -1065,16 +1138,16 @@ export default function RoadmapPage({ navigate }) {
                     }}
                   >
                     <div style={{
-                      width: 38, height: 38, borderRadius: 10,
+                      width: 46, height: 46, borderRadius: 12,
                       background: col.soft,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      marginBottom: 10,
+                      marginBottom: 14,
                     }}>
-                      <div style={{ width: 13, height: 13, borderRadius: "50%", background: `${col.accent}38` }} />
+                      <div style={{ width: 16, height: 16, borderRadius: "50%", background: `${col.accent}45` }} />
                     </div>
                     <p style={{
-                      fontFamily: FONT, fontSize: 12, color: TEXT_FAINT,
-                      lineHeight: 1.55, margin: 0,
+                      fontFamily: FONT, fontSize: 14.5, fontWeight: 500, color: TEXT_MUTED,
+                      lineHeight: 1.55, margin: 0, maxWidth: 200,
                     }}>
                       {col.emptyText}
                     </p>
@@ -1097,6 +1170,7 @@ export default function RoadmapPage({ navigate }) {
 
       {celebrating && <Confetti />}
       {scoreToastEl}
+      {detailModalEl}
       {limitModal && <LimitModal feature="quest_gen" onClose={() => setLimitModal(false)} />}
     </div>
   );

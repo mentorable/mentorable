@@ -30,12 +30,12 @@ const LOADING_STEPS = [
 ];
 
 const EXAMPLE_CHIPS = [
-  "Research internships for high school students interested in AI",
-  "Competitions for environmental science students",
-  "Scholarships for first-gen students pursuing medicine",
-  "Summer programs for high schoolers in computer science",
-  "How to get published as a high school researcher",
-  "Free resources to learn machine learning as a student",
+  "Summer programs for high school students",
+  "Internships open to high schoolers",
+  "Scholarships I can apply for in high school",
+  "Academic competitions to enter this year",
+  "Free online courses to build a new skill",
+  "How to start a project that stands out on applications",
 ];
 
 const TYPE_META = {
@@ -249,7 +249,7 @@ function HeroSection() {
         </span>
       </h1>
       <p style={{ fontFamily: FONT, fontSize: "1rem", color: "#6c6a64", maxWidth: 520, lineHeight: 1.75, fontWeight: 500, margin: 0 }}>
-        Scholarships, internships, programs, and competitions — surfaced from real sources and filtered to your profile.
+        Scholarships, internships, programs, and competitions, surfaced from real sources and filtered to your profile.
       </p>
     </div>
   );

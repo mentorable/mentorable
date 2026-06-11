@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Routes, Route, useNavigate, useParams, useLocation, Navigate } from "react-router-dom";
 import { supabase } from "./lib/supabase.js";
 import LandingPage from "./pages/LandingPage.jsx";
@@ -102,6 +102,30 @@ function QuestRoute() {
   return <RoadmapPage navigate={navigate} />;
 }
 
+// True if a Supabase session is stored — checked synchronously so we never flash
+// the landing page to a logged-in user who's about to be redirected.
+function hasStoredSession() {
+  try {
+    return Object.keys(localStorage).some((k) => k.startsWith("sb-") && k.endsWith("-auth-token"));
+  } catch {
+    return false;
+  }
+}
+
+// Root "/" route: logged-out users see the landing page immediately; logged-in
+// users see a neutral screen while AppShell redirects them (no landing flash).
+// Falls back to the landing page if no redirect happens (e.g. stale token).
+function RootRoute() {
+  const [showLanding, setShowLanding] = useState(() => !hasStoredSession());
+  useEffect(() => {
+    if (showLanding) return;
+    const t = setTimeout(() => setShowLanding(true), 1200);
+    return () => clearTimeout(t);
+  }, [showLanding]);
+  if (!showLanding) return <div style={{ minHeight: "100vh", background: "#f5f1ed" }} />;
+  return <LandingPage />;
+}
+
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -119,7 +143,7 @@ export default function App() {
         <Route path="/roadmap" element={<Navigate to="/quest" replace />} />
         <Route path="/roadmap/*" element={<Navigate to="/quest" replace />} />
         <Route path="/roadmap-preview" element={<Navigate to="/quest" replace />} />
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<RootRoute />} />
         <Route path="*" element={<LandingPage />} />
       </Routes>
     </AppShell>

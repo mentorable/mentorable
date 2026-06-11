@@ -874,7 +874,7 @@ export default function LandingPage() {
 
         <FeatureRow
           label="Step 02" italic="See" rest="your skill profile."
-          body="See your 5-axis skill radar, top career path matches, and personalized strengths — all drawn from your voice data."
+          body="See your 5-axis skill radar, top career path matches, and personalized strengths, all drawn from your voice data."
           visual={<SkillRadar/>}
           flip={true}/>
 

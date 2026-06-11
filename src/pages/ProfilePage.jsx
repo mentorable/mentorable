@@ -409,7 +409,7 @@ export default function ProfilePage({ navigate }) {
                   style={{ ...inputStyle, minHeight: 110, resize: "vertical", lineHeight: 1.6 }}
                   value={agentInstructions}
                   onChange={(e) => setAgentInstructions(e.target.value)}
-                  placeholder={`Anything the agent should always keep in mind.\n\nExamples:\n• Always suggest free or low-cost resources.\n• I want to go pre-med — keep advice focused there.\n• I have very limited time after 5pm on weekdays.`}
+                  placeholder={`Anything the agent should always keep in mind.\n\nExamples:\n• Always suggest free or low-cost resources.\n• I want to go pre-med, keep advice focused there.\n• I have very limited time after 5pm on weekdays.`}
                   maxLength={1000}
                 />
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: "0.3rem" }}>

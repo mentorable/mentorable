@@ -237,7 +237,7 @@ function WelcomePopup({ profile, accent, onClose }) {
           width: "100%", padding: "0.95rem", border: "none", borderRadius: 12, cursor: "pointer",
           background: "#1d4ed8", color: "#fff", fontFamily: SANS, fontWeight: 700, fontSize: "1rem", boxShadow: "0 6px 20px rgba(29,78,216,0.3)",
         }}>
-          Got it — show my scorecard
+          Got it, show my scorecard
         </button>
       </motion.div>
     </motion.div>
@@ -317,7 +317,7 @@ function ImproveModal({ axisKey, accent, onClose, onAdded, onLimit, onConsumed }
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.4rem", color: "#8e8b82", lineHeight: 1, padding: 4 }}>×</button>
         </div>
         <p style={{ fontFamily: SANS, fontSize: "0.88rem", color: "#6c6a64", lineHeight: 1.55, marginBottom: "1.5rem" }}>
-          Add the ones you like — they land in your Suggestions column, and completing them raises this exact score.
+          Add the ones you like. They land in your Suggestions column, and completing them raises this exact score.
         </p>
 
         {loading && (
