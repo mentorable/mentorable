@@ -34,6 +34,11 @@ const BORDER      = "#e6dfd8";
 const FONT        = "'Inter', -apple-system, sans-serif";
 const SERIF       = "'Cormorant Garamond', Georgia, serif";
 
+const AXIS_LABELS = {
+  communication: "Communication", leadership: "Leadership", technicality: "Technicality",
+  resourcefulness: "Resourcefulness", execution: "Execution",
+};
+
 // ─── Column config ────────────────────────────────────────────────────────────
 const COLUMNS = [
   {
@@ -477,6 +482,8 @@ export default function RoadmapPage({ navigate }) {
   const [dismissingId, setDismissingId] = useState(null);
   const [questGenUsed, setQuestGenUsed] = useState(0);
   const [limitModal, setLimitModal]     = useState(false);
+  const [scoreToast, setScoreToast]     = useState(null);
+  const scoreToastTimer = useRef(null);
   const userIdRef = useRef(null);
 
   // ── Data loading ────────────────────────────────────────────────────────────
@@ -578,12 +585,20 @@ export default function RoadmapPage({ navigate }) {
       }
     ));
 
-    supabase.functions.invoke("update-quest-item", {
+    const { data: resp, error: moveErr } = await supabase.functions.invoke("update-quest-item", {
       body: { itemId, action: newStatus === "completed" ? "complete" : "move", status: newStatus },
-    }).catch(async (e) => {
-      console.error("[Quest] move error:", e);
-      if (userIdRef.current) await loadItems(userIdRef.current);
     });
+    if (moveErr) {
+      console.error("[Quest] move error:", moveErr);
+      if (userIdRef.current) await loadItems(userIdRef.current);
+      return;
+    }
+    // Surface the score gain when a quest is completed.
+    if (newStatus === "completed" && resp?.award?.delta > 0) {
+      setScoreToast({ axis: resp.award.axis, delta: resp.award.delta });
+      if (scoreToastTimer.current) clearTimeout(scoreToastTimer.current);
+      scoreToastTimer.current = setTimeout(() => setScoreToast(null), 4000);
+    }
   }, [loadItems]);
 
   // ── Drag handlers ───────────────────────────────────────────────────────────
@@ -630,6 +645,34 @@ export default function RoadmapPage({ navigate }) {
       </div>
     );
   }
+
+  // Floating "+N Axis" gain toast, shown on quest completion (both layouts).
+  const scoreToastEl = (
+    <AnimatePresence>
+      {scoreToast && (
+        <motion.div
+          initial={{ opacity: 0, y: 18, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+          transition={{ type: "spring", stiffness: 360, damping: 24 }}
+          style={{
+            position: "fixed", bottom: 24, right: 24, zIndex: 9999,
+            display: "flex", alignItems: "center", gap: 10,
+            background: "#141413", color: "#fff", padding: "12px 18px", borderRadius: 14,
+            boxShadow: "0 14px 36px rgba(0,0,0,0.3)", fontFamily: FONT,
+          }}
+        >
+          <span style={{ fontSize: 18 }}>⚡</span>
+          <span style={{ fontWeight: 800, fontSize: "1.1rem", color: "#34d399" }}>+{scoreToast.delta}</span>
+          <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>{AXIS_LABELS[scoreToast.axis] || scoreToast.axis}</span>
+          <button onClick={() => navigate("/scorecard")}
+            style={{ marginLeft: 4, background: "rgba(255,255,255,0.16)", border: "none", color: "#fff", fontFamily: FONT, fontWeight: 700, fontSize: 12, padding: "4px 10px", borderRadius: 8, cursor: "pointer" }}>
+            Scorecard →
+          </button>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   // ── Mobile layout ──────────────────────────────────────────────────────────
   if (isMobile) {
@@ -826,6 +869,7 @@ export default function RoadmapPage({ navigate }) {
         </div>
 
         {celebrating && <Confetti />}
+        {scoreToastEl}
       </div>
     );
   }
@@ -1052,6 +1096,7 @@ export default function RoadmapPage({ navigate }) {
       />
 
       {celebrating && <Confetti />}
+      {scoreToastEl}
       {limitModal && <LimitModal feature="quest_gen" onClose={() => setLimitModal(false)} />}
     </div>
   );

@@ -80,12 +80,13 @@ Deno.serve(async (req) => {
     }
 
     // Award axis points on a genuine transition into completed (not a re-complete).
+    let award = null
     const becameCompleted = updatePayload.status === 'completed' && existing?.status !== 'completed'
     if (becameCompleted) {
       const DIFF_POINTS: Record<string, number> = { Easy: 3, Medium: 5, Hard: 8 }
       const base = DIFF_POINTS[existing?.difficulty as string] ?? 5
       const axis = (existing?.target_axis as string) || 'execution'  // legacy untagged → Execution
-      const { error: awardErr } = await supabase.rpc('award_axis_points', {
+      const { data: awardData, error: awardErr } = await supabase.rpc('award_axis_points', {
         p_user_id: user.id,
         p_axis: axis,
         p_base: base,
@@ -93,9 +94,10 @@ Deno.serve(async (req) => {
         p_source: 'quest',
       })
       if (awardErr) console.error('[update-quest-item] award_axis_points error:', awardErr)
+      else award = awardData  // { ok, axis, value, delta }
     }
 
-    return json({ success: true })
+    return json({ success: true, award })
   } catch (err: any) {
     console.error('[update-quest-item] error:', err)
     return json({ error: 'Failed to update quest item', details: err.message }, 500)
