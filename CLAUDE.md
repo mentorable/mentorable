@@ -27,7 +27,7 @@ The agentic backend (chat, research, quest generation, onboarding extraction) li
 ### Frontend (React SPA)
 
 - `main.jsx` → `App.jsx` — root router. `AppShell` wraps all logged-in routes with `Sidebar` (desktop) or `MobileNav` (mobile). `useIsMobile` hook drives layout throughout.
-- Pages at root: `LandingPage`, `AuthPage`, `OnboardingPage`, `ScorecardPage`, `ChatPage`, `ResearchPage`, `ProfilePage`, `RoadmapPage`.
+- Pages at root: `LandingPage`, `AuthPage`, `OnboardingPage`, `ScorecardPage`, `ChatPage`, `ResearchPage`, `ProfilePage`, `QuestPage`.
 - `components/common/` — `Sidebar`, `MobileNav`, `Drawer`, `Spinner`, `ErrorBoundary`, `VoicePoweredOrb`, `LimitModal`.
 - `lib/`:
   - `supabase.js` — single Supabase client (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`)
@@ -47,7 +47,7 @@ The agentic backend (chat, research, quest generation, onboarding extraction) li
 
 **ResearchPage** — calls LangGraph `POST /research` (Brave Search + Claude synthesis). Shows inline "X queries remaining" counter. `LimitModal` on limit hit. Sessions stored in `research_sessions`.
 
-**RoadmapPage** — the live **Quest Kanban board** (over `quest_items`), not a roadmap. Columns: Suggestions → Considered → In Progress → Completed. Items generated via LangGraph `POST /quests/generate`; status changes via `update-quest-item` edge function. Desktop: drag-and-drop + trash zone. Mobile: tab switcher + "Move to" dropdown. Shows "X generations remaining" counter near the generate button.
+**QuestPage** (`QuestPage.jsx`, route `/quest`) — the **Quest Kanban board** (over `quest_items`). Columns: Suggestions → Considered → In Progress → Completed. Items generated via LangGraph `POST /quests/generate`; status changes via `update-quest-item` edge function. Desktop: drag-and-drop + trash zone. Mobile: tab switcher + "Move to" dropdown. Shows "X generations remaining" counter near the generate button.
 
 **ScorecardPage** — displays the 5-axis skill radar from `profiles.strengths` + career matches.
 

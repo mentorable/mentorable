@@ -8,7 +8,7 @@ import ScorecardPage from "./pages/ScorecardPage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import ResearchPage from "./pages/ResearchPage.jsx";
-import RoadmapPage from "./pages/RoadmapPage.jsx";
+import QuestPage from "./pages/QuestPage.jsx";
 import Sidebar from "./components/common/Sidebar.jsx";
 import MobileNav from "./components/common/MobileNav.jsx";
 import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
@@ -99,7 +99,7 @@ function ResearchRoute() {
 
 function QuestRoute() {
   const navigate = useNavigate();
-  return <RoadmapPage navigate={navigate} />;
+  return <QuestPage navigate={navigate} />;
 }
 
 // True if a Supabase session is stored — checked synchronously so we never flash

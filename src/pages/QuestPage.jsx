@@ -526,8 +526,8 @@ function CountPicker({ onSelect, onClose }) {
   );
 }
 
-// ─── RoadmapPage ──────────────────────────────────────────────────────────────
-export default function RoadmapPage({ navigate }) {
+// ─── QuestPage ────────────────────────────────────────────────────────────────
+export default function QuestPage({ navigate }) {
   const isMobile = useIsMobile();
   const [userId, setUserId]           = useState(getKnownUserId);
   const [items, setItems]             = useState(() => getCache(`quest_items:${getKnownUserId()}`) || []);
