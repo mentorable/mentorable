@@ -230,26 +230,15 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
 function HeroSection() {
   return (
     <div style={{ marginBottom: "2rem", position: "relative" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: "0.875rem" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, background: BLUE_TINT, border: `1px solid ${BLUE_SOFT}`, borderRadius: 20, padding: "4px 12px", width: "fit-content" }}>
-          <motion.span
-            animate={{ boxShadow: ["0 0 0 0 rgba(29,78,216,0.5)", "0 0 0 4px rgba(29,78,216,0)", "0 0 0 0 rgba(29,78,216,0)"] }}
-            transition={{ duration: 2.5, repeat: Infinity }}
-            style={{ width: 6, height: 6, borderRadius: "50%", background: BLUE, display: "inline-block" }}
-          />
-          <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: BLUE }}>
-            Deep Research
-          </span>
-        </div>
-      </div>
       <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(2rem, 3vw, 2.6rem)", color: NAVY, marginBottom: "0.875rem", lineHeight: 1.1, letterSpacing: "-0.02em" }}>
         Find real opportunities,<br />
         <span style={{ background: "linear-gradient(90deg, #1d4ed8, #3b82f6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
           tailored to you.
         </span>
       </h1>
-      <p style={{ fontFamily: FONT, fontSize: "1rem", color: "#6c6a64", maxWidth: 520, lineHeight: 1.75, fontWeight: 500, margin: 0 }}>
-        Scholarships, internships, programs, and competitions, surfaced from real sources and filtered to your profile.
+      <p style={{ fontFamily: FONT, fontSize: "1rem", color: "#6c6a64", maxWidth: 560, lineHeight: 1.75, fontWeight: 500, margin: 0 }}>
+        Ask about scholarships, internships, programs, or competitions, and Mentorable searches the live web,
+        reads the results, and synthesizes a tailored shortlist with a game plan, all filtered to your profile.
       </p>
     </div>
   );
