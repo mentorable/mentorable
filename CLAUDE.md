@@ -41,15 +41,17 @@ The agentic backend (chat, research, quest generation, onboarding extraction) li
 
 **LandingPage** — cinematic scroll-driven marketing page. Mountain hero image (`/public/hero-mountains.png`), shimmer headline, 4 feature sections (laptop mockup, radar chart, phone mockup, chat window), newsletter, footer. Uses framer-motion throughout.
 
-**OnboardingPage** — voice onboarding via `@elevenlabs/react` (`useConversation`). Max 360s call. After call ends, calls LangGraph `POST /onboarding/extract` (via `extractProfile`) → structured profile, then redirects to `/quest`.
+**OnboardingPage** — voice onboarding via `@elevenlabs/react` (`useConversation`). Max 180s call (3-min cap; the agent prompt lives on the ElevenLabs dashboard). After call ends, calls LangGraph `POST /onboarding/extract` (via `extractProfile`) → structured profile (incl. initial `axis_scores` + seeded `living_profile`), then redirects to `/scorecard` (first-timers). Login routing: onboarded users land on `/scorecard`.
 
 **ChatPage** — streams `claude-sonnet-4-6` responses via LangGraph `POST /chat` (SSE). System prompt is built server-side. Mentora can add quests to the board via the `add_quest_to_board` tool (emits a `quest_added` SSE event → toast). Shows inline "X messages remaining" counter; `LimitModal` on 429 `LIMIT_REACHED`.
 
 **ResearchPage** — calls LangGraph `POST /research` (Brave Search + Claude synthesis). Shows inline "X queries remaining" counter. `LimitModal` on limit hit. Sessions stored in `research_sessions`.
 
-**QuestPage** (`QuestPage.jsx`, route `/quest`) — the **Quest Kanban board** (over `quest_items`). Columns: Suggestions → Considered → In Progress → Completed. Items generated via LangGraph `POST /quests/generate`; status changes via `update-quest-item` edge function. Desktop: drag-and-drop + trash zone. Mobile: tab switcher + "Move to" dropdown. Shows "X generations remaining" counter near the generate button.
+**QuestPage** (`QuestPage.jsx`, route `/quest`) — the **Quest Kanban board** (over `quest_items`). Columns: Suggestions → Considered → In Progress → Completed. Items generated via LangGraph `POST /quests/generate`; status changes via `update-quest-item` edge function. Clicking a card opens a detail modal. Completing awards axis points (+N toast with **Undo**). Roadmap-promoted cards show a "Roadmap" badge. Desktop: drag-and-drop + trash zone. Mobile: tab switcher + "Move to" dropdown.
 
-**ScorecardPage** — displays the 5-axis skill radar from `profiles.strengths` + career matches.
+**ScorecardPage** — the gamified home/dashboard. A standardized **5-axis radar** (Communication, Leadership, Technicality, Resourcefulness, Execution) over `profiles.axis_scores`, a **Career Readiness %** ring (axis average), and a "where you are now" strip (`living_profile` current_focus + momentum). Clicking a weak axis → `POST /scorecard/improve` generates 3 axis-tagged quest suggestions to add to the board. One-time welcome popup post-onboarding (`scorecard_intro_seen`).
+
+**RoadmapPage** (`RoadmapPage.jsx`, route `/roadmap`; node detail at `/roadmap/node/:id`) — adaptive, node-based **structured guidance**. Goal-capture entry (goal + timeframe 6–24mo) → `POST /roadmap/generate` returns a big-picture vertical timeline (now at top → future below) of stub nodes by pillar (Project/Research/Activity/Club). Opening a node → `POST /roadmap/node/expand` (Brave + curation) fills real references + an inline-cited overview (`RoadmapNodePage`); "Add to my board" promotes it to a `quest_items` card (`roadmap_node_id` link). `POST /roadmap/reevaluate` proposes a revised timeline (Preview → Accept/Keep). See `.claude/ROADMAP_REDESIGN.md`.
 
 **ProfilePage** — editable profile fields, agent instructions, response style.
 
@@ -62,8 +64,14 @@ Python + FastAPI on Railway. Holds the Anthropic key. JWT-authed (`verify_jwt` v
 | `POST /chat` | Streams Sonnet 4.6 (SSE), tool-use loop for `add_quest_to_board`. Rate-limited: 15/lifetime | Anthropic |
 | `POST /research` | Brave Search → page fetch → Sonnet synthesis. Rate-limited: 3/lifetime | Brave, Anthropic |
 | `POST /quests/generate` | 1–5 quest suggestions from profile + research findings. Rate-limited: 3/lifetime | Anthropic |
-| `POST /onboarding/extract` | ElevenLabs transcript → 17-field profile (Haiku sufficiency check + Sonnet extraction) | Anthropic |
+| `POST /scorecard/improve` | 3 axis-tagged quest suggestions for a weak axis. Rate-limited: 5/lifetime (`axis_boost`) | Anthropic |
+| `POST /roadmap/generate` | Big-picture monthly roadmap (stub nodes) from goal + living profile + grade; safety-constrained. Rate-limited: 1/lifetime | Anthropic |
+| `POST /roadmap/node/expand` | Brave-sourced diverse references + inline-cited overview for one node (cached after first). Rate-limited: 5/lifetime (`node_expand`) | Brave, Anthropic |
+| `POST /roadmap/reevaluate` | Proposes a revised timeline + change summary (does NOT persist). Rate-limited: 1/lifetime | Anthropic |
+| `POST /onboarding/extract` | ElevenLabs transcript → 17-field profile + `axis_scores` + seeded `living_profile` (Haiku check + Sonnet extraction) | Anthropic |
 | `GET /health`, `GET /profile` | Health + profile probes | — |
+
+Cross-feature scoring: completing a quest (and research/chat) flows through the `award_axis_points` Postgres RPC (up-only, capped, diminishing returns, logs `score_events`); undo uses `revert_axis_points`. The `living_profile` re-synthesizes from activity via a Haiku background task (`maybe_refresh_living_profile`, threshold 3 events tracked in `award_axis_points`).
 
 ### Supabase Edge Functions (`supabase/functions/`)
 
@@ -71,7 +79,7 @@ Only non-AI functions remain (Deno/TypeScript):
 
 | Function | Purpose | Calls |
 |---|---|---|
-| `update-quest-item` | Updates quest item status (move/complete/delete) | — |
+| `update-quest-item` | Quest status (move/complete/uncomplete/delete); on complete awards axis points (`award_axis_points`) + syncs a linked roadmap node → done; on uncomplete reverts the exact delta (`revert_axis_points`) + node → on_board | — |
 | `onet-proxy` | Proxies O*NET My Next Move API with auth (uses `_shared/onet.ts` `mnmSearch()`) | O*NET |
 | `delete-account` | Full cascade user deletion | Supabase Admin |
 
@@ -80,14 +88,17 @@ Only non-AI functions remain (Deno/TypeScript):
 ### Database (Supabase Postgres)
 
 Key tables:
-- `profiles` — 20+ fields from voice onboarding (strengths, interests, career_matches, work_style, agent_instructions, etc.); plus `research_findings` and `chat_signals` JSONB for cross-feature memory
-- `quest_items` — standalone quests with status (`suggested`/`considered`/`in_progress`/`completed`/`deleted`), difficulty, why_it_matters
+- `profiles` — 20+ onboarding fields (strengths, interests, career_matches, work_style, agent_instructions, etc.); plus `research_findings` + `chat_signals` JSONB (cross-feature memory), `axis_scores` JSONB (5-axis scorecard), `scorecard_intro_seen`, and `living_profile` JSONB + `living_synced_at` + `living_events_since_sync` (evolving memory; see `.claude/MEMORY_REDESIGN.md`)
+- `quest_items` — standalone quests with status (`suggested`/`considered`/`in_progress`/`completed`/`deleted`), difficulty, `target_axis`, why_it_matters, `roadmap_node_id` (FK → roadmap_nodes; marks roadmap-originated cards)
+- `roadmaps` — goal, timeframe_months (6–24), start_month, status (active/archived)
+- `roadmap_nodes` — month_index, pillar (Project/Research/Activity/Club), title, blurb, target_axis, state (explore/opened/on_board/done), `overview` + `references` JSONB (null until expanded), `quest_item_id` FK
+- `score_events` — append-only log of axis-score changes (axis, delta, reason, source); powers undo + history
 - `chat_sessions` — full message history (JSONB), title, timestamps
 - `research_sessions` — query + results (JSONB) + 7-day cache
-- `usage_tracking` — lifetime usage counters (chat_messages_used, research_queries_used, quest_generations_used)
+- `usage_tracking` — lifetime counters: chat/research/quest_gen, axis_boost, roadmap_gen, node_expand, roadmap_reeval
 - `waitlist` — emails for paid plan interest
 
-RLS is enabled on all tables (`auth.uid() = user_id`).
+RLS is enabled on all tables (`auth.uid() = user_id`). Key Postgres RPCs: `check_and_increment_usage` (atomic rate limit + dev bypass), `award_axis_points` / `revert_axis_points` (scorecard scoring, service-role only).
 
 The phase-based roadmap (`quests`/`quest_phases`/`quest_tasks`/`confidence_history`) was removed. `20260607_drop_roadmap.sql` drops those dead tables + the `roadmap_*` profile columns — apply with `supabase db push`.
 
@@ -97,8 +108,10 @@ Lifetime caps enforced via `check_and_increment_usage` Postgres RPC (atomic chec
 - Chat: **15 messages**
 - Research: **3 queries**
 - Quest generation: **3 generations**
+- Scorecard axis boost: **5**
+- Roadmap generation: **1** · Node expansion: **5** · Roadmap re-evaluation: **1**
 
-Dev bypass: accounts in the `dev_emails` array inside `check_and_increment_usage` (currently `app.mentora.ai@gmail.com`) get `allowed: true` with no counter increment.
+Dev bypass: accounts in the `dev_emails` array inside `check_and_increment_usage` (`app.mentora.ai@gmail.com`, `kwu.1600@gmail.com`) get `allowed: true` with no counter increment.
 
 When a limit is hit, the LangGraph endpoints return `429 { error: 'LIMIT_REACHED' }`. The frontend shows `LimitModal` with a waitlist email capture.
 
