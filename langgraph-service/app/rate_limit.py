@@ -7,6 +7,9 @@ LIMITS = {
     "research": 3,
     "quest_gen": 3,
     "axis_boost": 5,
+    "roadmap_gen": 1,
+    "node_expand": 5,
+    "roadmap_reeval": 1,
 }
 
 

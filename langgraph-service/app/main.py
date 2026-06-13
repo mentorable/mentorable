@@ -21,6 +21,7 @@ from app.nodes.onboarding.extract import extract_profile
 from app.nodes.quest.generate import generate_quest_items
 from app.nodes.scorecard.improve import improve_axis
 from app.nodes.research.run import run_research
+from app.nodes.roadmap.generate import generate_roadmap
 from app.rate_limit import check_rate_limit
 from app.scoring import award_axis
 
@@ -269,6 +270,32 @@ async def scorecard_improve(raw: Request, user_id: str = Depends(verify_jwt)):
     except Exception as exc:
         logger.error(f"[scorecard] improve error for {user_id}: {exc}")
         raise HTTPException(status_code=500, detail="Could not generate suggestions")
+
+
+@app.post("/roadmap/generate")
+async def roadmap_generate(raw: Request, user_id: str = Depends(verify_jwt)):
+    try:
+        body = await raw.json()
+    except Exception:
+        body = {}
+    goal = (body.get("goal") or "").strip()
+    if not goal:
+        raise HTTPException(status_code=400, detail="goal is required")
+    tf = body.get("timeframe_months")
+    try:
+        tf = int(tf) if tf is not None else None
+    except (TypeError, ValueError):
+        tf = None
+
+    await check_rate_limit(user_id, "roadmap_gen")
+
+    try:
+        return await generate_roadmap(user_id, goal, tf)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        logger.error(f"[roadmap] generate error for {user_id}: {exc}")
+        raise HTTPException(status_code=500, detail="Could not generate roadmap")
 
 
 @app.post("/onboarding/extract")
