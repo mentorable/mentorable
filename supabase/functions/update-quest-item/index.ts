@@ -35,19 +35,19 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { itemId, action, status } = await req.json()
+    const { itemId, action, status, axis: undoAxis, delta: undoDelta } = await req.json()
     if (!itemId) return json({ error: 'itemId is required' }, 400)
 
-    const validActions = ['complete', 'delete', 'move']
+    const validActions = ['complete', 'delete', 'move', 'uncomplete']
     if (!validActions.includes(action)) {
       return json({ error: `action must be one of: ${validActions.join(', ')}` }, 400)
     }
 
-    // Fetch current state first — needed to award axis points exactly once on
-    // the transition into "completed", and to know the quest's target axis.
+    // Fetch current state first — needed to award/revert axis points exactly once on
+    // the completion transition, and to sync a linked roadmap node.
     const { data: existing } = await supabase
       .from('quest_items')
-      .select('status, target_axis, difficulty, title')
+      .select('status, target_axis, difficulty, title, roadmap_node_id')
       .eq('id', itemId)
       .eq('user_id', user.id)
       .single()
@@ -58,6 +58,10 @@ Deno.serve(async (req) => {
     if (action === 'complete') {
       updatePayload.status = 'completed'
       updatePayload.completed_at = now
+    } else if (action === 'uncomplete') {
+      // Undo a completion: back to in-progress, clear completed_at.
+      updatePayload.status = 'in_progress'
+      updatePayload.completed_at = null
     } else if (action === 'delete') {
       updatePayload.status = 'deleted'
     } else if (action === 'move') {
@@ -95,6 +99,26 @@ Deno.serve(async (req) => {
       })
       if (awardErr) console.error('[update-quest-item] award_axis_points error:', awardErr)
       else award = awardData  // { ok, axis, value, delta }
+    }
+
+    // Undo: reverse the exact awarded delta the client hands back.
+    if (action === 'uncomplete' && undoAxis && Number(undoDelta) > 0) {
+      const { error: revertErr } = await supabase.rpc('revert_axis_points', {
+        p_user_id: user.id,
+        p_axis: undoAxis,
+        p_delta: Number(undoDelta),
+        p_source: 'quest',
+      })
+      if (revertErr) console.error('[update-quest-item] revert_axis_points error:', revertErr)
+    }
+
+    // Sync a linked roadmap node: completed → 'done', uncompleted → 'on_board'.
+    if (existing?.roadmap_node_id) {
+      if (becameCompleted) {
+        await supabase.from('roadmap_nodes').update({ state: 'done' }).eq('id', existing.roadmap_node_id).eq('user_id', user.id)
+      } else if (action === 'uncomplete') {
+        await supabase.from('roadmap_nodes').update({ state: 'on_board' }).eq('id', existing.roadmap_node_id).eq('user_id', user.id)
+      }
     }
 
     return json({ success: true, award })

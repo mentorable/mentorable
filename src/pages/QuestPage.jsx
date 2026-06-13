@@ -214,6 +214,20 @@ function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove,
         }}>
           {item.category || "Other"}
         </span>
+        {item.roadmap_node_id && (
+          <span style={{
+            fontFamily: FONT, fontSize: 10, fontWeight: 700,
+            letterSpacing: "0.04em", textTransform: "uppercase",
+            background: "#eef2ff", color: BLUE,
+            borderRadius: 5, padding: "2px 7px",
+            display: "inline-flex", alignItems: "center", gap: 3,
+          }}>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>
+            </svg>
+            Roadmap
+          </span>
+        )}
         {diffStyle && (
           <span style={{
             fontFamily: FONT, fontSize: 10, fontWeight: 700,

@@ -22,6 +22,7 @@ from app.nodes.quest.generate import generate_quest_items
 from app.nodes.scorecard.improve import improve_axis
 from app.nodes.research.run import run_research
 from app.nodes.roadmap.generate import generate_roadmap
+from app.nodes.roadmap.expand import expand_node
 from app.rate_limit import check_rate_limit
 from app.scoring import award_axis
 
@@ -296,6 +297,43 @@ async def roadmap_generate(raw: Request, user_id: str = Depends(verify_jwt)):
     except Exception as exc:
         logger.error(f"[roadmap] generate error for {user_id}: {exc}")
         raise HTTPException(status_code=500, detail="Could not generate roadmap")
+
+
+@app.post("/roadmap/node/expand")
+async def roadmap_node_expand(raw: Request, user_id: str = Depends(verify_jwt)):
+    try:
+        body = await raw.json()
+    except Exception:
+        body = {}
+    node_id = (body.get("node_id") or "").strip()
+    if not node_id:
+        raise HTTPException(status_code=400, detail="node_id is required")
+
+    supabase = get_supabase()
+    existing = (
+        supabase.from_("roadmap_nodes").select("id, references")
+        .eq("id", node_id).eq("user_id", user_id).maybe_single().execute()
+    )
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    # Re-opening an already-expanded node is free (no AI call, no charge).
+    if existing.data.get("references"):
+        full = (
+            supabase.from_("roadmap_nodes").select("*")
+            .eq("id", node_id).eq("user_id", user_id).maybe_single().execute()
+        )
+        return full.data
+
+    await check_rate_limit(user_id, "node_expand")
+
+    try:
+        return await expand_node(user_id, node_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        logger.error(f"[roadmap] expand error for {user_id}: {exc}")
+        raise HTTPException(status_code=500, detail="Could not load resources")
 
 
 @app.post("/onboarding/extract")
