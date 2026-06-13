@@ -8,6 +8,9 @@ const FEATURE_COPY = {
   research: { title: "You've used all 3 research queries", body: "You've reached the research limit for the Mentorable demo. Join the waitlist to get full access when we launch." },
   quest_gen:{ title: "You've used all 3 quest generations", body: "You've reached the quest generation limit for the Mentorable demo. Join the waitlist to get full access when we launch." },
   axis_boost:{ title: "You've used all 5 skill boosts", body: "You've reached the limit for generating skill-improvement quests in the demo. Join the waitlist to get full access when we launch." },
+  roadmap_gen:{ title: "You've used your roadmap generation", body: "The demo includes one roadmap. Join the waitlist to generate and re-shape unlimited roadmaps when we launch." },
+  node_expand:{ title: "You've opened all 5 demo nodes", body: "You've reached the limit for opening roadmap nodes in the demo. Join the waitlist to get full access when we launch." },
+  roadmap_reeval:{ title: "You've used your roadmap re-evaluation", body: "The demo includes one roadmap re-evaluation. Join the waitlist for unlimited adaptive re-planning when we launch." },
 }
 
 export default function LimitModal({ feature, onClose }) {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Routes, Route, useNavigate, useParams, useLocation, Navigate } from "react-router-dom";
+import { Routes, Route, useNavigate, useParams, useLocation } from "react-router-dom";
 import { supabase } from "./lib/supabase.js";
 import LandingPage from "./pages/LandingPage.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
@@ -9,13 +9,15 @@ import ChatPage from "./pages/ChatPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import ResearchPage from "./pages/ResearchPage.jsx";
 import QuestPage from "./pages/QuestPage.jsx";
+import RoadmapPage from "./pages/RoadmapPage.jsx";
+import RoadmapNodePage from "./pages/RoadmapNodePage.jsx";
 import Sidebar from "./components/common/Sidebar.jsx";
 import MobileNav from "./components/common/MobileNav.jsx";
 import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 
 // Routes that show the persistent sidebar
-const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/research", "/quest"];
+const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/research", "/quest", "/roadmap"];
 
 // Captured at module load, before the Supabase client strips the URL hash.
 // After clicking the email-confirmation link the user lands here with auth
@@ -102,6 +104,17 @@ function QuestRoute() {
   return <QuestPage navigate={navigate} />;
 }
 
+function RoadmapRoute() {
+  const navigate = useNavigate();
+  return <RoadmapPage navigate={navigate} />;
+}
+
+function RoadmapNodeRoute() {
+  const navigate = useNavigate();
+  const { nodeId } = useParams();
+  return <RoadmapNodePage navigate={navigate} nodeId={nodeId} />;
+}
+
 // True if a Supabase session is stored — checked synchronously so we never flash
 // the landing page to a logged-in user who's about to be redirected.
 function hasStoredSession() {
@@ -140,9 +153,8 @@ export default function App() {
         <Route path="/research/:sessionId" element={<ResearchRoute />} />
         <Route path="/research" element={<ResearchRoute />} />
         <Route path="/quest" element={<ErrorBoundary><QuestRoute /></ErrorBoundary>} />
-        <Route path="/roadmap" element={<Navigate to="/quest" replace />} />
-        <Route path="/roadmap/*" element={<Navigate to="/quest" replace />} />
-        <Route path="/roadmap-preview" element={<Navigate to="/quest" replace />} />
+        <Route path="/roadmap" element={<ErrorBoundary><RoadmapRoute /></ErrorBoundary>} />
+        <Route path="/roadmap/node/:nodeId" element={<ErrorBoundary><RoadmapNodeRoute /></ErrorBoundary>} />
         <Route path="/" element={<RootRoute />} />
         <Route path="*" element={<LandingPage />} />
       </Routes>
