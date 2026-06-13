@@ -32,17 +32,21 @@ const TYPE_META = {
 };
 const typeMeta = (t) => TYPE_META[t] || TYPE_META.article;
 
-// Render an overview string, turning "<phrase> [n]" into a clickable bold link to ref n.
+// Render an overview, turning a cited phrase + [n] into a clickable bold link to ref n.
+// Prefers the model's "**phrase** [n]" boundary; falls back to the last few words
+// before a bare "[n]". Strips any stray markdown asterisks.
 function renderOverview(text, references) {
   if (!text) return null;
   const refById = new Map((references || []).map((r) => [r.id, r]));
-  const re = /([\w'’\-]+(?:\s+[\w'’\-]+){0,4})\s*\[(\d+)\]/g;
+  const re = /\*\*(.+?)\*\*\s*\[(\d+)\]|([\w'’\-]+(?:\s+[\w'’\-]+){0,4})\s*\[(\d+)\]/g;
   const out = [];
   let last = 0, m, key = 0;
   while ((m = re.exec(text)) !== null) {
-    const [full, phrase, numStr] = m;
-    if (m.index > last) out.push(<span key={key++}>{text.slice(last, m.index)}</span>);
-    const ref = refById.get(parseInt(numStr, 10));
+    const phrase = m[1] ?? m[3];
+    const num = m[2] ?? m[4];
+    const before = text.slice(last, m.index).replace(/\*\*/g, "");
+    if (before) out.push(<span key={key++}>{before}</span>);
+    const ref = refById.get(parseInt(num, 10));
     if (ref) {
       out.push(
         <a key={key++} href={ref.url} target="_blank" rel="noopener noreferrer"
@@ -51,11 +55,12 @@ function renderOverview(text, references) {
         </a>
       );
     } else {
-      out.push(<span key={key++}>{phrase}</span>);
+      out.push(<span key={key++}>{phrase} [{num}]</span>);
     }
-    last = m.index + full.length;
+    last = m.index + m[0].length;
   }
-  if (last < text.length) out.push(<span key={key++}>{text.slice(last)}</span>);
+  const tail = text.slice(last).replace(/\*\*/g, "");
+  if (tail) out.push(<span key={key++}>{tail}</span>);
   return out;
 }
 

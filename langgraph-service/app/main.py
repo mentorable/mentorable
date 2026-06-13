@@ -23,6 +23,7 @@ from app.nodes.scorecard.improve import improve_axis
 from app.nodes.research.run import run_research
 from app.nodes.roadmap.generate import generate_roadmap
 from app.nodes.roadmap.expand import expand_node
+from app.nodes.roadmap.reevaluate import reevaluate_roadmap
 from app.rate_limit import check_rate_limit
 from app.scoring import award_axis
 
@@ -334,6 +335,27 @@ async def roadmap_node_expand(raw: Request, user_id: str = Depends(verify_jwt)):
     except Exception as exc:
         logger.error(f"[roadmap] expand error for {user_id}: {exc}")
         raise HTTPException(status_code=500, detail="Could not load resources")
+
+
+@app.post("/roadmap/reevaluate")
+async def roadmap_reevaluate(raw: Request, user_id: str = Depends(verify_jwt)):
+    try:
+        body = await raw.json()
+    except Exception:
+        body = {}
+    roadmap_id = (body.get("roadmap_id") or "").strip()
+    if not roadmap_id:
+        raise HTTPException(status_code=400, detail="roadmap_id is required")
+
+    await check_rate_limit(user_id, "roadmap_reeval")
+
+    try:
+        return await reevaluate_roadmap(user_id, roadmap_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        logger.error(f"[roadmap] reevaluate error for {user_id}: {exc}")
+        raise HTTPException(status_code=500, detail="Could not re-evaluate roadmap")
 
 
 @app.post("/onboarding/extract")

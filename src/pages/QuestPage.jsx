@@ -668,11 +668,26 @@ export default function QuestPage({ navigate }) {
       if (userIdRef.current) await loadItems(userIdRef.current);
       return;
     }
-    // Surface the score gain when a quest is completed.
+    // Surface the score gain when a quest is completed (with an undo window).
     if (newStatus === "completed" && resp?.award?.delta > 0) {
-      setScoreToast({ axis: resp.award.axis, delta: resp.award.delta });
+      setScoreToast({ itemId, axis: resp.award.axis, delta: resp.award.delta });
       if (scoreToastTimer.current) clearTimeout(scoreToastTimer.current);
-      scoreToastTimer.current = setTimeout(() => setScoreToast(null), 4000);
+      scoreToastTimer.current = setTimeout(() => setScoreToast(null), 6500);
+    }
+  }, [loadItems]);
+
+  const handleUndo = useCallback(async (toast) => {
+    if (!toast) return;
+    if (scoreToastTimer.current) clearTimeout(scoreToastTimer.current);
+    setScoreToast(null);
+    // Optimistically move the card back to In Progress.
+    setItems(prev => prev.map(i => i.id !== toast.itemId ? i : { ...i, status: "in_progress", completed_at: null }));
+    const { error } = await supabase.functions.invoke("update-quest-item", {
+      body: { itemId: toast.itemId, action: "uncomplete", axis: toast.axis, delta: toast.delta },
+    });
+    if (error) {
+      console.error("[Quest] undo error:", error);
+      if (userIdRef.current) await loadItems(userIdRef.current);
     }
   }, [loadItems]);
 
@@ -742,8 +757,13 @@ export default function QuestPage({ navigate }) {
           </svg>
           <span style={{ fontWeight: 800, fontSize: "1.1rem", color: "#34d399" }}>+{scoreToast.delta}</span>
           <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>{AXIS_LABELS[scoreToast.axis] || scoreToast.axis}</span>
+          <button onClick={() => handleUndo(scoreToast)}
+            style={{ marginLeft: 4, background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", fontFamily: FONT, fontWeight: 700, fontSize: 12, padding: "4px 10px", borderRadius: 8, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+            Undo
+          </button>
           <button onClick={() => navigate("/scorecard")}
-            style={{ marginLeft: 4, background: "rgba(255,255,255,0.16)", border: "none", color: "#fff", fontFamily: FONT, fontWeight: 700, fontSize: 12, padding: "4px 10px", borderRadius: 8, cursor: "pointer" }}>
+            style={{ background: "rgba(255,255,255,0.16)", border: "none", color: "#fff", fontFamily: FONT, fontWeight: 700, fontSize: 12, padding: "4px 10px", borderRadius: 8, cursor: "pointer" }}>
             Scorecard →
           </button>
         </motion.div>
