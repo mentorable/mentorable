@@ -162,6 +162,9 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
           <>
             <div style={{ display: "flex", gap: 8, marginBottom: 14, alignItems: "center" }}>
               <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", background: ps.bg, color: ps.color, borderRadius: 6, padding: "3px 10px" }}>{node.pillar}</span>
+              {node.kind === "bridge" && (
+                <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", background: BLUE_TINT, color: BLUE, borderRadius: 6, padding: "3px 10px" }}>Bridge · catch-up</span>
+              )}
               <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 600, color: TEXT_FAINT }}>{node.month_label}</span>
               {onBoard && <span style={{ marginLeft: "auto", fontFamily: SANS, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: node.state === "done" ? GREEN : AMBER, background: node.state === "done" ? GREEN_SOFT : AMBER_SOFT, borderRadius: 6, padding: "3px 10px" }}>{node.state === "done" ? "Done" : "On board"}</span>}
             </div>

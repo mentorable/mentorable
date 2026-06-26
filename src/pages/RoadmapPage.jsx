@@ -45,18 +45,56 @@ const STATE_LABEL = {
   done:     { text: "Done",     bg: GREEN_SOFT, color: GREEN },
 };
 
-const TIMEFRAME_OPTIONS = [
-  { value: 6,  label: "6 months" },
-  { value: 12, label: "1 year" },
-  { value: 18, label: "18 months" },
-  { value: 24, label: "2 years" },
-  { value: 0,  label: "Let Mentorable decide" },
-];
+// End-month picker bounds: floor 3 months out, ceil 24 months out (matches the DB CHECK).
+function monthValue(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; }
+function addMonths(base, n) { const d = new Date(base.getFullYear(), base.getMonth() + n, 1); return d; }
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function prettyMonth(val) {
+  if (!val) return "";
+  const [y, m] = val.split("-").map(Number);
+  return `${MONTH_NAMES[(m - 1) % 12]} ${y}`;
+}
 
-// ─── Node card ────────────────────────────────────────────────────────────────
+// Subtle technical-depth hint — 5 pips, filled up to the node's depth.
+function DepthPips({ depth }) {
+  if (!depth) return null;
+  return (
+    <span title={`Difficulty ${depth}/5`} style={{ display: "inline-flex", gap: 3, alignItems: "center", marginLeft: "auto" }}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: i <= depth ? BLUE_MID : BORDER }} />
+      ))}
+    </span>
+  );
+}
+
+// ─── Node card (anchor / side / bridge) ───────────────────────────────────────
 function NodeCard({ node, onOpen }) {
   const ps = pillarStyle(node.pillar);
   const state = STATE_LABEL[node.state];
+  const isBridge = node.kind === "bridge";
+  const isSide = node.kind === "side";
+
+  // Bridge: a thin, dashed connector card that reads as a catch-up step between anchors.
+  if (isBridge) {
+    return (
+      <motion.button
+        layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} whileHover={{ y: -1 }}
+        onClick={() => onOpen(node)}
+        style={{
+          display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", cursor: "pointer",
+          background: "#fbfaf8", border: `1.5px dashed ${BLUE_SOFT}`, borderRadius: 12,
+          padding: "10px 14px", boxShadow: "none",
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 12h12M9 8l-3 4 3 4M15 8l3 4-3 4"/></svg>
+        <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: BLUE, flexShrink: 0 }}>Bridge</span>
+        <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: 13.5, color: TEXT_MID, lineHeight: 1.35, minWidth: 0 }}>{node.title}</span>
+        <DepthPips depth={node.technical_depth} />
+      </motion.button>
+    );
+  }
+
   return (
     <motion.button
       layout
@@ -67,24 +105,25 @@ function NodeCard({ node, onOpen }) {
       onClick={() => onOpen(node)}
       style={{
         display: "block", width: "100%", textAlign: "left", cursor: "pointer",
-        background: WHITE, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${ps.dot}`,
-        borderRadius: 14, padding: "14px 16px", boxShadow: "0 1px 3px rgba(15,23,42,0.04)",
+        background: isSide ? "#fbfaf8" : WHITE, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${isSide ? BORDER : ps.dot}`,
+        borderRadius: 14, padding: isSide ? "12px 15px" : "14px 16px", boxShadow: isSide ? "none" : "0 1px 3px rgba(15,23,42,0.04)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
         <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", background: ps.bg, color: ps.color, borderRadius: 5, padding: "2px 8px" }}>
           {node.pillar}
         </span>
+        {isSide && (
+          <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", background: BORDER, color: TEXT_MUTED, borderRadius: 5, padding: "2px 8px" }}>Side</span>
+        )}
         {state && (
           <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", background: state.bg, color: state.color, borderRadius: 5, padding: "2px 8px" }}>
             {state.text}
           </span>
         )}
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={TEXT_FAINT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto" }}>
-          <polyline points="9 18 15 12 9 6"/>
-        </svg>
+        <DepthPips depth={node.technical_depth} />
       </div>
-      <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 15, color: TEXT, lineHeight: 1.35, marginBottom: node.blurb ? 5 : 0 }}>
+      <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: isSide ? 14 : 15, color: isSide ? TEXT_MID : TEXT, lineHeight: 1.35, marginBottom: node.blurb ? 5 : 0 }}>
         {node.title}
       </div>
       {node.blurb && (
@@ -125,10 +164,16 @@ function TimelineSkeleton() {
 }
 
 // ─── Goal-capture entry (empty state) ─────────────────────────────────────────
-function GoalEntry({ onGenerate, generating, atLimit, onLimit }) {
+function GoalEntry({ onStart, starting, atLimit, onLimit }) {
   const [goal, setGoal] = useState("");
-  const [timeframe, setTimeframe] = useState(0);
-  const canGo = goal.trim().length >= 4 && !generating;
+  const [decide, setDecide] = useState(true);     // "Let Mentorable decide" the horizon
+  const [endMonth, setEndMonth] = useState("");   // "YYYY-MM"
+
+  const today = new Date();
+  const minMonth = monthValue(addMonths(today, 3));
+  const maxMonth = monthValue(addMonths(today, 24));
+  const validMonth = decide || (endMonth && endMonth >= minMonth && endMonth <= maxMonth);
+  const canGo = goal.trim().length >= 4 && validMonth && !starting;
 
   return (
     <motion.div
@@ -139,8 +184,8 @@ function GoalEntry({ onGenerate, generating, atLimit, onLimit }) {
         Build your roadmap
       </h1>
       <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT_MUTED, lineHeight: 1.6, marginBottom: "2rem", maxWidth: 460, marginLeft: "auto", marginRight: "auto" }}>
-        Tell Mentorable your ultimate goal. You'll get a month-by-month path of projects, research,
-        and activities — with the big picture first, and specifics as you go.
+        Tell Mentorable your ultimate goal. You'll get a path built around one flagship piece you
+        deepen month over month — the big picture first, specifics as you go.
       </p>
 
       <div style={{ textAlign: "left", background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: "1.5rem", boxShadow: "0 2px 12px rgba(15,23,42,0.05)" }}>
@@ -162,48 +207,153 @@ function GoalEntry({ onGenerate, generating, atLimit, onLimit }) {
         />
 
         <label style={{ fontFamily: SANS, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: BLUE, display: "block", marginBottom: 8 }}>
-          Timeframe
+          When do you want to reach it?
         </label>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: "1.5rem" }}>
-          {TIMEFRAME_OPTIONS.map((opt) => {
-            const active = timeframe === opt.value;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => setTimeframe(opt.value)}
-                style={{
-                  fontFamily: SANS, fontSize: "0.86rem", fontWeight: 600, cursor: "pointer",
-                  padding: "7px 14px", borderRadius: 99,
-                  border: `1.5px solid ${active ? BLUE : BORDER}`,
-                  background: active ? BLUE : WHITE, color: active ? WHITE : TEXT_MID,
-                  transition: "all 0.15s",
-                }}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
+        <div style={{ display: "flex", gap: 8, marginBottom: "0.6rem", flexWrap: "wrap" }}>
+          <button
+            onClick={() => setDecide(true)}
+            style={{
+              fontFamily: SANS, fontSize: "0.86rem", fontWeight: 600, cursor: "pointer",
+              padding: "7px 14px", borderRadius: 99,
+              border: `1.5px solid ${decide ? BLUE : BORDER}`,
+              background: decide ? BLUE : WHITE, color: decide ? WHITE : TEXT_MID, transition: "all 0.15s",
+            }}
+          >
+            Let Mentorable decide
+          </button>
+          <button
+            onClick={() => setDecide(false)}
+            style={{
+              fontFamily: SANS, fontSize: "0.86rem", fontWeight: 600, cursor: "pointer",
+              padding: "7px 14px", borderRadius: 99,
+              border: `1.5px solid ${!decide ? BLUE : BORDER}`,
+              background: !decide ? BLUE : WHITE, color: !decide ? WHITE : TEXT_MID, transition: "all 0.15s",
+            }}
+          >
+            Pick a target month
+          </button>
         </div>
+        {!decide && (
+          <div style={{ marginBottom: "0.4rem" }}>
+            <input
+              type="month"
+              value={endMonth}
+              min={minMonth}
+              max={maxMonth}
+              onChange={(e) => setEndMonth(e.target.value)}
+              style={{
+                fontFamily: SANS, fontSize: "0.95rem", color: TEXT, background: BG,
+                border: `1.5px solid ${endMonth && !validMonth ? "#dc2626" : BORDER}`, borderRadius: 10,
+                padding: "10px 12px", outline: "none", width: "100%",
+              }}
+            />
+            <p style={{ fontFamily: SANS, fontSize: "0.74rem", color: TEXT_FAINT, marginTop: 6 }}>
+              Anywhere from {prettyMonth(minMonth)} to {prettyMonth(maxMonth)} — mastery takes time.
+            </p>
+          </div>
+        )}
 
         <button
           onClick={() => {
             if (atLimit) { onLimit(); return; }
-            if (canGo) onGenerate(goal.trim(), timeframe || null);
+            if (canGo) onStart(goal.trim(), decide ? null : `${endMonth}-01`);
           }}
           disabled={!canGo}
           style={{
             width: "100%", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: canGo ? "pointer" : "not-allowed",
-            padding: "14px", borderRadius: 12, border: "none",
+            padding: "14px", borderRadius: 12, border: "none", marginTop: "1rem",
             background: canGo ? BLUE : "#c7d2e8", color: WHITE,
             boxShadow: canGo ? "0 6px 20px rgba(29,78,216,0.3)" : "none", transition: "all 0.15s",
           }}
         >
-          {generating ? "Building your roadmap…" : "Generate roadmap"}
+          {starting ? "Setting up…" : "Continue"}
         </button>
         <p style={{ fontFamily: SANS, fontSize: "0.78rem", color: TEXT_FAINT, textAlign: "center", marginTop: 10 }}>
-          The demo includes one roadmap generation.
+          A couple of quick questions next. The demo includes one roadmap generation.
         </p>
       </div>
+    </motion.div>
+  );
+}
+
+// ─── Intake questionnaire (<=3 gap-only questions, skippable) ──────────────────
+function QuestionnaireStep({ questions, generating, onSubmit, onSkip }) {
+  const [answers, setAnswers] = useState({});
+  const setAns = (id, v) => setAnswers((a) => ({ ...a, [id]: v }));
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}
+      style={{ maxWidth: 560, margin: "0 auto", width: "100%", paddingTop: "2rem" }}
+    >
+      <div style={{ textAlign: "center", marginBottom: "1.75rem" }}>
+        <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.7rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: "0.5rem" }}>
+          A couple of quick things
+        </h1>
+        <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.6 }}>
+          This helps Mentorable tailor your roadmap. Answer what you like — you can skip any.
+        </p>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: "1.5rem" }}>
+        {questions.map((q) => (
+          <div key={q.id} style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "1.1rem 1.2rem" }}>
+            <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.98rem", color: TEXT, marginBottom: 12, lineHeight: 1.4 }}>{q.prompt}</p>
+            {q.type === "mcq" ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {q.options.map((opt) => {
+                  const active = answers[q.id] === opt;
+                  return (
+                    <button key={opt} onClick={() => setAns(q.id, active ? undefined : opt)}
+                      style={{
+                        fontFamily: SANS, fontSize: "0.86rem", fontWeight: 600, cursor: "pointer",
+                        padding: "7px 14px", borderRadius: 99,
+                        border: `1.5px solid ${active ? BLUE : BORDER}`,
+                        background: active ? BLUE : WHITE, color: active ? WHITE : TEXT_MID, transition: "all 0.15s",
+                      }}>
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <input
+                type="text" value={answers[q.id] || ""} onChange={(e) => setAns(q.id, e.target.value)}
+                placeholder="Your answer (optional)"
+                style={{
+                  width: "100%", fontFamily: SANS, fontSize: "0.95rem", color: TEXT, background: BG,
+                  border: `1.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px", outline: "none",
+                }}
+                onFocus={(e) => (e.target.style.borderColor = BLUE)}
+                onBlur={(e) => (e.target.style.borderColor = BORDER)}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={() => {
+          const clean = {};
+          for (const [k, v] of Object.entries(answers)) {
+            const q = questions.find((x) => x.id === k);
+            if (v != null && String(v).trim()) clean[q?.prompt || k] = String(v).trim();
+          }
+          onSubmit(clean);
+        }}
+        disabled={generating}
+        style={{
+          width: "100%", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: generating ? "default" : "pointer",
+          padding: "14px", borderRadius: 12, border: "none",
+          background: BLUE, color: WHITE, boxShadow: "0 6px 20px rgba(29,78,216,0.3)", transition: "all 0.15s",
+        }}
+      >
+        {generating ? "Building your roadmap…" : "Generate roadmap"}
+      </button>
+      <button onClick={onSkip} disabled={generating}
+        style={{ width: "100%", fontFamily: SANS, fontSize: "0.86rem", fontWeight: 600, cursor: "pointer", color: TEXT_MUTED, background: "none", border: "none", marginTop: 12 }}>
+        Skip and generate
+      </button>
     </motion.div>
   );
 }
@@ -274,7 +424,7 @@ function ReevalModal({ reeval, applying, onAccept, onKeep }) {
 // ─── RoadmapPage ──────────────────────────────────────────────────────────────
 export default function RoadmapPage({ navigate }) {
   const isMobile = useIsMobile();
-  const [phase, setPhase] = useState("loading");  // loading | empty | generating | ready | error
+  const [phase, setPhase] = useState("loading");  // loading | empty | intake | generating | ready | error
   const [roadmap, setRoadmap] = useState(null);
   const [nodes, setNodes] = useState([]);
   const [roadmapUsed, setRoadmapUsed] = useState(0);
@@ -283,6 +433,9 @@ export default function RoadmapPage({ navigate }) {
   const [limitFeature, setLimitFeature] = useState("roadmap_gen");
   const [reeval, setReeval] = useState(null);   // { loading, summary, proposed } | null
   const [applying, setApplying] = useState(false);
+  const [starting, setStarting] = useState(false);            // fetching intake questions
+  const [intakeQs, setIntakeQs] = useState([]);               // pre-questionnaire questions
+  const pendingRef = useRef({ goal: "", endMonth: null });    // carried from goal entry → generate
   const userIdRef = useRef(null);
 
   // Load existing roadmap (latest active)
@@ -309,14 +462,40 @@ export default function RoadmapPage({ navigate }) {
     })();
   }, []);
 
-  const handleGenerate = useCallback(async (goal, timeframe_months) => {
+  // Step 1: goal + end month captured → fetch the (free) intake questions, show questionnaire.
+  const handleStart = useCallback(async (goal, endMonth) => {
+    pendingRef.current = { goal, endMonth };
+    setStarting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${LANGGRAPH_URL}/roadmap/intake`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ goal, end_month: endMonth }),
+      });
+      const data = res.ok ? await res.json().catch(() => ({ questions: [] })) : { questions: [] };
+      const qs = Array.isArray(data.questions) ? data.questions : [];
+      setStarting(false);
+      if (qs.length === 0) { handleGenerate({}); return; }   // nothing vital to ask → straight to gen
+      setIntakeQs(qs);
+      setPhase("intake");
+    } catch (e) {
+      console.error("[Roadmap] intake error:", e);
+      setStarting(false);
+      handleGenerate({});   // intake is best-effort; never block generation
+    }
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Step 2: generate the roadmap with whatever intake answers we have.
+  const handleGenerate = useCallback(async (intakeAnswers) => {
+    const { goal, endMonth } = pendingRef.current;
     setPhase("generating");
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(`${LANGGRAPH_URL}/roadmap/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ goal, timeframe_months }),
+        body: JSON.stringify({ goal, end_month: endMonth, intake_answers: intakeAnswers || {} }),
       });
       if (res.status === 429) { setRoadmapUsed(LIMITS.roadmap_gen); showLimit("roadmap_gen"); setPhase("empty"); return; }
       if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.detail || "Generation failed"); }
@@ -367,6 +546,9 @@ export default function RoadmapPage({ navigate }) {
       const { data: newRm, error: rmErr } = await supabase.from("roadmaps").insert({
         user_id: uid, goal: roadmap.goal, timeframe_months: reeval.proposed.timeframe_months,
         start_month: new Date().toISOString().slice(0, 10), status: "active",
+        end_month: roadmap.end_month || null,
+        anchor_title: reeval.proposed.anchor_title || roadmap.anchor_title || null,
+        anchor_summary: reeval.proposed.anchor_summary || roadmap.anchor_summary || null,
       }).select().single();
       if (rmErr) throw rmErr;
       const rows = [];
@@ -375,6 +557,7 @@ export default function RoadmapPage({ navigate }) {
           rows.push({
             roadmap_id: newRm.id, user_id: uid, month_index: n.month_index, month_label: n.month_label,
             pillar: n.pillar, title: n.title, blurb: n.blurb, target_axis: n.target_axis,
+            kind: n.kind || "anchor", technical_depth: n.technical_depth ?? null, execution_mode: n.execution_mode ?? null,
             state: "explore", order_index: n.order_index,
           });
         }
@@ -424,7 +607,11 @@ export default function RoadmapPage({ navigate }) {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');`}</style>
 
       {phase === "empty" && (
-        <GoalEntry onGenerate={handleGenerate} generating={false} atLimit={roadmapUsed >= LIMITS.roadmap_gen} onLimit={() => showLimit("roadmap_gen")} />
+        <GoalEntry onStart={handleStart} starting={starting} atLimit={roadmapUsed >= LIMITS.roadmap_gen} onLimit={() => showLimit("roadmap_gen")} />
+      )}
+
+      {phase === "intake" && (
+        <QuestionnaireStep questions={intakeQs} generating={false} onSubmit={handleGenerate} onSkip={() => handleGenerate({})} />
       )}
 
       {phase === "generating" && (
@@ -464,8 +651,22 @@ export default function RoadmapPage({ navigate }) {
             <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.7rem", color: TEXT, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
               {roadmap.goal}
             </h1>
-            <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_MUTED, marginTop: 8, lineHeight: 1.55 }}>
-              The big picture first. Open a node to see resources and add it to your board when you're ready.
+            {roadmap.anchor_title ? (
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start", background: BLUE_TINT, border: `1px solid ${BLUE_SOFT}`, borderRadius: 14, padding: "13px 16px", marginTop: 14 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 9, background: BLUE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={WHITE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15 9 22 9 16 14 18 21 12 17 6 21 8 14 2 9 9 9 12 2"/></svg>
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontFamily: SANS, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: BLUE, marginBottom: 3 }}>Your flagship</p>
+                  <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: TEXT, lineHeight: 1.3 }}>{roadmap.anchor_title}</p>
+                  {roadmap.anchor_summary && (
+                    <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: TEXT_MUTED, lineHeight: 1.5, marginTop: 4 }}>{roadmap.anchor_summary}</p>
+                  )}
+                </div>
+              </div>
+            ) : null}
+            <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_MUTED, marginTop: 12, lineHeight: 1.55 }}>
+              Everything here builds toward that one piece. Open a node for resources and add it to your board when you're ready.
             </p>
           </motion.div>
 
@@ -505,12 +706,20 @@ export default function RoadmapPage({ navigate }) {
                 <div style={{ position: "relative", paddingLeft: 28 }}>
                   {/* timeline spine */}
                   <div style={{ position: "absolute", left: 7, top: 4, bottom: idx === months.length - 1 ? 12 : -26, width: 2, background: BORDER }} />
-                  {monthNodes.map((node) => (
-                    <div key={node.id} style={{ position: "relative", marginBottom: 12 }}>
-                      <div style={{ position: "absolute", left: -25, top: 17, width: 12, height: 12, borderRadius: "50%", background: pillarStyle(node.pillar).dot, border: `2px solid ${BG}`, zIndex: 1 }} />
-                      <NodeCard node={node} onOpen={openNode} />
-                    </div>
-                  ))}
+                  {monthNodes.map((node) => {
+                    const isBridge = node.kind === "bridge";
+                    const isSide = node.kind === "side";
+                    return (
+                      <div key={node.id} style={{ position: "relative", marginBottom: isBridge ? 8 : 12, marginLeft: isSide ? 22 : 0 }}>
+                        {isBridge ? (
+                          <div style={{ position: "absolute", left: -22, top: 16, width: 8, height: 8, borderRadius: 2, background: BLUE_SOFT, border: `1.5px solid ${BLUE_MID}`, transform: "rotate(45deg)", zIndex: 1 }} />
+                        ) : (
+                          <div style={{ position: "absolute", left: isSide ? -47 : -25, top: 17, width: isSide ? 9 : 12, height: isSide ? 9 : 12, borderRadius: "50%", background: isSide ? BG : pillarStyle(node.pillar).dot, border: `2px solid ${isSide ? pillarStyle(node.pillar).dot : BG}`, zIndex: 1 }} />
+                        )}
+                        <NodeCard node={node} onOpen={openNode} />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );

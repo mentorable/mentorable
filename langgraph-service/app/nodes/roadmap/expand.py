@@ -25,6 +25,35 @@ SONNET = "claude-sonnet-4-6"
 
 REF_TYPES = {"doc", "video", "platform", "paper", "article", "framework", "course"}
 
+# Map a node's technical_depth (1-5) → a resource-level instruction so Sonnet doesn't hand a
+# depth-2 node depth-5 material (and vice-versa). v2: difficulty scores gate resource picking.
+_DEPTH_LEVEL = {
+    1: "absolute-beginner (no prior knowledge; gentle, hands-on intros)",
+    2: "beginner (some basics assumed; approachable tutorials)",
+    3: "intermediate (comfortable fundamentals; practical guides)",
+    4: "advanced (strong fundamentals; in-depth or specialized material)",
+    5: "expert (fluency assumed; rigorous / research-grade material)",
+}
+
+
+def _level_clause(node: dict) -> str:
+    td = node.get("technical_depth")
+    em = node.get("execution_mode")
+    if not isinstance(td, int):
+        return ""
+    level = _DEPTH_LEVEL.get(max(1, min(5, td)), _DEPTH_LEVEL[3])
+    clause = (
+        f"This node is at technical_depth {td}/5 — target {level}. Pick resources at THIS level: "
+        "do not assign material that assumes much more prior knowledge than the student has here, "
+        "and don't pick trivially-below-level filler."
+    )
+    if node.get("kind") == "bridge":
+        clause += (" This is a BRIDGE node — a short catch-up step. Favor concise, concept-"
+                   "clarifying resources that close one specific gap, not a full course.")
+    if isinstance(em, int):
+        clause += f" (execution complexity {em}/5.)"
+    return clause
+
 
 def _parse_json(text: str):
     try:
@@ -115,12 +144,14 @@ async def expand_node(user_id: str, node_id: str) -> dict:
         "phrases are the cited ones. Do not invent resources; only use the provided indices.\n\n"
         "Return ONLY valid JSON, no markdown."
     )
+    level_clause = _level_clause(node)
     user_prompt = (
         f"Node: {node.get('title')} (pillar: {node.get('pillar')})\n"
         f"Why it matters: {node.get('blurb') or ''}\n"
         f"Student's goal: {goal}\n"
-        f"Grade: {grade or 'unknown'} · research papers suitable: {allow_papers}\n\n"
-        f"Real search results:\n{listing}\n\n"
+        f"Grade: {grade or 'unknown'} · research papers suitable: {allow_papers}\n"
+        + (f"{level_clause}\n" if level_clause else "")
+        + f"\nReal search results:\n{listing}\n\n"
         "Return ONLY JSON:\n"
         '{"overview":"...text with [1] [2] markers...","references":[{"source_index":<int from the list>,'
         '"type":"doc|video|platform|paper|article|framework|course","label":"short descriptive title"}]}'

@@ -24,6 +24,7 @@ from app.nodes.research.run import run_research
 from app.nodes.roadmap.generate import generate_roadmap
 from app.nodes.roadmap.expand import expand_node
 from app.nodes.roadmap.reevaluate import reevaluate_roadmap
+from app.nodes.roadmap.intake import generate_intake_questions
 from app.rate_limit import check_rate_limit
 from app.scoring import award_axis
 
@@ -274,6 +275,24 @@ async def scorecard_improve(raw: Request, user_id: str = Depends(verify_jwt)):
         raise HTTPException(status_code=500, detail="Could not generate suggestions")
 
 
+@app.post("/roadmap/intake")
+async def roadmap_intake(raw: Request, user_id: str = Depends(verify_jwt)):
+    """Free Haiku pre-questionnaire — up to 3 gap-only questions. Not rate-limited."""
+    try:
+        body = await raw.json()
+    except Exception:
+        body = {}
+    goal = (body.get("goal") or "").strip()
+    if not goal:
+        raise HTTPException(status_code=400, detail="goal is required")
+    end_month = (body.get("end_month") or "").strip() or None
+    try:
+        return await generate_intake_questions(user_id, goal, end_month)
+    except Exception as exc:
+        logger.error(f"[roadmap] intake error for {user_id}: {exc}")
+        return {"questions": []}  # never block the flow on intake
+
+
 @app.post("/roadmap/generate")
 async def roadmap_generate(raw: Request, user_id: str = Depends(verify_jwt)):
     try:
@@ -283,16 +302,33 @@ async def roadmap_generate(raw: Request, user_id: str = Depends(verify_jwt)):
     goal = (body.get("goal") or "").strip()
     if not goal:
         raise HTTPException(status_code=400, detail="goal is required")
+
+    # End-month picker: derive timeframe_months from the month the user wants to end on
+    # (floor 3, ceil 24). Falls back to an explicit timeframe_months, else lets the model infer.
+    end_month = (body.get("end_month") or "").strip() or None
     tf = body.get("timeframe_months")
     try:
         tf = int(tf) if tf is not None else None
     except (TypeError, ValueError):
         tf = None
+    if end_month:
+        try:
+            from datetime import date as _date
+            y, m, _ = end_month.split("-")
+            today = _date.today()
+            diff = (int(y) - today.year) * 12 + (int(m) - today.month)
+            tf = max(3, min(24, diff))
+        except Exception:
+            pass  # malformed end_month → fall back to tf / inference
+
+    intake_answers = body.get("intake_answers")
+    if not isinstance(intake_answers, dict):
+        intake_answers = None
 
     await check_rate_limit(user_id, "roadmap_gen")
 
     try:
-        return await generate_roadmap(user_id, goal, tf)
+        return await generate_roadmap(user_id, goal, tf, end_month=end_month, intake_answers=intake_answers)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
