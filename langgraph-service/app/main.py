@@ -25,7 +25,7 @@ from app.nodes.roadmap.generate import generate_roadmap
 from app.nodes.roadmap.expand import expand_node
 from app.nodes.roadmap.reevaluate import reevaluate_roadmap
 from app.nodes.roadmap.intake import generate_intake_questions
-from app.rate_limit import check_rate_limit
+from app.rate_limit import check_rate_limit, refund_usage
 from app.scoring import award_axis
 
 logger = logging.getLogger(__name__)
@@ -330,8 +330,10 @@ async def roadmap_generate(raw: Request, user_id: str = Depends(verify_jwt)):
     try:
         return await generate_roadmap(user_id, goal, tf, end_month=end_month, intake_answers=intake_answers)
     except ValueError as exc:
+        await refund_usage(user_id, "roadmap_gen")  # don't burn the 1/lifetime gen on a soft failure
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
+        await refund_usage(user_id, "roadmap_gen")
         logger.error(f"[roadmap] generate error for {user_id}: {exc}")
         raise HTTPException(status_code=500, detail="Could not generate roadmap")
 
@@ -367,8 +369,10 @@ async def roadmap_node_expand(raw: Request, user_id: str = Depends(verify_jwt)):
     try:
         return await expand_node(user_id, node_id)
     except ValueError as exc:
+        await refund_usage(user_id, "node_expand")
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
+        await refund_usage(user_id, "node_expand")
         logger.error(f"[roadmap] expand error for {user_id}: {exc}")
         raise HTTPException(status_code=500, detail="Could not load resources")
 
@@ -388,8 +392,10 @@ async def roadmap_reevaluate(raw: Request, user_id: str = Depends(verify_jwt)):
     try:
         return await reevaluate_roadmap(user_id, roadmap_id)
     except ValueError as exc:
+        await refund_usage(user_id, "roadmap_reeval")  # don't burn the 1/lifetime reeval on failure
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
+        await refund_usage(user_id, "roadmap_reeval")
         logger.error(f"[roadmap] reevaluate error for {user_id}: {exc}")
         raise HTTPException(status_code=500, detail="Could not re-evaluate roadmap")
 
