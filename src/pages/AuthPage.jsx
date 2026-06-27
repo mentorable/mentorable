@@ -50,9 +50,16 @@ export default function AuthPage() {
         });
         if (err) {
           const msg = err.message?.toLowerCase() ?? "";
-          if (msg.includes("password")) {
+          const status = err.status ?? err.code;
+          // Check specific cases BEFORE the generic "email" match — the email send-rate-limit
+          // error literally contains the word "email" and was being mislabeled as invalid.
+          if (status === 429 || msg.includes("rate limit") || msg.includes("rate_limit")) {
+            setError("We're getting a lot of signups right now. Please wait a minute and try again.");
+          } else if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
+            setError("already-exists");
+          } else if (msg.includes("password")) {
             setError("Password must be at least 6 characters.");
-          } else if (msg.includes("email")) {
+          } else if (msg.includes("invalid") && msg.includes("email")) {
             setError("Please enter a valid email address.");
           } else {
             setError(err.message);
@@ -63,6 +70,11 @@ export default function AuthPage() {
         // but returns a user with an empty identities array
         if (!data.user || data.user.identities?.length === 0) {
           setError("already-exists");
+          return;
+        }
+        // If email confirmation is OFF, signUp returns a live session → go straight in.
+        if (data.session) {
+          window.location.href = "/onboarding";
           return;
         }
         setConfirmed(true);
