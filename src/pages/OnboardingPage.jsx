@@ -8,6 +8,7 @@ import { VoicePoweredOrb } from "../components/common/VoicePoweredOrb.jsx";
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
 const MAX_CALL_SECONDS = 180; // ~3 min cap — keeps ElevenLabs credit cost down; the agent is prompted to wrap up by ~2.5 min
+const SILENCE_TIMEOUT_MS = 30000; // auto-end if the call sits fully silent (agent done, no replies) this long
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const BG      = "#fafbff";
@@ -1071,6 +1072,7 @@ export default function OnboardingPage() {
   const transcriptEndRef = useRef(null);
   const timerRef         = useRef(null);
   const transcriptRef    = useRef([]);
+  const lastActivityRef  = useRef(Date.now()); // last agent speech / message — drives silence auto-end
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -1111,6 +1113,7 @@ export default function OnboardingPage() {
       const role    = msg.role ?? (msg.source === "ai" ? "agent" : "user");
       const message = msg.message ?? msg.text ?? "";
       if (!message) return; // skip empty frames
+      lastActivityRef.current = Date.now(); // any message = activity → reset silence timer
       const newMsg = { role, message, id: `${Date.now()}-${Math.random()}` };
       setTranscript((prev) => {
         const next = [...prev, newMsg];
@@ -1149,12 +1152,28 @@ export default function OnboardingPage() {
       clearInterval(timerRef.current);
       return;
     }
+    lastActivityRef.current = Date.now(); // start the silence clock fresh when the call begins
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(timerRef.current);
   }, [phase]);
 
+  // Speaking state flipping (agent starts OR stops talking) counts as activity — so the
+  // student gets a full silence window after the agent finishes a turn.
   useEffect(() => {
-    if (phase === "active" && elapsed >= MAX_CALL_SECONDS) {
+    if (phase === "active") lastActivityRef.current = Date.now();
+  }, [conversation.isSpeaking, phase]);
+
+  useEffect(() => {
+    if (phase !== "active") return;
+    if (elapsed >= MAX_CALL_SECONDS) { endConversation(); return; }
+    // Silent-call safety net: the agent reached a closing point and went quiet but the
+    // session never ended. After a full silent window (agent not speaking, no new messages,
+    // conversation actually underway), end + process so the user isn't stuck on a dead call.
+    if (
+      transcriptRef.current.length >= 2 &&
+      !conversation.isSpeaking &&
+      Date.now() - lastActivityRef.current >= SILENCE_TIMEOUT_MS
+    ) {
       endConversation();
     }
   }, [elapsed, phase]);

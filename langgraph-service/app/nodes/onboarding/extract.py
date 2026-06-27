@@ -8,6 +8,7 @@ Two-stage pipeline:
 Returns the same shape the frontend already expects:
   {sufficient: bool, success: bool, profile: {...}, error: str?}
 """
+import asyncio
 import json
 import logging
 import re
@@ -23,6 +24,20 @@ logger = logging.getLogger(__name__)
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 HAIKU = "claude-haiku-4-5-20251001"
 SONNET = "claude-sonnet-4-6"
+
+
+async def _create_with_retry(**kwargs):
+    """Call Anthropic with a few backoff retries for transient failures (rate limit /
+    overload / network). Raises the last error if all attempts fail."""
+    last = None
+    for attempt in range(3):
+        try:
+            return await _anthropic.messages.create(**kwargs)
+        except Exception as exc:  # RateLimitError, APIStatusError, APIConnectionError, ...
+            last = exc
+            if attempt < 2:
+                await asyncio.sleep(0.8 * (2 ** attempt))  # 0.8s, 1.6s
+    raise last
 
 EXTRACTION_PROMPT = """You are extracting a structured career profile from a voice conversation transcript between an AI career guide and a student.
 
@@ -124,9 +139,18 @@ def _parse_profile(text: str):
 
 
 async def extract_profile(user_id: str, transcript: str) -> dict:
-    """Run the two-stage extraction and persist the profile. Never raises."""
+    """Run the two-stage extraction and persist the profile. Never raises — on a transient
+    AI failure it returns {sufficient: True, success: False, error} so the client shows the
+    recoverable retry UI (the saved transcript lets the user re-run) instead of a hard error."""
     supabase = get_supabase()
     now = datetime.now(timezone.utc).isoformat()
+
+    transcript = (transcript or "").strip()
+
+    # ── Step 0: Empty / too-short transcript → not sufficient, skip the AI calls ──
+    # Need at least a little back-and-forth to build anything meaningful.
+    if len(transcript) < 40:
+        return {"sufficient": False}
 
     # ── Step 1: Save raw transcript immediately for recovery ──────────────────
     try:
@@ -137,29 +161,40 @@ async def extract_profile(user_id: str, transcript: str) -> dict:
         logger.warning(f"[onboarding] failed to save raw transcript for {user_id}: {exc}")
 
     # ── Step 2: Sufficiency check (Haiku) ─────────────────────────────────────
-    check = await _anthropic.messages.create(
-        model=HAIKU,
-        max_tokens=64,
-        messages=[{
-            "role": "user",
-            "content": (
-                "A student just finished a voice onboarding conversation with an AI career guide. "
-                "Did the student share enough personal information (interests, strengths, goals, or "
-                'experiences) to meaningfully build a career profile? Reply with only "yes" or "no".\n\n'
-                f"Transcript:\n{transcript or '(empty — no messages recorded)'}"
-            ),
-        }],
-    )
-    check_text = (check.content[0].text if check.content else "").strip().lower()
-    if not check_text.startswith("yes"):
-        return {"sufficient": False}
+    # If Haiku is unavailable, don't fail the whole onboarding on the *gate* — we already
+    # know the transcript is non-trivial, so proceed to extraction and let that be the judge.
+    try:
+        check = await _create_with_retry(
+            model=HAIKU,
+            max_tokens=64,
+            messages=[{
+                "role": "user",
+                "content": (
+                    "A student just finished a voice onboarding conversation with an AI career guide. "
+                    "Did the student share enough personal information (interests, strengths, goals, or "
+                    'experiences) to meaningfully build a career profile? Reply with only "yes" or "no".\n\n'
+                    f"Transcript:\n{transcript}"
+                ),
+            }],
+        )
+        check_text = (check.content[0].text if check.content else "").strip().lower()
+        if not check_text.startswith("yes"):
+            return {"sufficient": False}
+    except Exception as exc:
+        logger.warning(f"[onboarding] sufficiency check failed for {user_id}, proceeding: {exc}")
 
     # ── Step 3: Full profile extraction (Sonnet) ──────────────────────────────
-    message = await _anthropic.messages.create(
-        model=SONNET,
-        max_tokens=2048,
-        messages=[{"role": "user", "content": EXTRACTION_PROMPT.format(transcript=transcript)}],
-    )
+    try:
+        message = await _create_with_retry(
+            model=SONNET,
+            max_tokens=2048,
+            messages=[{"role": "user", "content": EXTRACTION_PROMPT.format(transcript=transcript)}],
+        )
+    except Exception as exc:
+        logger.error(f"[onboarding] extraction AI call failed for {user_id}: {exc}")
+        # Transcript is saved → client shows recovery UI and can retry once the API recovers.
+        return {"sufficient": True, "success": False, "error": "AI service is temporarily unavailable. Please try again in a moment."}
+
     response_text = message.content[0].text if message.content else ""
     profile = _parse_profile(response_text)
 
