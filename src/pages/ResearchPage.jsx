@@ -230,11 +230,8 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
 function HeroSection() {
   return (
     <div style={{ marginBottom: "2rem", position: "relative" }}>
-      <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "clamp(2rem, 3vw, 2.6rem)", color: NAVY, marginBottom: "0.875rem", lineHeight: 1.1, letterSpacing: "-0.02em" }}>
-        Find real opportunities,<br />
-        <span style={{ background: "linear-gradient(90deg, #1d4ed8, #3b82f6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-          tailored to you.
-        </span>
+      <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "clamp(2rem, 3vw, 2.6rem)", color: NAVY, marginBottom: "0.875rem", lineHeight: 1.1, letterSpacing: "-0.02em" }}>
+        Research Agent
       </h1>
       <p style={{ fontFamily: FONT, fontSize: "1rem", color: "#494742", maxWidth: 560, lineHeight: 1.75, fontWeight: 500, margin: 0 }}>
         Ask about scholarships, internships, programs, or competitions, and Mentorable searches the live web,
