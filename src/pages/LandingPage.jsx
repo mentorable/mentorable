@@ -444,12 +444,12 @@ function PhoneQuest() {
                 <div style={{ fontFamily: SANS, fontSize: "0.42rem", fontWeight: 700, color: "#1d4ed8",
                   background: "#f0f5ff", border: "1px solid #dbeafe", borderRadius: 6, padding: "2px 6px",
                   display: "flex", alignItems: "baseline", gap: 2 }}>
-                  <span style={{ fontWeight: 800, fontSize: "0.52rem" }}>3</span>active
+                  <span style={{ fontWeight: 700, fontSize: "0.52rem" }}>3</span>active
                 </div>
                 <div style={{ fontFamily: SANS, fontSize: "0.42rem", fontWeight: 700, color: "#059669",
                   background: "#d1fae5", border: "1px solid rgba(5,150,105,0.2)", borderRadius: 6, padding: "2px 6px",
                   display: "flex", alignItems: "baseline", gap: 2 }}>
-                  <span style={{ fontWeight: 800, fontSize: "0.52rem" }}>1</span>done
+                  <span style={{ fontWeight: 700, fontSize: "0.52rem" }}>1</span>done
                 </div>
               </div>
             </div>
@@ -696,7 +696,7 @@ function Hero() {
             animation: shimmer 5s linear infinite;
           }
         `}</style>
-        <h1 className="hero-headline" style={{ ...enter(0.05), fontFamily: SANS, fontWeight: 800,
+        <h1 className="hero-headline" style={{ ...enter(0.05), fontFamily: SANS, fontWeight: 700,
           fontSize: "clamp(3.2rem,8.5vw,7rem)", lineHeight: 1.05, letterSpacing: "-0.04em",
           margin: 0, maxWidth: "14ch", paddingBottom: "0.08em",
           filter: "drop-shadow(0 2px 32px rgba(29,78,216,0.25))" }}>

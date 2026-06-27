@@ -70,7 +70,7 @@ function ReadinessRing({ value, accent }) {
         position: "absolute", inset: 0, display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
       }}>
-        <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: "2.5rem", color: "#141413", lineHeight: 1, letterSpacing: "-0.03em" }}>
+        <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.5rem", color: "#141413", lineHeight: 1, letterSpacing: "-0.03em" }}>
           {display}
         </span>
         <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.7rem", color: "#6a6760", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 4 }}>
@@ -127,7 +127,7 @@ function RadarChart({ scores, weakSet, theme, onAxisClick }) {
               {a.label}
             </text>
             <text x={lx.toFixed(1)} y={(ly + 12).toFixed(1)} textAnchor={anchor}
-              fontFamily={SANS} fontSize="13" fontWeight="800"
+              fontFamily={SANS} fontSize="13" fontWeight="700"
               fill={isWeak ? theme.accent : "#ffffff"}>
               {scores[i]}{isWeak ? "  ↗" : ""}
             </text>
@@ -162,7 +162,7 @@ function AxisRow({ axis, score, isWeak, accent, onClick, delay }) {
             </span>
           )}
         </div>
-        <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.05rem", color: isWeak ? accent : "#141413" }}>{score}</span>
+        <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: isWeak ? accent : "#141413" }}>{score}</span>
       </div>
       <div style={{ height: 7, borderRadius: 99, background: "#efe9e2", overflow: "hidden" }}>
         <motion.div
@@ -203,7 +203,7 @@ function WelcomePopup({ profile, accent, onClose }) {
         onClick={(e) => e.stopPropagation()}
         style={{ width: "100%", maxWidth: 540, maxHeight: "88vh", overflowY: "auto", background: "#faf9f5", borderRadius: 22, border: `1px solid ${accent}30`, boxShadow: "0 30px 80px rgba(0,0,0,0.3)", padding: "2.25rem" }}
       >
-        <h2 style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.6rem", color: "#141413", letterSpacing: "-0.02em", marginBottom: "0.4rem" }}>
+        <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.6rem", color: "#141413", letterSpacing: "-0.02em", marginBottom: "0.4rem" }}>
           Here's what we learned about you, {first}.
         </h2>
         <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: "#494742", lineHeight: 1.6, marginBottom: "1.6rem" }}>
@@ -312,7 +312,7 @@ function ImproveModal({ axisKey, accent, onClose, onAdded, onLimit, onConsumed }
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
           <div>
             <p style={{ fontFamily: SANS, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: accent, marginBottom: 4 }}>Improve · {axis?.label}</p>
-            <h2 style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.35rem", color: "#141413", letterSpacing: "-0.02em" }}>Quests to raise your {axis?.label}</h2>
+            <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.35rem", color: "#141413", letterSpacing: "-0.02em" }}>Quests to raise your {axis?.label}</h2>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.4rem", color: "#6a6760", lineHeight: 1, padding: 4 }}>×</button>
         </div>

@@ -545,7 +545,7 @@ function IntroPhase({ onStart, loading, retryNotice }) {
           <h1 style={{
             fontFamily:SERIF,
             fontSize:"clamp(3.2rem,5.5vw,5.2rem)",
-            fontWeight:900,
+            fontWeight:700,
             letterSpacing:"-0.03em",
             lineHeight:1.06,
             margin:0, overflow:"visible",

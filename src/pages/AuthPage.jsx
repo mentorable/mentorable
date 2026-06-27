@@ -267,7 +267,7 @@ export default function AuthPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: "2.25rem" }}>
           <span style={{
             fontFamily: "'Space Grotesk', sans-serif",
-            fontWeight: 800, fontSize: "1.35rem",
+            fontWeight: 700, fontSize: "1.35rem",
             color: "#141413", letterSpacing: "-0.03em",
           }}>
             mentorable

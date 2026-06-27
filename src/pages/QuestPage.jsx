@@ -402,7 +402,7 @@ function QuestDetailModal({ item, onClose }) {
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.5rem", lineHeight: 1, color: TEXT_FAINT, padding: 0, marginLeft: item.estimated_time ? 8 : "auto" }}>×</button>
         </div>
 
-        <h2 style={{ fontFamily: FONT, fontWeight: 800, fontSize: "1.4rem", color: TEXT, letterSpacing: "-0.01em", lineHeight: 1.25, marginBottom: item.description ? 12 : 0 }}>
+        <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1.4rem", color: TEXT, letterSpacing: "-0.01em", lineHeight: 1.25, marginBottom: item.description ? 12 : 0 }}>
           {item.title}
         </h2>
 
@@ -755,7 +755,7 @@ export default function QuestPage({ navigate }) {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="#34d399" stroke="none" style={{ flexShrink: 0 }}>
             <path d="M13 2L4.5 13.5H11l-1 8.5L19.5 10H13l1-8z"/>
           </svg>
-          <span style={{ fontWeight: 800, fontSize: "1.1rem", color: "#34d399" }}>+{scoreToast.delta}</span>
+          <span style={{ fontWeight: 700, fontSize: "1.1rem", color: "#34d399" }}>+{scoreToast.delta}</span>
           <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>{AXIS_LABELS[scoreToast.axis] || scoreToast.axis}</span>
           <button onClick={() => handleUndo(scoreToast)}
             style={{ marginLeft: 4, background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", fontFamily: FONT, fontWeight: 700, fontSize: 12, padding: "4px 10px", borderRadius: 8, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -1059,7 +1059,7 @@ export default function QuestPage({ navigate }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <div style={{ width: 9, height: 9, borderRadius: "50%", background: col.accent }} />
                   <span style={{
-                    fontFamily: FONT, fontWeight: 800, fontSize: 13,
+                    fontFamily: FONT, fontWeight: 700, fontSize: 13,
                     color: TEXT, letterSpacing: "0.05em", textTransform: "uppercase",
                   }}>
                     {col.label}

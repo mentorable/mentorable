@@ -146,7 +146,7 @@ function AgentAvatar({ size = 28 }) {
       boxShadow: `0 2px 8px ${ACCENT}44`,
     }}>
       <span style={{
-        fontFamily: JK, fontWeight: 800,
+        fontFamily: JK, fontWeight: 700,
         fontSize: size * 0.42, color: "#fff",
         letterSpacing: "-0.04em", lineHeight: 1,
         userSelect: "none",
@@ -219,7 +219,7 @@ function MarkdownRenderer({ text, streaming = false }) {
 
         if (block.type === "spacer") return <div key={bi} style={{ height: 6 }} />;
         if (block.type === "hr")     return <hr key={bi} style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "8px 0" }} />;
-        if (block.type === "h1")     return <p key={bi} style={{ fontFamily: JK, fontWeight: 800, fontSize: 17, color: NAVY, lineHeight: 1.35, margin: "10px 0 4px" }}><Inline text={block.text}/>{cur}</p>;
+        if (block.type === "h1")     return <p key={bi} style={{ fontFamily: JK, fontWeight: 700, fontSize: 17, color: NAVY, lineHeight: 1.35, margin: "10px 0 4px" }}><Inline text={block.text}/>{cur}</p>;
         if (block.type === "h2")     return <p key={bi} style={{ fontFamily: JK, fontWeight: 700, fontSize: 15, color: NAVY, lineHeight: 1.4,  margin: "8px 0 3px"  }}><Inline text={block.text}/>{cur}</p>;
         if (block.type === "h3")     return <p key={bi} style={{ fontFamily: SG, fontWeight: 700, fontSize: 12.5, color: "#3d3d3a", lineHeight: 1.4, margin: "6px 0 2px", textTransform: "uppercase", letterSpacing: "0.05em" }}><Inline text={block.text} color="#3d3d3a"/>{cur}</p>;
         if (block.type === "ul")     return (
@@ -463,7 +463,7 @@ function WelcomeScreen({ onSend, userName }) {
         style={{ marginBottom: 28, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-          <span style={{ fontFamily: JK, fontWeight: 800, fontSize: 22, color: NAVY, letterSpacing: "-0.04em" }}>
+          <span style={{ fontFamily: JK, fontWeight: 700, fontSize: 22, color: NAVY, letterSpacing: "-0.04em" }}>
             mentorable
           </span>
           <motion.span
@@ -694,7 +694,7 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
       }}>
         <AgentAvatar size={28} />
         <div>
-          <span style={{ fontFamily: JK, fontWeight: 800, fontSize: 14, color: NAVY, letterSpacing: "-0.03em" }}>
+          <span style={{ fontFamily: JK, fontWeight: 700, fontSize: 14, color: NAVY, letterSpacing: "-0.03em" }}>
             Mentora
           </span>
           <span style={{ fontFamily: SG, fontSize: 11, color: "#6a6760", fontWeight: 500, marginLeft: 6 }}>

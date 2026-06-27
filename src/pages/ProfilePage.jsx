@@ -296,7 +296,7 @@ export default function ProfilePage({ navigate }) {
                   display: "flex", alignItems: "center", justifyContent: "center",
                   boxShadow: `0 0 0 2px ${accent}22, 0 6px 24px ${accent}40`,
                   fontFamily: "'Space Grotesk', sans-serif",
-                  fontWeight: 800, fontSize: "1.35rem", color: "white",
+                  fontWeight: 700, fontSize: "1.35rem", color: "white",
                 }}>
                   {(preferredName || userEmail || "?").charAt(0).toUpperCase()}
                 </div>

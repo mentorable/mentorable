@@ -210,7 +210,7 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
                         style={{ display: "flex", alignItems: "center", gap: 12, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "13px 16px", textDecoration: "none", transition: "border-color 0.15s, transform 0.15s" }}
                         onMouseEnter={(e) => { e.currentTarget.style.borderColor = BLUE; e.currentTarget.style.transform = "translateY(-1px)"; }}
                         onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.transform = "none"; }}>
-                        <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 800, color: WHITE, background: tm.color, borderRadius: 6, padding: "3px 7px", flexShrink: 0, minWidth: 28, textAlign: "center" }}>{ref.id}</span>
+                        <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, color: WHITE, background: tm.color, borderRadius: 6, padding: "3px 7px", flexShrink: 0, minWidth: 28, textAlign: "center" }}>{ref.id}</span>
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.95rem", color: TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ref.title}</div>
                           <div style={{ fontFamily: SANS, fontSize: "0.78rem", color: TEXT_FAINT, marginTop: 2 }}>
