@@ -73,7 +73,7 @@ function ReadinessRing({ value, accent }) {
         <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: "2.5rem", color: "#141413", lineHeight: 1, letterSpacing: "-0.03em" }}>
           {display}
         </span>
-        <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.7rem", color: "#8e8b82", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 4 }}>
+        <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.7rem", color: "#6a6760", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 4 }}>
           Career Ready
         </span>
       </div>
@@ -170,7 +170,7 @@ function AxisRow({ axis, score, isWeak, accent, onClick, delay }) {
           style={{ height: "100%", borderRadius: 99, background: isWeak ? accent : "linear-gradient(90deg, #1d4ed8, #60a5fa)" }}
         />
       </div>
-      <p style={{ fontFamily: SANS, fontSize: "0.74rem", color: "#8e8b82", marginTop: 7 }}>{axis.blurb}</p>
+      <p style={{ fontFamily: SANS, fontSize: "0.74rem", color: "#6a6760", marginTop: 7 }}>{axis.blurb}</p>
     </motion.button>
   );
 }
@@ -206,7 +206,7 @@ function WelcomePopup({ profile, accent, onClose }) {
         <h2 style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.6rem", color: "#141413", letterSpacing: "-0.02em", marginBottom: "0.4rem" }}>
           Here's what we learned about you, {first}.
         </h2>
-        <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: "#6c6a64", lineHeight: 1.6, marginBottom: "1.6rem" }}>
+        <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: "#494742", lineHeight: 1.6, marginBottom: "1.6rem" }}>
           This is your starting point. Your scorecard grows as you complete quests and use Mentorable.
         </p>
 
@@ -314,16 +314,16 @@ function ImproveModal({ axisKey, accent, onClose, onAdded, onLimit, onConsumed }
             <p style={{ fontFamily: SANS, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: accent, marginBottom: 4 }}>Improve · {axis?.label}</p>
             <h2 style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.35rem", color: "#141413", letterSpacing: "-0.02em" }}>Quests to raise your {axis?.label}</h2>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.4rem", color: "#8e8b82", lineHeight: 1, padding: 4 }}>×</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.4rem", color: "#6a6760", lineHeight: 1, padding: 4 }}>×</button>
         </div>
-        <p style={{ fontFamily: SANS, fontSize: "0.88rem", color: "#6c6a64", lineHeight: 1.55, marginBottom: "1.5rem" }}>
+        <p style={{ fontFamily: SANS, fontSize: "0.88rem", color: "#494742", lineHeight: 1.55, marginBottom: "1.5rem" }}>
           Add the ones you like. They land in your Suggestions column, and completing them raises this exact score.
         </p>
 
         {loading && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem", padding: "2.5rem 0" }}>
             <Spinner size={26} color={accent} />
-            <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: "#8e8b82" }}>Designing quests for your {axis?.label}…</p>
+            <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: "#6a6760" }}>Designing quests for your {axis?.label}…</p>
           </div>
         )}
 
@@ -338,8 +338,8 @@ function ImproveModal({ axisKey, accent, onClose, onAdded, onLimit, onConsumed }
               return (
                 <div key={idx} style={{ background: "#fff", border: "1.5px solid #e6dfd8", borderRadius: 14, padding: "1rem 1.1rem" }}>
                   <div style={{ display: "flex", gap: 6, marginBottom: 7, flexWrap: "wrap" }}>
-                    {s.difficulty && <span style={{ fontFamily: SANS, fontSize: "0.62rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#6c6a64", background: "#efe9e2", padding: "2px 7px", borderRadius: 5 }}>{s.difficulty}</span>}
-                    {s.estimated_time && <span style={{ fontFamily: SANS, fontSize: "0.62rem", fontWeight: 600, color: "#8e8b82", padding: "2px 4px" }}>{s.estimated_time}</span>}
+                    {s.difficulty && <span style={{ fontFamily: SANS, fontSize: "0.62rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#494742", background: "#efe9e2", padding: "2px 7px", borderRadius: 5 }}>{s.difficulty}</span>}
+                    {s.estimated_time && <span style={{ fontFamily: SANS, fontSize: "0.62rem", fontWeight: 600, color: "#6a6760", padding: "2px 4px" }}>{s.estimated_time}</span>}
                   </div>
                   <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.98rem", color: "#141413", marginBottom: 4 }}>{s.title}</p>
                   <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: "#3d3d3a", lineHeight: 1.5, marginBottom: 10 }}>{s.description}</p>
@@ -482,11 +482,6 @@ export default function ScorecardPage({ navigate }) {
         }
       `}</style>
 
-      {/* atmosphere */}
-      <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", backgroundImage: `linear-gradient(${theme.accent}14 1px, transparent 1px), linear-gradient(90deg, ${theme.accent}14 1px, transparent 1px)`, backgroundSize: "54px 54px", maskImage: "radial-gradient(ellipse 80% 70% at 50% 30%, black 40%, transparent 100%)", WebkitMaskImage: "radial-gradient(ellipse 80% 70% at 50% 30%, black 40%, transparent 100%)" }} />
-      <div style={{ position: "fixed", top: "-12%", right: "-8%", width: 560, height: 560, borderRadius: "50%", background: `radial-gradient(circle, ${theme.accent}33 0%, transparent 68%)`, filter: "blur(50px)", pointerEvents: "none", zIndex: 0, transition: "background .3s" }} />
-      <div style={{ position: "fixed", bottom: "-14%", left: "-6%", width: 460, height: 460, borderRadius: "50%", background: `radial-gradient(circle, ${theme.accent}26 0%, transparent 68%)`, filter: "blur(56px)", pointerEvents: "none", zIndex: 0, transition: "background .3s" }} />
-
       <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 1080 }}>
 
         {phase === "loading" && (
@@ -510,7 +505,7 @@ export default function ScorecardPage({ navigate }) {
                 <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: "#141413", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
                   {first}'s Scorecard
                 </h1>
-                <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: "#6c6a64", lineHeight: 1.55, marginTop: "0.5rem", maxWidth: 440 }}>
+                <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: "#494742", lineHeight: 1.55, marginTop: "0.5rem", maxWidth: 440 }}>
                   Five skills that grow as you work. <strong style={{ color: theme.accent }}>Tap a glowing axis</strong> and Mentorable builds quests to raise it.
                 </p>
               </div>
@@ -528,7 +523,7 @@ export default function ScorecardPage({ navigate }) {
                 )}
                 {living.momentum && (
                   <div style={{ flex: "1 1 240px", background: "#fff", border: "1.5px solid #e6dfd8", borderRadius: 14, padding: "0.9rem 1.1rem", boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
-                    <p style={{ fontFamily: SANS, fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: "#8e8b82", marginBottom: 5 }}>Momentum</p>
+                    <p style={{ fontFamily: SANS, fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: "#6a6760", marginBottom: 5 }}>Momentum</p>
                     <p style={{ fontFamily: SANS, fontSize: "0.92rem", color: "#141413", lineHeight: 1.45 }}>{living.momentum}</p>
                   </div>
                 )}
@@ -587,7 +582,7 @@ export default function ScorecardPage({ navigate }) {
                 {AXES.map((a, i) => (
                   <AxisRow key={a.key} axis={a} score={scores[i]} isWeak={weakSet.has(a.key)} accent={theme.accent} onClick={() => openImprove(a.key)} delay={0.15 + i * 0.06} />
                 ))}
-                <p style={{ fontFamily: SANS, fontSize: "0.74rem", color: "#8e8b82", textAlign: "center", marginTop: "0.4rem" }}>
+                <p style={{ fontFamily: SANS, fontSize: "0.74rem", color: "#6a6760", textAlign: "center", marginTop: "0.4rem" }}>
                   {Math.max(0, LIMITS.axis_boost - boostsUsed)} skill boosts left in the demo
                 </p>
               </div>

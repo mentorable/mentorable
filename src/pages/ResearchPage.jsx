@@ -9,9 +9,9 @@ import LimitModal from "../components/common/LimitModal.jsx";
 import Drawer from "../components/common/Drawer.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
-const FONT   = "'Inter', -apple-system, sans-serif";
+const FONT   = "'Space Grotesk', sans-serif";
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL; // reuse same base URL
-const BODY   = "'Inter', -apple-system, sans-serif";
+const BODY   = "'Space Grotesk', sans-serif";
 const NAVY   = "#141413";
 const BLUE   = "#1d4ed8";
 const BLUE_MID = "#3b82f6";
@@ -44,7 +44,7 @@ const TYPE_META = {
   scholarship: { label: "Scholarship", color: "#065f46", bg: "rgba(6,95,70,0.07)",    border: "rgba(6,95,70,0.15)"   },
   program:     { label: "Program",     color: "#b45309", bg: "rgba(180,83,9,0.07)",   border: "rgba(180,83,9,0.15)"  },
   resource:    { label: "Resource",    color: "#3d3d3a", bg: "rgba(55,65,81,0.06)",   border: "rgba(55,65,81,0.12)"  },
-  article:     { label: "Article",     color: "#6c6a64", bg: "rgba(100,116,139,0.06)", border: "rgba(100,116,139,0.12)" },
+  article:     { label: "Article",     color: "#494742", bg: "rgba(100,116,139,0.06)", border: "rgba(100,116,139,0.12)" },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -142,7 +142,7 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
           }}>
             {session.query}
           </p>
-          <p style={{ fontFamily: FONT, fontSize: 10.5, color: "#8e8b82", marginTop: 1 }}>
+          <p style={{ fontFamily: FONT, fontSize: 10.5, color: "#6a6760", marginTop: 1 }}>
             {isPending ? "Searching…" : timeAgo(session.updated_at)}
           </p>
         </div>
@@ -181,10 +181,10 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
       <div style={{ padding: "16px 14px 12px", borderBottom: "1px solid #e8edf2", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: 12.5, color: NAVY, display: "flex", alignItems: "center", gap: 6 }}>
-            <IconHistory size={13} color="#6c6a64" /> Searches
+            <IconHistory size={13} color="#494742" /> Searches
           </span>
           {sessions.length > 0 && (
-            <span style={{ fontFamily: FONT, fontSize: 10.5, color: "#8e8b82" }}>{sessions.length}</span>
+            <span style={{ fontFamily: FONT, fontSize: 10.5, color: "#6a6760" }}>{sessions.length}</span>
           )}
         </div>
         <button
@@ -230,13 +230,13 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
 function HeroSection() {
   return (
     <div style={{ marginBottom: "2rem", position: "relative" }}>
-      <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(2rem, 3vw, 2.6rem)", color: NAVY, marginBottom: "0.875rem", lineHeight: 1.1, letterSpacing: "-0.02em" }}>
+      <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "clamp(2rem, 3vw, 2.6rem)", color: NAVY, marginBottom: "0.875rem", lineHeight: 1.1, letterSpacing: "-0.02em" }}>
         Find real opportunities,<br />
         <span style={{ background: "linear-gradient(90deg, #1d4ed8, #3b82f6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
           tailored to you.
         </span>
       </h1>
-      <p style={{ fontFamily: FONT, fontSize: "1rem", color: "#6c6a64", maxWidth: 560, lineHeight: 1.75, fontWeight: 500, margin: 0 }}>
+      <p style={{ fontFamily: FONT, fontSize: "1rem", color: "#494742", maxWidth: 560, lineHeight: 1.75, fontWeight: 500, margin: 0 }}>
         Ask about scholarships, internships, programs, or competitions, and Mentorable searches the live web,
         reads the results, and synthesizes a tailored shortlist with a game plan, all filtered to your profile.
       </p>
@@ -288,7 +288,7 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
         style={{
           padding: "0 1.75rem", height: 62, alignSelf: "flex-end",
           background: value.trim() && !loading ? "linear-gradient(135deg, #1d4ed8, #3b82f6)" : "#e6dfd8",
-          color: value.trim() && !loading ? "white" : "#8e8b82",
+          color: value.trim() && !loading ? "white" : "#6a6760",
           border: "none", borderRadius: "0.75rem",
           fontFamily: FONT, fontWeight: 700, fontSize: "0.9375rem",
           cursor: value.trim() && !loading ? "pointer" : "not-allowed",
@@ -298,7 +298,7 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
         }}
       >
         {loading
-          ? <span style={{ width: 16, height: 16, border: "2px solid rgba(148,163,184,0.3)", borderTopColor: "#8e8b82", borderRadius: "50%", animation: "spinner-rotate 0.7s linear infinite", display: "inline-block" }} />
+          ? <span style={{ width: 16, height: 16, border: "2px solid rgba(148,163,184,0.3)", borderTopColor: "#6a6760", borderRadius: "50%", animation: "spinner-rotate 0.7s linear infinite", display: "inline-block" }} />
           : <IconSearch size={15} color="currentColor" />
         }
         Research
@@ -312,7 +312,7 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
 function ExampleChips({ onSelect, loading }) {
   return (
     <div style={{ marginBottom: "1.75rem" }}>
-      <p style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, color: "#8e8b82", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.625rem" }}>
+      <p style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, color: "#6a6760", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.625rem" }}>
         Try these
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
@@ -364,7 +364,7 @@ function LoadingState({ step }) {
           <div key={i} style={{ width: i === step ? 18 : 5, height: 5, borderRadius: 3, background: i === step ? BLUE : "rgba(29,78,216,0.15)", transition: "all 0.3s" }} />
         ))}
       </div>
-      <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: "#6c6a64", marginTop: "0.75rem" }}>
+      <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: "#494742", marginTop: "0.75rem" }}>
         This may take a moment…
       </p>
     </motion.div>
@@ -472,7 +472,7 @@ function ResultCard({ result, index }) {
               borderRadius: "0.5rem", padding: "0.3rem 0.625rem",
               display: "flex", gap: "0.3rem", alignItems: "center",
             }}>
-              <span style={{ color: "#8e8b82", fontWeight: 600 }}>{label}:</span>
+              <span style={{ color: "#6a6760", fontWeight: 600 }}>{label}:</span>
               <span style={{ color: "#3d3d3a", fontWeight: 600 }}>{value}</span>
             </div>
           ))}
@@ -555,7 +555,7 @@ function SourcesSection({ sources }) {
         style={{
           display: "flex", alignItems: "center", gap: "0.5rem",
           background: "none", border: "none", cursor: "pointer",
-          fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, color: "#6c6a64",
+          fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, color: "#494742",
           padding: "0.5rem 0",
         }}
       >
@@ -600,7 +600,7 @@ function ResultsArea({ results, sources, query, cached }) {
           <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", color: NAVY, margin: "0 0 0.2rem" }}>
             Results for "{query}"
           </h2>
-          <p style={{ fontFamily: FONT, fontSize: "0.76rem", color: "#8e8b82", margin: 0, fontWeight: 500 }}>
+          <p style={{ fontFamily: FONT, fontSize: "0.76rem", color: "#6a6760", margin: 0, fontWeight: 500 }}>
             {results.length} result{results.length !== 1 ? "s" : ""}
             {cached && " · From cache"}
           </p>
@@ -859,7 +859,7 @@ export default function ResearchPage({ navigate, initialSessionId }) {
 
       <style>{`
         @import
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
         @keyframes spinner-rotate { to { transform: rotate(360deg); } }
       `}</style>
 
@@ -891,7 +891,7 @@ export default function ResearchPage({ navigate, initialSessionId }) {
                 cursor: "pointer",
               }}
             >
-              <IconHistory size={13} color="#6c6a64" />
+              <IconHistory size={13} color="#494742" />
               History {sessions.length > 0 && `(${sessions.length})`}
             </button>
           </div>

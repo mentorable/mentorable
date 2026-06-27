@@ -28,11 +28,11 @@ const PURPLE_SOFT = "#ede9fe";
 const PURPLE_MID  = "#c4b5fd";
 const TEXT        = "#141413";
 const TEXT_MID    = "#3d3d3a";
-const TEXT_MUTED  = "#6c6a64";
-const TEXT_FAINT  = "#8e8b82";
+const TEXT_MUTED  = "#494742";
+const TEXT_FAINT  = "#6a6760";
 const BORDER      = "#e6dfd8";
-const FONT        = "'Inter', -apple-system, sans-serif";
-const SERIF       = "'Cormorant Garamond', Georgia, serif";
+const FONT        = "'Space Grotesk', sans-serif";
+const SERIF       = "'Space Grotesk', sans-serif";
 
 const AXIS_LABELS = {
   communication: "Communication", leadership: "Leadership", technicality: "Technicality",
@@ -797,10 +797,8 @@ export default function QuestPage({ navigate }) {
         }}>
           <div style={{ padding: "16px 16px 0" }}>
             <h1 style={{
-              fontFamily: SERIF, fontWeight: 600, fontSize: 26,
-              margin: "0 0 14px", letterSpacing: "-0.01em",
-              background: "linear-gradient(135deg, #0f172a 30%, #1d4ed8)",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+              fontFamily: FONT, fontWeight: 700, fontSize: 26,
+              margin: "0 0 14px", letterSpacing: "-0.02em", color: TEXT,
             }}>
               Quest
             </h1>
@@ -1005,10 +1003,8 @@ export default function QuestPage({ navigate }) {
         WebkitBackdropFilter: "blur(10px)",
       }}>
         <h1 style={{
-          fontFamily: SERIF, fontWeight: 600, fontSize: 28, margin: 0,
-          letterSpacing: "-0.01em",
-          background: "linear-gradient(135deg, #0f172a 30%, #1d4ed8)",
-          WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+          fontFamily: FONT, fontWeight: 700, fontSize: 28, margin: 0,
+          letterSpacing: "-0.02em", color: TEXT,
         }}>
           Quest
         </h1>
@@ -1214,7 +1210,7 @@ export default function QuestPage({ navigate }) {
 function GlobalStyles() {
   return (
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@400;600&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
       @keyframes quest-spin { to { transform: rotate(360deg); } }
       @keyframes quest-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
       * { box-sizing: border-box; }

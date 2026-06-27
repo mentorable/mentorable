@@ -136,7 +136,8 @@ async def synthesize_living_profile(user_id: str) -> None:
             "\n\nRewrite the living profile to reflect who the student is RIGHT NOW. Recent activity "
             "wins: it's fine to drop interests that have gone cold and to shift career_direction. If "
             "their direction has clearly changed from the baseline, name the pivot in `momentum` "
-            "(e.g. 'Shifted from pre-med toward CS'). Keep it concrete and grounded in the evidence.\n\n"
+            "(e.g. 'Shifted from pre-med toward CS'). Keep it concrete and grounded in the evidence.\n"
+            "In all prose, NEVER use em dashes (the long dash); use commas or periods instead.\n\n"
             "Return ONLY valid JSON, no markdown:\n"
             '{"current_summary":"2-3 sentences, who they are now","strengths":["..."],'
             '"interests":["..."],"career_direction":"their current primary direction",'

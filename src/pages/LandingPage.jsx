@@ -4,7 +4,7 @@ import { motion, AnimatePresence, useInView, useScroll, useTransform, useSpring 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 const SANS = "'Space Grotesk', sans-serif";
 const BODY = "'Space Grotesk', sans-serif";
-const MONO = "'Roboto Mono', monospace";
+const MONO = "'Space Grotesk', sans-serif";
 const P    = "#1d4ed8";
 const B2   = "#2563eb";
 const B3   = "#3b82f6";
@@ -12,7 +12,7 @@ const B4   = "#60a5fa";
 const GRAD = "linear-gradient(135deg,#1d4ed8,#60a5fa)";
 const BG   = "#faf8f4";
 const FG   = "#141413";
-const MUT  = "#6b7280";
+const MUT  = "#4b5563";
 const BDR  = "rgba(37,99,235,0.1)";
 const BDR2 = "rgba(37,99,235,0.18)";
 const FOOT = "#2563eb";
@@ -196,7 +196,7 @@ function AgentAvatar({ size = 30 }) {
   );
 }
 
-function TypingDots({ color = "#9199b8" }) {
+function TypingDots({ color = "#5b6188" }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 5, height: 18 }}>
       {[0,1,2].map((i) => (
@@ -464,7 +464,7 @@ function PhoneQuest() {
                       textTransform: "uppercase", background: q.bg, color: q.color, borderRadius: 5, padding: "2px 6px" }}>
                       {q.category}
                     </span>
-                    <span style={{ fontFamily: SANS, fontSize: "0.4rem", fontWeight: 700, color: "#8e8b82",
+                    <span style={{ fontFamily: SANS, fontSize: "0.4rem", fontWeight: 700, color: "#6a6760",
                       background: "#faf9f5", border: "1px solid #e6dfd8", borderRadius: 4, padding: "1px 5px" }}>
                       {q.time}
                     </span>
@@ -475,7 +475,7 @@ function PhoneQuest() {
                       color: "#fff", background: "linear-gradient(135deg,#1d4ed8,#3b82f6)",
                       borderRadius: 5, padding: "3px 0", textAlign: "center" }}>Complete</div>
                     <div style={{ fontFamily: SANS, fontSize: "0.38rem", fontWeight: 600,
-                      color: "#6c6a64", background: "#f0ede6", border: "1px solid #e6dfd8",
+                      color: "#494742", background: "#f0ede6", border: "1px solid #e6dfd8",
                       borderRadius: 5, padding: "3px 8px" }}>Remove</div>
                   </div>
                 </motion.div>
@@ -842,7 +842,7 @@ export default function LandingPage() {
   return (
     <div style={{ background: BG, minHeight: "100vh", color: FG, fontFamily: BODY, overflowX: "hidden" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
         html,body { overflow-x: hidden; max-width: 100%; }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         ::selection { background: rgba(37,99,235,0.25); }

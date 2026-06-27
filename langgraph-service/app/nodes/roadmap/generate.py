@@ -271,7 +271,8 @@ async def generate_roadmap(
         "supervision. Age-appropriate to the student's grade; achievable solo with free/cheap "
         "online resources.\n\n"
         "Tone: motivating yet practical, plain language, no jargon or buzzwords, never textbook-"
-        "like. Month 0 is the current/near-term month. Return ONLY valid JSON, no markdown."
+        "like. NEVER use em dashes (the long dash); use commas, periods, or parentheses instead. "
+        "Month 0 is the current/near-term month. Return ONLY valid JSON, no markdown."
     )
 
     user_prompt = (

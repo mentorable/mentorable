@@ -125,10 +125,10 @@ export default function AuthPage() {
       position: "relative",
       overflow: "hidden",
       background: "#faf9f5",
-      fontFamily: "'Inter', -apple-system, sans-serif",
+      fontFamily: "'Space Grotesk', sans-serif",
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         @keyframes auth-glow {
@@ -142,7 +142,7 @@ export default function AuthPage() {
           border: 1.5px solid rgba(148,163,184,0.3);
           border-radius: 0.875rem;
           font-size: 1.0625rem;
-          font-family: 'Inter', -apple-system, sans-serif;
+          font-family: 'Space Grotesk', sans-serif;
           color: #0f172a;
           background: rgba(255,255,255,0.95);
           outline: none;
@@ -168,7 +168,7 @@ export default function AuthPage() {
           color: white;
           font-weight: 700;
           font-size: 1.0625rem;
-          font-family: 'Inter', -apple-system, sans-serif;
+          font-family: 'Space Grotesk', sans-serif;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -213,7 +213,7 @@ export default function AuthPage() {
           color: #1d4ed8;
           font-weight: 600;
           font-size: 0.875rem;
-          font-family: 'Inter', -apple-system, sans-serif;
+          font-family: 'Space Grotesk', sans-serif;
           padding: 0;
           text-decoration: underline;
           text-underline-offset: 2px;
@@ -266,7 +266,7 @@ export default function AuthPage() {
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: "2.25rem" }}>
           <span style={{
-            fontFamily: "'Inter', -apple-system, sans-serif",
+            fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 800, fontSize: "1.35rem",
             color: "#141413", letterSpacing: "-0.03em",
           }}>
@@ -294,7 +294,7 @@ export default function AuthPage() {
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
               <h1 style={{
-                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 600,
                 fontSize: "2.5rem",
                 color: "#141413",
@@ -304,7 +304,7 @@ export default function AuthPage() {
               }}>
                 {c.headline}
               </h1>
-              <p style={{ color: "#6c6a64", fontSize: "1rem", lineHeight: 1.65 }}>
+              <p style={{ color: "#494742", fontSize: "1rem", lineHeight: 1.65 }}>
                 {c.sub}
               </p>
             </motion.div>
@@ -341,7 +341,7 @@ export default function AuthPage() {
               <p style={{
                 fontWeight: 700,
                 color: "#166534",
-                fontFamily: "'Inter', -apple-system, sans-serif",
+                fontFamily: "'Space Grotesk', sans-serif",
                 fontSize: "1rem",
                 marginBottom: "0.3rem",
               }}>
@@ -443,7 +443,7 @@ export default function AuthPage() {
           marginTop: "1.35rem",
           textAlign: "center",
           fontSize: "0.875rem",
-          color: "#6c6a64",
+          color: "#494742",
         }}>
           {c.togglePrompt}{" "}
           <button className="auth-toggle-btn" onClick={toggle}>

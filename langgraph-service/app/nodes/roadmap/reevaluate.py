@@ -88,6 +88,7 @@ async def reevaluate_roadmap(user_id: str, roadmap_id: str) -> dict:
         "execution_mode (1-5); insert a bridge whenever technical_depth would jump by 2+ between "
         "consecutive anchors. STRICT safety (no hazardous materials, equipment over ~$50-100, "
         "lab/institutional access, or age-inappropriate activities). Motivating, plain language. "
+        "NEVER use em dashes (the long dash); use commas, periods, or parentheses instead. "
         "Month 0 is current/near-term.\n\n"
         "Also write a SHORT summary (1-2 sentences, plain language) of what's changing and why. "
         "Return ONLY valid JSON, no markdown."

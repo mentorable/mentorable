@@ -96,7 +96,8 @@ async def improve_axis(user_id: str, axis: str) -> dict:
             "For each: title (max 60 chars), description (1-2 sentences with concrete next "
             "steps), category (Project|Research|Application|Learning|Other), estimated_time, "
             "difficulty (Easy|Medium|Hard), why_it_matters (max 80 chars, tie to building "
-            f"{axis}). Return ONLY valid JSON, no markdown."
+            f"{axis}). In all text, NEVER use em dashes (the long dash); use commas or periods. "
+            "Return ONLY valid JSON, no markdown."
         ),
         messages=[{
             "role": "user",

@@ -12,8 +12,8 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const ACCENT  = "#3b82f6";
 const NAVY    = "#141413";
-const SG      = "'Inter', -apple-system, sans-serif";
-const JK      = "'Inter', -apple-system, sans-serif";
+const SG      = "'Space Grotesk', sans-serif";
+const JK      = "'Space Grotesk', sans-serif";
 const HISTORY_W = 252;
 
 const SUGGESTIONS = [
@@ -127,7 +127,7 @@ function TypingIndicator() {
           key={i}
           animate={{ y: [0, -4, 0], opacity: [0.3, 0.8, 0.3] }}
           transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.16, ease: "easeInOut" }}
-          style={{ width: 6, height: 6, borderRadius: "50%", background: "#8e8b82", flexShrink: 0 }}
+          style={{ width: 6, height: 6, borderRadius: "50%", background: "#6a6760", flexShrink: 0 }}
         />
       ))}
     </div>
@@ -430,7 +430,7 @@ function InputBar({ onSend, disabled }) {
           onMouseDown={(e)  => { if (canSend) e.currentTarget.style.transform = "scale(0.95)"; }}
           onMouseUp={(e)    => { if (canSend) e.currentTarget.style.transform = "scale(1)"; }}
         >
-          <IconSend size={15} color={canSend ? "#fff" : "#8e8b82"} />
+          <IconSend size={15} color={canSend ? "#fff" : "#6a6760"} />
         </button>
       </div>
       {nearLimit && (
@@ -474,7 +474,7 @@ function WelcomeScreen({ onSend, userName }) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 28, height: 1, background: "#e6dfd8" }} />
-          <span style={{ fontFamily: SG, fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#8e8b82" }}>your ai mentor</span>
+          <span style={{ fontFamily: SG, fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#6a6760" }}>your ai mentor</span>
           <div style={{ width: 28, height: 1, background: "#e6dfd8" }} />
         </div>
       </motion.div>
@@ -486,10 +486,10 @@ function WelcomeScreen({ onSend, userName }) {
         transition={{ duration: 0.38, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
         style={{ textAlign: "center", marginBottom: 32 }}
       >
-        <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: 34, color: NAVY, letterSpacing: "-0.02em", marginBottom: 10, lineHeight: 1.15 }}>
+        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 34, color: NAVY, letterSpacing: "-0.02em", marginBottom: 10, lineHeight: 1.15 }}>
           Good {timeOfDay}{firstName ? `, ${firstName}` : ""}.
         </h2>
-        <p style={{ fontFamily: SG, fontSize: 16, color: "#6c6a64", fontWeight: 500, maxWidth: 380, lineHeight: 1.65 }}>
+        <p style={{ fontFamily: SG, fontSize: 16, color: "#494742", fontWeight: 500, maxWidth: 380, lineHeight: 1.65 }}>
           What's on your mind? Ask about your Quest, career options, or anything you're working through.
         </p>
       </motion.div>
@@ -591,7 +591,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
               <p style={{ fontFamily: SG, fontSize: 12.5, fontWeight: isActive ? 700 : 500, color: isActive ? NAVY : "#3d3d3a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.4 }}>
                 {title}
               </p>
-              <p style={{ fontFamily: SG, fontSize: 10.5, color: "#8e8b82", marginTop: 1 }}>
+              <p style={{ fontFamily: SG, fontSize: 10.5, color: "#6a6760", marginTop: 1 }}>
                 {timeAgo(session.updated_at)}
               </p>
             </>
@@ -601,7 +601,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
           <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
             <button onClick={(e) => { e.stopPropagation(); setRenamingId(session.id); }}
               style={{ padding: "3px 5px", borderRadius: 5, border: "none", background: "#f5f0e8", cursor: "pointer" }} title="Rename">
-              <IconEdit size={12} color="#6c6a64" />
+              <IconEdit size={12} color="#494742" />
             </button>
             <button onClick={(e) => { e.stopPropagation(); onDeleteChat(session.id); }}
               style={{ padding: "3px 5px", borderRadius: 5, border: "none", background: "#fef2f2", cursor: "pointer" }} title="Delete">
@@ -627,7 +627,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
           <span style={{ fontFamily: JK, fontWeight: 700, fontSize: 12.5, color: NAVY, letterSpacing: "-0.01em" }}>
             Conversations
           </span>
-          <span style={{ fontFamily: SG, fontSize: 10.5, color: "#8e8b82" }}>
+          <span style={{ fontFamily: SG, fontSize: 10.5, color: "#6a6760" }}>
             {sessions.length > 0 ? `${sessions.length}` : ""}
           </span>
         </div>
@@ -697,7 +697,7 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
           <span style={{ fontFamily: JK, fontWeight: 800, fontSize: 14, color: NAVY, letterSpacing: "-0.03em" }}>
             Mentora
           </span>
-          <span style={{ fontFamily: SG, fontSize: 11, color: "#8e8b82", fontWeight: 500, marginLeft: 6 }}>
+          <span style={{ fontFamily: SG, fontSize: 11, color: "#6a6760", fontWeight: 500, marginLeft: 6 }}>
             · AI Career Mentor
           </span>
         </div>
@@ -721,7 +721,7 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
               }}
               title="Chat history"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6c6a64" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#494742" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="3" y1="6" x2="21" y2="6"/>
                 <line x1="3" y1="12" x2="21" y2="12"/>
                 <line x1="3" y1="18" x2="15" y2="18"/>
@@ -1002,7 +1002,7 @@ export default function ChatPage({ navigate }) {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
         @import
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; }

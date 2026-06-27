@@ -10,7 +10,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 const SANS = "'Space Grotesk', sans-serif";
 const BG = "#f5f1ed", WHITE = "#fff", BLUE = "#1d4ed8", BLUE_TINT = "#f0f5ff";
-const TEXT = "#141413", TEXT_MID = "#3d3d3a", TEXT_MUTED = "#6c6a64", TEXT_FAINT = "#8e8b82", BORDER = "#e6dfd8";
+const TEXT = "#141413", TEXT_MID = "#3d3d3a", TEXT_MUTED = "#494742", TEXT_FAINT = "#6a6760", BORDER = "#e6dfd8";
 const AMBER_SOFT = "#fef3c7", AMBER = "#d97706", GREEN_SOFT = "#d1fae5", GREEN = "#059669", PURPLE_SOFT = "#ede9fe", PURPLE = "#7c3aed";
 
 const PILLAR_STYLES = {
@@ -238,7 +238,7 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
                 </button>
                 {!onBoard && (
                   <p style={{ fontFamily: SANS, fontSize: "0.8rem", color: TEXT_FAINT, textAlign: "center", marginTop: 10 }}>
-                    Adds this as a quest you can track and complete — completing it raises your scorecard.
+                    Adds this as a quest you can track and complete. Completing it raises your scorecard.
                   </p>
                 )}
               </motion.div>

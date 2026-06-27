@@ -14,15 +14,15 @@ const SILENCE_TIMEOUT_MS = 30000; // auto-end if the call sits fully silent (age
 const BG      = "#fafbff";
 const TEXT    = "#0e1019";
 const TEXT2   = "#4b5470";
-const TEXT3   = "#9199b8";
-const ACCENT  = "#3b5bfc";
-const ACCENT2 = "#7c3aed";
+const TEXT3   = "#5b6188";
+const ACCENT  = "#1d4ed8";
+const ACCENT2 = "#3b82f6";
 const BORDER  = "rgba(59,91,252,0.13)";
 const SURFACE = "rgba(59,91,252,0.05)";
 const CARD    = "#faf9f5";
-const SERIF   = "'DM Serif Display', Georgia, serif";
-const SANS    = "'Space Grotesk', Arial, sans-serif";
-const MONO    = "'Space Grotesk', monospace";
+const SERIF   = "'Space Grotesk', sans-serif";
+const SANS    = "'Space Grotesk', sans-serif";
+const MONO    = "'Space Grotesk', sans-serif";
 
 // ─── Framer-motion variant helpers ───────────────────────────────────────────
 const fadeUp = (delay = 0) => ({
@@ -173,7 +173,7 @@ function VoiceOrb({ onStart, loading }) {
 }
 
 // ─── Elegant floating shape (background element) ─────────────────────────────
-function ElegantShape({ shapeStyle, delay = 0, width = 400, height = 100, rotate = 0, color = "rgba(99,102,241,0.15)", borderColor = "rgba(59,91,252,0.18)", glowColor = "rgba(59,91,252,0.07)" }) {
+function ElegantShape({ shapeStyle, delay = 0, width = 400, height = 100, rotate = 0, color = "rgba(37,99,235,0.15)", borderColor = "rgba(59,91,252,0.18)", glowColor = "rgba(59,91,252,0.07)" }) {
   return (
     <motion.div
       initial={{ opacity:0, y:-150, rotate:rotate - 15 }}
@@ -283,10 +283,10 @@ function DemographicsPhase({ onContinue, submitting }) {
       }}
     >
       {/* Background */}
-      <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom right, rgba(99,102,241,0.07), transparent, rgba(124,58,237,0.05))", filter:"blur(80px)", zIndex:0 }}/>
+      <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom right, rgba(37,99,235,0.07), transparent, rgba(59,130,246,0.05))", filter:"blur(80px)", zIndex:0 }}/>
       <div style={{ position:"absolute", inset:0, overflow:"hidden", zIndex:0 }}>
-        <ElegantShape delay={0.3} width={500} height={120} rotate={12}  color="rgba(99,102,241,0.08)"  borderColor="rgba(99,102,241,0.18)"  glowColor="rgba(99,102,241,0.05)"  shapeStyle={{ left:"-8%", top:"10%" }}/>
-        <ElegantShape delay={0.5} width={400} height={100} rotate={-15} color="rgba(124,58,237,0.07)"  borderColor="rgba(124,58,237,0.15)"  glowColor="rgba(124,58,237,0.04)"  shapeStyle={{ right:"-4%", bottom:"15%" }}/>
+        <ElegantShape delay={0.3} width={500} height={120} rotate={12}  color="rgba(37,99,235,0.08)"  borderColor="rgba(37,99,235,0.18)"  glowColor="rgba(37,99,235,0.05)"  shapeStyle={{ left:"-8%", top:"10%" }}/>
+        <ElegantShape delay={0.5} width={400} height={100} rotate={-15} color="rgba(59,130,246,0.07)"  borderColor="rgba(59,130,246,0.15)"  glowColor="rgba(59,130,246,0.04)"  shapeStyle={{ right:"-4%", bottom:"15%" }}/>
       </div>
 
       {/* Logo */}
@@ -487,13 +487,13 @@ function IntroPhase({ onStart, loading, retryNotice }) {
       }}
     >
       {/* ── Geometric background ────────────────────────────────────────────── */}
-      <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom right, rgba(99,102,241,0.07), transparent, rgba(124,58,237,0.05))", filter:"blur(80px)", zIndex:0 }}/>
+      <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom right, rgba(37,99,235,0.07), transparent, rgba(59,130,246,0.05))", filter:"blur(80px)", zIndex:0 }}/>
       <div style={{ position:"absolute", inset:0, overflow:"hidden", zIndex:0 }}>
-        <ElegantShape delay={0.3} width={600} height={140} rotate={12}  color="rgba(99,102,241,0.10)"  borderColor="rgba(99,102,241,0.2)"  glowColor="rgba(99,102,241,0.06)"  shapeStyle={{ left:"-10%", top:"15%" }}/>
-        <ElegantShape delay={0.5} width={500} height={120} rotate={-15} color="rgba(124,58,237,0.09)"  borderColor="rgba(124,58,237,0.18)" glowColor="rgba(124,58,237,0.05)"  shapeStyle={{ right:"-5%", top:"70%" }}/>
+        <ElegantShape delay={0.3} width={600} height={140} rotate={12}  color="rgba(37,99,235,0.10)"  borderColor="rgba(37,99,235,0.2)"  glowColor="rgba(37,99,235,0.06)"  shapeStyle={{ left:"-10%", top:"15%" }}/>
+        <ElegantShape delay={0.5} width={500} height={120} rotate={-15} color="rgba(59,130,246,0.09)"  borderColor="rgba(59,130,246,0.18)" glowColor="rgba(59,130,246,0.05)"  shapeStyle={{ right:"-5%", top:"70%" }}/>
         <ElegantShape delay={0.4} width={300} height={80}  rotate={-8}  color="rgba(59,91,252,0.08)"   borderColor="rgba(59,91,252,0.16)"  glowColor="rgba(59,91,252,0.05)"   shapeStyle={{ left:"5%", bottom:"5%" }}/>
-        <ElegantShape delay={0.6} width={200} height={60}  rotate={20}  color="rgba(99,102,241,0.07)"  borderColor="rgba(99,102,241,0.15)" glowColor="rgba(99,102,241,0.04)"  shapeStyle={{ right:"15%", top:"10%" }}/>
-        <ElegantShape delay={0.7} width={150} height={40}  rotate={-25} color="rgba(124,58,237,0.07)"  borderColor="rgba(124,58,237,0.14)" glowColor="rgba(124,58,237,0.04)"  shapeStyle={{ left:"20%", top:"5%" }}/>
+        <ElegantShape delay={0.6} width={200} height={60}  rotate={20}  color="rgba(37,99,235,0.07)"  borderColor="rgba(37,99,235,0.15)" glowColor="rgba(37,99,235,0.04)"  shapeStyle={{ right:"15%", top:"10%" }}/>
+        <ElegantShape delay={0.7} width={150} height={40}  rotate={-25} color="rgba(59,130,246,0.07)"  borderColor="rgba(59,130,246,0.14)" glowColor="rgba(59,130,246,0.04)"  shapeStyle={{ left:"20%", top:"5%" }}/>
       </div>
       <div style={{ position:"absolute", inset:0, background:`linear-gradient(to bottom, rgba(250,251,255,0.6), transparent, ${BG})`, pointerEvents:"none", zIndex:0 }}/>
 
@@ -581,21 +581,6 @@ function IntroPhase({ onStart, loading, retryNotice }) {
             Your personal college and career guide. The kind of support that used to cost hundreds of dollars per session, now free.
           </motion.p>
 
-          {/* Access framing */}
-          <motion.div {...fadeUp(0.66)} style={{
-            background:"rgba(99,102,241,0.06)",
-            border:"1.5px solid rgba(99,102,241,0.14)",
-            borderRadius:12, padding:"0.75rem 1rem",
-            display:"flex", alignItems:"flex-start", gap:"0.625rem",
-          }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,marginTop:1}}>
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-            </svg>
-            <p style={{fontFamily:SANS,fontSize:"0.82rem",color:"#4f46e5",fontWeight:600,lineHeight:1.55,margin:0}}>
-              You deserve the same guidance as students with private counselors. That's exactly what this is.
-            </p>
-          </motion.div>
-
           {/* Topics */}
           <motion.div {...fadeUp(0.74)}>
             <p style={{
@@ -616,7 +601,7 @@ function IntroPhase({ onStart, loading, retryNotice }) {
                   transition={{ type:"spring", stiffness:400, damping:18 }}
                   style={{
                     padding:"5px 13px", borderRadius:100,
-                    background:`linear-gradient(135deg, rgba(59,91,252,0.07), rgba(124,58,237,0.05))`,
+                    background:`linear-gradient(135deg, rgba(59,91,252,0.07), rgba(59,130,246,0.05))`,
                     border:`1.5px solid rgba(59,91,252,0.16)`,
                     color:ACCENT, fontFamily:SANS, fontWeight:500, fontSize:"0.92rem",
                     cursor:"default",
@@ -647,7 +632,7 @@ function IntroPhase({ onStart, loading, retryNotice }) {
                 color:"#92400e",
                 lineHeight:1.5,
                 textAlign:"center",
-                fontFamily:"'Inter', -apple-system, sans-serif",
+                fontFamily:"'Space Grotesk', sans-serif",
               }}
             >
               {retryNotice}
@@ -770,7 +755,7 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef 
           </span>
           <span style={{
             fontFamily:SANS, fontSize:"0.72rem", fontWeight:600,
-            color: elapsed >= MAX_CALL_SECONDS - 30 ? "#ef4444" : "#8e8b82",
+            color: elapsed >= MAX_CALL_SECONDS - 30 ? "#ef4444" : "#6a6760",
             letterSpacing:"0.04em", textTransform:"uppercase",
           }}>
             {elapsed >= MAX_CALL_SECONDS - 30 ? `${MAX_CALL_SECONDS - elapsed}s left` : `${Math.floor(MAX_CALL_SECONDS / 60)}:00 max`}
@@ -858,7 +843,7 @@ function ProcessingPhase() {
           position:"absolute", top:"50%", left:"50%",
           transform:"translate(-50%, -50%)",
           width:44, height:44, borderRadius:"50%",
-          border:`2px solid rgba(124,58,237,0.12)`, borderBottomColor:ACCENT2,
+          border:`2px solid rgba(59,130,246,0.12)`, borderBottomColor:ACCENT2,
           animation:"spinner-rotate 1.8s linear infinite reverse",
         }}/>
       </div>
@@ -1036,20 +1021,20 @@ function RecoveryPhase({ userId, onSuccess, onRetry }) {
         style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(239,68,68,0.07)", border: "1.5px solid rgba(239,68,68,0.2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.5rem" }}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </motion.div>
-      <h2 style={{ fontFamily: "'Inter', -apple-system, sans-serif", fontWeight: 700, fontSize: "1.4rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: "0.75rem" }}>
+      <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "1.4rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: "0.75rem" }}>
         Processing hiccup
       </h2>
-      <p style={{ fontFamily: "'Inter', -apple-system, sans-serif", color: TEXT2, fontSize: "0.95rem", lineHeight: 1.68, maxWidth: 360, marginBottom: "0.5rem" }}>
+      <p style={{ fontFamily: "'Space Grotesk', sans-serif", color: TEXT2, fontSize: "0.95rem", lineHeight: 1.68, maxWidth: 360, marginBottom: "0.5rem" }}>
         We ran into an issue turning your conversation into a profile. Your transcript was saved, so click below to try again.
       </p>
-      {error && <p style={{ fontFamily: "'Inter', -apple-system, sans-serif", color: "#ef4444", fontSize: "0.85rem", marginBottom: "1rem", maxWidth: 360 }}>{error}</p>}
+      {error && <p style={{ fontFamily: "'Space Grotesk', sans-serif", color: "#ef4444", fontSize: "0.85rem", marginBottom: "1rem", maxWidth: 360 }}>{error}</p>}
       <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.5rem", flexWrap: "wrap", justifyContent: "center" }}>
         <button onClick={handleRetry} disabled={retrying}
-          style={{ padding: "0.7rem 1.75rem", borderRadius: 10, background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`, border: "none", color: "white", fontFamily: "'Inter', -apple-system, sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: retrying ? "not-allowed" : "pointer", opacity: retrying ? 0.7 : 1 }}>
+          style={{ padding: "0.7rem 1.75rem", borderRadius: 10, background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`, border: "none", color: "white", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: retrying ? "not-allowed" : "pointer", opacity: retrying ? 0.7 : 1 }}>
           {retrying ? "Retrying…" : "Try again"}
         </button>
         <button onClick={onRetry}
-          style={{ padding: "0.7rem 1.5rem", borderRadius: 10, background: "transparent", border: "1.5px solid rgba(59,91,252,0.25)", color: ACCENT, fontFamily: "'Inter', -apple-system, sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer" }}>
+          style={{ padding: "0.7rem 1.5rem", borderRadius: 10, background: "transparent", border: "1.5px solid rgba(59,91,252,0.25)", color: ACCENT, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer" }}>
           Record new conversation
         </button>
       </div>
@@ -1197,7 +1182,7 @@ export default function OnboardingPage() {
       if (demographics.fullName || demographics.educationLevel || demographics.state) {
         const parts = [];
         if (demographics.fullName) {
-          parts.push(`The student's name is ${demographics.fullName} — please address them by name throughout the conversation.`);
+          parts.push(`The student's name is ${demographics.fullName}. Please address them by name throughout the conversation.`);
         }
         if (demographics.educationLevel) {
           const levelLabel = { high_school: "High School", college: "College / University", other: "Other" }[demographics.educationLevel] ?? demographics.educationLevel;
@@ -1286,7 +1271,7 @@ export default function OnboardingPage() {
       fontFamily:SANS, position:"relative", overflow:"hidden",
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         @keyframes blob-pulse {

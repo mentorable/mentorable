@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-const FONT = "'Inter', -apple-system, sans-serif";
+const FONT = "'Space Grotesk', sans-serif";
 
 const NAV_ITEMS = [
   {
@@ -99,7 +99,7 @@ export default function MobileNav({ activePath, navigate }) {
               gap: 2,
               border: "none", background: "transparent",
               cursor: "pointer",
-              color: isActive ? "#1d4ed8" : "#8e8b82",
+              color: isActive ? "#1d4ed8" : "#6a6760",
               padding: "4px 0",
               minWidth: 44, minHeight: 44,
             }}

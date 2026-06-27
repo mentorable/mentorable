@@ -45,7 +45,7 @@ Return ONLY valid JSON with no other text, no markdown, no backticks. The JSON m
 
 IMPORTANT RULES:
 - "career_matches" must ALWAYS contain exactly 3 career title strings — never empty. Even if the student was undecided, infer the 3 best-fit careers from everything they shared. This field drives scorecard and roadmap generation.
-- "onboarding_summary" must always be a warm, encouraging 2–3 sentence description of who the student is and what makes them unique.
+- "onboarding_summary" must always be a warm, encouraging 2-3 sentence description of who the student is and what makes them unique. Never use em dashes (the long dash) in it; use commas or periods instead.
 - For "mentioned_careers", include ALL careers the student brought up — even ones they rejected or were unsure about. Set "ruled_out" to true for any they dismissed.
 - "career_certainty" reflects how decided the student seems overall: "certain" if they know what they want, "exploring" if they're curious but open, "undecided" if they expressed confusion or no direction.
 - "self_confidence_level" is based on HOW the student talked about themselves — "low" if hesitant/self-doubting, "high" if assured, "medium" otherwise.

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-const FONT = "'Inter', -apple-system, sans-serif";
+const FONT = "'Space Grotesk', sans-serif";
 export const SIDEBAR_WIDTH = 220;
 
 const TOP_NAV = [

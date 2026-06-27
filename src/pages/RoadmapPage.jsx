@@ -25,8 +25,8 @@ const PURPLE      = "#7c3aed";
 const PURPLE_SOFT = "#ede9fe";
 const TEXT        = "#141413";
 const TEXT_MID    = "#3d3d3a";
-const TEXT_MUTED  = "#6c6a64";
-const TEXT_FAINT  = "#8e8b82";
+const TEXT_MUTED  = "#494742";
+const TEXT_FAINT  = "#6a6760";
 const BORDER      = "#e6dfd8";
 
 // ─── Pillar styling ───────────────────────────────────────────────────────────
@@ -185,7 +185,7 @@ function GoalEntry({ onStart, starting, atLimit, onLimit }) {
       </h1>
       <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT_MUTED, lineHeight: 1.6, marginBottom: "2rem", maxWidth: 460, marginLeft: "auto", marginRight: "auto" }}>
         Tell Mentorable your ultimate goal. You'll get a path built around one flagship piece you
-        deepen month over month — the big picture first, specifics as you go.
+        deepen month over month. The big picture first, specifics as you go.
       </p>
 
       <div style={{ textAlign: "left", background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: "1.5rem", boxShadow: "0 2px 12px rgba(15,23,42,0.05)" }}>
@@ -248,7 +248,7 @@ function GoalEntry({ onStart, starting, atLimit, onLimit }) {
               }}
             />
             <p style={{ fontFamily: SANS, fontSize: "0.74rem", color: TEXT_FAINT, marginTop: 6 }}>
-              Anywhere from {prettyMonth(minMonth)} to {prettyMonth(maxMonth)} — mastery takes time.
+              Anywhere from {prettyMonth(minMonth)} to {prettyMonth(maxMonth)}. Mastery takes time.
             </p>
           </div>
         )}
@@ -291,7 +291,7 @@ function QuestionnaireStep({ questions, generating, onSubmit, onSkip }) {
           A couple of quick things
         </h1>
         <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.6 }}>
-          This helps Mentorable tailor your roadmap. Answer what you like — you can skip any.
+          This helps Mentorable tailor your roadmap. Answer what you like, and skip any you want.
         </p>
       </div>
 
@@ -652,20 +652,15 @@ export default function RoadmapPage({ navigate }) {
               {roadmap.goal}
             </h1>
             {roadmap.anchor_title ? (
-              <div style={{ display: "flex", gap: 12, alignItems: "flex-start", background: BLUE_TINT, border: `1px solid ${BLUE_SOFT}`, borderRadius: 14, padding: "13px 16px", marginTop: 14 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 9, background: BLUE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={WHITE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15 9 22 9 16 14 18 21 12 17 6 21 8 14 2 9 9 9 12 2"/></svg>
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <p style={{ fontFamily: SANS, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: BLUE, marginBottom: 3 }}>Your flagship</p>
-                  <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: TEXT, lineHeight: 1.3 }}>{roadmap.anchor_title}</p>
-                  {roadmap.anchor_summary && (
-                    <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: TEXT_MUTED, lineHeight: 1.5, marginTop: 4 }}>{roadmap.anchor_summary}</p>
-                  )}
-                </div>
+              <div style={{ marginTop: 16 }}>
+                <p style={{ fontFamily: SANS, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: BLUE, marginBottom: 4 }}>Your flagship</p>
+                <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: TEXT, lineHeight: 1.3 }}>{roadmap.anchor_title}</p>
+                {roadmap.anchor_summary && (
+                  <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_MID, lineHeight: 1.55, marginTop: 5 }}>{roadmap.anchor_summary}</p>
+                )}
               </div>
             ) : null}
-            <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_MUTED, marginTop: 12, lineHeight: 1.55 }}>
+            <p style={{ fontFamily: SANS, fontSize: "0.92rem", color: TEXT_MID, marginTop: 12, lineHeight: 1.55 }}>
               Everything here builds toward that one piece. Open a node for resources and add it to your board when you're ready.
             </p>
           </motion.div>
@@ -674,15 +669,12 @@ export default function RoadmapPage({ navigate }) {
           {dueNodes.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
               onClick={() => openNode(dueNodes[0])}
-              style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", background: BLUE_TINT, border: `1.5px solid ${BLUE_SOFT}`, borderRadius: 14, padding: "12px 16px", marginBottom: "1.75rem" }}>
-              <div style={{ width: 34, height: 34, borderRadius: 9, background: BLUE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={WHITE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-              </div>
+              style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", borderBottom: `1px solid ${BORDER}`, padding: "0 2px 14px", marginBottom: "1.5rem" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.92rem", color: TEXT }}>
-                  {currentLabel ? `${currentLabel} is here — time to start` : "Time to start"}
+                <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", color: TEXT }}>
+                  {currentLabel ? `${currentLabel} is here. Time to start.` : "Time to start"}
                 </p>
-                <p style={{ fontFamily: SANS, fontSize: "0.82rem", color: TEXT_MUTED }}>
+                <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: TEXT_MID, marginTop: 2 }}>
                   {dueNodes.length} node{dueNodes.length > 1 ? "s" : ""} ready to open. Tap to begin with one.
                 </p>
               </div>

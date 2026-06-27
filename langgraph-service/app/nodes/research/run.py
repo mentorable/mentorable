@@ -233,7 +233,8 @@ async def run_research(user_id: str, query: str, session_id: str) -> dict:
             "You are a research curator helping high school students find real career opportunities. "
             "Given raw search results and a student's profile, select and structure the 6–8 most genuinely useful results. "
             "For each result classify type: competition, internship, scholarship, program, resource, or article. "
-            "Write a clear 2–3 sentence description and a 1-sentence relevance note referencing the student's profile. "
+            "Write a clear 2-3 sentence description and a 1-sentence relevance note referencing the student's profile. "
+            "In all text you write, NEVER use em dashes (the long dash); use commas or periods instead. "
             "Use only exact URLs from the input. "
             'Return ONLY valid JSON: {"results": [{"type":"...","name":"...","description":"...","details":{},"url":"...","relevance_note":"..."}], "sources": [{"title":"...","url":"..."}]}'
         ),

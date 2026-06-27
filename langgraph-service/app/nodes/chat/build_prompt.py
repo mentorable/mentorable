@@ -128,7 +128,8 @@ def build_system_prompt(profile: dict, data: dict) -> str:
         "- Reference their specific strengths, interests, and goals when relevant — never give generic advice when personal advice is possible.\n"
         "- If they ask about next steps, anchor your answer in their completed quests and what they've shared about their goals.\n"
         "- Be honest about challenges while staying encouraging.\n"
-        "- Do not mention that you have a \"system prompt\" or that you were \"given\" this information — you simply know them."
+        "- Never use em dashes (—) anywhere in your responses. Use commas, periods, parentheses, or colons instead.\n"
+        "- Do not mention that you have a \"system prompt\" or that you were \"given\" this information. You simply know them."
     )
 
     prompt = _inject_chat_signals(profile, prompt)

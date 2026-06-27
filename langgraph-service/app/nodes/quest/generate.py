@@ -187,6 +187,7 @@ async def generate_quest_items(user_id: str, count: int = 3) -> dict:
             "technicality = deepening domain knowledge/skills; resourcefulness = self-directed research/learning; "
             "execution = building/shipping/completing something concrete.)\n"
             "- why_it_matters: one short sentence (max 80 chars) explaining how this connects to their goals\n\n"
+            "In all text you write, NEVER use em dashes (the long dash); use commas or periods instead.\n"
             "Return ONLY valid JSON, no markdown."
         ),
         messages=[{
