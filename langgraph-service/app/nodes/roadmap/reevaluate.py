@@ -18,6 +18,7 @@ from app.config import ANTHROPIC_API_KEY
 from app.db.supabase import get_supabase
 from app.nodes.roadmap.generate import (
     _parse_json, _month_label, _infer_timeframe, _flatten, _enforce_bridges,
+    _normalize_phases,
 )
 
 logger = logging.getLogger(__name__)
@@ -90,6 +91,8 @@ async def reevaluate_roadmap(user_id: str, roadmap_id: str) -> dict:
         "lab/institutional access, or age-inappropriate activities). Motivating, plain language. "
         "NEVER use em dashes (the long dash); use commas, periods, or parentheses instead. "
         "Month 0 is current/near-term.\n\n"
+        "Re-group the months into PHASES too (broad consecutive-month stages covering the whole "
+        "timeline, 3-6 of them, each with a short broad-topic title and one-sentence blurb). "
         "Also write a SHORT summary (1-2 sentences, plain language) of what's changing and why. "
         "Return ONLY valid JSON, no markdown."
     )
@@ -103,7 +106,9 @@ async def reevaluate_roadmap(user_id: str, roadmap_id: str) -> dict:
         + (f"Already engaged with (preserve): {', '.join(done)}\n" if done else "")
         + f"\nCurrent roadmap outline:\n{current_outline}\n\n"
         f"Propose the REVISED {months}-month roadmap around the SAME anchor. Return ONLY JSON:\n"
-        '{"summary":"what changed and why","months":[{"month_index":0,"focus":"...","nodes":'
+        '{"summary":"what changed and why",'
+        '"phases":[{"title":"broad stage","blurb":"one sentence","pillar":"Project","month_start":0,"month_count":2}],'
+        '"months":[{"month_index":0,"focus":"...","nodes":'
         '[{"title":"...","kind":"anchor|side|bridge","pillar":"Project","target_axis":"execution",'
         '"technical_depth":1,"execution_mode":1,"blurb":"..."}]}]}'
     )
@@ -144,10 +149,11 @@ async def reevaluate_roadmap(user_id: str, roadmap_id: str) -> dict:
         })
 
     proposed_months = [grouped[mi] for mi in sorted(grouped.keys())]
+    phases = _normalize_phases(parsed.get("phases") or [], months)
 
     logger.info(f"[roadmap] reevaluated {roadmap_id} for {user_id}")
     return {
         "summary": (parsed.get("summary") or "Here's an updated path based on where you are now.").strip(),
         "proposed": {"timeframe_months": months, "anchor_title": anchor_title,
-                     "anchor_summary": anchor_summary, "months": proposed_months},
+                     "anchor_summary": anchor_summary, "months": proposed_months, "phases": phases},
     }

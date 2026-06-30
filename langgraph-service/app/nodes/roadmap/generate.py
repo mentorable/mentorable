@@ -172,6 +172,58 @@ def _enforce_bridges(flat: list[dict]) -> int:
     return injected
 
 
+def _normalize_phases(phases_data: list, months: int) -> list[dict]:
+    """
+    Opus phases[] → a contiguous tiling of [0, months). Each phase is a broad topic spanning
+    one or more consecutive months (the 'stage' a student goes through). We force contiguity
+    deterministically so the UI overview always covers the whole timeline with no gaps/overlap,
+    regardless of model drift. Returns [{index, title, blurb, pillar, target_axis,
+    month_start, month_count}].
+    """
+    items = []
+    for p in (phases_data or []):
+        title = (p.get("title") or "").strip()
+        count = _safe_int(p.get("month_count"), None)
+        start = _safe_int(p.get("month_start"), None)
+        if not title or count is None or count < 1:
+            continue
+        pillar = _coerce_pillar(p.get("pillar"))
+        items.append({
+            "title": title[:70],
+            "blurb": (p.get("blurb") or "").strip() or None,
+            "pillar": pillar,
+            "target_axis": _coerce_axis(p.get("target_axis"), pillar),
+            "_start": start if start is not None else 999,
+            "month_count": count,
+        })
+    items.sort(key=lambda x: x["_start"])
+
+    normalized = []
+    cursor = 0
+    for it in items:
+        if cursor >= months:
+            break
+        start = cursor                                  # force contiguity from the running cursor
+        end = min(months, start + it["month_count"])
+        if end <= start:
+            continue
+        normalized.append({
+            "title": it["title"], "blurb": it["blurb"], "pillar": it["pillar"],
+            "target_axis": it["target_axis"], "month_start": start, "month_count": end - start,
+        })
+        cursor = end
+
+    if not normalized:
+        normalized = [{"title": "Your path", "blurb": None, "pillar": "Project",
+                       "target_axis": "execution", "month_start": 0, "month_count": months}]
+    elif cursor < months:
+        normalized[-1]["month_count"] += (months - cursor)  # absorb any leftover months
+
+    for i, it in enumerate(normalized):
+        it["index"] = i
+    return normalized
+
+
 async def generate_roadmap(
     user_id: str,
     goal: str,
@@ -249,6 +301,12 @@ async def generate_roadmap(
         "matures (e.g. Project: build it → Research: make it rigorous/write it up → Activity: "
         "present or share it). The anchor is the spine of the timeline and the centerpiece of "
         "their application/portfolio. Do NOT scatter unrelated experiences for quantity.\n\n"
+        "PHASES. Group the months into a handful of PHASES, the broad stages a student moves "
+        "through on the way to the goal (e.g. months 0-1 'Fundamentals of Law', month 4 'Study "
+        "for the LSAT', months 5-7 'Mock Trial & Writing'). Each phase spans one or more "
+        "CONSECUTIVE months and the phases together cover the whole timeline with no gaps. Give "
+        "each phase a short broad-topic title and a one-sentence blurb. A phase can be a single "
+        "month when that month is its own distinct stage. Aim for 3-6 phases total.\n\n"
         "Each node has a KIND:\n"
         "- 'anchor' — advances the flagship. MOST nodes are anchor nodes, one per month, in a "
         "clear build order where each is reachable from the previous.\n"
@@ -282,8 +340,13 @@ async def generate_roadmap(
         "has its anchor-advancing node and, occasionally, one side node. Insert bridge nodes "
         "wherever an anchor step would be too steep a jump from the one before it.\n\n"
         "Return ONLY JSON:\n"
-        '{"anchor":{"title":"the flagship piece, concise","summary":"one sentence on what it is '
+        '{"display_title":"a clean scannable Title Case headline for this roadmap, 2-6 words, like '
+        '\\"Electrical Engineering & VLSI Portfolio\\" — NOT a full sentence, NOT their raw text",'
+        '"goal_clean":"their goal restated faithfully with spelling and grammar fixed",'
+        '"anchor":{"title":"the flagship piece, concise","summary":"one sentence on what it is '
         'and why it anchors their application"},'
+        '"phases":[{"title":"broad stage, e.g. Fundamentals of Law","blurb":"one sentence on this '
+        'stage","pillar":"Project|Research|Activity|Club","month_start":0,"month_count":2}],'
         '"months":[{"month_index":0,"focus":"short focus for the month","nodes":['
         '{"title":"max 60 chars","kind":"anchor|side|bridge","pillar":"Project|Research|Activity|Club",'
         '"target_axis":"communication|leadership|technicality|resourcefulness|execution",'
@@ -304,6 +367,10 @@ async def generate_roadmap(
     anchor_title = (anchor.get("title") or "").strip()[:120] or None
     anchor_summary = (anchor.get("summary") or "").strip()[:400] or None
 
+    # Clean headline + typo-fixed goal (point 5 / 5a). Fall back to the raw goal.
+    display_title = (parsed.get("display_title") or "").strip()[:80] or None
+    goal_clean = (parsed.get("goal_clean") or "").strip()[:600] or goal
+
     # ── Flatten + enforce bridges deterministically ───────────────────────────
     flat = _flatten(months_data, months)
     if not flat:
@@ -312,18 +379,23 @@ async def generate_roadmap(
     if n_bridges:
         logger.info(f"[roadmap] injected {n_bridges} bridge(s) to close difficulty cliffs")
 
+    # ── Phases (broad stages) tiled contiguously over the timeline ────────────
+    phases = _normalize_phases(parsed.get("phases") or [], months)
+
     # ── Insert roadmap + nodes ────────────────────────────────────────────────
     today = date.today()
     start_month = today.replace(day=1)
 
     rm_payload = {
         "user_id": user_id,
-        "goal": goal,
+        "goal": goal_clean,
+        "display_title": display_title,
         "timeframe_months": months,
         "start_month": start_month.isoformat(),
         "status": "active",
         "anchor_title": anchor_title,
         "anchor_summary": anchor_summary,
+        "phases": phases,
     }
     if end_month:
         rm_payload["end_month"] = end_month

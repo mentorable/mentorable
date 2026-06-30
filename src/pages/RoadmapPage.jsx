@@ -38,6 +38,17 @@ const PILLAR_STYLES = {
 };
 const pillarStyle = (p) => PILLAR_STYLES[p] || PILLAR_STYLES.Project;
 
+// ─── Phase block palette — light Quest-feature tints, cycled for visual variety ──
+const PHASE_PALETTE = [
+  { bg: "#d1fae5", accent: "#047857", border: "#a7f3d0" }, // green
+  { bg: "#dbeafe", accent: "#1d4ed8", border: "#bfdbfe" }, // blue
+  { bg: "#fef3c7", accent: "#b45309", border: "#fde68a" }, // amber
+  { bg: "#ede9fe", accent: "#6d28d9", border: "#ddd6fe" }, // purple
+  { bg: "#ffe4e6", accent: "#be123c", border: "#fecdd3" }, // rose
+  { bg: "#cffafe", accent: "#0e7490", border: "#a5f3fc" }, // cyan
+];
+const phasePalette = (i) => PHASE_PALETTE[i % PHASE_PALETTE.length];
+
 const STATE_LABEL = {
   explore:  null,
   opened:   { text: "Opened",   bg: "#eef2ff", color: BLUE },
@@ -435,6 +446,8 @@ export default function RoadmapPage({ navigate }) {
   const [applying, setApplying] = useState(false);
   const [starting, setStarting] = useState(false);            // fetching intake questions
   const [intakeQs, setIntakeQs] = useState([]);               // pre-questionnaire questions
+  const [selectedPhase, setSelectedPhase] = useState(null);   // null = phase overview; index = mini-roadmap
+  const [showPrompt, setShowPrompt] = useState(false);        // reveal the raw goal prompt
   const pendingRef = useRef({ goal: "", endMonth: null });    // carried from goal entry → generate
   const userIdRef = useRef(null);
 
@@ -547,8 +560,10 @@ export default function RoadmapPage({ navigate }) {
         user_id: uid, goal: roadmap.goal, timeframe_months: reeval.proposed.timeframe_months,
         start_month: new Date().toISOString().slice(0, 10), status: "active",
         end_month: roadmap.end_month || null,
+        display_title: roadmap.display_title || null,
         anchor_title: reeval.proposed.anchor_title || roadmap.anchor_title || null,
         anchor_summary: reeval.proposed.anchor_summary || roadmap.anchor_summary || null,
+        phases: reeval.proposed.phases || [],
       }).select().single();
       if (rmErr) throw rmErr;
       const rows = [];
@@ -565,6 +580,7 @@ export default function RoadmapPage({ navigate }) {
       const { data: newNodes } = await supabase.from("roadmap_nodes").insert(rows).select();
       setRoadmap(newRm);
       setNodes(newNodes || []);
+      setSelectedPhase(null);
       setReeval(null);
     } catch (e) {
       console.error("[Roadmap] accept path error:", e);
@@ -592,6 +608,51 @@ export default function RoadmapPage({ navigate }) {
   const dueNodes = nodes.filter((n) => n.month_index <= currentMonthIndex && n.state === "explore");
   const currentLabel = byMonth.get(currentMonthIndex)?.[0]?.month_label
     || nodes.find((n) => n.month_index === Math.min(...months.length ? months : [0]))?.month_label || "";
+
+  // Phases (broad stages). Old roadmaps have none → one implicit phase = the whole timeline.
+  const rawPhases = Array.isArray(roadmap?.phases) ? roadmap.phases : [];
+  const phases = rawPhases.length
+    ? rawPhases
+    : (months.length ? [{ index: 0, title: "Your path", blurb: null, pillar: "Project", month_start: months[0], month_count: months.length }] : []);
+  const singlePhase = phases.length <= 1;
+  const phaseMonths = (p) => months.filter((mi) => mi >= p.month_start && mi < p.month_start + p.month_count);
+  const showOverview = !singlePhase && selectedPhase === null;
+  const activePhase = singlePhase ? phases[0] : (selectedPhase != null ? phases[selectedPhase] : null);
+  const activeMonths = activePhase ? phaseMonths(activePhase) : months;
+
+  // Render the vertical node timeline for a given ordered list of month indexes.
+  const renderTimeline = (monthList) => monthList.map((mi, idx) => {
+    const monthNodes = byMonth.get(mi) || [];
+    const label = monthNodes[0]?.month_label || `Month ${mi + 1}`;
+    const isNow = mi === currentMonthIndex;
+    return (
+      <div key={mi} style={{ marginBottom: 26 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, marginLeft: 28 }}>
+          <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: 14, color: TEXT, letterSpacing: "-0.01em" }}>{label}</span>
+          {isNow && (
+            <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", background: BLUE, color: WHITE, borderRadius: 5, padding: "2px 8px" }}>Now</span>
+          )}
+        </div>
+        <div style={{ position: "relative", paddingLeft: 28 }}>
+          <div style={{ position: "absolute", left: 7, top: 4, bottom: idx === monthList.length - 1 ? 12 : -26, width: 2, background: BORDER }} />
+          {monthNodes.map((node) => {
+            const isBridge = node.kind === "bridge";
+            const isSide = node.kind === "side";
+            return (
+              <div key={node.id} style={{ position: "relative", marginBottom: isBridge ? 8 : 12, marginLeft: isSide ? 22 : 0 }}>
+                {isBridge ? (
+                  <div style={{ position: "absolute", left: -22, top: 16, width: 8, height: 8, borderRadius: 2, background: BLUE_SOFT, border: `1.5px solid ${BLUE_MID}`, transform: "rotate(45deg)", zIndex: 1 }} />
+                ) : (
+                  <div style={{ position: "absolute", left: isSide ? -47 : -25, top: 17, width: isSide ? 9 : 12, height: isSide ? 9 : 12, borderRadius: "50%", background: isSide ? BG : pillarStyle(node.pillar).dot, border: `2px solid ${isSide ? pillarStyle(node.pillar).dot : BG}`, zIndex: 1 }} />
+                )}
+                <NodeCard node={node} onOpen={openNode} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  });
 
   const pagePad = { minHeight: "100vh", background: BG, fontFamily: SANS, padding: isMobile ? "1.5rem 1rem 5rem" : "2.5rem 2rem 4rem", paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH}px + 2rem)` };
 
@@ -634,9 +695,9 @@ export default function RoadmapPage({ navigate }) {
       {phase === "ready" && roadmap && (
         <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
           {/* Header */}
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ marginBottom: "1.5rem" }}>
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ marginBottom: "2.5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-              <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: BLUE, marginBottom: 6 }}>
+              <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: BLUE, marginBottom: 8 }}>
                 Your roadmap · {roadmap.timeframe_months} months
               </p>
               <button
@@ -648,74 +709,130 @@ export default function RoadmapPage({ navigate }) {
                 {reeval?.loading ? "Re-evaluating…" : "Re-evaluate"}
               </button>
             </div>
-            <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.7rem", color: TEXT, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
-              {roadmap.goal}
+            <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: TEXT, letterSpacing: "-0.025em", lineHeight: 1.15 }}>
+              {roadmap.display_title || roadmap.goal}
             </h1>
-            {roadmap.anchor_title ? (
-              <div style={{ marginTop: 16 }}>
-                <p style={{ fontFamily: SANS, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: BLUE, marginBottom: 4 }}>Your flagship</p>
-                <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: TEXT, lineHeight: 1.3 }}>{roadmap.anchor_title}</p>
-                {roadmap.anchor_summary && (
-                  <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_MID, lineHeight: 1.55, marginTop: 5 }}>{roadmap.anchor_summary}</p>
+            {roadmap.display_title && roadmap.goal && (
+              <div style={{ marginTop: 8 }}>
+                <button
+                  onClick={() => setShowPrompt((s) => !s)}
+                  style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 600, color: TEXT_FAINT, background: "none", border: "none", cursor: "pointer", padding: 0, display: "inline-flex", alignItems: "center", gap: 5 }}
+                >
+                  {showPrompt ? "Hide your prompt" : "View your prompt"}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: showPrompt ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                {showPrompt && (
+                  <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_MID, lineHeight: 1.55, marginTop: 8, paddingLeft: 12, borderLeft: `2px solid ${BORDER}`, fontStyle: "italic" }}>
+                    {roadmap.goal}
+                  </p>
                 )}
               </div>
-            ) : null}
-            <p style={{ fontFamily: SANS, fontSize: "0.92rem", color: TEXT_MID, marginTop: 12, lineHeight: 1.55 }}>
-              Everything here builds toward that one piece. Open a node for resources and add it to your board when you're ready.
-            </p>
+            )}
           </motion.div>
 
-          {/* Reminder — current focus has unopened nodes */}
-          {dueNodes.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
-              onClick={() => openNode(dueNodes[0])}
-              style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", borderBottom: `1px solid ${BORDER}`, padding: "0 2px 14px", marginBottom: "1.5rem" }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", color: TEXT }}>
-                  {currentLabel ? `${currentLabel} is here. Time to start.` : "Time to start"}
-                </p>
-                <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: TEXT_MID, marginTop: 2 }}>
-                  {dueNodes.length} node{dueNodes.length > 1 ? "s" : ""} ready to open. Tap to begin with one.
-                </p>
-              </div>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="9 18 15 12 9 6"/></svg>
+          {/* Flagship card — its own breathing room */}
+          {roadmap.anchor_title && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.05 }}
+              style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "1.25rem 1.4rem", marginBottom: "2.5rem", boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}
+            >
+              <p style={{ fontFamily: SANS, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: BLUE, marginBottom: 6 }}>Your flagship</p>
+              <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.1rem", color: TEXT, lineHeight: 1.3 }}>{roadmap.anchor_title}</p>
+              {roadmap.anchor_summary && (
+                <p style={{ fontFamily: SANS, fontSize: "0.92rem", color: TEXT_MID, lineHeight: 1.55, marginTop: 7 }}>{roadmap.anchor_summary}</p>
+              )}
             </motion.div>
           )}
 
-          {/* Vertical timeline — current/near-term at top, future toward bottom */}
-          {months.map((mi, idx) => {
-            const monthNodes = byMonth.get(mi);
-            const label = monthNodes[0]?.month_label || `Month ${mi + 1}`;
-            const isNow = idx === 0;
-            return (
-              <div key={mi} style={{ marginBottom: 26 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, marginLeft: 28 }}>
-                  <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: 14, color: TEXT, letterSpacing: "-0.01em" }}>{label}</span>
-                  {isNow && (
-                    <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", background: BLUE, color: WHITE, borderRadius: 5, padding: "2px 8px" }}>Now</span>
+          {/* ── Phase overview (big picture) ── */}
+          {showOverview && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+              <p style={{ fontFamily: SANS, fontSize: "0.94rem", color: TEXT_MID, lineHeight: 1.55, marginBottom: "1.5rem" }}>
+                The big picture first. Here are the phases you'll move through. Open one to see the month by month plan inside.
+              </p>
+              {phases.map((p, i) => {
+                const pal = phasePalette(i);
+                const pm = phaseMonths(p);
+                const nodeCount = pm.reduce((s, mi) => s + (byMonth.get(mi)?.length || 0), 0);
+                const isCurrent = currentMonthIndex >= p.month_start && currentMonthIndex < p.month_start + p.month_count;
+                const blockMin = 88 + (Math.max(1, p.month_count) - 1) * 26;
+                return (
+                  <motion.button
+                    key={i} layout whileHover={{ y: -2 }}
+                    onClick={() => { setSelectedPhase(i); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                    style={{
+                      display: "flex", flexDirection: "column", width: "100%", textAlign: "left", cursor: "pointer",
+                      background: pal.bg, border: `1.5px solid ${pal.border}`, borderRadius: 16,
+                      padding: "16px 18px", marginBottom: 14, minHeight: blockMin,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                      <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: pal.accent, background: "rgba(255,255,255,0.65)", borderRadius: 6, padding: "3px 9px" }}>
+                        {p.month_count} month{p.month_count > 1 ? "s" : ""}
+                      </span>
+                      {isCurrent && (
+                        <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: WHITE, background: pal.accent, borderRadius: 6, padding: "3px 9px" }}>You're here</span>
+                      )}
+                    </div>
+                    <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 18, color: TEXT, letterSpacing: "-0.01em", lineHeight: 1.25, marginBottom: p.blurb ? 6 : 0 }}>{p.title}</div>
+                    {p.blurb && <p style={{ fontFamily: SANS, fontSize: 13.5, color: TEXT_MID, lineHeight: 1.5, margin: 0 }}>{p.blurb}</p>}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: "auto", paddingTop: 12, fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: pal.accent }}>
+                      {nodeCount} milestone{nodeCount !== 1 ? "s" : ""} inside
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto" }}><polyline points="9 18 15 12 9 6"/></svg>
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </motion.div>
+          )}
+
+          {/* ── Mini-roadmap (one phase's month-by-month) ── */}
+          {!showOverview && activePhase && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+              {!singlePhase && (
+                <button
+                  onClick={() => { setSelectedPhase(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: "0.85rem", fontWeight: 600, color: TEXT_MID, background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: 18 }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  All phases
+                </button>
+              )}
+              {!singlePhase && (
+                <div style={{ marginBottom: "1.75rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <span style={{ width: 12, height: 12, borderRadius: 4, background: phasePalette(selectedPhase ?? 0).accent, flexShrink: 0 }} />
+                    <span style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: phasePalette(selectedPhase ?? 0).accent }}>
+                      Phase · {activePhase.month_count} month{activePhase.month_count > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.5rem", color: TEXT, letterSpacing: "-0.02em", lineHeight: 1.2 }}>{activePhase.title}</h2>
+                  {activePhase.blurb && (
+                    <p style={{ fontFamily: SANS, fontSize: "0.94rem", color: TEXT_MID, lineHeight: 1.55, marginTop: 6 }}>{activePhase.blurb}</p>
                   )}
                 </div>
-                <div style={{ position: "relative", paddingLeft: 28 }}>
-                  {/* timeline spine */}
-                  <div style={{ position: "absolute", left: 7, top: 4, bottom: idx === months.length - 1 ? 12 : -26, width: 2, background: BORDER }} />
-                  {monthNodes.map((node) => {
-                    const isBridge = node.kind === "bridge";
-                    const isSide = node.kind === "side";
-                    return (
-                      <div key={node.id} style={{ position: "relative", marginBottom: isBridge ? 8 : 12, marginLeft: isSide ? 22 : 0 }}>
-                        {isBridge ? (
-                          <div style={{ position: "absolute", left: -22, top: 16, width: 8, height: 8, borderRadius: 2, background: BLUE_SOFT, border: `1.5px solid ${BLUE_MID}`, transform: "rotate(45deg)", zIndex: 1 }} />
-                        ) : (
-                          <div style={{ position: "absolute", left: isSide ? -47 : -25, top: 17, width: isSide ? 9 : 12, height: isSide ? 9 : 12, borderRadius: "50%", background: isSide ? BG : pillarStyle(node.pillar).dot, border: `2px solid ${isSide ? pillarStyle(node.pillar).dot : BG}`, zIndex: 1 }} />
-                        )}
-                        <NodeCard node={node} onOpen={openNode} />
-                      </div>
-                    );
-                  })}
+              )}
+
+              {/* Reminder — unopened nodes in this view's current month */}
+              {dueNodes.length > 0 && activeMonths.includes(currentMonthIndex) && (
+                <div
+                  onClick={() => openNode(dueNodes[0])}
+                  style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", borderBottom: `1px solid ${BORDER}`, padding: "0 2px 14px", marginBottom: "1.5rem" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", color: TEXT }}>
+                      {currentLabel ? `${currentLabel} is here. Time to start.` : "Time to start"}
+                    </p>
+                    <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: TEXT_MID, marginTop: 2 }}>
+                      {dueNodes.length} node{dueNodes.length > 1 ? "s" : ""} ready to open. Tap to begin with one.
+                    </p>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
-              </div>
-            );
-          })}
+              )}
+
+              {renderTimeline(activeMonths)}
+            </motion.div>
+          )}
         </div>
       )}
 
