@@ -143,6 +143,9 @@ async def expand_node(user_id: str, node_id: str) -> dict:
         "tells the student how to approach this node, weaving in citations to the resources you "
         "picked using [n] markers (1-indexed into YOUR references array order). Bold-worthy "
         "phrases are the cited ones. Do not invent resources; only use the provided indices.\n\n"
+        "Finally, break the node into a short CHECKLIST of 3-5 concrete, checkable tasks the "
+        "student does to complete it (each a short action phrase, in order, plain language, no em "
+        "dashes). The tasks together should mean the node is genuinely done.\n\n"
         "Return ONLY valid JSON, no markdown."
     )
     level_clause = _level_clause(node)
@@ -155,11 +158,12 @@ async def expand_node(user_id: str, node_id: str) -> dict:
         + f"\nReal search results:\n{listing}\n\n"
         "Return ONLY JSON:\n"
         '{"overview":"...text with [1] [2] markers...","references":[{"source_index":<int from the list>,'
-        '"type":"doc|video|platform|paper|article|framework|course","label":"short descriptive title"}]}'
+        '"type":"doc|video|platform|paper|article|framework|course","label":"short descriptive title"}],'
+        '"tasks":["short action phrase","short action phrase","short action phrase"]}'
     )
 
     resp = await _anthropic.messages.create(
-        model=SONNET, max_tokens=1500, system=system,
+        model=SONNET, max_tokens=1800, system=system,
         messages=[{"role": "user", "content": user_prompt}],
     )
     parsed = _parse_json(resp.content[0].text if resp.content else "")
@@ -191,16 +195,32 @@ async def expand_node(user_id: str, node_id: str) -> dict:
 
     overview = (parsed.get("overview") or "").strip()
 
-    # ── Persist; advance state explore → opened (don't downgrade later states) ─
-    new_state = node["state"] if node["state"] in ("on_board", "done") else "opened"
+    # ── Checklist tasks → roadmap_tasks (only seed once; re-expand keeps them) ─
+    existing_tasks = (
+        supabase.from_("roadmap_tasks").select("*")
+        .eq("node_id", node_id).order("order_index").execute()
+    ).data or []
+    if not existing_tasks:
+        task_texts = [str(t).strip()[:160] for t in (parsed.get("tasks") or []) if str(t).strip()][:6]
+        if task_texts:
+            task_rows = [
+                {"node_id": node_id, "user_id": user_id, "text": t, "order_index": i}
+                for i, t in enumerate(task_texts)
+            ]
+            ins = supabase.from_("roadmap_tasks").insert(task_rows).execute()
+            existing_tasks = ins.data or []
+
+    # ── Persist; advance state explore → opened (don't downgrade a done node) ──
+    new_state = "done" if node["state"] == "done" else "opened"
     upd = (
         supabase.from_("roadmap_nodes")
         .update({"overview": overview, "references": references, "state": new_state})
         .eq("id", node_id).eq("user_id", user_id).execute()
     )
     updated = (upd.data or [None])[0] or {**node, "overview": overview, "references": references, "state": new_state}
+    updated["tasks"] = existing_tasks
 
-    logger.info(f"[roadmap] expanded node {node_id} ({len(references)} refs) for {user_id}")
+    logger.info(f"[roadmap] expanded node {node_id} ({len(references)} refs, {len(existing_tasks)} tasks) for {user_id}")
     return updated
 
 

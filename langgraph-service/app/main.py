@@ -22,8 +22,9 @@ from app.nodes.quest.generate import generate_quest_items
 from app.nodes.scorecard.improve import improve_axis
 from app.nodes.research.run import run_research
 from app.nodes.roadmap.generate import generate_roadmap
+from app.nodes.roadmap.phase import generate_phase
+from app.nodes.roadmap.reflect import reflect_on_phase
 from app.nodes.roadmap.expand import expand_node
-from app.nodes.roadmap.reevaluate import reevaluate_roadmap
 from app.nodes.roadmap.intake import generate_intake_questions
 from app.rate_limit import check_rate_limit, refund_usage
 from app.scoring import award_axis
@@ -356,13 +357,20 @@ async def roadmap_node_expand(raw: Request, user_id: str = Depends(verify_jwt)):
     if not existing.data:
         raise HTTPException(status_code=404, detail="Node not found")
 
-    # Re-opening an already-expanded node is free (no AI call, no charge).
+    # Re-opening an already-expanded node is free (no AI call, no charge). Attach its tasks.
     if existing.data.get("references"):
         full = (
             supabase.from_("roadmap_nodes").select("*")
             .eq("id", node_id).eq("user_id", user_id).maybe_single().execute()
         )
-        return full.data
+        node = full.data
+        if node:
+            tasks = (
+                supabase.from_("roadmap_tasks").select("*")
+                .eq("node_id", node_id).order("order_index").execute()
+            ).data or []
+            node["tasks"] = tasks
+        return node
 
     await check_rate_limit(user_id, "node_expand")
 
@@ -377,8 +385,9 @@ async def roadmap_node_expand(raw: Request, user_id: str = Depends(verify_jwt)):
         raise HTTPException(status_code=500, detail="Could not load resources")
 
 
-@app.post("/roadmap/reevaluate")
-async def roadmap_reevaluate(raw: Request, user_id: str = Depends(verify_jwt)):
+@app.post("/roadmap/phase/generate")
+async def roadmap_phase_generate(raw: Request, user_id: str = Depends(verify_jwt)):
+    """Materialize one phase's nodes (Opus). Rate-limited: phase_gen (5/lifetime)."""
     try:
         body = await raw.json()
     except Exception:
@@ -386,18 +395,47 @@ async def roadmap_reevaluate(raw: Request, user_id: str = Depends(verify_jwt)):
     roadmap_id = (body.get("roadmap_id") or "").strip()
     if not roadmap_id:
         raise HTTPException(status_code=400, detail="roadmap_id is required")
+    try:
+        phase_index = int(body.get("phase_index"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="phase_index is required")
 
-    await check_rate_limit(user_id, "roadmap_reeval")
+    await check_rate_limit(user_id, "phase_gen")
 
     try:
-        return await reevaluate_roadmap(user_id, roadmap_id)
+        return await generate_phase(user_id, roadmap_id, phase_index)
     except ValueError as exc:
-        await refund_usage(user_id, "roadmap_reeval")  # don't burn the 1/lifetime reeval on failure
+        await refund_usage(user_id, "phase_gen")  # soft failure shouldn't burn a phase gen
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
-        await refund_usage(user_id, "roadmap_reeval")
-        logger.error(f"[roadmap] reevaluate error for {user_id}: {exc}")
-        raise HTTPException(status_code=500, detail="Could not re-evaluate roadmap")
+        await refund_usage(user_id, "phase_gen")
+        logger.error(f"[roadmap] phase generate error for {user_id}: {exc}")
+        raise HTTPException(status_code=500, detail="Could not generate phase")
+
+
+@app.post("/roadmap/phase/complete")
+async def roadmap_phase_complete(raw: Request, user_id: str = Depends(verify_jwt)):
+    """Score the post-phase reflection + mark the phase completed. Free (not rate-limited)."""
+    try:
+        body = await raw.json()
+    except Exception:
+        body = {}
+    roadmap_id = (body.get("roadmap_id") or "").strip()
+    if not roadmap_id:
+        raise HTTPException(status_code=400, detail="roadmap_id is required")
+    try:
+        phase_index = int(body.get("phase_index"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="phase_index is required")
+    reflection_text = (body.get("reflection_text") or "").strip()
+
+    try:
+        return await reflect_on_phase(user_id, roadmap_id, phase_index, reflection_text)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        logger.error(f"[roadmap] phase complete error for {user_id}: {exc}")
+        raise HTTPException(status_code=500, detail="Could not complete phase")
 
 
 @app.post("/onboarding/extract")

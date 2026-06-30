@@ -51,7 +51,7 @@ The agentic backend (chat, research, quest generation, onboarding extraction) li
 
 **ScorecardPage** — the gamified home/dashboard. A standardized **5-axis radar** (Communication, Leadership, Technicality, Resourcefulness, Execution) over `profiles.axis_scores`, a **Career Readiness %** ring (axis average), and a "where you are now" strip (`living_profile` current_focus + momentum). Clicking a weak axis → `POST /scorecard/improve` generates 3 axis-tagged quest suggestions to add to the board. One-time welcome popup post-onboarding (`scorecard_intro_seen`).
 
-**RoadmapPage** (`RoadmapPage.jsx`, route `/roadmap`; node detail at `/roadmap/node/:id`) — adaptive, node-based **structured guidance**. Goal-capture entry (goal + timeframe 6–24mo) → `POST /roadmap/generate` returns a big-picture vertical timeline (now at top → future below) of stub nodes by pillar (Project/Research/Activity/Club). Opening a node → `POST /roadmap/node/expand` (Brave + curation) fills real references + an inline-cited overview (`RoadmapNodePage`); "Add to my board" promotes it to a `quest_items` card (`roadmap_node_id` link). `POST /roadmap/reevaluate` proposes a revised timeline (Preview → Accept/Keep). See `.claude/ROADMAP_REDESIGN.md`.
+**RoadmapPage** (`RoadmapPage.jsx`, route `/roadmap`; node detail at `/roadmap/node/:id`) — **phase-by-phase (v3)** structured guidance. Goal-capture entry (goal + target end-month, ≤2yr) → ≤3 intake questions → `POST /roadmap/generate` returns a one-time **broad phase OUTLINE** (the stages a student moves through, each with per-month concept focuses), shown once on a reveal screen. Then phases are materialized **one at a time** (`POST /roadmap/phase/generate`, auto-fired for Phase 1): the ongoing page is a **phase tracker** (completed phases collapsed with a readiness score, the active phase expanded into its nodes, locked phases greyed). Opening a node → `POST /roadmap/node/expand` (Brave + curation) fills references + an inline-cited overview **+ a checklist** (`RoadmapNodePage`); checking tasks (via `toggle-roadmap-task`) nudges the scorecard, node auto-completes when all tasks are checked (no quest promotion in v3). "Complete phase & continue" requires a **reflection** (`POST /roadmap/phase/complete`, Haiku → 0–100 readiness) before the next phase generates; that readiness feeds the next generation and quietly revises later phases. Legacy (pre-v3) roadmaps are archived on load → fresh start. See `.claude/ROADMAP_REDESIGN.md`.
 
 **ProfilePage** — editable profile fields, agent instructions, response style.
 
@@ -65,9 +65,11 @@ Python + FastAPI on Railway. Holds the Anthropic key. JWT-authed (`verify_jwt` v
 | `POST /research` | Brave Search → page fetch → Sonnet synthesis. Rate-limited: 3/lifetime | Brave, Anthropic |
 | `POST /quests/generate` | 1–5 quest suggestions from profile + research findings. Rate-limited: 3/lifetime | Anthropic |
 | `POST /scorecard/improve` | 3 axis-tagged quest suggestions for a weak axis. Rate-limited: 5/lifetime (`axis_boost`) | Anthropic |
-| `POST /roadmap/generate` | Big-picture monthly roadmap (stub nodes) from goal + living profile + grade; safety-constrained. Rate-limited: 1/lifetime | Anthropic |
-| `POST /roadmap/node/expand` | Brave-sourced diverse references + inline-cited overview for one node (cached after first). Rate-limited: 5/lifetime (`node_expand`) | Brave, Anthropic |
-| `POST /roadmap/reevaluate` | Proposes a revised timeline + change summary (does NOT persist). Rate-limited: 1/lifetime | Anthropic |
+| `POST /roadmap/intake` | ≤3 gap-only pre-questions (Haiku). Free | Anthropic |
+| `POST /roadmap/generate` | One-time **broad phase OUTLINE** (Opus): `phases[]` with per-month concept focuses, `display_title`, typo-fixed `goal_clean`. No nodes. Rate-limited: 1/lifetime (`roadmap_gen`) | Anthropic |
+| `POST /roadmap/phase/generate` | Materializes ONE phase's `roadmap_nodes` (Opus) from outline + prior reflections; quietly revises later locked phases. Rate-limited: 5/lifetime (`phase_gen`) | Anthropic |
+| `POST /roadmap/phase/complete` | Scores the post-phase reflection → 0–100 readiness (Haiku), marks phase completed, mirrors to `living_profile.roadmap_progress`. Free | Anthropic |
+| `POST /roadmap/node/expand` | Brave-sourced references + inline-cited overview **+ a 3–5 item checklist** (`roadmap_tasks`) for one node (cached after first). Rate-limited: 15/lifetime (`node_expand`) | Brave, Anthropic |
 | `POST /onboarding/extract` | ElevenLabs transcript → 17-field profile + `axis_scores` + seeded `living_profile` (Haiku check + Sonnet extraction) | Anthropic |
 | `GET /health`, `GET /profile` | Health + profile probes | — |
 
@@ -79,7 +81,8 @@ Only non-AI functions remain (Deno/TypeScript):
 
 | Function | Purpose | Calls |
 |---|---|---|
-| `update-quest-item` | Quest status (move/complete/uncomplete/delete); on complete awards axis points (`award_axis_points`) + syncs a linked roadmap node → done; on uncomplete reverts the exact delta (`revert_axis_points`) + node → on_board | — |
+| `update-quest-item` | Quest status (move/complete/uncomplete/delete); on complete awards axis points (`award_axis_points`); on uncomplete reverts the exact delta (`revert_axis_points`) | — |
+| `toggle-roadmap-task` | Check/uncheck a roadmap checklist task: awards a small axis amount on the node's `target_axis` (check) or reverts the stored delta (uncheck), rolls the node's state up to `done` when all its tasks are checked | — |
 | `onet-proxy` | Proxies O*NET My Next Move API with auth (uses `_shared/onet.ts` `mnmSearch()`) | O*NET |
 | `delete-account` | Full cascade user deletion | Supabase Admin |
 
@@ -90,12 +93,13 @@ Only non-AI functions remain (Deno/TypeScript):
 Key tables:
 - `profiles` — 20+ onboarding fields (strengths, interests, career_matches, work_style, agent_instructions, etc.); plus `research_findings` + `chat_signals` JSONB (cross-feature memory), `axis_scores` JSONB (5-axis scorecard), `scorecard_intro_seen`, and `living_profile` JSONB + `living_synced_at` + `living_events_since_sync` (evolving memory; see `.claude/MEMORY_REDESIGN.md`)
 - `quest_items` — standalone quests with status (`suggested`/`considered`/`in_progress`/`completed`/`deleted`), difficulty, `target_axis`, why_it_matters, `roadmap_node_id` (FK → roadmap_nodes; marks roadmap-originated cards)
-- `roadmaps` — goal, timeframe_months (6–24), start_month, status (active/archived)
-- `roadmap_nodes` — month_index, pillar (Project/Research/Activity/Club), title, blurb, target_axis, state (explore/opened/on_board/done), `overview` + `references` JSONB (null until expanded), `quest_item_id` FK
+- `roadmaps` — goal (typo-fixed), `display_title`, timeframe_months (3–24), start_month, end_month, status (active/archived), **`phases` JSONB** (v3: the broad outline, generated once — each `{index, title, blurb, pillar, target_axis, month_start, month_count, month_focuses[], status: locked|active|completed, reflection?:{text, readiness_score, summary, completed[]}}`)
+- `roadmap_nodes` — month_index, pillar (Project/Research/Activity/Club), title, blurb, target_axis, technical_depth (resource gating), state (explore/opened/done), `overview` + `references` JSONB (null until expanded). v3 ignores `kind` (legacy column). Materialized per-phase, not all at once.
+- `roadmap_tasks` — the per-node checklist (v3): node_id FK, text, done, axis_delta (exact points awarded, for clean revert), order_index. Generated lazily at node expansion. RLS user-owns.
 - `score_events` — append-only log of axis-score changes (axis, delta, reason, source); powers undo + history
 - `chat_sessions` — full message history (JSONB), title, timestamps
 - `research_sessions` — query + results (JSONB) + 7-day cache
-- `usage_tracking` — lifetime counters: chat/research/quest_gen, axis_boost, roadmap_gen, node_expand, roadmap_reeval
+- `usage_tracking` — lifetime counters: chat/research/quest_gen, axis_boost, roadmap_gen, phase_gen, node_expand (roadmap_reeval retired)
 - `waitlist` — emails for paid plan interest
 
 RLS is enabled on all tables (`auth.uid() = user_id`). Key Postgres RPCs: `check_and_increment_usage` (atomic rate limit + dev bypass), `award_axis_points` / `revert_axis_points` (scorecard scoring, service-role only).
@@ -109,7 +113,7 @@ Lifetime caps enforced via `check_and_increment_usage` Postgres RPC (atomic chec
 - Research: **3 queries**
 - Quest generation: **3 generations**
 - Scorecard axis boost: **5**
-- Roadmap generation: **1** · Node expansion: **5** · Roadmap re-evaluation: **1**
+- Roadmap outline generation: **1** · Phase generation: **5** · Node expansion: **15** (roadmap re-evaluation retired in v3)
 
 Dev bypass: accounts in the `dev_emails` array inside `check_and_increment_usage` (`app.mentora.ai@gmail.com`, `kwu.1600@gmail.com`) get `allowed: true` with no counter increment.
 

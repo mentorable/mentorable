@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
-import { invalidateCache } from "../lib/cache.js";
 import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
@@ -9,7 +8,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 const SANS = "'Space Grotesk', sans-serif";
-const BG = "#f5f1ed", WHITE = "#fff", BLUE = "#1d4ed8", BLUE_TINT = "#f0f5ff";
+const BG = "#f5f1ed", WHITE = "#fff", BLUE = "#1d4ed8", BLUE_TINT = "#f0f5ff", BLUE_SOFT = "#dbeafe";
 const TEXT = "#141413", TEXT_MID = "#3d3d3a", TEXT_MUTED = "#494742", TEXT_FAINT = "#6a6760", BORDER = "#e6dfd8";
 const AMBER_SOFT = "#fef3c7", AMBER = "#d97706", GREEN_SOFT = "#d1fae5", GREEN = "#059669", PURPLE_SOFT = "#ede9fe", PURPLE = "#7c3aed";
 
@@ -20,7 +19,11 @@ const PILLAR_STYLES = {
   Club:     { bg: PURPLE_SOFT, color: PURPLE },
 };
 
-// Reference type → badge label + tint
+const AXIS_LABELS = {
+  communication: "Communication", leadership: "Leadership", technicality: "Technicality",
+  resourcefulness: "Resourcefulness", execution: "Execution",
+};
+
 const TYPE_META = {
   doc:       { label: "Docs",     color: BLUE },
   video:     { label: "Video",    color: "#dc2626" },
@@ -32,9 +35,6 @@ const TYPE_META = {
 };
 const typeMeta = (t) => TYPE_META[t] || TYPE_META.article;
 
-// Render an overview, turning a cited phrase + [n] into a clickable bold link to ref n.
-// Prefers the model's "**phrase** [n]" boundary; falls back to the last few words
-// before a bare "[n]". Strips any stray markdown asterisks.
 function renderOverview(text, references) {
   if (!text) return null;
   const refById = new Map((references || []).map((r) => [r.id, r]));
@@ -67,10 +67,11 @@ function renderOverview(text, references) {
 export default function RoadmapNodePage({ navigate, nodeId }) {
   const isMobile = useIsMobile();
   const [node, setNode] = useState(null);
+  const [tasks, setTasks] = useState([]);
   const [phase, setPhase] = useState("loading");  // loading | expanding | ready | error | notfound
-  const [adding, setAdding] = useState(false);
   const [limitModal, setLimitModal] = useState(false);
-  const [expandUsed, setExpandUsed] = useState(0);
+  const [pendingTask, setPendingTask] = useState(null);   // task id mid-toggle
+  const [award, setAward] = useState(null);               // { delta, axis } transient toast
 
   const expand = useCallback(async (n) => {
     setPhase("expanding");
@@ -81,11 +82,11 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
         body: JSON.stringify({ node_id: n.id }),
       });
-      if (res.status === 429) { setExpandUsed(LIMITS.node_expand); setLimitModal(true); setPhase("ready"); return; }
+      if (res.status === 429) { setLimitModal(true); setPhase("ready"); return; }
       if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.detail || "Expand failed"); }
       const data = await res.json();
       setNode(data);
-      setExpandUsed((x) => x + 1);
+      setTasks(data.tasks || []);
       setPhase("ready");
     } catch (e) {
       console.error("[RoadmapNode] expand error:", e);
@@ -97,49 +98,46 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = "/auth"; return; }
-      const [{ data }, usage] = await Promise.all([
+      const [{ data }, , { data: existingTasks }] = await Promise.all([
         supabase.from("roadmap_nodes").select("*").eq("id", nodeId).single(),
         fetchUsage(supabase),
+        supabase.from("roadmap_tasks").select("*").eq("node_id", nodeId).order("order_index"),
       ]);
-      setExpandUsed(usage.node_expansions_used ?? 0);
       if (!data) { setPhase("notfound"); return; }
       setNode(data);
+      setTasks(existingTasks || []);
       if (data.references && data.references.length) { setPhase("ready"); }
-      else { expand(data); }  // first open → generate
+      else { expand(data); }  // first open → generate resources + tasks
     })();
   }, [nodeId, expand]);
 
-  const handleAddToBoard = async () => {
-    if (adding || !node) return;
-    setAdding(true);
+  const toggleTask = async (task) => {
+    if (pendingTask) return;
+    const action = task.done ? "uncheck" : "check";
+    setPendingTask(task.id);
+    // optimistic
+    setTasks((ts) => ts.map((t) => t.id === task.id ? { ...t, done: !t.done } : t));
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const now = new Date().toISOString();
-      const { data: inserted, error } = await supabase.from("quest_items").insert({
-        user_id: user.id,
-        title: node.title,
-        description: node.blurb || null,
-        category: node.pillar === "Club" || node.pillar === "Activity" ? "Other" : node.pillar,
-        target_axis: node.target_axis || "execution",
-        status: "suggested",
-        order_index: 0,
-        roadmap_node_id: node.id,
-        created_at: now, updated_at: now,
-      }).select("id").single();
+      const { data, error } = await supabase.functions.invoke("toggle-roadmap-task", { body: { taskId: task.id, action } });
       if (error) throw error;
-      await supabase.from("roadmap_nodes").update({ quest_item_id: inserted.id, state: "on_board" }).eq("id", node.id);
-      invalidateCache(`quest_items:${user.id}`);
-      setNode((n) => ({ ...n, state: "on_board", quest_item_id: inserted.id }));
+      if (action === "check" && data?.award?.delta > 0) {
+        setAward({ delta: data.award.delta, axis: data.axis });
+        setTimeout(() => setAward(null), 2200);
+      }
+      // reflect node completion roll-up
+      if (data?.node_state) setNode((n) => n ? { ...n, state: data.node_state } : n);
     } catch (e) {
-      console.error("[RoadmapNode] add to board error:", e);
+      console.error("[RoadmapNode] toggle error:", e);
+      setTasks((ts) => ts.map((t) => t.id === task.id ? { ...t, done: task.done } : t));  // revert
     } finally {
-      setAdding(false);
+      setPendingTask(null);
     }
   };
 
   const ps = node ? (PILLAR_STYLES[node.pillar] || PILLAR_STYLES.Project) : PILLAR_STYLES.Project;
   const pad = { minHeight: "100vh", background: BG, fontFamily: SANS, padding: isMobile ? "1.5rem 1rem 5rem" : "2.5rem 2rem 4rem", paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH}px + 2rem)` };
-  const onBoard = node?.state === "on_board" || node?.state === "done";
+  const isDone = node?.state === "done";
+  const doneCount = tasks.filter((t) => t.done).length;
 
   return (
     <div data-sidebar-offset style={pad}>
@@ -162,11 +160,8 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
           <>
             <div style={{ display: "flex", gap: 8, marginBottom: 14, alignItems: "center" }}>
               <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", background: ps.bg, color: ps.color, borderRadius: 6, padding: "3px 10px" }}>{node.pillar}</span>
-              {node.kind === "bridge" && (
-                <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", background: BLUE_TINT, color: BLUE, borderRadius: 6, padding: "3px 10px" }}>Bridge · catch-up</span>
-              )}
               <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 600, color: TEXT_FAINT }}>{node.month_label}</span>
-              {onBoard && <span style={{ marginLeft: "auto", fontFamily: SANS, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: node.state === "done" ? GREEN : AMBER, background: node.state === "done" ? GREEN_SOFT : AMBER_SOFT, borderRadius: 6, padding: "3px 10px" }}>{node.state === "done" ? "Done" : "On board"}</span>}
+              {isDone && <span style={{ marginLeft: "auto", fontFamily: SANS, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: GREEN, background: GREEN_SOFT, borderRadius: 6, padding: "3px 10px" }}>Done</span>}
             </div>
             <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.7rem", color: TEXT, letterSpacing: "-0.02em", lineHeight: 1.25, marginBottom: 10 }}>{node.title}</h1>
             {node.blurb && <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT_MUTED, lineHeight: 1.6, marginBottom: 24 }}>{node.blurb}</p>}
@@ -177,7 +172,7 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
                 <div className="rn-sk" style={{ height: 14, width: "88%", marginBottom: 8 }} />
                 <div className="rn-sk" style={{ height: 14, width: "70%", marginBottom: 24 }} />
                 {[0,1,2].map((i) => <div key={i} className="rn-sk" style={{ height: 60, marginBottom: 10, borderRadius: 12 }} />)}
-                <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: TEXT_FAINT, textAlign: "center", marginTop: 8 }}>Finding the best resources for this node…</p>
+                <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: TEXT_FAINT, textAlign: "center", marginTop: 8 }}>Finding the best resources and building your checklist…</p>
               </div>
             )}
 
@@ -190,7 +185,6 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
 
             {phase === "ready" && node.references && node.references.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-                {/* Overview with inline-linked phrases */}
                 {node.overview && (
                   <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "1.4rem 1.5rem", marginBottom: 24 }}>
                     <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: BLUE, marginBottom: 10 }}>Overview</p>
@@ -223,29 +217,45 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
                   })}
                 </div>
 
-                {/* Add to board */}
-                <button
-                  onClick={handleAddToBoard}
-                  disabled={onBoard || adding}
-                  style={{
-                    width: "100%", fontFamily: SANS, fontSize: "1rem", fontWeight: 700,
-                    cursor: onBoard ? "default" : "pointer", padding: "14px", borderRadius: 12, border: "none",
-                    background: onBoard ? GREEN_SOFT : BLUE, color: onBoard ? GREEN : WHITE,
-                    boxShadow: onBoard ? "none" : "0 6px 20px rgba(29,78,216,0.3)", transition: "all 0.15s",
-                  }}
-                >
-                  {onBoard ? "✓ On your quest board" : adding ? "Adding…" : "Add to my board"}
-                </button>
-                {!onBoard && (
-                  <p style={{ fontFamily: SANS, fontSize: "0.8rem", color: TEXT_FAINT, textAlign: "center", marginTop: 10 }}>
-                    Adds this as a quest you can track and complete. Completing it raises your scorecard.
-                  </p>
+                {/* Checklist */}
+                {tasks.length > 0 && (
+                  <>
+                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
+                      <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: TEXT_FAINT, margin: 0 }}>Checklist</p>
+                      <span style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, color: isDone ? GREEN : TEXT_MUTED }}>{doneCount}/{tasks.length} done</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {tasks.map((task) => (
+                        <button key={task.id} onClick={() => toggleTask(task)} disabled={pendingTask === task.id}
+                          style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", cursor: "pointer", background: WHITE, border: `1px solid ${task.done ? GREEN_SOFT : BORDER}`, borderRadius: 12, padding: "12px 14px", transition: "border-color 0.15s" }}>
+                          <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 7, display: "inline-flex", alignItems: "center", justifyContent: "center", border: `2px solid ${task.done ? GREEN : BORDER}`, background: task.done ? GREEN : WHITE, transition: "all 0.15s" }}>
+                            {task.done && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={WHITE} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                          </span>
+                          <span style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 500, color: task.done ? TEXT_FAINT : TEXT, lineHeight: 1.4, textDecoration: task.done ? "line-through" : "none" }}>{task.text}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p style={{ fontFamily: SANS, fontSize: "0.8rem", color: TEXT_FAINT, textAlign: "center", marginTop: 14 }}>
+                      Check tasks off as you finish them. Each one nudges your scorecard up.
+                    </p>
+                  </>
                 )}
               </motion.div>
             )}
           </>
         )}
       </div>
+
+      {/* Transient axis-award toast */}
+      <AnimatePresence>
+        {award && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
+            style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 400, display: "flex", alignItems: "center", gap: 8, background: "#141413", color: "#fff", padding: "10px 16px", borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.25)" }}>
+            <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: "#34d399" }}>+{award.delta}</span>
+            <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.9rem" }}>{AXIS_LABELS[award.axis] || award.axis}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {limitModal && <LimitModal feature="node_expand" onClose={() => setLimitModal(false)} />}
     </div>
