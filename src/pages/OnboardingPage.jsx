@@ -8,7 +8,8 @@ import { VoicePoweredOrb } from "../components/common/VoicePoweredOrb.jsx";
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
 const MAX_CALL_SECONDS = 180; // ~3 min cap — keeps ElevenLabs credit cost down; the agent is prompted to wrap up by ~2.5 min
-const SILENCE_TIMEOUT_MS = 30000; // auto-end if the call sits fully silent (agent done, no replies) this long
+const SILENCE_TIMEOUT_MS = 45000; // auto-end only if the call sits FULLY silent (agent done, user not talking, no replies) this long
+const SPEAKING_VOLUME_THRESHOLD = 0.02; // mic input above this = user is actively talking (counts as activity)
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const BG      = "#fafbff";
@@ -1151,9 +1152,20 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (phase !== "active") return;
     if (elapsed >= MAX_CALL_SECONDS) { endConversation(); return; }
-    // Silent-call safety net: the agent reached a closing point and went quiet but the
-    // session never ended. After a full silent window (agent not speaking, no new messages,
-    // conversation actually underway), end + process so the user isn't stuck on a dead call.
+
+    // A long SPOKEN answer emits no onMessage until the turn ends, so the agent isn't speaking
+    // and lastActivityRef goes stale even though the user is mid-sentence. Sample the mic input
+    // volume each tick: if the user is audibly talking, that's activity — never end on them.
+    try {
+      const vol = conversation.getInputVolume?.();
+      if (typeof vol === "number" && vol > SPEAKING_VOLUME_THRESHOLD) {
+        lastActivityRef.current = Date.now();
+      }
+    } catch { /* SDK may not expose input volume; fall through to the timeout check */ }
+
+    // Silent-call safety net: the agent reached a closing point and went quiet but the session
+    // never ended. Only after a full silent window (agent not speaking, USER not speaking, no
+    // new messages, conversation actually underway) do we end so the user isn't stuck on a dead call.
     if (
       transcriptRef.current.length >= 2 &&
       !conversation.isSpeaking &&
@@ -1161,7 +1173,7 @@ export default function OnboardingPage() {
     ) {
       endConversation();
     }
-  }, [elapsed, phase]);
+  }, [elapsed, phase]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     return () => { conversation.endSession().catch(() => {}); };
