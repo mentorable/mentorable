@@ -462,14 +462,16 @@ export default function RoadmapPage({ navigate }) {
       });
 
       const hasNext = phaseIndex + 1 < (roadmap.phases || []).length;
-      setReflectFor(null);
-      setReflecting(false);
       if (hasNext) {
-        if (phaseUsed >= LIMITS.phase_gen) { showLimit("phase_gen"); return; }
+        if (phaseUsed >= LIMITS.phase_gen) { setReflectFor(null); setReflecting(false); showLimit("phase_gen"); return; }
+        // Keep the modal up (button shows "Generating next phase…") until the phase is ready.
         await generatePhase(roadmap.id, phaseIndex + 1);
       }
+      setReflectFor(null);
+      setReflecting(false);
     } catch (e) {
       console.error("[Roadmap] reflection error:", e);
+      setReflectFor(null);
       setReflecting(false);
     }
   }, [roadmap, phaseUsed, generatePhase]);
@@ -691,6 +693,18 @@ export default function RoadmapPage({ navigate }) {
             onSubmit={(text) => submitReflection(reflectFor, text)}
             onCancel={() => setReflectFor(null)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Global phase-generation indicator (covers cases without the reflection modal) */}
+      <AnimatePresence>
+        {phaseBusy && phase === "ready" && reflectFor == null && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
+            style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 400, display: "flex", alignItems: "center", gap: 10, background: "#141413", color: "#fff", padding: "11px 18px", borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.25)" }}>
+            <span style={{ width: 16, height: 16, borderRadius: "50%", border: "2.5px solid rgba(255,255,255,0.25)", borderTopColor: "#fff", animation: "rm-spin 0.7s linear infinite" }} />
+            <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.9rem" }}>Generating your next phase…</span>
+            <style>{`@keyframes rm-spin { to { transform: rotate(360deg) } }`}</style>
+          </motion.div>
         )}
       </AnimatePresence>
 

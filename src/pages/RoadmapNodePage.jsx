@@ -185,6 +185,30 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
 
             {phase === "ready" && node.references && node.references.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                {/* Checklist — first, so it's the first thing you act on */}
+                {tasks.length > 0 && (
+                  <div style={{ marginBottom: 28 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
+                      <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: BLUE, margin: 0 }}>Your checklist</p>
+                      <span style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, color: isDone ? GREEN : TEXT_MUTED }}>{doneCount}/{tasks.length} done</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {tasks.map((task) => (
+                        <button key={task.id} onClick={() => toggleTask(task)} disabled={pendingTask === task.id}
+                          style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", cursor: "pointer", background: WHITE, border: `1px solid ${task.done ? GREEN_SOFT : BORDER}`, borderRadius: 12, padding: "12px 14px", transition: "border-color 0.15s" }}>
+                          <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 7, display: "inline-flex", alignItems: "center", justifyContent: "center", border: `2px solid ${task.done ? GREEN : BORDER}`, background: task.done ? GREEN : WHITE, transition: "all 0.15s" }}>
+                            {task.done && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={WHITE} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                          </span>
+                          <span style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 500, color: task.done ? TEXT_FAINT : TEXT, lineHeight: 1.4, textDecoration: task.done ? "line-through" : "none" }}>{task.text}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p style={{ fontFamily: SANS, fontSize: "0.8rem", color: TEXT_FAINT, marginTop: 12 }}>
+                      Check tasks off as you finish them. Each one nudges your scorecard up. The resources below help you get there.
+                    </p>
+                  </div>
+                )}
+
                 {node.overview && (
                   <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "1.4rem 1.5rem", marginBottom: 24 }}>
                     <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: BLUE, marginBottom: 10 }}>Overview</p>
@@ -216,30 +240,6 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
                     );
                   })}
                 </div>
-
-                {/* Checklist */}
-                {tasks.length > 0 && (
-                  <>
-                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
-                      <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: TEXT_FAINT, margin: 0 }}>Checklist</p>
-                      <span style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, color: isDone ? GREEN : TEXT_MUTED }}>{doneCount}/{tasks.length} done</span>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {tasks.map((task) => (
-                        <button key={task.id} onClick={() => toggleTask(task)} disabled={pendingTask === task.id}
-                          style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", cursor: "pointer", background: WHITE, border: `1px solid ${task.done ? GREEN_SOFT : BORDER}`, borderRadius: 12, padding: "12px 14px", transition: "border-color 0.15s" }}>
-                          <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 7, display: "inline-flex", alignItems: "center", justifyContent: "center", border: `2px solid ${task.done ? GREEN : BORDER}`, background: task.done ? GREEN : WHITE, transition: "all 0.15s" }}>
-                            {task.done && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={WHITE} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                          </span>
-                          <span style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 500, color: task.done ? TEXT_FAINT : TEXT, lineHeight: 1.4, textDecoration: task.done ? "line-through" : "none" }}>{task.text}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <p style={{ fontFamily: SANS, fontSize: "0.8rem", color: TEXT_FAINT, textAlign: "center", marginTop: 14 }}>
-                      Check tasks off as you finish them. Each one nudges your scorecard up.
-                    </p>
-                  </>
-                )}
               </motion.div>
             )}
           </>
