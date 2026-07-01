@@ -1,5 +1,5 @@
 """
-Chat tools — lets Mentora actually act on the student's quest board instead of
+Chat tools — lets Mentorable Chat actually act on the student's quest board instead of
 just claiming it did. Currently exposes one tool: add_quest_to_board.
 
 The model chooses the column via the `status` param, so the student can say

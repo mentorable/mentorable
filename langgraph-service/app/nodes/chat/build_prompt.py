@@ -88,7 +88,7 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
 
     if chat_topics:
         lines = [f"- {t}" for t in chat_topics]
-        sections.append({"id": "chat_topics", "content": "## Conversation History\nRecent topics from their chats with Mentora:\n" + "\n".join(lines)})
+        sections.append({"id": "chat_topics", "content": "## Conversation History\nRecent topics from their chats with the Mentorable Agent:\n" + "\n".join(lines)})
 
     return sections
 

@@ -229,11 +229,11 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
 
 function HeroSection() {
   return (
-    <div style={{ marginBottom: "2rem", position: "relative" }}>
+    <div style={{ marginBottom: "2rem", position: "relative", textAlign: "center" }}>
       <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 26, color: NAVY, marginBottom: "0.875rem", lineHeight: 1.2, letterSpacing: "-0.02em" }}>
         Research Agent
       </h1>
-      <p style={{ fontFamily: FONT, fontSize: "1rem", color: "#494742", maxWidth: 560, lineHeight: 1.75, fontWeight: 500, margin: 0 }}>
+      <p style={{ fontFamily: FONT, fontSize: "1rem", color: "#494742", maxWidth: 560, lineHeight: 1.75, fontWeight: 500, margin: "0 auto" }}>
         Ask about scholarships, internships, programs, or competitions, and Mentorable searches the live web,
         reads the results, and synthesizes a tailored shortlist with a game plan, all filtered to your profile.
       </p>
@@ -252,7 +252,7 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
   };
 
   return (
-    <div style={{ display: "flex", gap: "0.625rem", marginBottom: "1.25rem" }}>
+    <div style={{ display: "flex", gap: "0.625rem", maxWidth: 640, margin: "0 auto 1.25rem", alignItems: "center" }}>
       <div style={{ flex: 1, position: "relative" }}>
         <textarea
           value={value}
@@ -283,7 +283,7 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.97 }}
         style={{
-          padding: "0 1.75rem", height: 62, alignSelf: "flex-end",
+          padding: "0 1.75rem", height: 62,
           background: value.trim() && !loading ? "linear-gradient(135deg, #1d4ed8, #3b82f6)" : "#e6dfd8",
           color: value.trim() && !loading ? "white" : "#6a6760",
           border: "none", borderRadius: "0.75rem",
@@ -308,11 +308,11 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
 
 function ExampleChips({ onSelect, loading }) {
   return (
-    <div style={{ marginBottom: "1.75rem" }}>
+    <div style={{ marginBottom: "1.75rem", maxWidth: 640, margin: "0 auto 1.75rem", textAlign: "center" }}>
       <p style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, color: "#6a6760", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.625rem" }}>
         Try these
       </p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", justifyContent: "center" }}>
         {EXAMPLE_CHIPS.map((chip) => (
           <motion.button
             key={chip}
@@ -912,7 +912,7 @@ export default function ResearchPage({ navigate, initialSessionId }) {
         {(() => {
           const left = Math.max(0, LIMITS.research - researchUsed);
           return (
-            <div style={{ textAlign: "right", marginTop: 6, marginBottom: 4 }}>
+            <div style={{ textAlign: "center", maxWidth: 640, margin: "6px auto 4px" }}>
               <span style={{ fontFamily: FONT, fontSize: 11, fontWeight: 600,
                 color: left <= 1 ? "#dc2626" : "#9ca3af" }}>
                 {left === 0 ? "No research queries remaining" : `${left} research quer${left === 1 ? "y" : "ies"} remaining`}

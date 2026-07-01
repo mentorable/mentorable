@@ -223,10 +223,10 @@ function VoiceOrb() {
           y: { duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.8 },
         }}
         style={{ position: "relative", transformStyle: "preserve-3d" }}>
-        {/* Screen lid */}
+        {/* Screen lid — kept flat (no rotate) so the screenshot stays pixel-crisp instead of being
+            resampled/blurred by a CSS 3D transform; only the keyboard deck below tilts into perspective. */}
         <div style={{ width: 420, height: 280, background: "#0e1019",
           borderRadius: "14px 14px 4px 4px",
-          transform: "rotateY(-14deg) rotateX(4deg)",
           boxShadow: "0 30px 80px rgba(0,0,0,0.35), 0 0 0 1.5px #2a2a3a",
           overflow: "hidden", position: "relative" }}>
           <div style={{ position: "absolute", inset: 0, borderRadius: "inherit",
@@ -235,58 +235,21 @@ function VoiceOrb() {
           <div style={{ position: "absolute", top: 6, left: "50%", transform: "translateX(-50%)",
             width: 5, height: 5, borderRadius: "50%", background: "#2a2a3a", zIndex: 11 }}/>
           <div style={{ position: "absolute", inset: "10px", borderRadius: 8,
-            background: "#fafbff", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            <div style={{ padding: "10px 16px", display: "flex", alignItems: "center",
-              justifyContent: "space-between", borderBottom: "1px solid rgba(59,91,252,0.1)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.75rem", color: "#0e1019", letterSpacing: "-0.04em" }}>mentorable</span>
-                <div style={{ width: 5, height: 5, borderRadius: "50%", background: "linear-gradient(135deg,#3b5bfc,#7c3aed)" }}/>
-              </div>
-            </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
-              justifyContent: "center", padding: "8px 16px", gap: "8px" }}>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.78rem", color: "#0e1019",
-                  letterSpacing: "-0.03em", lineHeight: 1.2 }}>Tell us about yourself</div>
-                <div style={{ fontFamily: BODY, fontSize: "0.52rem", color: "#4b5470", marginTop: 3, lineHeight: 1.4 }}>
-                  Our AI advisor will ask you a few questions
-                </div>
-              </div>
-              <div style={{ position: "relative", width: 72, height: 72 }}>
-                <div style={{ position: "absolute", inset: 0, borderRadius: "50%",
-                  background: "radial-gradient(circle at 38% 36%, #7c9fff 0%, #3b5bfc 42%, #4f0abf 80%, #1a1060 100%)",
-                  boxShadow: "0 0 24px rgba(59,91,252,0.55), 0 0 44px rgba(124,58,237,0.25)" }}/>
-                <div style={{ position: "absolute", inset: 6, borderRadius: "50%",
-                  background: "radial-gradient(circle at 35% 32%, rgba(255,255,255,0.18) 0%, transparent 55%)" }}/>
-                <div style={{ position: "absolute", inset: 0, borderRadius: "50%",
-                  boxShadow: "inset 0 -6px 14px rgba(0,0,0,0.3)" }}/>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#111",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: "0 3px 12px rgba(0,0,0,0.28)" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <path fillRule="evenodd" clipRule="evenodd"
-                      d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.58.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C9.61 21 3 14.39 3 6c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.24 1.02L6.6 10.8z"
-                      fill="white"/>
-                    <path d="M17 3h4m0 0v4m0-4L15 9" stroke="white" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <span style={{ fontFamily: SANS, fontSize: "0.48rem", color: "#4b5470" }}>Call Agent</span>
-              </div>
-            </div>
+            background: "#fafbff", overflow: "hidden" }}>
+            <img src="/onboarding-intro-screen.png" alt="Mentorable onboarding"
+              style={{ width: "100%", height: "100%", objectFit: "contain", objectPosition: "center" }}/>
           </div>
         </div>
         {/* Hinge */}
         <div style={{ width: 420, height: 6,
           background: "linear-gradient(to bottom, #b0b4be, #9ca3af)",
           borderRadius: "0 0 2px 2px",
-          transform: "rotateY(-14deg) rotateX(4deg) translateY(-2px)", marginTop: -2 }}/>
+          marginTop: -2 }}/>
         {/* Keyboard deck */}
         <div style={{ width: 420, height: 200,
           background: "linear-gradient(180deg, #c8ccd6 0%, #b0b5c2 50%, #9ca1ae 100%)",
           borderRadius: "0 0 14px 14px",
-          transform: "rotateY(-14deg) rotateX(58deg)",
+          transform: "rotateX(58deg)",
           transformOrigin: "top center",
           boxShadow: "0 22px 44px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.12)",
           marginTop: -4, overflow: "hidden", padding: "14px 18px 12px",
@@ -329,7 +292,7 @@ function VoiceOrb() {
 }
 
 // ─── Visual 2: Skill Radar ────────────────────────────────────────────────────
-const RADAR_AXES = ["Problem Solving","Communication","Creativity","Leadership","Technical"];
+const RADAR_AXES = ["Communication","Leadership","Technicality","Resourcefulness","Execution"];
 const RADAR_VALS = [0.88, 0.76, 0.91, 0.64, 0.78];
 const rPt = (a, r, cx, cy) => { const rad = (a - 90) * Math.PI / 180; return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }; };
 const rPoly = (sc, R, cx, cy) => sc.map((s, i) => { const p = rPt(360/sc.length*i, s*R, cx, cy); return `${p.x.toFixed(1)},${p.y.toFixed(1)}`; }).join(" ");
@@ -390,8 +353,10 @@ function SkillRadar() {
           );
         })}
         {RADAR_AXES.map((label, i) => {
-          const p = rPt(360/5*i, R*1.26, cx, cy);
-          return <text key={label} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle"
+          const p = rPt(360/5*i, R*1.4, cx, cy);
+          const dx = p.x - cx;
+          const anchor = Math.abs(dx) < 8 ? "middle" : dx > 0 ? "start" : "end";
+          return <text key={label} x={p.x} y={p.y} textAnchor={anchor} dominantBaseline="middle"
             fontSize="12.5" fontFamily={SANS} fontWeight="600" fill="#4b5470">{label}</text>;
         })}
       </svg>
@@ -399,15 +364,33 @@ function SkillRadar() {
   );
 }
 
-// ─── Visual 3: Phone Quest mockup ─────────────────────────────────────────────
+// ─── Visual 3: Phone Roadmap mockup ────────────────────────────────────────────
+const ROADMAP_PROJECTS = [
+  { date: "Jun 2026", dots: 2, title: "Take a Full Official SAT Practice Test",
+    body: "Sit a complete timed practice test under real conditions to get an honest baseline.", chip: "0/5" },
+  { date: "Jun 2026", dots: 2, title: "Build a Mistake Tracker Spreadsheet",
+    body: "Log every missed question by type and reason so patterns become obvious.", chip: "Open" },
+];
+
+const NAV_ICONS = [
+  { key: "score",   active: false, d: "M4 20V10M12 20V4M20 20v-7" },
+  { key: "quest",   active: false, d: "M12 7v5l3 3", circle: true },
+  { key: "roadmap", active: true,  d: "M5 19l6-6-3-3 7-7M14 3h5v5" },
+  { key: "chat",    active: false, d: "M4 5h16v11H8l-4 4V5z" },
+  { key: "research",active: false, d: "M11 4a7 7 0 100 14 7 7 0 000-14zM21 21l-4.3-4.3" },
+  { key: "profile", active: false, d: "M12 12a4 4 0 100-8 4 4 0 000 8zM4 20c1.5-4 5-6 8-6s6.5 2 8 6" },
+];
+
+const LOCKED_PHASES = [
+  { label: "Phase 2 · 1 mo", title: "Strategy & Timing" },
+  { label: "Phase 3 · 1 mo", title: "Full-Length Practice Tests" },
+  { label: "Phase 4 · 1 mo", title: "Weak-Spot Sprints" },
+  { label: "Phase 5 · 1 mo", title: "Final Review & Confidence" },
+];
+
 function PhoneQuest() {
   const ref = useRef(null);
   const iv  = useInView(ref, { once: true, margin: "-50px" });
-  const quests = [
-    { category: "Project",  color: "#1d4ed8", bg: "#f0f5ff", time: "1–2 weeks", title: "Build a GitHub portfolio project" },
-    { category: "Research", color: "#d97706", bg: "#fef3c7", time: "3–4 days",  title: "Explore summer programs at top universities" },
-    { category: "Learning", color: "#7c3aed", bg: "#ede9fe", time: "1 week",    title: "Complete an intro Python course online" },
-  ];
   return (
     <div ref={ref} style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", padding: "3rem 0 1rem" }}>
       <div style={{ position: "absolute", width: 520, height: 400, borderRadius: "50%",
@@ -431,66 +414,95 @@ function PhoneQuest() {
               width: 110, height: 28, borderRadius: 999, background: "#000", border: "1px solid rgba(255,255,255,0.07)" }}/>
             <span style={{ position: "absolute", left: 14, top: 15, fontFamily: SANS, fontSize: "0.6rem", fontWeight: 700, color: "rgba(255,255,255,0.9)" }}>9:41</span>
           </div>
-          <div style={{ height: 540, position: "relative", overflow: "hidden", background: "#faf9f5",
-            backgroundImage: "radial-gradient(circle,rgba(29,78,216,0.06) 1px,transparent 1px)", backgroundSize: "14px 14px" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 5,
-              background: "rgba(238,244,255,0.92)", backdropFilter: "blur(12px)",
-              borderBottom: "1px solid rgba(29,78,216,0.1)", padding: "8px 10px 7px",
-              display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontFamily: "Georgia,serif", fontWeight: 600, fontSize: "0.88rem",
-                background: "linear-gradient(135deg,#0f172a 30%,#1d4ed8)",
-                WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Quest</span>
-              <div style={{ display: "flex", gap: 4 }}>
-                <div style={{ fontFamily: SANS, fontSize: "0.42rem", fontWeight: 700, color: "#1d4ed8",
-                  background: "#f0f5ff", border: "1px solid #dbeafe", borderRadius: 6, padding: "2px 6px",
-                  display: "flex", alignItems: "baseline", gap: 2 }}>
-                  <span style={{ fontWeight: 700, fontSize: "0.52rem" }}>3</span>active
-                </div>
-                <div style={{ fontFamily: SANS, fontSize: "0.42rem", fontWeight: 700, color: "#059669",
-                  background: "#d1fae5", border: "1px solid rgba(5,150,105,0.2)", borderRadius: 6, padding: "2px 6px",
-                  display: "flex", alignItems: "baseline", gap: 2 }}>
-                  <span style={{ fontWeight: 700, fontSize: "0.52rem" }}>1</span>done
-                </div>
-              </div>
-            </div>
-            <div style={{ position: "absolute", top: 40, left: 8, right: 8, zIndex: 3, display: "flex", flexDirection: "column", gap: 6 }}>
-              {quests.map((q, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={iv ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.4, delay: 0.3 + i * 0.15 }}
-                  style={{ background: "#fff", borderRadius: 10, border: "1px solid #e6dfd8",
-                    padding: "8px 10px", boxShadow: "0 1px 4px rgba(15,23,42,0.05)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-                    <span style={{ fontFamily: SANS, fontSize: "0.4rem", fontWeight: 700, letterSpacing: "0.04em",
-                      textTransform: "uppercase", background: q.bg, color: q.color, borderRadius: 5, padding: "2px 6px" }}>
-                      {q.category}
-                    </span>
-                    <span style={{ fontFamily: SANS, fontSize: "0.4rem", fontWeight: 700, color: "#6a6760",
-                      background: "#faf9f5", border: "1px solid #e6dfd8", borderRadius: 4, padding: "1px 5px" }}>
-                      {q.time}
-                    </span>
-                  </div>
-                  <div style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.52rem", color: "#141413", lineHeight: 1.3, marginBottom: 6 }}>{q.title}</div>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    <div style={{ flex: 1, fontFamily: SANS, fontSize: "0.38rem", fontWeight: 700,
-                      color: "#fff", background: "linear-gradient(135deg,#1d4ed8,#3b82f6)",
-                      borderRadius: 5, padding: "3px 0", textAlign: "center" }}>Complete</div>
-                    <div style={{ fontFamily: SANS, fontSize: "0.38rem", fontWeight: 600,
-                      color: "#494742", background: "#f0ede6", border: "1px solid #e6dfd8",
-                      borderRadius: 5, padding: "3px 8px" }}>Remove</div>
+          <div style={{ height: 540, position: "relative", overflow: "hidden", background: "#f5f1ed" }}>
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}>
+              {/* Scrollable content */}
+              <div style={{ flex: 1, overflow: "hidden", padding: "14px 12px 4px" }}>
+                <motion.div initial={{ opacity: 0, y: 6 }} animate={iv ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.4, delay: 0.2 }}>
+                  <div style={{ fontFamily: SANS, fontSize: "0.4rem", fontWeight: 700, letterSpacing: "0.06em",
+                    textTransform: "uppercase", color: "#1d4ed8", marginBottom: 3 }}>Your Roadmap · 5 Months</div>
+                  <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.78rem", color: "#141413",
+                    letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: 4 }}>SAT 1550+ Prep Roadmap</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 2, fontFamily: SANS, fontSize: "0.42rem",
+                    fontWeight: 500, color: "#8a8680", marginBottom: 10 }}>
+                    View full plan
+                    <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="#8a8680" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                   </div>
                 </motion.div>
-              ))}
+
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={iv ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.4, delay: 0.32 }}
+                  style={{ background: "#fff", borderRadius: 10, border: "1px solid #e6dfd8", padding: "7px 9px", marginBottom: 8,
+                    boxShadow: "0 1px 4px rgba(15,23,42,0.05)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 13, height: 13, borderRadius: "50%", background: "#059669", flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: SANS, fontSize: "0.34rem", fontWeight: 700, letterSpacing: "0.03em",
+                        textTransform: "uppercase", color: "#8a8680" }}>Phase 1 · 1 mo <span style={{ color: "#059669" }}>Readiness 35</span></div>
+                      <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.48rem", color: "#141413", marginTop: 1 }}>Diagnostic and Fundamentals</div>
+                    </div>
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#8a8680" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                </motion.div>
+
+                <motion.p initial={{ opacity: 0 }} animate={iv ? { opacity: 1 } : {}} transition={{ duration: 0.4, delay: 0.4 }}
+                  style={{ fontFamily: BODY, fontSize: "0.36rem", color: "#6a6760", lineHeight: 1.55, margin: "0 0 9px" }}>
+                  Pinpoint your weak spots with a full practice test, then rebuild the core skills that both sections rely on.
+                </motion.p>
+
+                {ROADMAP_PROJECTS.map((q, i) => (
+                  <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={iv ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.4, delay: 0.5 + i * 0.15 }}
+                    style={{ background: "#fff", borderRadius: 9, border: "1px solid #e6dfd8", borderLeft: "2.5px solid #1d4ed8",
+                      padding: "7px 9px", marginBottom: 7, boxShadow: "0 1px 4px rgba(15,23,42,0.05)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ fontFamily: SANS, fontSize: "0.32rem", fontWeight: 700, letterSpacing: "0.04em",
+                          textTransform: "uppercase", background: "#f0f5ff", color: "#1d4ed8", borderRadius: 4, padding: "1.5px 5px" }}>Project</span>
+                        <span style={{ fontFamily: SANS, fontSize: "0.32rem", color: "#8a8680" }}>{q.date}</span>
+                      </div>
+                      <span style={{ fontFamily: SANS, fontSize: "0.32rem", fontWeight: 700, color: q.chip === "Open" ? "#6a6760" : "#1d4ed8",
+                        background: q.chip === "Open" ? "#f0ede6" : "#f0f5ff", border: `1px solid ${q.chip === "Open" ? "#e6dfd8" : "#dbeafe"}`,
+                        borderRadius: 4, padding: "1.5px 5px" }}>{q.chip}</span>
+                    </div>
+                    <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.42rem", color: "#141413", lineHeight: 1.3, marginBottom: 3 }}>{q.title}</div>
+                    <div style={{ fontFamily: BODY, fontSize: "0.32rem", color: "#8a8680", lineHeight: 1.5 }}>{q.body}</div>
+                  </motion.div>
+                ))}
+
+                {LOCKED_PHASES.map((ph, i) => (
+                  <motion.div key={ph.title} initial={{ opacity: 0, y: 6 }} animate={iv ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.4, delay: 0.8 + i * 0.1 }}
+                    style={{ background: "rgba(255,255,255,0.6)", borderRadius: 9, border: "1px solid #e6dfd8",
+                      padding: "6px 9px", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#a9a49a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/>
+                    </svg>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontFamily: SANS, fontSize: "0.3rem", fontWeight: 700, letterSpacing: "0.03em",
+                        textTransform: "uppercase", color: "#a9a49a" }}>{ph.label}</div>
+                      <div style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.38rem", color: "#8a8680", marginTop: 1 }}>{ph.title}</div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Bottom nav */}
+              <div style={{ flexShrink: 0, borderTop: "1px solid #e6dfd8", background: "rgba(255,255,255,0.92)",
+                padding: "6px 4px 5px", display: "flex", justifyContent: "space-around", alignItems: "center" }}>
+                {NAV_ICONS.map((n) => (
+                  <div key={n.key} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={n.active ? "#1d4ed8" : "#a9a49a"}
+                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      {n.circle && <circle cx="12" cy="12" r="9"/>}
+                      <path d={n.d}/>
+                    </svg>
+                  </div>
+                ))}
+              </div>
             </div>
-            <motion.div initial={{ opacity: 0 }} animate={iv ? { opacity: 1 } : {}}
-              transition={{ duration: 0.5, delay: 0.9 }}
-              style={{ position: "absolute", bottom: 12, left: 8, right: 8, zIndex: 3,
-                background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", borderRadius: 10,
-                padding: "7px 10px", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M12 5v14M5 12h14"/>
-              </svg>
-              <span style={{ fontFamily: SANS, fontSize: "0.48rem", fontWeight: 700, color: "#fff" }}>Generate new quests</span>
-            </motion.div>
           </div>
           <div style={{ height: 20, background: "#000", display: "flex", alignItems: "center", justifyContent: "center",
             borderBottomLeftRadius: 41, borderBottomRightRadius: 41 }}>
@@ -566,12 +578,12 @@ function ChatWindow() {
       <div style={{ position: "absolute", inset: -30, borderRadius: 30,
         background: "radial-gradient(ellipse, rgba(37,99,235,0.14), transparent 70%)",
         filter: "blur(40px)", pointerEvents: "none" }}/>
-      <MacFrame title="Mentora · AI Career Mentor" width={660} style={{ position: "relative" }}>
+      <MacFrame title="Mentorable Chat · AI Career Mentor" width={660} style={{ position: "relative" }}>
         <div style={{ height: 54, flexShrink: 0, padding: "0 18px", display: "flex", alignItems: "center", gap: 10,
           background: "rgba(248,250,255,0.95)", borderBottom: `1px solid ${BDR}` }}>
           <AgentAvatar size={30}/>
           <div>
-            <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.92rem", color: FG, letterSpacing: "-0.02em" }}>Mentora</span>
+            <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.92rem", color: FG, letterSpacing: "-0.02em" }}>Mentorable Chat</span>
             <span style={{ fontFamily: BODY, fontSize: "0.74rem", color: MUT, marginLeft: 6 }}>· AI Career Mentor</span>
           </div>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, padding: "4px 11px",
@@ -725,18 +737,20 @@ function Hero() {
 }
 
 // ─── Feature row ──────────────────────────────────────────────────────────────
-function FeatureRow({ label, italic, rest, body, items, visual, flip }) {
+function FeatureRow({ label, italic, rest, body, items, visual, flip, center }) {
   return (
     <ScrollScale>
       <div className="lp-row" style={{ display: "flex", alignItems: "center",
         gap: "clamp(2.5rem,6vw,6rem)", flexDirection: flip ? "row-reverse" : "row",
         maxWidth: 1120, margin: "0 auto", padding: "3rem clamp(1.25rem,4vw,2.5rem)" }}>
-        <div className="lp-textcol" style={{ flex: "0 0 46%" }}>
+        <div className="lp-textcol" style={{ flex: "0 0 46%", textAlign: center ? "center" : "left",
+          display: "flex", flexDirection: "column", alignItems: center ? "center" : "flex-start" }}>
           <FadeUp>
             <Label>{label}</Label>
             <Heading italic={italic} rest={rest} size="clamp(2rem,3.6vw,2.9rem)"/>
             <p style={{ fontFamily: BODY, fontWeight: 300, fontSize: "1.02rem", color: MUT,
-              lineHeight: 1.85, margin: "1.6rem 0 0", maxWidth: 420 }}>{body}</p>
+              lineHeight: 1.85, margin: "1.6rem 0 0", maxWidth: 420, marginLeft: center ? "auto" : 0,
+              marginRight: center ? "auto" : 0 }}>{body}</p>
             {items && (
               <ul style={{ listStyle: "none", padding: 0, margin: "1.6rem 0 0", display: "flex", flexDirection: "column", gap: 13 }}>
                 {items.map((it) => (
@@ -868,8 +882,8 @@ export default function LandingPage() {
         <FeatureRow
           label="Step 01" italic="Discover" rest="your strengths."
           body="Our AI listens to your voice interview and extracts your profile, values, and career instincts automatically."
-          items={["Interests and passions","Work style and values","Career curiosity and goals","Communication patterns"]}
           visual={<VoiceOrb/>}
+          center
           flip={false}/>
 
         <FeatureRow

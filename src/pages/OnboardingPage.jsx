@@ -508,27 +508,6 @@ function IntroPhase({ onStart, loading, retryNotice }) {
         }}
       >
         <Logo />
-        <motion.div
-          initial={{ opacity:0, scale:0.88 }}
-          animate={{ opacity:1, scale:1 }}
-          transition={{ duration:0.5, ease:[0.16,1,0.3,1], delay:0.2 }}
-        >
-          <div style={{
-            display:"inline-flex", alignItems:"center", gap:8,
-            padding:"6px 16px", borderRadius:100,
-            border:`1.5px solid ${BORDER}`,
-            background:CARD, boxShadow:"0 2px 12px rgba(59,91,252,0.1)",
-          }}>
-            <span style={{
-              width:7, height:7, borderRadius:"50%",
-              background:"#22c55e", boxShadow:"0 0 8px #22c55e99",
-              animation:"ob-blink 2s ease-in-out infinite",
-            }}/>
-            <span style={{ fontFamily:SANS, fontWeight:600, fontSize:"0.85rem", color:ACCENT, letterSpacing:"0.04em" }}>
-              Voice interview · Ready
-            </span>
-          </div>
-        </motion.div>
       </motion.div>
 
       {/* ── Two-column body ────────────────────────────────────────────────── */}
@@ -579,7 +558,7 @@ function IntroPhase({ onStart, loading, retryNotice }) {
               fontWeight:400, margin:0,
             }}
           >
-            Your personal college and career guide. The kind of support that used to cost hundreds of dollars per session, now free.
+            Hit the call button and have a short voice conversation with your AI advisor. Just talk naturally, no forms to fill out. It takes about 3 minutes and helps us tailor everything to you.
           </motion.p>
 
           {/* Topics */}

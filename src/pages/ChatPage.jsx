@@ -695,7 +695,7 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
         <AgentAvatar size={28} />
         <div>
           <span style={{ fontFamily: JK, fontWeight: 700, fontSize: 14, color: NAVY, letterSpacing: "-0.03em" }}>
-            Mentora
+            Mentorable Chat
           </span>
           <span style={{ fontFamily: SG, fontSize: 11, color: "#6a6760", fontWeight: 500, marginLeft: 6 }}>
             · AI Career Mentor
