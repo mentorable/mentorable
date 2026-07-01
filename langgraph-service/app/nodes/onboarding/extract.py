@@ -138,18 +138,23 @@ def _parse_profile(text: str):
     return None
 
 
-async def extract_profile(user_id: str, transcript: str) -> dict:
+async def extract_profile(user_id: str, transcript: str, force: bool = False) -> dict:
     """Run the two-stage extraction and persist the profile. Never raises — on a transient
     AI failure it returns {sufficient: True, success: False, error} so the client shows the
-    recoverable retry UI (the saved transcript lets the user re-run) instead of a hard error."""
+    recoverable retry UI (the saved transcript lets the user re-run) instead of a hard error.
+
+    `force` skips the sufficiency gate (both the length floor and the Haiku qualitative check).
+    Set when the student deliberately ends the call — that's their call to make, so we take our
+    best shot at a profile from whatever they shared instead of making them start over."""
     supabase = get_supabase()
     now = datetime.now(timezone.utc).isoformat()
 
     transcript = (transcript or "").strip()
 
     # ── Step 0: Empty / too-short transcript → not sufficient, skip the AI calls ──
-    # Need at least a little back-and-forth to build anything meaningful.
-    if len(transcript) < 40:
+    # Need at least a little back-and-forth to build anything meaningful. A forced end still
+    # needs *something* to extract from — an empty transcript has nothing to work with.
+    if not transcript or (len(transcript) < 40 and not force):
         return {"sufficient": False}
 
     # ── Step 1: Save raw transcript immediately for recovery ──────────────────
@@ -163,25 +168,27 @@ async def extract_profile(user_id: str, transcript: str) -> dict:
     # ── Step 2: Sufficiency check (Haiku) ─────────────────────────────────────
     # If Haiku is unavailable, don't fail the whole onboarding on the *gate* — we already
     # know the transcript is non-trivial, so proceed to extraction and let that be the judge.
-    try:
-        check = await _create_with_retry(
-            model=HAIKU,
-            max_tokens=64,
-            messages=[{
-                "role": "user",
-                "content": (
-                    "A student just finished a voice onboarding conversation with an AI career guide. "
-                    "Did the student share enough personal information (interests, strengths, goals, or "
-                    'experiences) to meaningfully build a career profile? Reply with only "yes" or "no".\n\n'
-                    f"Transcript:\n{transcript}"
-                ),
-            }],
-        )
-        check_text = (check.content[0].text if check.content else "").strip().lower()
-        if not check_text.startswith("yes"):
-            return {"sufficient": False}
-    except Exception as exc:
-        logger.warning(f"[onboarding] sufficiency check failed for {user_id}, proceeding: {exc}")
+    # Skipped entirely on a forced (manual) end — the user chose to stop, so we don't second-guess it.
+    if not force:
+        try:
+            check = await _create_with_retry(
+                model=HAIKU,
+                max_tokens=64,
+                messages=[{
+                    "role": "user",
+                    "content": (
+                        "A student just finished a voice onboarding conversation with an AI career guide. "
+                        "Did the student share enough personal information (interests, strengths, goals, or "
+                        'experiences) to meaningfully build a career profile? Reply with only "yes" or "no".\n\n'
+                        f"Transcript:\n{transcript}"
+                    ),
+                }],
+            )
+            check_text = (check.content[0].text if check.content else "").strip().lower()
+            if not check_text.startswith("yes"):
+                return {"sufficient": False}
+        except Exception as exc:
+            logger.warning(f"[onboarding] sufficiency check failed for {user_id}, proceeding: {exc}")
 
     # ── Step 3: Full profile extraction (Sonnet) ──────────────────────────────
     try:

@@ -446,10 +446,11 @@ async def onboarding_extract(raw: Request, user_id: str = Depends(verify_jwt)):
         body = {}
 
     transcript = (body.get("transcript") or "").strip()
+    force = bool(body.get("force"))
     # user_id comes from the verified JWT — body userId (if any) is ignored for safety.
 
     try:
-        return await extract_profile(user_id, transcript)
+        return await extract_profile(user_id, transcript, force=force)
     except Exception as exc:
         logger.error(f"[onboarding] Unexpected error for {user_id}: {exc}")
         raise HTTPException(status_code=500, detail="Profile extraction failed")

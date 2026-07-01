@@ -13,7 +13,7 @@ const LANGGRAPH_CHAT_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
 // ─── Onboarding extraction ────────────────────────────────────────────────────
 // Calls FastAPI POST /onboarding/extract. Returns { sufficient, success?, profile?, error? }.
-export async function extractProfile({ transcript }) {
+export async function extractProfile({ transcript, force = false }) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Not authenticated");
 
@@ -23,7 +23,7 @@ export async function extractProfile({ transcript }) {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${session.access_token}`,
     },
-    body: JSON.stringify({ transcript }),
+    body: JSON.stringify({ transcript, force }),
   });
 
   if (!res.ok) {

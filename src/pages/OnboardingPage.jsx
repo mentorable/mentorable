@@ -778,7 +778,7 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef 
         )}
 
         <motion.button
-          onClick={onEnd}
+          onClick={() => onEnd(true)}
           whileHover={{ borderColor:ACCENT, color:ACCENT }}
           transition={{ duration:0.15 }}
           style={{
@@ -1194,7 +1194,7 @@ export default function OnboardingPage() {
     }
   };
 
-  const endConversation = async () => {
+  const endConversation = async (manual = false) => {
     clearInterval(timerRef.current);
     try { await conversation.endSession(); } catch { /* already closed */ }
     setPhase("processing");
@@ -1210,10 +1210,14 @@ export default function OnboardingPage() {
       // Delegate sufficiency check + extraction + DB save to the server.
       // Routes to LangGraph FastAPI when the flag is set, else the edge function.
       // Either way the Anthropic key stays off the client.
-      const result = await extractProfile({ transcript: transcriptText, userId: freshUser.id });
+      // `force` skips the sufficiency gate when the student deliberately ended the call —
+      // that's their call to make, so we build the best profile we can instead of making
+      // them start over. Auto-ends (silence timeout, max call time) still go through the gate.
+      const result = await extractProfile({ transcript: transcriptText, userId: freshUser.id, force: manual });
 
       if (!result?.sufficient) {
-        // Not enough info — clear saved partial transcript and offer a retry
+        // Not enough info at all (e.g. call ended with no real conversation) — clear the
+        // saved partial transcript and offer a retry.
         supabase.from("profiles").update({ raw_voice_transcript: null }).eq("id", freshUser.id).then(() => {});
         setTranscript([]);
         transcriptRef.current = [];
