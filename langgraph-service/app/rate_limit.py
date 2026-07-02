@@ -7,13 +7,13 @@ from app.config import DEV_BYPASS_EMAILS
 logger = logging.getLogger(__name__)
 
 LIMITS = {
-    "chat": 15,
-    "research": 3,
+    "chat": 8,
+    "research": 2,
     "quest_gen": 3,
     "axis_boost": 5,
     "roadmap_gen": 1,    # the one-time broad outline
     "phase_gen": 5,      # per-phase node generation (sequential)
-    "node_expand": 15,   # nodes are per-phase now, several per phase
+    "node_expand": 6,    # nodes are per-phase now, several per phase
     "roadmap_reeval": 1, # retired in v3 (kept for back-compat)
 }
 

@@ -2,16 +2,15 @@
 Research pipeline — exact port of supabase/functions/run-research/index.ts.
 Runs as a single async function called from the FastAPI /research endpoint.
 
-Steps:
+Steps (cost-optimized for the public demo — 2 Sonnet calls, was 3):
   1. Cache check (7-day, same query same user)
   2. Load profile + quest context
-  3. Decompose query → 2–4 sub-queries (Claude Sonnet)
-  4. Parallel Brave searches + deduplication
-  5. Synthesize + rank top 6–8 results (Claude Sonnet)
-  6. Parallel page fetches (top 5, 6s timeout)
-  7. Enrich + game plans (Claude Sonnet)
-  8. Merge + save to research_sessions
-  9. Extract top 3 findings → write to profiles.research_findings (LangGraph memory)
+  3. Decompose query → ≤3 sub-queries (Claude Sonnet)
+  4. Parallel Brave searches (count=6) + deduplication
+  5. Parallel page fetches (top 3 candidates by rank, 6s timeout)
+  6. Single synthesize+enrich call: select 6–8, structure, + game plans (Claude Sonnet)
+  7. Save to research_sessions
+  8. Extract top 3 findings → write to profiles.research_findings (LangGraph memory)
 """
 import asyncio
 import json
@@ -31,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 SONNET = "claude-sonnet-4-6"
-TOP_N  = 5
+TOP_N  = 3   # pages fetched + deeply enriched (was 5) — demo cost
 
 
 def _parse_json(text: str, fallback):
@@ -192,12 +191,12 @@ async def run_research(user_id: str, query: str, session_id: str) -> dict:
     quests_block  = _build_quests_block(quests)
     context = profile_block + ("\n\n" + quests_block if quests_block else "")
 
-    # ── 3. Decompose query ────────────────────────────────────────────────────
+    # ── 3. Decompose query (≤3 sub-queries — demo cost) ───────────────────────
     decompose_res = await _anthropic.messages.create(
         model=SONNET, max_tokens=400,
         system=(
             "You generate targeted search queries to find opportunities for high school students. "
-            "Given the student's original query and their profile, produce 2–4 specific sub-queries "
+            "Given the student's original query and their profile, produce 2–3 specific sub-queries "
             "that together cover the full intent. Make each query distinct. "
             "Return ONLY valid JSON: {\"subQueries\": [\"query1\", \"query2\", ...]}"
         ),
@@ -208,10 +207,10 @@ async def run_research(user_id: str, query: str, session_id: str) -> dict:
     sub_queries = parsed.get("subQueries", [normalized])
     if not isinstance(sub_queries, list) or not sub_queries:
         sub_queries = [normalized]
-    sub_queries = sub_queries[:4]
+    sub_queries = sub_queries[:3]
 
-    # ── 4. Parallel Brave searches ────────────────────────────────────────────
-    search_batches = await asyncio.gather(*[_brave_search(q) for q in sub_queries])
+    # ── 4. Parallel Brave searches (count=6 — demo cost) ──────────────────────
+    search_batches = await asyncio.gather(*[_brave_search(q, count=6) for q in sub_queries])
     seen_urls: set[str] = set()
     all_results: list[dict] = []
     for batch in search_batches:
@@ -224,86 +223,79 @@ async def run_research(user_id: str, query: str, session_id: str) -> dict:
         raise ValueError("Search returned no results. Try a more specific query.")
 
     valid_urls = {r["url"] for r in all_results}
-    raw_text = "\n\n".join(f"[{i+1}] {r['title']}\nURL: {r['url']}\n{r['description']}" for i, r in enumerate(all_results))
 
-    # ── 5. Synthesize + rank ──────────────────────────────────────────────────
-    synth_res = await _anthropic.messages.create(
-        model=SONNET, max_tokens=4000,
+    # ── 5. Fetch the top candidates' pages up front, BY BRAVE RANK, so a single
+    #      Sonnet call can select + structure + write game plans in one pass.
+    #      (Was: synthesize → fetch synthesized winners → enrich. Merged to cut a
+    #      whole Sonnet call for the demo; page targeting is now by rank, not model pick.)
+    top_candidates = all_results[:TOP_N]
+    pages = await asyncio.gather(*[_fetch_page(r["url"]) for r in top_candidates])
+    fetched = {top_candidates[i]["url"]: pages[i] for i in range(len(top_candidates))}
+
+    snippets_block = "\n\n".join(
+        f"[{i+1}] {r['title']}\nURL: {r['url']}\n{r['description']}" for i, r in enumerate(all_results)
+    )
+    pages_block = "\n\n---\n\n".join(
+        f"PAGE — {r['title']}\nURL: {r['url']}\nCONTENT:\n{pages[i]['text']}"
+        for i, r in enumerate(top_candidates) if pages[i]["ok"] and pages[i]["text"]
+    ) or "(No page content could be fetched. Work from the snippets above.)"
+
+    # ── 6. Single merged call: select + structure + game plans ────────────────
+    merged_res = await _anthropic.messages.create(
+        model=SONNET, max_tokens=3000,
         system=(
             "You are a research curator helping high school students find real career opportunities. "
-            "Given raw search results and a student's profile, select and structure the 6–8 most genuinely useful results. "
-            "For each result classify type: competition, internship, scholarship, program, resource, or article. "
-            "Write a clear 2-3 sentence description and a 1-sentence relevance note referencing the student's profile. "
-            "In all text you write, NEVER use em dashes (the long dash); use commas or periods instead. "
-            "Use only exact URLs from the input. "
-            'Return ONLY valid JSON: {"results": [{"type":"...","name":"...","description":"...","details":{},"url":"...","relevance_note":"..."}], "sources": [{"title":"...","url":"..."}]}'
+            "From the raw search snippets (numbered) plus the fetched page content for the top few, "
+            "select and structure the 6–8 most genuinely useful results. For each result: classify "
+            "type (competition, internship, scholarship, program, resource, or article); write a clear "
+            "2-3 sentence description and a 1-sentence relevance note referencing the student's profile; "
+            "and extract whatever structured details the source supports (deadline, eligibility, "
+            "location, award/compensation, application link, selection criteria) — omit fields you "
+            "cannot find. For results that have fetched page content, ALSO write a 'gamePlan' of 3–4 "
+            "sentences tailored to this student's interests, strengths, or career matches. "
+            "Use ONLY exact URLs from the input. NEVER use em dashes (the long dash); use commas or "
+            "periods instead. Return ONLY valid JSON: "
+            '{"results":[{"type":"...","name":"...","description":"...","relevance_note":"...","url":"...",'
+            '"details":{"deadline":"...","eligibility":"...","location":"...","compensation":"...",'
+            '"applicationLink":"...","selectionCriteria":"..."},"gamePlan":"..."}],'
+            '"sources":[{"title":"...","url":"..."}]}'
         ),
-        messages=[{"role": "user", "content": f'QUERY: "{normalized}"\n\n{context}\n\nRAW RESULTS ({len(all_results)} unique, from {len(sub_queries)} sub-queries):\n{raw_text}'}],
+        messages=[{"role": "user", "content": (
+            f'QUERY: "{normalized}"\n\n{context}\n\n'
+            f"SEARCH RESULTS ({len(all_results)} unique, from {len(sub_queries)} sub-queries):\n{snippets_block}\n\n"
+            f"{'─'*40}\n\nFETCHED PAGE CONTENT (top {len(top_candidates)}):\n{pages_block}"
+        )}],
     )
-    synth_text   = synth_res.content[0].text if synth_res.content else ""
-    synthesized  = _parse_json(synth_text, {"results": [], "sources": []})
-    synthesized["results"] = [r for r in (synthesized.get("results") or []) if r.get("url") in valid_urls]
-    synthesized["sources"] = [s for s in (synthesized.get("sources") or []) if s.get("url") in valid_urls]
+    merged_text = merged_res.content[0].text if merged_res.content else ""
+    merged      = _parse_json(merged_text, {"results": [], "sources": []})
 
-    if not synthesized["results"]:
+    results_in = [r for r in (merged.get("results") or []) if r.get("url") in valid_urls]
+    sources    = [s for s in (merged.get("sources") or []) if s.get("url") in valid_urls]
+    if not results_in:
         raise ValueError("Could not identify relevant results. Try a different query.")
 
-    # ── 6. Parallel page fetches ──────────────────────────────────────────────
-    top = synthesized["results"][:TOP_N]
-    pages = await asyncio.gather(*[_fetch_page(r["url"]) for r in top])
-
-    # ── 7. Enrich + game plans ────────────────────────────────────────────────
-    pages_block = "\n\n---\n\n".join(
-        f"RESULT {i} — {r['name']}\nURL: {r['url']}\n" + (
-            f"PAGE CONTENT:\n{pages[i]['text']}" if pages[i]["ok"]
-            else f"PAGE UNAVAILABLE. Use snippet: {next((a['description'] for a in all_results if a['url'] == r['url']), '')}"
-        )
-        for i, r in enumerate(top)
-    )
-    enrich_res = await _anthropic.messages.create(
-        model=SONNET, max_tokens=5000,
-        system=(
-            f"You extract structured data from web pages and write personalized application strategies for high school students. "
-            f"For EACH of the {TOP_N} results: extract official name, eligibility, deadline, application URL, award, selection criteria. "
-            f"Write a 'gamePlan' of 3–4 sentences tailored to this student referencing their interests, strengths, or career matches. "
-            "Return ONLY a valid JSON array: "
-            '[{"index":0,"enriched":{"name":"...","description":"...","details":{"deadline":"...","eligibility":"...","location":"...","compensation":"...","applicationLink":"...","selectionCriteria":"..."},"pageEnriched":true},"gamePlan":"..."}]'
-        ),
-        messages=[{"role": "user", "content": f"STUDENT:\n{context}\n\n{'─'*40}\n\nRESULTS TO ENRICH:\n{pages_block}"}],
-    )
-    enrich_text  = enrich_res.content[0].text if enrich_res.content else ""
-    enrichments  = _parse_json(enrich_text, [])
-
-    # ── 8. Merge enrichment into final results ────────────────────────────────
+    # pageEnriched is decided server-side: true only when we truly fetched an ok page for that URL
+    # (don't trust the model's self-report). Drives the "Verified" badge in the UI.
     final_results = []
-    for i, r in enumerate(synthesized["results"]):
-        if i < TOP_N and isinstance(enrichments, list):
-            enrich = next((e for e in enrichments if e.get("index") == i), None)
-            if enrich:
-                r = {
-                    **r,
-                    "name":        enrich.get("enriched", {}).get("name") or r.get("name"),
-                    "description": enrich.get("enriched", {}).get("description") or r.get("description"),
-                    "details":     {**(r.get("details") or {}), **(enrich.get("enriched", {}).get("details") or {})},
-                    "pageEnriched": enrich.get("enriched", {}).get("pageEnriched", False),
-                    "gamePlan":    enrich.get("gamePlan"),
-                }
+    for r in results_in:
+        pg = fetched.get(r.get("url"))
+        r["pageEnriched"] = bool(pg and pg.get("ok") and pg.get("text"))
         final_results.append(r)
 
-    payload = {"results": final_results, "sources": synthesized["sources"]}
+    payload = {"results": final_results, "sources": sources}
 
     # Save to research_sessions
     supabase.from_("research_sessions").update(
         {"results": payload, "status": "completed", "updated_at": datetime.now(timezone.utc).isoformat()}
     ).eq("id", session_id).execute()
 
-    # ── 9. Write top 3 findings to LangGraph memory (profiles.research_findings) ─
+    # ── 7. Write top 3 findings to LangGraph memory (profiles.research_findings) ─
     asyncio.create_task(_save_research_findings(user_id, normalized, final_results[:3], session_id))
     # Scorecard: a real research run builds Resourcefulness (background, never blocks).
     asyncio.create_task(award_axis(user_id, "resourcefulness", 3, f"Researched: {normalized[:60]}", "research"))
 
     logger.info(f"[research] Completed for user {user_id} — {len(final_results)} results")
-    return {"results": final_results, "sources": synthesized["sources"], "cached": False}
+    return {"results": final_results, "sources": sources, "cached": False}
 
 
 async def _save_research_findings(user_id: str, query: str, top_results: list, session_id: str) -> None:

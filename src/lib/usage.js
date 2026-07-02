@@ -1,11 +1,11 @@
 export const LIMITS = {
-  chat: 15,
-  research: 3,
+  chat: 8,
+  research: 2,
   quest_gen: 3,
   axis_boost: 5,
   roadmap_gen: 1,
   phase_gen: 5,
-  node_expand: 15,
+  node_expand: 6,
   roadmap_reeval: 1,
 }
 

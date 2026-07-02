@@ -61,15 +61,15 @@ Python + FastAPI on Railway. Holds the Anthropic key. JWT-authed (`verify_jwt` v
 
 | Endpoint | Purpose | Calls |
 |---|---|---|
-| `POST /chat` | Streams Sonnet 4.6 (SSE), tool-use loop for `add_quest_to_board`. Rate-limited: 15/lifetime | Anthropic |
-| `POST /research` | Brave Search → page fetch → Sonnet synthesis. Rate-limited: 3/lifetime | Brave, Anthropic |
+| `POST /chat` | Streams Sonnet 4.6 (SSE), tool-use loop for `add_quest_to_board`. Rate-limited: 8/lifetime | Anthropic |
+| `POST /research` | Brave Search → page fetch → Sonnet synthesis. Rate-limited: 2/lifetime | Brave, Anthropic |
 | `POST /quests/generate` | 1–5 quest suggestions from profile + research findings. Rate-limited: 3/lifetime | Anthropic |
 | `POST /scorecard/improve` | 3 axis-tagged quest suggestions for a weak axis. Rate-limited: 5/lifetime (`axis_boost`) | Anthropic |
 | `POST /roadmap/intake` | ≤3 gap-only pre-questions (Haiku). Free | Anthropic |
-| `POST /roadmap/generate` | One-time **broad phase OUTLINE** (Opus): `phases[]` with per-month concept focuses, `display_title`, typo-fixed `goal_clean`. No nodes. Rate-limited: 1/lifetime (`roadmap_gen`) | Anthropic |
-| `POST /roadmap/phase/generate` | Materializes ONE phase's `roadmap_nodes` (Opus) from outline + prior reflections; quietly revises later locked phases. Rate-limited: 5/lifetime (`phase_gen`) | Anthropic |
+| `POST /roadmap/generate` | One-time **broad phase OUTLINE** (Sonnet): `phases[]` with per-month concept focuses, `display_title`, typo-fixed `goal_clean`. No nodes. Rate-limited: 1/lifetime (`roadmap_gen`) | Anthropic |
+| `POST /roadmap/phase/generate` | Materializes ONE phase's `roadmap_nodes` (Sonnet) from outline + prior reflections; quietly revises later locked phases. Rate-limited: 5/lifetime (`phase_gen`) | Anthropic |
 | `POST /roadmap/phase/complete` | Scores the post-phase reflection → 0–100 readiness (Haiku), marks phase completed, mirrors to `living_profile.roadmap_progress`. Free | Anthropic |
-| `POST /roadmap/node/expand` | Brave-sourced references + inline-cited overview **+ a 3–5 item checklist** (`roadmap_tasks`) for one node (cached after first). Rate-limited: 15/lifetime (`node_expand`) | Brave, Anthropic |
+| `POST /roadmap/node/expand` | Brave-sourced references + inline-cited overview **+ a 3–5 item checklist** (`roadmap_tasks`) for one node (cached after first). Rate-limited: 6/lifetime (`node_expand`) | Brave, Anthropic |
 | `POST /onboarding/extract` | ElevenLabs transcript → 17-field profile + `axis_scores` + seeded `living_profile` (Haiku check + Sonnet extraction) | Anthropic |
 | `GET /health`, `GET /profile` | Health + profile probes | — |
 
@@ -109,11 +109,11 @@ The phase-based roadmap (`quests`/`quest_phases`/`quest_tasks`/`confidence_histo
 ### Rate Limits (Demo)
 
 Lifetime caps enforced via `check_and_increment_usage` Postgres RPC (atomic check + increment):
-- Chat: **15 messages**
-- Research: **3 queries**
+- Chat: **8 messages**
+- Research: **2 queries**
 - Quest generation: **3 generations**
 - Scorecard axis boost: **5**
-- Roadmap outline generation: **1** · Phase generation: **5** · Node expansion: **15** (roadmap re-evaluation retired in v3)
+- Roadmap outline generation: **1** · Phase generation: **5** · Node expansion: **6** (roadmap re-evaluation retired in v3)
 
 Dev bypass: accounts in the `dev_emails` array inside `check_and_increment_usage` (`app.mentora.ai@gmail.com`, `kwu.1600@gmail.com`) get `allowed: true` with no counter increment.
 

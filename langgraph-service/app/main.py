@@ -147,7 +147,13 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
                 async with _anthropic.messages.stream(
                     model="claude-sonnet-4-6",
                     max_tokens=2048,
-                    system=system_prompt,
+                    # Cache the tools+system prefix: it's stable across a session's messages,
+                    # so messages 2..N pay ~10% on the prefix instead of full price (demo cost).
+                    system=[{
+                        "type": "text",
+                        "text": system_prompt,
+                        "cache_control": {"type": "ephemeral"},
+                    }],
                     messages=conversation,
                     tools=CHAT_TOOLS,
                 ) as stream:

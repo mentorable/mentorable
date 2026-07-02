@@ -4,8 +4,8 @@ Roadmap generation (v3) — the ONE-TIME broad outline.
 v3 is phase-by-phase. This module only generates the big-picture OUTLINE: a short list of
 PHASES (the broad stages a student moves through), each spanning consecutive months and carrying
 a per-month "concept focus" list. NO real nodes are created here. Nodes for a phase are
-materialized later, one phase at a time, by `phase.py` (gated by a reflection). Uses OPUS for the
-strategic outline.
+materialized later, one phase at a time, by `phase.py` (gated by a reflection). Uses Sonnet
+(cost-optimized for the public demo; was Opus).
 
 See .claude/ROADMAP_REDESIGN.md.
 """
@@ -22,7 +22,7 @@ from app.db.supabase import get_supabase
 logger = logging.getLogger(__name__)
 
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-OPUS = "claude-opus-4-8"
+SONNET = "claude-sonnet-4-6"
 
 PILLARS = {"Project", "Research", "Activity", "Club"}
 
@@ -258,7 +258,7 @@ async def generate_roadmap(
     )
 
     response = await _anthropic.messages.create(
-        model=OPUS, max_tokens=4000, system=system,
+        model=SONNET, max_tokens=4000, system=system,
         messages=[{"role": "user", "content": user_prompt}],
     )
     text = response.content[0].text if response.content else ""

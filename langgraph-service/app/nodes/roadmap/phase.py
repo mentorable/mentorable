@@ -4,8 +4,9 @@ Roadmap phase generation (v3) — materialize ONE phase's nodes on demand.
 Sequential, reflection-gated. Reads the broad outline + everything the student has done and
 reflected on so far, then writes the concrete nodes (concepts / projects / activities) for the
 requested phase ONLY, and quietly revises the remaining LOCKED phases' outline so the path keeps
-adapting to where the student actually is. Uses OPUS. Nodes are stubs (no resources/tasks yet);
-those fill lazily on expand. There is no anchor/bridge/side taxonomy in v3.
+adapting to where the student actually is. Uses Sonnet (cost-optimized for the public demo; was
+Opus). Nodes are stubs (no resources/tasks yet); those fill lazily on expand. There is no
+anchor/bridge/side taxonomy in v3.
 
 See .claude/ROADMAP_REDESIGN.md.
 """
@@ -23,7 +24,7 @@ from app.nodes.roadmap.generate import (
 logger = logging.getLogger(__name__)
 
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-OPUS = "claude-opus-4-8"
+SONNET = "claude-sonnet-4-6"
 
 
 async def generate_phase(user_id: str, roadmap_id: str, phase_index: int) -> dict:
@@ -87,7 +88,7 @@ async def generate_phase(user_id: str, roadmap_id: str, phase_index: int) -> dic
             )
     history = "\n".join(history_lines) or "None yet (this is the first phase)."
 
-    # The full outline, so Opus can keep later phases coherent when revising them.
+    # The full outline, so the model can keep later phases coherent when revising them.
     outline_lines = []
     for p in phases:
         marker = ">>" if p["index"] == phase_index else ("done" if p.get("status") == "completed" else "")
@@ -151,7 +152,7 @@ async def generate_phase(user_id: str, roadmap_id: str, phase_index: int) -> dic
     )
 
     resp = await _anthropic.messages.create(
-        model=OPUS, max_tokens=4000, system=system,
+        model=SONNET, max_tokens=4000, system=system,
         messages=[{"role": "user", "content": user_prompt}],
     )
     parsed = _parse_json(resp.content[0].text if resp.content else "", {})

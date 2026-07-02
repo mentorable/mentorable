@@ -84,7 +84,7 @@ def _queries_for(node: dict, goal: str, allow_papers: bool) -> list[str]:
         qs.append(f"how to start or join a {title} club high school")
     if pillar == "Project":
         qs.append(f"{title} step by step guide")
-    return qs[:4]
+    return qs[:3]   # demo cost: 3 Brave searches per node (was 4)
 
 
 async def expand_node(user_id: str, node_id: str) -> dict:
@@ -226,4 +226,4 @@ async def expand_node(user_id: str, node_id: str) -> dict:
 
 async def _gather_searches(queries: list[str]) -> list[list[dict]]:
     import asyncio
-    return await asyncio.gather(*[_brave_search(q, count=8) for q in queries])
+    return await asyncio.gather(*[_brave_search(q, count=6) for q in queries])
