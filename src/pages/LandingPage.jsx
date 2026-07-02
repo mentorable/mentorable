@@ -298,7 +298,7 @@ const rPt = (a, r, cx, cy) => { const rad = (a - 90) * Math.PI / 180; return { x
 const rPoly = (sc, R, cx, cy) => sc.map((s, i) => { const p = rPt(360/sc.length*i, s*R, cx, cy); return `${p.x.toFixed(1)},${p.y.toFixed(1)}`; }).join(" ");
 
 function SkillRadar() {
-  const SIZE = 420, cx = 210, cy = 210, R = 142;
+  const SIZE = 480, cx = 240, cy = 240, R = 142;
   const ref = useRef(null);
   const iv  = useInView(ref, { once: true, margin: "-60px" });
   return (
@@ -353,7 +353,7 @@ function SkillRadar() {
           );
         })}
         {RADAR_AXES.map((label, i) => {
-          const p = rPt(360/5*i, R*1.4, cx, cy);
+          const p = rPt(360/5*i, R*1.1, cx, cy);
           const dx = p.x - cx;
           const anchor = Math.abs(dx) < 8 ? "middle" : dx > 0 ? "start" : "end";
           return <text key={label} x={p.x} y={p.y} textAnchor={anchor} dominantBaseline="middle"
