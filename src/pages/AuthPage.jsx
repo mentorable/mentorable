@@ -260,7 +260,9 @@ export default function AuthPage() {
           border: "1px solid rgba(148,163,184,0.2)",
           borderRadius: "1.25rem",
           boxShadow: "0 4px 24px rgba(0,0,0,0.05), 0 20px 60px rgba(0,0,0,0.07), 0 0 0 0.5px rgba(148,163,184,0.15)",
-          padding: "3rem 2.75rem",
+          // Clamp keeps desktop identical (resolves to 3rem/2.75rem above ~640px)
+          // while giving narrow phones breathing room.
+          padding: "clamp(1.75rem, 7.5vw, 3rem) clamp(1.25rem, 7vw, 2.75rem)",
         }}
       >
         {/* Logo */}
@@ -296,7 +298,7 @@ export default function AuthPage() {
               <h1 style={{
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 600,
-                fontSize: "2.5rem",
+                fontSize: "clamp(1.9rem, 8vw, 2.5rem)",
                 color: "#141413",
                 lineHeight: 1.18,
                 marginBottom: "0.5rem",

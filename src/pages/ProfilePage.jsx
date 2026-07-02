@@ -548,7 +548,7 @@ export default function ProfilePage({ navigate }) {
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            style={{ position: "fixed", bottom: "2rem", left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 600 }}
+            style={{ position: "fixed", bottom: isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : "2rem", left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 600 }}
           >
             <div style={{
               background: toast.type === "error" ? "#fef2f2" : toast.type === "warn" ? "#fffbeb" : "#141413",
@@ -577,9 +577,10 @@ export default function ProfilePage({ navigate }) {
         transition={{ delay: 0.4, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         style={{
           position: "fixed",
-          right: "1.5rem",
-          bottom: "2rem",
-          zIndex: 100,
+          right: isMobile ? "1rem" : "1.5rem",
+          // Clear the fixed 60px MobileNav on mobile.
+          bottom: isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : "2rem",
+          zIndex: 110,
           padding: "0.9rem 1.75rem",
           background: saving ? `${accent}99` : accent,
           color: "white",

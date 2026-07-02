@@ -282,7 +282,7 @@ function useTypewriter(targetText, active) {
 
 // ─── Message ──────────────────────────────────────────────────────────────────
 
-function Message({ msg }) {
+function Message({ msg, isMobile = false }) {
   const [copied, setCopied] = useState(false);
   const isUser      = msg.role === "user";
   const isStreaming  = Boolean(msg.streaming);
@@ -300,7 +300,7 @@ function Message({ msg }) {
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20, paddingLeft: 80 }}
+        style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20, paddingLeft: isMobile ? 32 : 80 }}
       >
         <div style={{
           background: ACCENT,
@@ -321,7 +321,7 @@ function Message({ msg }) {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      style={{ display: "flex", gap: 11, marginBottom: 20, paddingRight: 80, alignItems: "flex-start" }}
+      style={{ display: "flex", gap: 11, marginBottom: 20, paddingRight: isMobile ? 24 : 80, alignItems: "flex-start" }}
     >
       <AgentAvatar size={30} />
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -371,7 +371,7 @@ function sanitizeChatInput(text) {
   return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
 }
 
-function InputBar({ onSend, disabled }) {
+function InputBar({ onSend, disabled, isMobile = false }) {
   const [value, setValue] = useState("");
   const taRef = useRef(null);
 
@@ -394,7 +394,7 @@ function InputBar({ onSend, disabled }) {
   const nearLimit = value.length > MAX_INPUT * 0.85;
 
   return (
-    <div style={{ padding: "16px 28px 24px", flexShrink: 0 }}>
+    <div style={{ padding: isMobile ? "12px 14px 14px" : "16px 28px 24px", flexShrink: 0 }}>
       <div style={{
         background: "#fff",
         border: `1.5px solid ${value.length > MAX_INPUT ? "#ef4444" : value ? ACCENT + "60" : "rgba(29,78,216,0.12)"}`,
@@ -447,7 +447,7 @@ function InputBar({ onSend, disabled }) {
 
 // ─── WelcomeScreen ────────────────────────────────────────────────────────────
 
-function WelcomeScreen({ onSend, userName }) {
+function WelcomeScreen({ onSend, userName, isMobile = false }) {
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
   const firstName = userName?.split(" ")[0];
@@ -499,7 +499,7 @@ function WelcomeScreen({ onSend, userName }) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.38, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, width: "100%", maxWidth: 500 }}
+        style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8, width: "100%", maxWidth: 500 }}
       >
         {SUGGESTIONS.map((s, i) => (
           <motion.button
@@ -671,7 +671,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
 
 // ─── ChatMain ─────────────────────────────────────────────────────────────────
 
-function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, onOpenHistory, chatUsed = 0 }) {
+function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, onOpenHistory, chatUsed = 0, isMobile = false }) {
   const bottomRef = useRef(null);
   const isNew = activeChatId === null;
 
@@ -732,18 +732,18 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", padding: isNew ? 0 : "28px 28px 8px", position: "relative", zIndex: 1 }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: isNew ? 0 : isMobile ? "16px 14px 8px" : "28px 28px 8px", position: "relative", zIndex: 1 }}>
         {isNew ? (
-          <WelcomeScreen onSend={onSend} userName={userName} />
+          <WelcomeScreen onSend={onSend} userName={userName} isMobile={isMobile} />
         ) : (
           <>
             <AnimatePresence initial={false}>
-              {messages.map((msg) => <Message key={msg.id} msg={msg} />)}
+              {messages.map((msg) => <Message key={msg.id} msg={msg} isMobile={isMobile} />)}
             </AnimatePresence>
             {error && (
               <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                style={{ display: "flex", gap: 11, marginBottom: 20, paddingRight: 80, alignItems: "flex-start" }}
+                style={{ display: "flex", gap: 11, marginBottom: 20, paddingRight: isMobile ? 24 : 80, alignItems: "flex-start" }}
               >
                 <AgentAvatar size={30} />
                 <div style={{ background: "#fef2f2", borderRadius: "3px 16px 16px 16px", padding: "12px 16px", border: "1px solid #fecaca", maxWidth: 500 }}>
@@ -768,7 +768,7 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
           </div>
         );
       })()}
-      <InputBar onSend={onSend} disabled={disabled} />
+      <InputBar onSend={onSend} disabled={disabled} isMobile={isMobile} />
     </div>
   );
 }
@@ -1016,13 +1016,13 @@ export default function ChatPage({ navigate }) {
         <div
           style={{
             position: "fixed",
-            bottom: 24,
-            right: 24,
+            bottom: isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : 24,
+            right: isMobile ? 12 : 24,
             zIndex: 1000,
             display: "flex",
             alignItems: "center",
             gap: 10,
-            maxWidth: 340,
+            maxWidth: isMobile ? "calc(100vw - 24px)" : 340,
             padding: "12px 16px",
             background: "#1d4ed8",
             color: "#fff",
@@ -1048,6 +1048,8 @@ export default function ChatPage({ navigate }) {
           height: "100dvh",
           display: "flex",
           overflow: "hidden",
+          // Keep the input bar clear of the fixed 60px MobileNav.
+          paddingBottom: isMobile ? "calc(60px + env(safe-area-inset-bottom, 0px))" : 0,
         }}
       >
         <ChatMain
@@ -1059,6 +1061,7 @@ export default function ChatPage({ navigate }) {
           error={chatError}
           onOpenHistory={isMobile ? () => setHistoryOpen(true) : null}
           chatUsed={chatUsed}
+          isMobile={isMobile}
         />
         {!isMobile && historyPanel}
       </div>

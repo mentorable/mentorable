@@ -477,8 +477,12 @@ export default function ScorecardPage({ navigate }) {
         .sc-dot { width:20px; height:20px; border-radius:50%; cursor:pointer; border:none; padding:0; transition:transform .15s; }
         .sc-dot:hover { transform:scale(1.18); }
         @media (max-width: 860px) {
-          [data-sidebar-offset] { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
           .sc-grid { grid-template-columns: 1fr !important; }
+        }
+        /* Sidebar padding only drops once the sidebar itself is gone (useIsMobile < 768). */
+        @media (max-width: 767px) {
+          [data-sidebar-offset] { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
+          .sc-toast { bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important; right: 12px !important; }
         }
       `}</style>
 
@@ -595,7 +599,8 @@ export default function ScorecardPage({ navigate }) {
       <AnimatePresence>
         {addedToast > 0 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
-            style={{ position: "fixed", bottom: 24, right: 24, zIndex: 220, display: "flex", alignItems: "center", gap: 10, background: "#1d4ed8", color: "#fff", padding: "12px 16px", borderRadius: 12, boxShadow: "0 8px 24px rgba(29,78,216,0.32)", fontFamily: SANS, fontSize: 14 }}>
+            className="sc-toast"
+            style={{ position: "fixed", bottom: 24, right: 24, zIndex: 220, display: "flex", alignItems: "center", gap: 10, background: "#1d4ed8", color: "#fff", padding: "12px 16px", borderRadius: 12, boxShadow: "0 8px 24px rgba(29,78,216,0.32)", fontFamily: SANS, fontSize: 14, maxWidth: "calc(100vw - 24px)", flexWrap: "wrap" }}>
             ✓ Added {addedToast} quest{addedToast > 1 ? "s" : ""} to your board
             <button onClick={() => navigate("/quest")} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", fontFamily: SANS, fontWeight: 700, fontSize: 13, padding: "4px 10px", borderRadius: 7, cursor: "pointer" }}>View →</button>
           </motion.div>

@@ -213,7 +213,7 @@ function VoiceOrb() {
   const ref = useRef(null);
   const iv  = useInView(ref, { once: true, margin: "-80px" });
   return (
-    <div ref={ref} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+    <div ref={ref} className="lp-laptop" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
       padding: "2rem 0", perspective: "900px" }}>
       <motion.div
         initial={{ opacity: 0, y: 60 }}
@@ -664,7 +664,7 @@ function Navbar() {
       <div style={{ display: "flex", alignItems: "center", gap: "1.1rem" }}>
         <button onClick={() => go("/auth")} style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 500,
           color: "#1a1a1a", background: "transparent", border: "none", cursor: "pointer",
-          transition: "color .2s" }}>Log In</button>
+          whiteSpace: "nowrap", transition: "color .2s" }}>Log In</button>
         <SolidBtn onClick={() => go("/auth")} style={{ padding: "0.7rem 1.4rem", fontSize: "0.85rem" }}>Get Started <ArrowRight/></SolidBtn>
       </div>
     </nav>
@@ -811,7 +811,7 @@ function Footer() {
   return (
     <footer style={{ background: FOOT, color: "#fff", padding: "4.5rem clamp(1.25rem,4vw,2.5rem) 2rem" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: "2.5rem", marginBottom: "3rem" }}>
+        <div className="lp-footgrid" style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: "2.5rem", marginBottom: "3rem" }}>
           <div>
             <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", letterSpacing: "-0.03em", marginBottom: "0.8rem" }}>mentorable</div>
             <p style={{ fontFamily: BODY, fontWeight: 300, fontSize: "0.85rem", color: "rgba(255,255,255,0.62)", lineHeight: 1.8, maxWidth: 250, margin: 0 }}>
@@ -868,6 +868,17 @@ export default function LandingPage() {
           .lp-row { flex-direction: column !important; gap: 2.5rem !important; }
           .lp-row > * { flex: 1 1 auto !important; width: 100%; }
           .lp-textcol { flex: 1 1 auto !important; }
+          .lp-footgrid { grid-template-columns: 1fr 1fr !important; gap: 2rem !important; }
+          .lp-footgrid > div:first-child { grid-column: 1 / -1; }
+        }
+        @media (max-width: 480px) {
+          /* The laptop mockup is a fixed 420px-wide composition; zoom scales its layout
+             box too, so it fits narrow phones without clipping. */
+          .lp-laptop { zoom: 0.8; }
+          .lp-footgrid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 400px) {
+          .lp-laptop { zoom: 0.72; }
         }
       `}</style>
 

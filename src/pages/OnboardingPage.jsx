@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase.js";
 import { extractProfile } from "../lib/mentora.js";
 import Spinner from "../components/common/Spinner.jsx";
 import { VoicePoweredOrb } from "../components/common/VoicePoweredOrb.jsx";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
 const MAX_CALL_SECONDS = 180; // ~3 min cap — keeps ElevenLabs credit cost down; the agent is prompted to wrap up by ~2.5 min
@@ -132,7 +133,7 @@ function PhoneInIcon({ color = "#111", size = 26 }) {
 }
 
 // ─── Voice Orb ────────────────────────────────────────────────────────────────
-function VoiceOrb({ onStart, loading }) {
+function VoiceOrb({ onStart, loading, size = 340 }) {
   return (
     <motion.div
       initial={{ opacity:0, x:30 }}
@@ -141,7 +142,7 @@ function VoiceOrb({ onStart, loading }) {
       style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"2rem" }}
     >
       {/* WebGL orb */}
-      <div style={{ position:"relative", width:340, height:340 }}>
+      <div style={{ position:"relative", width:size, height:size, maxWidth:"80vw" }}>
         <VoicePoweredOrb
           hue={0}
           style={{ width:"100%", height:"100%" }}
@@ -232,6 +233,7 @@ const EDU_OPTIONS = [
 ];
 
 function DemographicsPhase({ onContinue, submitting }) {
+  const isMobile = useIsMobile();
   const [fullName,        setFullName]        = useState("");
   const [educationLevel,  setEducationLevel]  = useState("");
   const [gradeYear,       setGradeYear]       = useState("");
@@ -291,12 +293,12 @@ function DemographicsPhase({ onContinue, submitting }) {
       </div>
 
       {/* Logo */}
-      <div style={{ position:"absolute", top:"1.5rem", left:"3rem", zIndex:2 }}>
+      <div style={{ position:"absolute", top:"1.5rem", left:isMobile ? "1.25rem" : "3rem", zIndex:2 }}>
         <Logo />
       </div>
 
       {/* Step indicator */}
-      <div style={{ position:"absolute", top:"1.6rem", right:"3rem", zIndex:2, display:"flex", alignItems:"center", gap:8 }}>
+      <div style={{ position:"absolute", top:"1.6rem", right:isMobile ? "1.25rem" : "3rem", zIndex:2, display:"flex", alignItems:"center", gap:8 }}>
         <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"5px 14px", borderRadius:100, border:`1.5px solid ${BORDER}`, background:CARD, boxShadow:"0 2px 12px rgba(59,91,252,0.08)" }}>
           <div style={{ display:"flex", gap:5 }}>
             {[0,1].map(i => (
@@ -315,7 +317,7 @@ function DemographicsPhase({ onContinue, submitting }) {
         style={{
           position:"relative", zIndex:1,
           background:CARD, border:`1.5px solid ${BORDER}`, borderRadius:20,
-          padding:"3rem", maxWidth:500, width:"100%",
+          padding:isMobile ? "2rem 1.5rem" : "3rem", maxWidth:500, width:"100%",
           boxShadow:"0 4px 40px rgba(59,91,252,0.1), 0 1px 8px rgba(0,0,0,0.06)",
         }}
       >
@@ -468,6 +470,7 @@ function DemographicsPhase({ onContinue, submitting }) {
 
 // ─── Phase 1: Intro ───────────────────────────────────────────────────────────
 function IntroPhase({ onStart, loading, retryNotice }) {
+  const isMobile = useIsMobile();
   const topics = [
     "Academic strengths","Career interests","Work style",
     "Problem-solving","Collaboration","Long-term goals","Personal values","Communication",
@@ -482,7 +485,10 @@ function IntroPhase({ onStart, loading, retryNotice }) {
       transition={{ duration:0.35 }}
       style={{
         display:"flex", flexDirection:"column",
-        height:"100vh", overflow:"hidden",
+        // Mobile stacks and scrolls; desktop stays a fixed viewport-height splash.
+        height:isMobile ? "auto" : "100vh",
+        minHeight:"100vh",
+        overflow:isMobile ? "visible" : "hidden",
         position:"relative", zIndex:1,
         background:BG,
       }}
@@ -503,28 +509,29 @@ function IntroPhase({ onStart, loading, retryNotice }) {
         {...fadeUp(0.05)}
         style={{
           display:"flex", alignItems:"center", justifyContent:"space-between",
-          padding:"1.5rem 3rem", flexShrink:0,
+          padding:isMobile ? "1.25rem 1.5rem" : "1.5rem 3rem", flexShrink:0,
           position:"relative", zIndex:1,
         }}
       >
         <Logo />
       </motion.div>
 
-      {/* ── Two-column body ────────────────────────────────────────────────── */}
+      {/* ── Two-column body (stacks on mobile) ─────────────────────────────── */}
       <div style={{
-        flex:1, display:"grid", gridTemplateColumns:"1fr 1fr",
-        gap:"3rem", padding:"0 3rem 2rem",
-        alignItems:"center", overflow:"hidden",
+        flex:1, display:"grid", gridTemplateColumns:isMobile ? "1fr" : "1fr 1fr",
+        gap:isMobile ? "2.5rem" : "3rem",
+        padding:isMobile ? "0.5rem 1.5rem 3rem" : "0 3rem 2rem",
+        alignItems:"center", overflow:isMobile ? "visible" : "hidden",
         position:"relative", zIndex:1,
       }}>
 
         {/* Left — text & topics */}
-        <div style={{ display:"flex", flexDirection:"column", gap:"1.75rem", alignItems:"center", textAlign:"center", transform:"translateX(6rem)" }}>
+        <div style={{ display:"flex", flexDirection:"column", gap:"1.75rem", alignItems:"center", textAlign:"center", transform:isMobile ? "none" : "translateX(6rem)" }}>
 
           {/* Heading */}
           <h1 style={{
             fontFamily:SERIF,
-            fontSize:"clamp(3.2rem,5.5vw,5.2rem)",
+            fontSize:isMobile ? "clamp(2.5rem,11vw,3.2rem)" : "clamp(3.2rem,5.5vw,5.2rem)",
             fontWeight:700,
             letterSpacing:"-0.03em",
             lineHeight:1.06,
@@ -554,7 +561,7 @@ function IntroPhase({ onStart, loading, retryNotice }) {
             {...fadeUp(0.58)}
             style={{
               fontFamily:SANS, color:TEXT2,
-              fontSize:"1.25rem", lineHeight:1.75,
+              fontSize:isMobile ? "1.05rem" : "1.25rem", lineHeight:1.75,
               fontWeight:400, margin:0,
             }}
           >
@@ -618,7 +625,7 @@ function IntroPhase({ onStart, loading, retryNotice }) {
               {retryNotice}
             </motion.div>
           )}
-          <VoiceOrb onStart={onStart} loading={loading}/>
+          <VoiceOrb onStart={onStart} loading={loading} size={isMobile ? 260 : 340}/>
         </div>
 
       </div>

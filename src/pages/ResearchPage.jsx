@@ -243,7 +243,7 @@ function HeroSection() {
 
 // ─── Search bar ───────────────────────────────────────────────────────────────
 
-function SearchBar({ value, onChange, onSubmit, loading }) {
+function SearchBar({ value, onChange, onSubmit, loading, isMobile = false }) {
   const handleKey = (e) => {
     if (e.key === "Enter" && !e.shiftKey && value.trim() && !loading) {
       e.preventDefault();
@@ -252,7 +252,7 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
   };
 
   return (
-    <div style={{ display: "flex", gap: "0.625rem", maxWidth: 640, margin: "0 auto 1.25rem", alignItems: "center" }}>
+    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "0.625rem", maxWidth: 640, margin: "0 auto 1.25rem", alignItems: isMobile ? "stretch" : "center" }}>
       <div style={{ flex: 1, position: "relative" }}>
         <textarea
           value={value}
@@ -283,7 +283,8 @@ function SearchBar({ value, onChange, onSubmit, loading }) {
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.97 }}
         style={{
-          padding: "0 1.75rem", height: 62,
+          padding: "0 1.75rem", height: isMobile ? 52 : 62,
+          justifyContent: "center",
           background: value.trim() && !loading ? "linear-gradient(135deg, #1d4ed8, #3b82f6)" : "#e6dfd8",
           color: value.trim() && !loading ? "white" : "#6a6760",
           border: "none", borderRadius: "0.75rem",
@@ -908,7 +909,7 @@ export default function ResearchPage({ navigate, initialSessionId }) {
           </>
         )}
 
-        <SearchBar value={query} onChange={setQuery} onSubmit={handleSearch} loading={loading} />
+        <SearchBar value={query} onChange={setQuery} onSubmit={handleSearch} loading={loading} isMobile={isMobile} />
         {(() => {
           const left = Math.max(0, LIMITS.research - researchUsed);
           return (

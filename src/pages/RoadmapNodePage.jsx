@@ -250,7 +250,7 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
       <AnimatePresence>
         {award && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
-            style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 400, display: "flex", alignItems: "center", gap: 8, background: "#141413", color: "#fff", padding: "10px 16px", borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.25)" }}>
+            style={{ position: "fixed", bottom: isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : 24, left: "50%", transform: "translateX(-50%)", zIndex: 400, display: "flex", alignItems: "center", gap: 8, background: "#141413", color: "#fff", padding: "10px 16px", borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.25)" }}>
             <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: "#34d399" }}>+{award.delta}</span>
             <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.9rem" }}>{AXIS_LABELS[award.axis] || award.axis}</span>
           </motion.div>

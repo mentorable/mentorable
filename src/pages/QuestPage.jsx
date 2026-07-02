@@ -746,8 +746,11 @@ export default function QuestPage({ navigate }) {
           exit={{ opacity: 0, y: 10, scale: 0.95 }}
           transition={{ type: "spring", stiffness: 360, damping: 24 }}
           style={{
-            position: "fixed", bottom: 24, right: 24, zIndex: 9999,
-            display: "flex", alignItems: "center", gap: 10,
+            position: "fixed",
+            bottom: isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : 24,
+            right: isMobile ? 12 : 24, zIndex: 9999,
+            display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+            maxWidth: "calc(100vw - 24px)",
             background: "#141413", color: "#fff", padding: "12px 18px", borderRadius: 14,
             boxShadow: "0 14px 36px rgba(0,0,0,0.3)", fontFamily: FONT,
           }}
