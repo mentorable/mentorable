@@ -83,7 +83,7 @@ function ReadinessRing({ value, accent }) {
 
 // ─── Radar (standardized 5 axes, real scores, clickable) ──────────────────────
 function RadarChart({ scores, weakSet, theme, onAxisClick }) {
-  const R = 96, N = 5, LABEL_R = 132;
+  const R = 96, N = 5, LABEL_R = 115;
   const polar = (r, deg) => {
     const rad = (Math.PI / 180) * deg;
     return [r * Math.cos(rad), r * Math.sin(rad)];
@@ -96,7 +96,7 @@ function RadarChart({ scores, weakSet, theme, onAxisClick }) {
       .map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ") + " Z";
 
   return (
-    <svg viewBox="-190 -176 380 352" style={{ width: "100%", maxWidth: 380, height: "auto", display: "block", margin: "0 auto", overflow: "visible" }}>
+    <svg viewBox="-215 -185 430 370" style={{ width: "100%", maxWidth: 380, height: "auto", display: "block", margin: "0 auto", overflow: "visible" }}>
       {[0.25, 0.5, 0.75, 1].map((lvl, i) => (
         <path key={i} d={grid(lvl)} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
       ))}

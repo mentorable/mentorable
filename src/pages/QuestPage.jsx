@@ -967,7 +967,7 @@ export default function QuestPage({ navigate }) {
               }}>
                 <div style={{ width: 16, height: 16, borderRadius: "50%", background: `${activeCol.accent}35` }} />
               </div>
-              <p style={{ fontFamily: FONT, fontSize: 15.5, fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.6, margin: 0, maxWidth: 280 }}>
+              <p style={{ fontFamily: FONT, fontSize: 15.5, fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.6, margin: "0 auto", maxWidth: 280 }}>
                 {activeCol.emptyText}
               </p>
             </motion.div>
