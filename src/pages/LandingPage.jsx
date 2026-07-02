@@ -582,10 +582,6 @@ function ChatWindow() {
         <div style={{ height: 54, flexShrink: 0, padding: "0 18px", display: "flex", alignItems: "center", gap: 10,
           background: "rgba(248,250,255,0.95)", borderBottom: `1px solid ${BDR}` }}>
           <AgentAvatar size={30}/>
-          <div>
-            <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.92rem", color: FG, letterSpacing: "-0.02em" }}>Mentorable Chat</span>
-            <span style={{ fontFamily: BODY, fontSize: "0.74rem", color: MUT, marginLeft: 6 }}>· AI Career Mentor</span>
-          </div>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, padding: "4px 11px",
             borderRadius: 100, background: "rgba(16,185,129,0.09)", border: "1px solid rgba(16,185,129,0.2)" }}>
             <motion.span animate={{ opacity: [1,0.3,1] }} transition={{ duration: 2.5, repeat: Infinity }}
