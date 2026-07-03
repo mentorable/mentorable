@@ -227,16 +227,43 @@ async def research(raw: Request, user_id: str = Depends(verify_jwt)):
     if not session_id:
         raise HTTPException(status_code=400, detail="session_id is required")
 
+    # Rate limit check happens before we commit to a streaming response, so a
+    # 429 still comes back as a normal HTTP status the frontend already handles.
     await check_rate_limit(user_id, "research")
 
-    try:
-        result = await run_research(user_id, query, session_id)
-        return result
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
-    except Exception as exc:
-        logger.error(f"[research] Unexpected error for {user_id}: {exc}")
-        raise HTTPException(status_code=500, detail="Research failed")
+    async def generate():
+        task = asyncio.create_task(run_research(user_id, query, session_id))
+        try:
+            # The pipeline (decompose + searches/fetches + one merged synthesis
+            # call) can run well past a minute. Keep sending SSE comment
+            # heartbeats every 15s so no idle-connection timeout upstream kills
+            # the request while we wait — this changes only the transport, not
+            # the number of Anthropic calls made (still 2, same cost).
+            while True:
+                done, _ = await asyncio.wait([task], timeout=15)
+                if done:
+                    break
+                yield ": keep-alive\n\n"
+
+            result = task.result()
+            yield f"data: {json.dumps(result)}\n\n"
+        except ValueError as exc:
+            yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+        except Exception as exc:
+            logger.error(f"[research] Unexpected error for {user_id}: {exc}")
+            yield f"data: {json.dumps({'error': 'Research failed'})}\n\n"
+        finally:
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.post("/quests/generate")

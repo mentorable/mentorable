@@ -783,7 +783,28 @@ export default function ResearchPage({ navigate, initialSessionId }) {
       });
       if (res.status === 429) { setLimitModal(true); setResearchUsed(LIMITS.research); return; }
       if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.detail || "Research failed"); }
-      const data = await res.json();
+
+      // /research streams SSE: periodic ": keep-alive" comments while the
+      // pipeline runs (keeps the connection alive past a minute), then a
+      // single "data: {...}" result payload followed by "data: [DONE]".
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let data = null;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6);
+          if (payload === "[DONE]") continue;
+          try { data = JSON.parse(payload); } catch {}
+        }
+      }
+      if (!data) throw new Error("Research failed");
 
       if (data?.error) {
         if (data.error === 'LIMIT_REACHED') { setLimitModal(true); setResearchUsed(LIMITS.research); return; }
