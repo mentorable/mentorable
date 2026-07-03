@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useContext, createContext } from "react";
 import { motion, AnimatePresence, useInView, useScroll, useTransform, useSpring } from "framer-motion";
+import { supabase } from "../lib/supabase";
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 const SANS = "'Space Grotesk', sans-serif";
@@ -98,13 +99,14 @@ function Heading({ italic, rest, size = "clamp(2.4rem,4.4vw,3.5rem)" }) {
   );
 }
 
-function SolidBtn({ children, onClick, style = {} }) {
+function SolidBtn({ children, onClick, style = {}, disabled = false, type }) {
   return (
-    <motion.button onClick={onClick}
-      whileHover={{ scale: 1.04, boxShadow: "0 14px 40px rgba(37,99,235,0.45)" }}
-      whileTap={{ scale: 0.97 }}
+    <motion.button onClick={onClick} disabled={disabled} type={type}
+      whileHover={disabled ? {} : { scale: 1.04, boxShadow: "0 14px 40px rgba(37,99,235,0.45)" }}
+      whileTap={disabled ? {} : { scale: 0.97 }}
       style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: "#fff",
-        background: P, border: "none", borderRadius: 999, padding: "0.9rem 1.9rem", cursor: "pointer",
+        background: P, border: "none", borderRadius: 999, padding: "0.9rem 1.9rem",
+        cursor: disabled ? "not-allowed" : "pointer",
         display: "inline-flex", alignItems: "center", gap: 8,
         boxShadow: "0 6px 24px rgba(37,99,235,0.35)", transition: "background .3s", ...style }}>
       {children}
@@ -772,25 +774,52 @@ function FeatureRow({ label, italic, rest, body, items, visual, flip, center }) 
 
 // ─── Newsletter ───────────────────────────────────────────────────────────────
 function Newsletter() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | loading | done | error
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || status === "loading") return;
+    setStatus("loading");
+    const { error } = await supabase.from("waitlist").insert({ email: trimmed });
+    // 23505 = unique_violation — already on the list, treat as success.
+    setStatus(!error || error.code === "23505" ? "done" : "error");
+  };
+
   return (
     <section style={{ padding: "6rem clamp(1.25rem,4vw,2.5rem)", background: BG }}>
       <div style={{ maxWidth: 540, margin: "0 auto", textAlign: "center" }}>
         <FadeUp>
           <h3 style={{ fontFamily: SANS, fontWeight: 300, fontSize: "clamp(1.8rem,3.5vw,2.4rem)",
-            color: FG, margin: 0, letterSpacing: "-0.02em" }}>Stay in the loop</h3>
+            color: FG, margin: 0, letterSpacing: "-0.02em" }}>Interested in a full, paid version?</h3>
           <p style={{ fontFamily: BODY, fontWeight: 300, fontSize: "0.98rem", color: MUT,
             lineHeight: 1.8, margin: "0.9rem 0 1.9rem" }}>
-            Sign up for updates on new features, career insights, and Mentorable news.
+            Join the waitlist, and we'll notify whenever we release a subscription for Mentorable.
           </p>
-          <form onSubmit={(e) => e.preventDefault()}
-            style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-            <input type="email" placeholder="Enter your email" required
-              style={{ flex: "1 1 240px", fontFamily: BODY, fontSize: "0.95rem",
-                padding: "0.9rem 1.2rem", borderRadius: 999, background: "#fff",
-                border: `1px solid ${BDR2}`, color: FG, outline: "none",
-                boxShadow: "0 2px 18px rgba(37,99,235,0.07)" }}/>
-            <SolidBtn style={{ flexShrink: 0 }}>Subscribe</SolidBtn>
-          </form>
+          {status === "done" ? (
+            <p style={{ fontFamily: BODY, fontSize: "0.95rem", color: P, margin: 0 }}>
+              You're on the list — we'll be in touch.
+            </p>
+          ) : (
+            <form onSubmit={handleSubmit}
+              style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+              <input type="email" placeholder="Enter your email" required value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{ flex: "1 1 240px", fontFamily: BODY, fontSize: "0.95rem",
+                  padding: "0.9rem 1.2rem", borderRadius: 999, background: "#fff",
+                  border: `1px solid ${BDR2}`, color: FG, outline: "none",
+                  boxShadow: "0 2px 18px rgba(37,99,235,0.07)" }}/>
+              <SolidBtn style={{ flexShrink: 0, opacity: status === "loading" ? 0.7 : 1 }} disabled={status === "loading"}>
+                {status === "loading" ? "Joining…" : "Join Waitlist"}
+              </SolidBtn>
+            </form>
+          )}
+          {status === "error" && (
+            <p style={{ fontFamily: BODY, fontSize: "0.85rem", color: "#dc2626", margin: "0.8rem 0 0" }}>
+              Something went wrong. Try again.
+            </p>
+          )}
         </FadeUp>
       </div>
     </section>
@@ -798,46 +827,28 @@ function Newsletter() {
 }
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
-const FOOT_COLS = [
-  { heading: "Features",  links: ["Voice Onboarding","Scorecard","Quest","AI Guidance"] },
-  { heading: "Resources", links: ["About","Blog","Help Center","Legal"] },
-  { heading: "Company",   links: ["Careers","Contact","Privacy Policy","Terms"] },
-];
 function Footer() {
   return (
-    <footer style={{ background: FOOT, color: "#fff", padding: "4.5rem clamp(1.25rem,4vw,2.5rem) 2rem" }}>
+    <footer style={{ background: FOOT, color: "#fff", padding: "3.5rem clamp(1.25rem,4vw,2.5rem) 2rem" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-        <div className="lp-footgrid" style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: "2.5rem", marginBottom: "3rem" }}>
-          <div>
-            <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", letterSpacing: "-0.03em", marginBottom: "0.8rem" }}>mentorable</div>
-            <p style={{ fontFamily: BODY, fontWeight: 300, fontSize: "0.85rem", color: "rgba(255,255,255,0.62)", lineHeight: 1.8, maxWidth: 250, margin: 0 }}>
-              AI-powered career guidance for high school students.
-            </p>
-          </div>
-          {FOOT_COLS.map((col) => (
-            <div key={col.heading}>
-              <div style={{ fontFamily: SANS, fontSize: "0.68rem", fontWeight: 700, color: "rgba(255,255,255,0.55)",
-                textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "1.1rem" }}>{col.heading}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {col.links.map((l) => (
-                  <a key={l} href="#" onClick={(e) => e.preventDefault()}
-                    style={{ fontFamily: SANS, fontSize: "0.85rem", color: "rgba(255,255,255,0.74)", textDecoration: "none", transition: "color .2s" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.74)")}>{l}</a>
-                ))}
-              </div>
-            </div>
-          ))}
+        <div style={{ marginBottom: "2.5rem" }}>
+          <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", letterSpacing: "-0.03em", marginBottom: "0.8rem" }}>mentorable</div>
+          <p style={{ fontFamily: BODY, fontWeight: 300, fontSize: "0.85rem", color: "rgba(255,255,255,0.62)", lineHeight: 1.8, maxWidth: 320, margin: 0 }}>
+            AI-powered career guidance for high school students.
+          </p>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
           flexWrap: "wrap", gap: 14, paddingTop: "1.8rem", borderTop: "1px solid rgba(255,255,255,0.18)" }}>
           <div style={{ fontFamily: SANS, fontSize: "0.78rem", color: "rgba(255,255,255,0.55)" }}>© 2026 Mentorable Inc. All rights reserved.</div>
           <div style={{ display: "flex", gap: "1.5rem" }}>
-            {["X","LinkedIn","Instagram"].map((s) => (
-              <a key={s} href="#" onClick={(e) => e.preventDefault()}
+            {[
+              { label: "X", href: "https://x.com/MentorableAI" },
+              { label: "Instagram", href: "https://www.instagram.com/mentorable.ai/" },
+            ].map((s) => (
+              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
                 style={{ fontFamily: SANS, fontSize: "0.78rem", color: "rgba(255,255,255,0.6)", textDecoration: "none", transition: "color .2s" }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}>{s}</a>
+                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}>{s.label}</a>
             ))}
           </div>
         </div>
@@ -864,14 +875,11 @@ export default function LandingPage() {
           .lp-row { flex-direction: column !important; gap: 2.5rem !important; }
           .lp-row > * { flex: 1 1 auto !important; width: 100%; }
           .lp-textcol { flex: 1 1 auto !important; }
-          .lp-footgrid { grid-template-columns: 1fr 1fr !important; gap: 2rem !important; }
-          .lp-footgrid > div:first-child { grid-column: 1 / -1; }
         }
         @media (max-width: 480px) {
           /* The laptop mockup is a fixed 420px-wide composition; zoom scales its layout
              box too, so it fits narrow phones without clipping. */
           .lp-laptop { zoom: 0.8; }
-          .lp-footgrid { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 400px) {
           .lp-laptop { zoom: 0.72; }
