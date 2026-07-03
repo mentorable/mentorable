@@ -866,12 +866,15 @@ export default function ResearchPage({ navigate, initialSessionId }) {
         data-sidebar-offset
         style={{
           marginLeft: isMobile ? 0 : SIDEBAR_WIDTH,
+          // Reserve the fixed sessions panel's width via margin (not padding + a fixed
+          // maxWidth) so this box spans exactly from the sidebar's edge to the sessions
+          // panel's edge — inner content's maxWidth:640/margin:auto then centers on the
+          // true midpoint between them, instead of drifting left at wide viewports.
+          marginRight: isMobile ? 0 : SESSIONS_W,
           flex: 1,
           minHeight: "100vh",
           overflowY: "auto",
           padding: isMobile ? "1.25rem 1rem 5rem" : "2rem 2.5rem 4rem",
-          paddingRight: isMobile ? undefined : `calc(${SESSIONS_W}px + 2.5rem)`,
-          maxWidth: isMobile ? undefined : 840 + SESSIONS_W,
           boxSizing: "border-box",
           position: "relative",
         }}
