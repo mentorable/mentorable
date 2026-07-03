@@ -651,6 +651,12 @@ export default function ResearchPage({ navigate, initialSessionId }) {
 
   const stepTimerRef = useRef(null);
   const pollRef = useRef(null);
+  // Session id that handleSearch is actively driving in the foreground. navigate()
+  // below updates the URL, which re-fires the initialSessionId effect for the SAME
+  // session — without this guard, loadSession's own poll races handleSearch's
+  // result handling and its generic "didn't finish" message can clobber the real
+  // one handleSearch already set.
+  const inFlightSessionRef = useRef(null);
 
   useEffect(() => {
     loadSessions();
@@ -665,7 +671,7 @@ export default function ResearchPage({ navigate, initialSessionId }) {
   // the last session we were viewing.
   useEffect(() => {
     const id = initialSessionId || getActiveResearch(getKnownUserId());
-    if (id) loadSession(id);
+    if (id && id !== inFlightSessionRef.current) loadSession(id);
   }, [initialSessionId]);
 
   async function loadSessions() {
@@ -768,6 +774,7 @@ export default function ResearchPage({ navigate, initialSessionId }) {
         .single();
       if (insertErr) throw insertErr;
       sessionId = newSession.id;
+      inFlightSessionRef.current = sessionId;
 
       setActiveSessionId(sessionId);
       setSessions((prev) => [{ id: sessionId, query: query.trim(), status: "pending", created_at: new Date().toISOString(), updated_at: new Date().toISOString() }, ...prev]);
@@ -823,6 +830,7 @@ export default function ResearchPage({ navigate, initialSessionId }) {
         setSessions((prev) => prev.map((s) => s.id === sessionId ? { ...s, status: "error" } : s));
       }
     } finally {
+      if (inFlightSessionRef.current === sessionId) inFlightSessionRef.current = null;
       stopLoadingSteps();
       setLoading(false);
     }
