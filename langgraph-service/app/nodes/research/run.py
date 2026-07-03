@@ -47,6 +47,48 @@ def _parse_json(text: str, fallback):
     return fallback
 
 
+def _salvage_results(text: str) -> list[dict]:
+    """
+    Last-resort recovery for a truncated {"results": [...]} payload: keep the
+    complete objects in the results array and drop the cut-off tail. Scans with
+    a string-aware depth counter; each object closed at array depth is one result.
+    """
+    start = text.find('"results"')
+    if start == -1:
+        return []
+    start = text.find("[", start)
+    if start == -1:
+        return []
+    results, depth, in_str, esc, obj_start = [], 0, False, False, None
+    for i in range(start, len(text)):
+        c = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+            continue
+        if c == '"':
+            in_str = True
+        elif c == "{":
+            if depth == 0:
+                obj_start = i
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0 and obj_start is not None:
+                try:
+                    results.append(json.loads(text[obj_start:i + 1]))
+                except Exception:
+                    pass
+                obj_start = None
+        elif c == "]" and depth == 0:
+            break
+    return [r for r in results if isinstance(r, dict)]
+
+
 async def _brave_search(query: str, count: int = 10) -> list[dict]:
     if not BRAVE_API_KEY:
         return []
@@ -241,20 +283,26 @@ async def run_research(user_id: str, query: str, session_id: str) -> dict:
     ) or "(No page content could be fetched. Work from the snippets above.)"
 
     # ── 6. Single merged call: select + structure + game plans ────────────────
+    # max_tokens is a CAP, not a spend — we only pay for tokens actually
+    # generated. 3000 truncated the JSON mid-array on every run (the pre-merge
+    # pipeline had 4000 + 5000 across its two calls); 8000 gives the ~4-5k the
+    # full payload needs. Asking for exactly 6 results keeps generation lean.
     merged_res = await _anthropic.messages.create(
-        model=SONNET, max_tokens=3000,
+        model=SONNET, max_tokens=8000,
         system=(
             "You are a research curator helping high school students find real career opportunities. "
             "From the raw search snippets (numbered) plus the fetched page content for the top few, "
-            "select and structure the 6–8 most genuinely useful results. For each result: classify "
+            "select and structure the 6 most genuinely useful results (fewer only if the input is thin). "
+            "For each result: classify "
             "type (competition, internship, scholarship, program, resource, or article); write a clear "
             "2-3 sentence description and a 1-sentence relevance note referencing the student's profile; "
             "and extract whatever structured details the source supports (deadline, eligibility, "
             "location, award/compensation, application link, selection criteria) — omit fields you "
-            "cannot find. For results that have fetched page content, ALSO write a 'gamePlan' of 3–4 "
-            "sentences tailored to this student's interests, strengths, or career matches. "
-            "Use ONLY exact URLs from the input. NEVER use em dashes (the long dash); use commas or "
-            "periods instead. Return ONLY valid JSON: "
+            "cannot find. ONLY for results that have fetched page content, ALSO write a 'gamePlan' of "
+            "3–4 sentences tailored to this student's interests, strengths, or career matches; omit "
+            "gamePlan entirely for the rest. Keep every field concise. "
+            "Use ONLY exact URLs from the input, character for character. NEVER use em dashes (the long "
+            "dash); use commas or periods instead. Return ONLY valid JSON: "
             '{"results":[{"type":"...","name":"...","description":"...","relevance_note":"...","url":"...",'
             '"details":{"deadline":"...","eligibility":"...","location":"...","compensation":"...",'
             '"applicationLink":"...","selectionCriteria":"..."},"gamePlan":"..."}],'
@@ -267,11 +315,32 @@ async def run_research(user_id: str, query: str, session_id: str) -> dict:
         )}],
     )
     merged_text = merged_res.content[0].text if merged_res.content else ""
-    merged      = _parse_json(merged_text, {"results": [], "sources": []})
+    if merged_res.stop_reason == "max_tokens":
+        logger.warning(f"[research] merged call truncated at max_tokens for '{normalized}' — salvaging")
+    merged = _parse_json(merged_text, None)
+    if merged is None:
+        merged = {"results": _salvage_results(merged_text), "sources": []}
 
-    results_in = [r for r in (merged.get("results") or []) if r.get("url") in valid_urls]
-    sources    = [s for s in (merged.get("sources") or []) if s.get("url") in valid_urls]
+    def _norm(u):  # tolerate trailing-slash/scheme-case drift in model-echoed URLs
+        return (u or "").strip().rstrip("/").lower()
+
+    norm_valid = {_norm(u): u for u in valid_urls}
+    results_in, sources = [], []
+    for r in merged.get("results") or []:
+        exact = norm_valid.get(_norm(r.get("url")))
+        if exact:
+            r["url"] = exact
+            results_in.append(r)
+    for s in merged.get("sources") or []:
+        exact = norm_valid.get(_norm(s.get("url")))
+        if exact:
+            s["url"] = exact
+            sources.append(s)
     if not results_in:
+        logger.error(
+            f"[research] 0 usable results for '{normalized}' — stop_reason={merged_res.stop_reason}, "
+            f"model_results={len(merged.get('results') or [])}, text_len={len(merged_text)}"
+        )
         raise ValueError("Could not identify relevant results. Try a different query.")
 
     # pageEnriched is decided server-side: true only when we truly fetched an ok page for that URL

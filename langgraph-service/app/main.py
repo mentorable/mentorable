@@ -248,9 +248,11 @@ async def research(raw: Request, user_id: str = Depends(verify_jwt)):
             result = task.result()
             yield f"data: {json.dumps(result)}\n\n"
         except ValueError as exc:
+            await refund_usage(user_id, "research")  # don't burn the 2/lifetime quota on a failed run
             yield f"data: {json.dumps({'error': str(exc)})}\n\n"
         except Exception as exc:
             logger.error(f"[research] Unexpected error for {user_id}: {exc}")
+            await refund_usage(user_id, "research")
             yield f"data: {json.dumps({'error': 'Research failed'})}\n\n"
         finally:
             yield "data: [DONE]\n\n"
