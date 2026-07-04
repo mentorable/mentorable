@@ -93,6 +93,7 @@ class StudentState(TypedDict, total=False):
     _recent_research: list[str]
     _chat_topics: list[str]
     _roadmap_nodes: list[dict[str, Any]]
+    _portfolio_summary: list[dict[str, Any]]
     _node_context: Optional[dict[str, Any]]
     _system_prompt: str
 

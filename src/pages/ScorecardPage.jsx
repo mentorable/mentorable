@@ -6,6 +6,7 @@ import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
 import Spinner from "../components/common/Spinner.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
+import { LearnMore as PortfolioLearnMore } from "./PortfolioPage.jsx";
 
 const SANS = "'Space Grotesk', sans-serif";
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
@@ -377,6 +378,7 @@ export default function ScorecardPage({ navigate }) {
   const [limitModal, setLimitModal] = useState(false);
   const [boostsUsed, setBoostsUsed] = useState(0);
   const [addedToast, setAddedToast] = useState(0);
+  const [portfolioCount, setPortfolioCount] = useState(null); // null until counted; banner needs an explicit 0
   const toastTimer = useRef(null);
 
   // Data load
@@ -393,6 +395,9 @@ export default function ScorecardPage({ navigate }) {
         setPhase("loaded");
         if (p.scorecard_intro_seen === false) setShowWelcome(true);
         fetchUsage(supabase).then((u) => setBoostsUsed(u.axis_boosts_used ?? 0));
+        supabase.from("portfolio_items").select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .then(({ count }) => setPortfolioCount(count ?? 0));
       } catch { setPhase("error"); }
     };
     load();
@@ -406,6 +411,17 @@ export default function ScorecardPage({ navigate }) {
         await supabase.from("profiles").update({ scorecard_intro_seen: true }).eq("id", user.id);
         const updated = { ...profile, scorecard_intro_seen: true };
         setProfile(updated); setCache(`profile:${user.id}`, updated);
+      }
+    } catch { /* non-fatal */ }
+  };
+
+  const dismissPortfolioBanner = async () => {
+    setProfile((p) => ({ ...p, portfolio_banner_dismissed: true }));
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("profiles").update({ portfolio_banner_dismissed: true }).eq("id", user.id);
+        setCache(`profile:${user.id}`, { ...profile, portfolio_banner_dismissed: true });
       }
     } catch { /* non-fatal */ }
   };
@@ -514,6 +530,32 @@ export default function ScorecardPage({ navigate }) {
                 </p>
               </div>
             </motion.div>
+
+            {/* Portfolio nudge — optional, dismissable, gone once they've added anything */}
+            {portfolioCount === 0 && profile.portfolio_banner_dismissed !== true && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 }}
+                style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: "#fff",
+                  border: "1.5px solid rgba(37,99,235,0.25)", borderRadius: 14, padding: "0.8rem 1.1rem",
+                  marginBottom: "1.5rem", boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                </svg>
+                <button onClick={() => navigate("/portfolio")}
+                  style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, color: "#1d4ed8", background: "none",
+                    border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}>
+                  Complete your portfolio!
+                </button>
+                <PortfolioLearnMore />
+                <span style={{ fontFamily: SANS, fontSize: "0.85rem", color: "#494742" }}>
+                  Add your experiences, awards, and courses whenever you're ready.
+                </span>
+                <button onClick={dismissPortfolioBanner} aria-label="Dismiss"
+                  style={{ marginLeft: "auto", border: "none", background: "transparent", cursor: "pointer",
+                    color: "#6a6760", padding: 4, display: "inline-flex", flexShrink: 0 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </motion.div>
+            )}
 
             {/* "Where you are now" strip — the evolving living profile */}
             {(living.current_focus || living.momentum) && (

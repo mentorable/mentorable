@@ -34,6 +34,7 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
     recent_research   = data.get("recent_research", [])
     chat_topics       = data.get("chat_topics", [])
     roadmap_nodes     = data.get("roadmap_nodes", [])
+    portfolio_summary = data.get("portfolio_summary", [])
 
     name      = profile.get("full_name") or "the student"
     edu_raw   = profile.get("education_level")
@@ -96,6 +97,10 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
     if roadmap_nodes:
         lines = [f"- [{n['pillar']}] {n['title']} ({n['month_label']}) — {n['state'].replace('_', ' ')}" for n in roadmap_nodes]
         sections.append({"id": "roadmap", "content": "## Current Roadmap\nNodes on the student's roadmap right now:\n" + "\n".join(lines)})
+
+    if portfolio_summary:
+        lines = [f"- [{p['category'].capitalize()}] {p['title']}" for p in portfolio_summary]
+        sections.append({"id": "portfolio", "content": "## Portfolio\nPieces in the student's portfolio (titles only; use the view_portfolio tool for full details):\n" + "\n".join(lines)})
 
     return sections
 
@@ -217,13 +222,15 @@ async def build_prompt(state: StudentState) -> StudentState:
         "active_quests":    state.get("_active_quests", state.get("active_quests", [])),
         "deleted_titles":   state.get("_deleted_titles", []),
         "recent_research":  state.get("_recent_research", []),
-        "chat_topics":      state.get("_chat_topics", []),
-        "roadmap_nodes":    state.get("_roadmap_nodes", []),
+        "chat_topics":       state.get("_chat_topics", []),
+        "roadmap_nodes":     state.get("_roadmap_nodes", []),
+        "portfolio_summary": state.get("_portfolio_summary", []),
     }
     system_prompt = build_system_prompt(profile, data)
     system_prompt = _inject_research_findings(state.get("research_findings", []), system_prompt)
     system_prompt = _inject_living(profile.get("living_profile") or {}, system_prompt)
     system_prompt += QUEST_BOARD_CAPABILITY
+    system_prompt += PORTFOLIO_CAPABILITY
     # Appended last (highest priority) — scopes the whole conversation to one node.
     system_prompt = _inject_node_context(state.get("_node_context"), system_prompt)
     return {**state, "_system_prompt": system_prompt}
@@ -237,3 +244,12 @@ You can add quests directly to the student's quest board with the add_quest_to_b
 - Ask which column they want unless it's obvious from what they said (e.g. "I'm starting this" → In Progress, "maybe later" → Considered). If they don't indicate, default to Suggestions.
 - After the tool succeeds, confirm in one short line what you added and to which column.
 - Add one quest per tool call. Only add quests the student actually wants — never speculatively."""
+
+
+PORTFOLIO_CAPABILITY = """
+
+## The Student's Portfolio
+The student keeps a portfolio of concrete pieces: experiences, volunteering, awards, courses, certifications, clubs, and skills. A category-and-title summary may appear above; full descriptions live behind the view_portfolio tool.
+- Call view_portfolio when the student asks about their portfolio, or when giving advice that depends on their concrete background (what's missing, what to refine, how to word a piece). Don't guess at contents you haven't viewed.
+- Call add_portfolio_piece when the student asks you to add something to their portfolio or clearly agrees to your offer. One piece per call, never speculatively. After it succeeds, confirm in one short line.
+- To edit or remove existing pieces, point them to the Portfolio page. You cannot modify existing pieces."""

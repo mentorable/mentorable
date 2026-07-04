@@ -63,6 +63,18 @@ async def load_context(state: StudentState) -> StudentState:
         .execute()
     )
 
+    # Lightweight portfolio summary (category + title only) — full descriptions
+    # live behind the view_portfolio chat tool to keep every-request cost down.
+    portfolio_res = (
+        supabase.from_("portfolio_items")
+        .select("category, title")
+        .eq("user_id", user_id)
+        .order("category")
+        .order("order_index")
+        .limit(30)
+        .execute()
+    )
+
     profile    = profile_res.data or {}
     all_quests = quests_res.data or []
 
@@ -90,6 +102,10 @@ async def load_context(state: StudentState) -> StudentState:
     roadmap_nodes   = [
         {"title": n["title"], "pillar": n["pillar"], "month_label": n["month_label"], "state": n["state"]}
         for n in (roadmap_res.data or [])
+    ]
+    portfolio_summary = [
+        {"category": p["category"], "title": p["title"]}
+        for p in (portfolio_res.data or [])
     ]
 
     # Living profile: if enough activity has accrued, refresh it in the background.
@@ -129,5 +145,6 @@ async def load_context(state: StudentState) -> StudentState:
         "_recent_research": recent_research,
         "_chat_topics": chat_topics,
         "_roadmap_nodes": roadmap_nodes,
+        "_portfolio_summary": portfolio_summary,
         "_node_context": node_context,
     }

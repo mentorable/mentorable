@@ -92,6 +92,15 @@ async def synthesize_living_profile(user_id: str) -> None:
             ev_q = ev_q.gte("created_at", synced_at)
         events = (ev_q.order("created_at", desc=True).limit(40).execute().data) or []
 
+        # Portfolio pieces (concrete background — experiences, awards, courses, ...)
+        portfolio_res = (
+            supabase.from_("portfolio_items")
+            .select("category, title")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True).limit(25).execute()
+        )
+        portfolio = portfolio_res.data or []
+
         # ── Build the digest ──────────────────────────────────────────────────
         baseline = []
         if p.get("full_name"):          baseline.append(f"Name: {p['full_name']}")
@@ -120,6 +129,10 @@ async def synthesize_living_profile(user_id: str) -> None:
         cs = p.get("chat_signals") or []
         if isinstance(cs, list) and cs:
             activity.append("Shared in chat:\n" + "\n".join(f"- {s}" for s in cs[-8:] if isinstance(s, str)))
+        if portfolio:
+            activity.append("Portfolio (their recorded background): " + "; ".join(
+                f"{i.get('title','')} [{i.get('category','')}]" for i in portfolio if i.get("title")
+            ))
 
         if not activity:
             logger.info(f"[living] no activity for {user_id}; skipping synthesis")

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Any, Optional
 
 from anthropic import AsyncAnthropic
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
@@ -18,6 +18,7 @@ from app.graphs.chat import create_chat_graph
 from app.nodes.chat.extract_signals import extract_signals
 from app.nodes.chat.tools import CHAT_TOOLS, execute_chat_tool
 from app.nodes.onboarding.extract import extract_profile
+from app.nodes.portfolio.extract import extract_file_text, extract_portfolio_items
 from app.nodes.quest.generate import generate_quest_items
 from app.nodes.scorecard.improve import improve_axis
 from app.nodes.research.run import run_research
@@ -177,7 +178,11 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
                         continue
                     result = await execute_chat_tool(user_id, block.name, dict(block.input))
                     if result.get("success"):
-                        yield f"data: {json.dumps({'event': 'quest_added', 'quest': result})}\n\n"
+                        # Only board/portfolio writes surface as UI events; reads (view_portfolio) stay silent.
+                        if block.name == "add_quest_to_board":
+                            yield f"data: {json.dumps({'event': 'quest_added', 'quest': result})}\n\n"
+                        elif block.name == "add_portfolio_piece":
+                            yield f"data: {json.dumps({'event': 'portfolio_added', 'piece': result})}\n\n"
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
@@ -472,6 +477,31 @@ async def roadmap_phase_complete(raw: Request, user_id: str = Depends(verify_jwt
     except Exception as exc:
         logger.error(f"[roadmap] phase complete error for {user_id}: {exc}")
         raise HTTPException(status_code=500, detail="Could not complete phase")
+
+
+@app.post("/portfolio/extract")
+async def portfolio_extract(file: UploadFile = File(...), user_id: str = Depends(verify_jwt)):
+    content = await file.read()
+
+    # Validate + parse the file BEFORE the rate limit so a bad upload (wrong
+    # type, unreadable, scanned image) never burns one of the 2 lifetime uploads.
+    try:
+        document = extract_file_text(file.filename or "", content)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    await check_rate_limit(user_id, "portfolio_upload")
+
+    try:
+        items = await extract_portfolio_items(document)
+        return {"items": items}
+    except ValueError as exc:
+        await refund_usage(user_id, "portfolio_upload")  # extraction failed, give the upload back
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        logger.error(f"[portfolio] Unexpected error for {user_id}: {exc}")
+        await refund_usage(user_id, "portfolio_upload")
+        raise HTTPException(status_code=500, detail="Extraction failed")
 
 
 @app.post("/onboarding/extract")

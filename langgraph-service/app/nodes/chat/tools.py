@@ -25,6 +25,8 @@ COLUMN_TO_STATUS = {
 
 _AXES = {"communication", "leadership", "technicality", "resourcefulness", "execution"}
 
+PORTFOLIO_CATEGORIES = ["experience", "volunteering", "award", "course", "certification", "club", "skill", "other"]
+
 
 def _coerce_axis(value) -> str:
     v = (value or "").strip().lower()
@@ -83,6 +85,55 @@ CHAT_TOOLS = [
                 },
             },
             "required": ["title", "description", "column"],
+        },
+    },
+    {
+        "name": "view_portfolio",
+        "description": (
+            "Look up the student's portfolio: their recorded experiences, volunteering, "
+            "awards, courses, certifications, clubs, and skills. Call this when the student "
+            "asks about their portfolio, or when you need their concrete background (e.g. to "
+            "advise on what's missing or how to reword a piece). Returns full titles and "
+            "descriptions."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string",
+                    "enum": PORTFOLIO_CATEGORIES,
+                    "description": "Optional: only return pieces in this category. Omit to get everything.",
+                },
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "add_portfolio_piece",
+        "description": (
+            "Add one piece to the student's portfolio (an experience, award, course, "
+            "certification, club, volunteering role, or skill). Call this when the student "
+            "asks you to add something to their portfolio, or explicitly agrees when you "
+            "offer. Do NOT call it speculatively."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string",
+                    "enum": PORTFOLIO_CATEGORIES,
+                    "description": "The kind of portfolio piece.",
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Short, specific title (max 80 chars), e.g. 'AP Computer Science A' or 'DECA State Finalist'.",
+                },
+                "description": {
+                    "type": "string",
+                    "description": "1-2 sentences of concrete detail (dates, role, scope, results). Never use em dashes.",
+                },
+            },
+            "required": ["category", "title"],
         },
     },
 ]
@@ -144,9 +195,80 @@ async def _add_quest_to_board(user_id: str, args: dict) -> dict:
     }
 
 
+async def _view_portfolio(user_id: str, args: dict) -> dict:
+    supabase = get_supabase()
+    query = (
+        supabase.from_("portfolio_items")
+        .select("category, title, description")
+        .eq("user_id", user_id)
+        .order("category")
+        .order("order_index")
+        .limit(60)
+    )
+    category = (args.get("category") or "").strip().lower()
+    if category in PORTFOLIO_CATEGORIES:
+        query = query.eq("category", category)
+    items = query.execute().data or []
+    # Bound the tool-result tokens; descriptions can be long.
+    for item in items:
+        if item.get("description"):
+            item["description"] = item["description"][:300]
+    return {"success": True, "count": len(items), "items": items}
+
+
+async def _add_portfolio_piece(user_id: str, args: dict) -> dict:
+    supabase = get_supabase()
+
+    title = (args.get("title") or "").strip()
+    if not title:
+        return {"success": False, "error": "Portfolio piece needs a title."}
+    category = (args.get("category") or "").strip().lower()
+    if category not in PORTFOLIO_CATEGORIES:
+        category = "other"
+
+    # Place the new piece at the end of its category.
+    order_res = (
+        supabase.from_("portfolio_items")
+        .select("order_index")
+        .eq("user_id", user_id)
+        .eq("category", category)
+        .order("order_index", desc=True)
+        .limit(1)
+        .execute()
+    )
+    existing = order_res.data or []
+    next_index = (existing[0]["order_index"] + 1) if existing and existing[0].get("order_index") is not None else 0
+
+    now = datetime.now(timezone.utc).isoformat()
+    insert_res = supabase.from_("portfolio_items").insert({
+        "user_id":     user_id,
+        "category":    category,
+        "title":       title[:120],
+        "description": (args.get("description") or "").strip()[:500] or None,
+        "source":      "ai",
+        "order_index": next_index,
+        "created_at":  now,
+        "updated_at":  now,
+    }).execute()
+    inserted = (insert_res.data or [None])[0]
+
+    if not inserted:
+        return {"success": False, "error": "Could not save the portfolio piece. Try again."}
+
+    logger.info(f"[add_portfolio_piece] {user_id} added {title!r} to {category}")
+    return {
+        "success": True,
+        "id": inserted.get("id"),
+        "title": inserted.get("title"),
+        "category": category,
+    }
+
+
 # Dispatch table — tool name → coroutine(user_id, args) -> result dict.
 _HANDLERS = {
     "add_quest_to_board": _add_quest_to_board,
+    "view_portfolio": _view_portfolio,
+    "add_portfolio_piece": _add_portfolio_piece,
 }
 
 

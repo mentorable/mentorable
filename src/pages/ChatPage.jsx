@@ -971,6 +971,11 @@ export default function ChatPage({ navigate, seedNode }) {
             if (questToastTimer.current) clearTimeout(questToastTimer.current);
             questToastTimer.current = setTimeout(() => setQuestToast(null), 5000);
           }
+          if (evt.event === "portfolio_added" && evt.piece?.title) {
+            setQuestToast({ title: evt.piece.title, column: "your Portfolio" });
+            if (questToastTimer.current) clearTimeout(questToastTimer.current);
+            questToastTimer.current = setTimeout(() => setQuestToast(null), 5000);
+          }
         },
         onDone: async (fullText) => {
           const aiMsgFinal  = { ...aiMsgBase, content: fullText, streaming: false };

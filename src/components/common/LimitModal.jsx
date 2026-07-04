@@ -12,6 +12,7 @@ const FEATURE_COPY = {
   phase_gen:{ title: "You've generated all 5 demo phases", body: "You've reached the phase generation limit for the Mentorable demo. Join the waitlist to plan unlimited phases when we launch." },
   node_expand:{ title: "You've opened all 6 demo nodes", body: "You've reached the limit for opening roadmap nodes in the demo. Join the waitlist to get full access when we launch." },
   roadmap_reeval:{ title: "You've used your roadmap re-evaluation", body: "The demo includes one roadmap re-evaluation. Join the waitlist for unlimited adaptive re-planning when we launch." },
+  portfolio_upload:{ title: "You've used both demo uploads", body: "The demo includes 2 resume uploads. You can still add portfolio pieces manually, or join the waitlist for unlimited uploads when we launch." },
 }
 
 export default function LimitModal({ feature, onClose }) {
