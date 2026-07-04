@@ -15,6 +15,7 @@ LIMITS = {
     "phase_gen": 5,      # per-phase node generation (sequential)
     "node_expand": 6,    # nodes are per-phase now, several per phase
     "roadmap_reeval": 1, # retired in v3 (kept for back-compat)
+    "portfolio_upload": 2,
 }
 
 # feature → usage_tracking column (for refunds when the work fails after incrementing).
@@ -27,6 +28,7 @@ _USAGE_COLUMN = {
     "phase_gen": "phase_generations_used",
     "node_expand": "node_expansions_used",
     "roadmap_reeval": "roadmap_reevals_used",
+    "portfolio_upload": "portfolio_uploads_used",
 }
 
 
