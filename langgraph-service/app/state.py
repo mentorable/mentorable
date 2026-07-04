@@ -68,6 +68,7 @@ class StudentState(TypedDict, total=False):
 
     # ── Identity ──────────────────────────────────────────────────────────────
     user_id: str
+    node_id: Optional[str]  # set when a chat conversation is scoped to one roadmap node
 
     # ── Profile (loaded from Supabase on each request) ────────────────────────
     profile: ProfileSnapshot
@@ -91,6 +92,8 @@ class StudentState(TypedDict, total=False):
     _deleted_titles: list[str]
     _recent_research: list[str]
     _chat_topics: list[str]
+    _roadmap_nodes: list[dict[str, Any]]
+    _node_context: Optional[dict[str, Any]]
     _system_prompt: str
 
     # ── Metadata ──────────────────────────────────────────────────────────────

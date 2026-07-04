@@ -34,7 +34,7 @@ export async function extractProfile({ transcript, force = false }) {
   return res.json();
 }
 
-export async function streamChatResponse({ history, onChunk, onDone, onEvent }) {
+export async function streamChatResponse({ history, onChunk, onDone, onEvent, nodeId }) {
   const anthropicMessages = history
     .filter((m) => m.content && m.content.trim())
     .map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: sanitizeInput(m.content) }));
@@ -55,7 +55,7 @@ export async function streamChatResponse({ history, onChunk, onDone, onEvent }) 
 
   // LangGraph builds the system prompt server-side from the user's JWT.
   const url = `${LANGGRAPH_CHAT_URL}/chat`;
-  const body = JSON.stringify({ messages: normalized });
+  const body = JSON.stringify({ messages: normalized, node_id: nodeId ?? null });
   const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` };
 
   const res = await withRetry(

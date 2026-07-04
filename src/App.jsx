@@ -80,7 +80,8 @@ function AppShell({ children }) {
 
 function ChatRoute() {
   const navigate = useNavigate();
-  return <ChatPage navigate={navigate} />;
+  const location = useLocation();
+  return <ChatPage navigate={navigate} seedNode={location.state?.seedNode || null} />;
 }
 
 function ScorecardRoute() {

@@ -775,7 +775,7 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
 
 // ─── ChatPage ─────────────────────────────────────────────────────────────────
 
-export default function ChatPage({ navigate }) {
+export default function ChatPage({ navigate, seedNode }) {
   const [user, setUser]               = useState(null);
   const [profile, setProfile]         = useState(() => getCache(`profile:${getKnownUserId()}`) || null);
   const [completedQuests, setCompletedQuests] = useState(() => getCache(`completed_quests:${getKnownUserId()}`) || []);
@@ -795,6 +795,16 @@ export default function ChatPage({ navigate }) {
   const isMobile = useIsMobile();
 
   const skipHydrationRef = useRef(false);
+  const seedConsumedRef = useRef(false);
+
+  // "Chat about this node" deep-link: open a fresh conversation seeded with the
+  // node, auto-sending the opening turn so it reads as the assistant speaking first.
+  useEffect(() => {
+    if (!user || !seedNode || seedConsumedRef.current) return;
+    seedConsumedRef.current = true;
+    handleNewChat();
+    handleSend(`Let's talk through "${seedNode.title}".`, seedNode.id);
+  }, [user, seedNode]);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -804,7 +814,7 @@ export default function ChatPage({ navigate }) {
       setKnownUserId(uid);
 
       const [sessionsRes, profileRes, allQuestsRes, researchRes] = await Promise.all([
-        supabase.from("chat_sessions").select("id, title, messages, created_at, updated_at")
+        supabase.from("chat_sessions").select("id, title, messages, created_at, updated_at, roadmap_node_id")
           .eq("user_id", uid).order("updated_at", { ascending: false }),
         supabase.from("profiles").select("*").eq("id", uid).single(),
         supabase.from("quest_items")
@@ -889,7 +899,7 @@ export default function ChatPage({ navigate }) {
 
   const refreshSessions = useCallback(async (userId) => {
     const { data } = await supabase.from("chat_sessions")
-      .select("id, title, messages, created_at, updated_at")
+      .select("id, title, messages, created_at, updated_at, roadmap_node_id")
       .eq("user_id", userId).order("updated_at", { ascending: false });
     if (data) { setSessions(data); setCache(`chat_sessions:${userId}`, data); }
   }, []);
@@ -906,7 +916,7 @@ export default function ChatPage({ navigate }) {
     setSessions((prev) => prev.map((s) => s.id === id ? { ...s, title: newTitle } : s));
   };
 
-  const handleSend = useCallback(async (text) => {
+  const handleSend = useCallback(async (text, seedNodeId) => {
     if (!user || streaming) return;
     setChatError(null);
 
@@ -917,10 +927,15 @@ export default function ChatPage({ navigate }) {
 
     let sessionId = activeChatId;
     let historyBeforeSend;
+    // New session: use the seed node id (if this is a "chat about this node" open).
+    // Existing session: keep using whichever node it was already scoped to.
+    const nodeId = sessionId
+      ? (sessions.find((s) => s.id === sessionId)?.roadmap_node_id ?? null)
+      : (seedNodeId ?? null);
 
     if (!sessionId) {
       const { data: newSession, error } = await supabase.from("chat_sessions")
-        .insert({ user_id: user.id, messages: [userMsg], updated_at: new Date().toISOString() })
+        .insert({ user_id: user.id, messages: [userMsg], updated_at: new Date().toISOString(), roadmap_node_id: nodeId })
         .select().single();
       if (error || !newSession) { setChatError("Failed to start a new chat. Please try again."); return; }
       sessionId = newSession.id;
@@ -940,6 +955,7 @@ export default function ChatPage({ navigate }) {
     try {
       await streamChatResponse({
         history: withUser,
+        nodeId,
         onChunk: (chunk) => {
           setMessages((prev) => {
             const idx = prev.findIndex((m) => m.id === aiMsgId);
@@ -985,7 +1001,7 @@ export default function ChatPage({ navigate }) {
         messages: withUser, updated_at: new Date().toISOString(),
       }).eq("id", sessionId);
     }
-  }, [user, activeChatId, messages, streaming, refreshSessions]);
+  }, [user, activeChatId, messages, sessions, streaming, refreshSessions]);
 
   const historyPanel = (
     <HistoryPanel

@@ -2,6 +2,8 @@
 build_prompt — second node in the Chat graph.
 Ports buildSystemPrompt from src/lib/mentora.js to Python exactly.
 """
+from typing import Optional
+
 from app.state import StudentState
 
 
@@ -31,6 +33,7 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
     deleted_titles    = data.get("deleted_titles", [])
     recent_research   = data.get("recent_research", [])
     chat_topics       = data.get("chat_topics", [])
+    roadmap_nodes     = data.get("roadmap_nodes", [])
 
     name      = profile.get("full_name") or "the student"
     edu_raw   = profile.get("education_level")
@@ -89,6 +92,10 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
     if chat_topics:
         lines = [f"- {t}" for t in chat_topics]
         sections.append({"id": "chat_topics", "content": "## Conversation History\nRecent topics from their chats with the Mentorable Agent:\n" + "\n".join(lines)})
+
+    if roadmap_nodes:
+        lines = [f"- [{n['pillar']}] {n['title']} ({n['month_label']}) — {n['state'].replace('_', ' ')}" for n in roadmap_nodes]
+        sections.append({"id": "roadmap", "content": "## Current Roadmap\nNodes on the student's roadmap right now:\n" + "\n".join(lines)})
 
     return sections
 
@@ -176,6 +183,24 @@ def _effective_profile(profile: dict) -> dict:
     return eff
 
 
+def _inject_node_context(node: Optional[dict], prompt: str) -> str:
+    """Scope the conversation to one roadmap node — appended last (top priority),
+    same placement as the student's custom instructions section below."""
+    if not node:
+        return prompt
+    lines = [f"This conversation is focused on one specific roadmap item."]
+    if node.get("blurb"):
+        lines.append(node["blurb"])
+    if node.get("overview"):
+        lines.append(node["overview"])
+    tasks = node.get("tasks") or []
+    if tasks:
+        lines.append("Checklist:")
+        lines += [f"- [{'x' if t.get('done') else ' '}] {t['text']}" for t in tasks]
+    lines.append("Help the student work through this specific item. Reference the checklist and overview directly.")
+    return prompt + f"\n\n## Currently Discussing: {node.get('title', 'this roadmap item')}\n" + "\n\n".join(lines)
+
+
 def _inject_living(living: dict, prompt: str) -> str:
     extras = []
     if (living or {}).get("current_focus"): extras.append(f"Current focus: {living['current_focus']}")
@@ -193,11 +218,14 @@ async def build_prompt(state: StudentState) -> StudentState:
         "deleted_titles":   state.get("_deleted_titles", []),
         "recent_research":  state.get("_recent_research", []),
         "chat_topics":      state.get("_chat_topics", []),
+        "roadmap_nodes":    state.get("_roadmap_nodes", []),
     }
     system_prompt = build_system_prompt(profile, data)
     system_prompt = _inject_research_findings(state.get("research_findings", []), system_prompt)
     system_prompt = _inject_living(profile.get("living_profile") or {}, system_prompt)
     system_prompt += QUEST_BOARD_CAPABILITY
+    # Appended last (highest priority) — scopes the whole conversation to one node.
+    system_prompt = _inject_node_context(state.get("_node_context"), system_prompt)
     return {**state, "_system_prompt": system_prompt}
 
 

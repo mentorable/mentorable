@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, Optional
 
 from anthropic import AsyncAnthropic
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -104,6 +104,7 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[Message]
+    node_id: Optional[str] = None  # scopes the conversation to one roadmap node
 
 
 @app.post("/chat")
@@ -130,7 +131,7 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
 
     # Run load_context + build_prompt through the graph (checkpointed)
     config = {"configurable": {"thread_id": f"{user_id}_chat"}}
-    state = await chat_graph.ainvoke({"user_id": user_id}, config=config)
+    state = await chat_graph.ainvoke({"user_id": user_id, "node_id": request.node_id}, config=config)
     system_prompt: str = state.get("_system_prompt", "")
 
     if not system_prompt:
