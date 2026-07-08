@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
+import FeedbackModal from "./FeedbackModal.jsx";
 
 const FONT = "'Space Grotesk', sans-serif";
 export const SIDEBAR_WIDTH = 220;
@@ -91,7 +93,36 @@ function NavBtn({ item, activePath, navigate }) {
   );
 }
 
+function FeedbackBtn({ onClick }) {
+  return (
+    <motion.button
+      onClick={onClick}
+      whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.12 }}
+      style={{
+        display: "flex", alignItems: "center", gap: "0.75rem",
+        padding: "0.7rem 1rem", borderRadius: "0.75rem",
+        border: "none", cursor: "pointer",
+        background: "transparent", color: "#4b5470",
+        fontFamily: FONT, fontWeight: 600,
+        fontSize: "0.9rem", transition: "background 0.15s, color 0.15s",
+        textAlign: "left", width: "100%",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(37,99,235,0.04)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+    >
+      <span style={{ flexShrink: 0, opacity: 0.7 }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </span>
+      Feedback
+    </motion.button>
+  );
+}
+
 export default function Sidebar({ activePath, navigate }) {
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   return (
     <div id="main-sidebar" style={{
@@ -134,8 +165,10 @@ export default function Sidebar({ activePath, navigate }) {
       {/* Bottom nav */}
       <nav style={{ padding: "0.5rem 0.75rem 1rem", display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
         {BOTTOM_NAV.map((item) => <NavBtn key={item.key} item={item} activePath={activePath} navigate={navigate} />)}
+        <FeedbackBtn onClick={() => setFeedbackOpen(true)} />
       </nav>
 
+      {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
     </div>
   );
 }

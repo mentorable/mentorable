@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
+import FeedbackModal from "./FeedbackModal.jsx";
 
 const FONT = "'Space Grotesk', sans-serif";
 
@@ -80,7 +82,28 @@ const NAV_ITEMS = [
 ];
 
 export default function MobileNav({ activePath, navigate }) {
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+
   return (
+    <>
+    <button
+      onClick={() => setFeedbackOpen(true)}
+      style={{
+        position: "fixed",
+        left: 12, bottom: "calc(60px + env(safe-area-inset-bottom, 0px) + 12px)",
+        width: 44, height: 44, borderRadius: "50%",
+        background: "#1d4ed8", border: "none", cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: "0 4px 16px rgba(29,78,216,0.35)",
+        zIndex: 101,
+      }}
+      aria-label="Feedback"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </button>
+    {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
     <nav style={{
       position: "fixed",
       bottom: 0, left: 0, right: 0,
@@ -128,5 +151,6 @@ export default function MobileNav({ activePath, navigate }) {
         );
       })}
     </nav>
+    </>
   );
 }
