@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from app.auth import verify_jwt
 from app.config import ANTHROPIC_API_KEY, CORS_ORIGIN
+from app.posthog_client import posthog_client
 from app.db.checkpointer import get_checkpointer, lifespan_checkpointer, checkpointer_status
 from app.db.supabase import get_supabase
 from app.graphs.chat import create_chat_graph
@@ -48,6 +49,7 @@ async def lifespan(app: FastAPI):
             logger.warning("Chat graph NOT initialised — checkpointer unavailable")
         yield
     chat_graph = None
+    posthog_client.flush()
 
 
 app = FastAPI(
@@ -116,6 +118,12 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
     # Rate limit check
     await check_rate_limit(user_id, "chat")
 
+    posthog_client.capture(
+        "chat_message_sent",
+        distinct_id=user_id,
+        properties={"has_node_context": request.node_id is not None},
+    )
+
     # Normalise messages: merge consecutive same-role, map "ai" → "assistant"
     raw = [m for m in request.messages if m.content and m.content.strip()]
     normalized: list[dict] = []
@@ -181,6 +189,7 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
                         # Only board/portfolio writes surface as UI events; reads (view_portfolio) stay silent.
                         if block.name == "add_quest_to_board":
                             yield f"data: {json.dumps({'event': 'quest_added', 'quest': result})}\n\n"
+                            posthog_client.capture("quest_added_via_chat", distinct_id=user_id)
                         elif block.name == "add_portfolio_piece":
                             yield f"data: {json.dumps({'event': 'portfolio_added', 'piece': result})}\n\n"
                     tool_results.append({
@@ -237,6 +246,12 @@ async def research(raw: Request, user_id: str = Depends(verify_jwt)):
     # 429 still comes back as a normal HTTP status the frontend already handles.
     await check_rate_limit(user_id, "research")
 
+    posthog_client.capture(
+        "research_query_submitted",
+        distinct_id=user_id,
+        properties={"query_length": len(query)},
+    )
+
     async def generate():
         task = asyncio.create_task(run_research(user_id, query, session_id))
         try:
@@ -288,6 +303,11 @@ async def quests_generate(raw: Request, user_id: str = Depends(verify_jwt)):
 
     try:
         result = await generate_quest_items(user_id, count)
+        posthog_client.capture(
+            "quests_generated",
+            distinct_id=user_id,
+            properties={"quest_count": count},
+        )
         return result
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
@@ -309,7 +329,13 @@ async def scorecard_improve(raw: Request, user_id: str = Depends(verify_jwt)):
     await check_rate_limit(user_id, "axis_boost")
 
     try:
-        return await improve_axis(user_id, axis)
+        result = await improve_axis(user_id, axis)
+        posthog_client.capture(
+            "scorecard_improve_triggered",
+            distinct_id=user_id,
+            properties={"axis": axis},
+        )
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
@@ -370,7 +396,16 @@ async def roadmap_generate(raw: Request, user_id: str = Depends(verify_jwt)):
     await check_rate_limit(user_id, "roadmap_gen")
 
     try:
-        return await generate_roadmap(user_id, goal, tf, end_month=end_month, intake_answers=intake_answers)
+        result = await generate_roadmap(user_id, goal, tf, end_month=end_month, intake_answers=intake_answers)
+        posthog_client.capture(
+            "roadmap_generated",
+            distinct_id=user_id,
+            properties={
+                "timeframe_months": tf,
+                "has_intake_answers": intake_answers is not None,
+            },
+        )
+        return result
     except ValueError as exc:
         await refund_usage(user_id, "roadmap_gen")  # don't burn the 1/lifetime gen on a soft failure
         raise HTTPException(status_code=422, detail=str(exc))
@@ -416,7 +451,9 @@ async def roadmap_node_expand(raw: Request, user_id: str = Depends(verify_jwt)):
     await check_rate_limit(user_id, "node_expand")
 
     try:
-        return await expand_node(user_id, node_id)
+        result = await expand_node(user_id, node_id)
+        posthog_client.capture("roadmap_node_expanded", distinct_id=user_id)
+        return result
     except ValueError as exc:
         await refund_usage(user_id, "node_expand")
         raise HTTPException(status_code=422, detail=str(exc))
@@ -444,7 +481,13 @@ async def roadmap_phase_generate(raw: Request, user_id: str = Depends(verify_jwt
     await check_rate_limit(user_id, "phase_gen")
 
     try:
-        return await generate_phase(user_id, roadmap_id, phase_index)
+        result = await generate_phase(user_id, roadmap_id, phase_index)
+        posthog_client.capture(
+            "roadmap_phase_generated",
+            distinct_id=user_id,
+            properties={"phase_index": phase_index},
+        )
+        return result
     except ValueError as exc:
         await refund_usage(user_id, "phase_gen")  # soft failure shouldn't burn a phase gen
         raise HTTPException(status_code=422, detail=str(exc))
@@ -471,7 +514,16 @@ async def roadmap_phase_complete(raw: Request, user_id: str = Depends(verify_jwt
     reflection_text = (body.get("reflection_text") or "").strip()
 
     try:
-        return await reflect_on_phase(user_id, roadmap_id, phase_index, reflection_text)
+        result = await reflect_on_phase(user_id, roadmap_id, phase_index, reflection_text)
+        posthog_client.capture(
+            "roadmap_phase_completed",
+            distinct_id=user_id,
+            properties={
+                "phase_index": phase_index,
+                "has_reflection": len(reflection_text) > 0,
+            },
+        )
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
@@ -494,6 +546,11 @@ async def portfolio_extract(file: UploadFile = File(...), user_id: str = Depends
 
     try:
         items = await extract_portfolio_items(document)
+        posthog_client.capture(
+            "portfolio_extracted",
+            distinct_id=user_id,
+            properties={"item_count": len(items)},
+        )
         return {"items": items}
     except ValueError as exc:
         await refund_usage(user_id, "portfolio_upload")  # extraction failed, give the upload back
@@ -516,7 +573,13 @@ async def onboarding_extract(raw: Request, user_id: str = Depends(verify_jwt)):
     # user_id comes from the verified JWT — body userId (if any) is ignored for safety.
 
     try:
-        return await extract_profile(user_id, transcript, force=force)
+        result = await extract_profile(user_id, transcript, force=force)
+        posthog_client.capture(
+            "onboarding_completed",
+            distinct_id=user_id,
+            properties={"transcript_length": len(transcript), "forced": force},
+        )
+        return result
     except Exception as exc:
         logger.error(f"[onboarding] Unexpected error for {user_id}: {exc}")
         raise HTTPException(status_code=500, detail="Profile extraction failed")

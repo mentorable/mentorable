@@ -3,6 +3,7 @@ import logging
 from fastapi import HTTPException
 from app.db.supabase import get_supabase
 from app.config import DEV_BYPASS_EMAILS
+from app.posthog_client import posthog_client
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,14 @@ async def check_rate_limit(user_id: str, feature: str) -> dict:
 
     usage = result.data
     if not usage or not usage.get("allowed"):
+        posthog_client.capture(
+            "rate_limit_hit",
+            distinct_id=user_id,
+            properties={
+                "feature": feature,
+                "limit": limit,
+            },
+        )
         raise HTTPException(
             status_code=429,
             detail={
