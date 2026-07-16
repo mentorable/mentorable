@@ -9,9 +9,9 @@ import LimitModal from "../components/common/LimitModal.jsx";
 import Drawer from "../components/common/Drawer.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
-const FONT   = "'Space Grotesk', sans-serif";
+const FONT   = "'Raleway', sans-serif";
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL; // reuse same base URL
-const BODY   = "'Space Grotesk', sans-serif";
+const BODY   = "'Raleway', sans-serif";
 const NAVY   = "#141413";
 const BLUE   = "#1d4ed8";
 const BLUE_MID = "#3b82f6";
@@ -230,7 +230,7 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
 function HeroSection() {
   return (
     <div style={{ marginBottom: "2rem", position: "relative", textAlign: "center" }}>
-      <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 26, color: NAVY, marginBottom: "0.875rem", lineHeight: 1.2, letterSpacing: "-0.02em" }}>
+      <h1 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 700, fontSize: 26, color: NAVY, marginBottom: "0.875rem", lineHeight: 1.2, letterSpacing: "-0.02em" }}>
         Research Agent
       </h1>
       <p style={{ fontFamily: FONT, fontSize: "1rem", color: "#494742", maxWidth: 560, lineHeight: 1.75, fontWeight: 500, margin: "0 auto" }}>
@@ -886,7 +886,7 @@ export default function ResearchPage({ navigate, initialSessionId }) {
 
       <style>{`
         @import
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
         @keyframes spinner-rotate { to { transform: rotate(360deg); } }
       `}</style>
 

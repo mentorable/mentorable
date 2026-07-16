@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import FeedbackModal from "./FeedbackModal.jsx";
 
-const FONT = "'Space Grotesk', sans-serif";
+const FONT = "'Raleway', sans-serif";
 export const SIDEBAR_WIDTH = 220;
 
 const TOP_NAV = [

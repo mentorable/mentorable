@@ -31,8 +31,8 @@ const TEXT_MID    = "#3d3d3a";
 const TEXT_MUTED  = "#494742";
 const TEXT_FAINT  = "#6a6760";
 const BORDER      = "#e6dfd8";
-const FONT        = "'Space Grotesk', sans-serif";
-const SERIF       = "'Space Grotesk', sans-serif";
+const FONT        = "'Raleway', sans-serif";
+const SERIF       = "'Raleway', sans-serif";
 
 const AXIS_LABELS = {
   communication: "Communication", leadership: "Leadership", technicality: "Technicality",
@@ -1213,7 +1213,7 @@ export default function QuestPage({ navigate }) {
 function GlobalStyles() {
   return (
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
       @keyframes quest-spin { to { transform: rotate(360deg); } }
       @keyframes quest-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
       * { box-sizing: border-box; }

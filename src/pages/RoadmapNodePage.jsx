@@ -7,7 +7,7 @@ import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
-const SANS = "'Space Grotesk', sans-serif";
+const SANS = "'Raleway', sans-serif";
 const BG = "#f5f1ed", WHITE = "#fff", BLUE = "#1d4ed8", BLUE_TINT = "#f0f5ff", BLUE_SOFT = "#dbeafe";
 const TEXT = "#141413", TEXT_MID = "#3d3d3a", TEXT_MUTED = "#494742", TEXT_FAINT = "#6a6760", BORDER = "#e6dfd8";
 const AMBER_SOFT = "#fef3c7", AMBER = "#d97706", GREEN_SOFT = "#d1fae5", GREEN = "#059669", PURPLE_SOFT = "#ede9fe", PURPLE = "#7c3aed";
@@ -142,7 +142,7 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
   return (
     <div data-sidebar-offset style={pad}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
         @keyframes rn-shimmer { 0% { background-position: -480px 0 } 100% { background-position: 480px 0 } }
         .rn-sk { background: linear-gradient(90deg, ${BORDER}55 25%, ${BORDER}aa 50%, ${BORDER}55 75%); background-size: 480px 100%; animation: rn-shimmer 1.5s infinite; border-radius: 8px; }
       `}</style>

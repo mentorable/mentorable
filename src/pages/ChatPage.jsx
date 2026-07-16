@@ -12,8 +12,8 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const ACCENT  = "#3b82f6";
 const NAVY    = "#141413";
-const SG      = "'Space Grotesk', sans-serif";
-const JK      = "'Space Grotesk', sans-serif";
+const SG      = "'Raleway', sans-serif";
+const JK      = "'Raleway', sans-serif";
 const HISTORY_W = 252;
 
 const SUGGESTIONS = [
@@ -486,7 +486,7 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
         transition={{ duration: 0.38, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
         style={{ textAlign: "center", marginBottom: 32 }}
       >
-        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 34, color: NAVY, letterSpacing: "-0.02em", marginBottom: 10, lineHeight: 1.15 }}>
+        <h2 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600, fontSize: 34, color: NAVY, letterSpacing: "-0.02em", marginBottom: 10, lineHeight: 1.15 }}>
           Good {timeOfDay}{firstName ? `, ${firstName}` : ""}.
         </h2>
         <p style={{ fontFamily: SG, fontSize: 16, color: "#494742", fontWeight: 500, maxWidth: 380, lineHeight: 1.65 }}>
@@ -761,7 +761,7 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
         const left = Math.max(0, LIMITS.chat - chatUsed);
         return (
           <div style={{ padding: "4px 16px 6px", textAlign: "center" }}>
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 11, fontWeight: 600,
+            <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: 11, fontWeight: 600,
               color: left <= 3 ? "#dc2626" : "#9ca3af" }}>
               {left === 0 ? "No messages remaining" : `${left} message${left === 1 ? "" : "s"} remaining`}
             </span>
@@ -1023,7 +1023,7 @@ export default function ChatPage({ navigate, seedNode }) {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
         @import
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; }
@@ -1049,7 +1049,7 @@ export default function ChatPage({ navigate, seedNode }) {
             color: "#fff",
             borderRadius: 12,
             boxShadow: "0 8px 24px rgba(29,78,216,0.32)",
-            fontFamily: "'Space Grotesk', sans-serif",
+            fontFamily: "'Raleway', sans-serif",
             fontSize: 14,
             animation: "questToastIn 0.25s ease",
           }}

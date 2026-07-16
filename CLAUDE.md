@@ -20,7 +20,7 @@ supabase db push   # apply pending migrations
 
 ## Architecture
 
-**Mentorable** is a React 19 SPA (Vite) backed by Supabase (Postgres + Auth) and a **Python + LangGraph service on Railway** (the agentic backend), deployed on Vercel. All fonts are **Space Grotesk** (primary, headings, labels, body, buttons everywhere). No component library — all styling is inline styles.
+**Mentorable** is a React 19 SPA (Vite) backed by Supabase (Postgres + Auth) and a **Python + LangGraph service on Railway** (the agentic backend), deployed on Vercel. All fonts are **Raleway** (primary, headings, labels, body, buttons everywhere). No component library — all styling is inline styles.
 
 The agentic backend (chat, research, quest generation, onboarding extraction) lives in `langgraph-service/` (FastAPI). The Anthropic key lives only there. The frontend reaches it via `VITE_LANGGRAPH_CHAT_URL` (one base URL reused for all four endpoints). A handful of non-AI edge functions remain in Supabase. See `.claude/LANGGRAPH_MIGRATION.md` for the migration history.
 
@@ -152,7 +152,7 @@ DEV_BYPASS_EMAILS           # comma-separated, e.g. app.mentora.ai@gmail.com
 
 ## Design System
 
-- **Fonts:** Space Grotesk everywhere (switched from Plus Jakarta Sans for body text)
+- **Fonts:** Raleway everywhere (switched from Space Grotesk)
 - **Background:** `#f5f1ed` (Claude light creme) throughout
 - **Primary blue:** `#1d4ed8` with `#60a5fa` accents
 - **No component library** — inline styles with per-file token constants (`SANS`, `BODY`, `P`, `BG`, `FG`, `MUT`, etc.)

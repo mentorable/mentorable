@@ -1,17 +1,16 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 html, body {
   background-color: #faf9f5;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Raleway', sans-serif;
   color: #141413;
 }
 
-/* One font everywhere — force Space Grotesk on every element (incl. inputs,
+/* One font everywhere — force Raleway on every element (incl. inputs,
    buttons, selects, SVG text) so nothing falls back to a system font. */
 *, *::before, *::after,
 input, textarea, select, button {
-  font-family: 'Space Grotesk', sans-serif !important;
+  font-family: 'Raleway', sans-serif !important;
 }
 
 /* Prevent horizontal overflow globally */

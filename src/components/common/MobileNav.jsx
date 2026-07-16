@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import FeedbackModal from "./FeedbackModal.jsx";
 
-const FONT = "'Space Grotesk', sans-serif";
+const FONT = "'Raleway', sans-serif";
 
 const NAV_ITEMS = [
   {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
-const SANS = "'Space Grotesk', sans-serif"
+const SANS = "'Raleway', sans-serif"
 
 const FEATURE_COPY = {
   chat:     { title: "You've used all 8 demo messages", body: "You've reached the chat limit for the Mentorable demo. Join the waitlist to get full access when we launch." },

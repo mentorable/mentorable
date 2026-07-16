@@ -56,7 +56,7 @@ export default function Drawer({ open, onClose, children, width = 280, title }) 
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 flexShrink: 0,
               }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", fontFamily: "'Space Grotesk', sans-serif" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", fontFamily: "'Raleway', sans-serif" }}>
                   {title}
                 </span>
                 <button

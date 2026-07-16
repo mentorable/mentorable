@@ -22,9 +22,9 @@ const ACCENT2 = "#3b82f6";
 const BORDER  = "rgba(59,91,252,0.13)";
 const SURFACE = "rgba(59,91,252,0.05)";
 const CARD    = "#faf9f5";
-const SERIF   = "'Space Grotesk', sans-serif";
-const SANS    = "'Space Grotesk', sans-serif";
-const MONO    = "'Space Grotesk', sans-serif";
+const SERIF   = "'Raleway', sans-serif";
+const SANS    = "'Raleway', sans-serif";
+const MONO    = "'Raleway', sans-serif";
 
 // ─── Framer-motion variant helpers ───────────────────────────────────────────
 const fadeUp = (delay = 0) => ({
@@ -619,7 +619,7 @@ function IntroPhase({ onStart, loading, retryNotice }) {
                 color:"#92400e",
                 lineHeight:1.5,
                 textAlign:"center",
-                fontFamily:"'Space Grotesk', sans-serif",
+                fontFamily:"'Raleway', sans-serif",
               }}
             >
               {retryNotice}
@@ -1008,20 +1008,20 @@ function RecoveryPhase({ userId, onSuccess, onRetry }) {
         style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(239,68,68,0.07)", border: "1.5px solid rgba(239,68,68,0.2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.5rem" }}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </motion.div>
-      <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "1.4rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: "0.75rem" }}>
+      <h2 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 700, fontSize: "1.4rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: "0.75rem" }}>
         Processing hiccup
       </h2>
-      <p style={{ fontFamily: "'Space Grotesk', sans-serif", color: TEXT2, fontSize: "0.95rem", lineHeight: 1.68, maxWidth: 360, marginBottom: "0.5rem" }}>
+      <p style={{ fontFamily: "'Raleway', sans-serif", color: TEXT2, fontSize: "0.95rem", lineHeight: 1.68, maxWidth: 360, marginBottom: "0.5rem" }}>
         We ran into an issue turning your conversation into a profile. Your transcript was saved, so click below to try again.
       </p>
-      {error && <p style={{ fontFamily: "'Space Grotesk', sans-serif", color: "#ef4444", fontSize: "0.85rem", marginBottom: "1rem", maxWidth: 360 }}>{error}</p>}
+      {error && <p style={{ fontFamily: "'Raleway', sans-serif", color: "#ef4444", fontSize: "0.85rem", marginBottom: "1rem", maxWidth: 360 }}>{error}</p>}
       <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.5rem", flexWrap: "wrap", justifyContent: "center" }}>
         <button onClick={handleRetry} disabled={retrying}
-          style={{ padding: "0.7rem 1.75rem", borderRadius: 10, background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`, border: "none", color: "white", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: retrying ? "not-allowed" : "pointer", opacity: retrying ? 0.7 : 1 }}>
+          style={{ padding: "0.7rem 1.75rem", borderRadius: 10, background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`, border: "none", color: "white", fontFamily: "'Raleway', sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: retrying ? "not-allowed" : "pointer", opacity: retrying ? 0.7 : 1 }}>
           {retrying ? "Retrying…" : "Try again"}
         </button>
         <button onClick={onRetry}
-          style={{ padding: "0.7rem 1.5rem", borderRadius: 10, background: "transparent", border: "1.5px solid rgba(59,91,252,0.25)", color: ACCENT, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer" }}>
+          style={{ padding: "0.7rem 1.5rem", borderRadius: 10, background: "transparent", border: "1.5px solid rgba(59,91,252,0.25)", color: ACCENT, fontFamily: "'Raleway', sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer" }}>
           Record new conversation
         </button>
       </div>
@@ -1273,7 +1273,7 @@ export default function OnboardingPage() {
       fontFamily:SANS, position:"relative", overflow:"hidden",
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         @keyframes blob-pulse {

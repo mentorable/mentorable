@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
-const SANS = "'Space Grotesk', sans-serif"
+const SANS = "'Raleway', sans-serif"
 
 export default function FeedbackModal({ onClose }) {
   const [message, setMessage] = useState('')

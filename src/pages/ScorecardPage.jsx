@@ -8,7 +8,7 @@ import Spinner from "../components/common/Spinner.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { LearnMore as PortfolioLearnMore } from "./PortfolioPage.jsx";
 
-const SANS = "'Space Grotesk', sans-serif";
+const SANS = "'Raleway', sans-serif";
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
 // ─── The 5 standardized axes ──────────────────────────────────────────────────
@@ -480,7 +480,7 @@ export default function ScorecardPage({ navigate }) {
       fontFamily: SANS, padding: "2.5rem 1.5rem 6rem", paddingLeft: `calc(${SIDEBAR_WIDTH}px + 1.5rem)`, background: "#f5f1ed",
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
         @keyframes sc-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.55 } }
         .sc-axis-weak text { animation: sc-pulse 1.8s ease-in-out infinite; }
@@ -554,25 +554,6 @@ export default function ScorecardPage({ navigate }) {
                     color: "#6a6760", padding: 4, display: "inline-flex", flexShrink: 0 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
-              </motion.div>
-            )}
-
-            {/* "Where you are now" strip — the evolving living profile */}
-            {(living.current_focus || living.momentum) && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.12 }}
-                style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1.5rem" }}>
-                {living.current_focus && (
-                  <div style={{ flex: "1 1 240px", background: "#fff", border: `1.5px solid ${theme.accent}33`, borderRadius: 14, padding: "0.9rem 1.1rem", boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
-                    <p style={{ fontFamily: SANS, fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: theme.accent, marginBottom: 5 }}>Current focus</p>
-                    <p style={{ fontFamily: SANS, fontSize: "0.92rem", color: "#141413", lineHeight: 1.45 }}>{living.current_focus}</p>
-                  </div>
-                )}
-                {living.momentum && (
-                  <div style={{ flex: "1 1 240px", background: "#fff", border: "1.5px solid #e6dfd8", borderRadius: 14, padding: "0.9rem 1.1rem", boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
-                    <p style={{ fontFamily: SANS, fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: "#6a6760", marginBottom: 5 }}>Momentum</p>
-                    <p style={{ fontFamily: SANS, fontSize: "0.92rem", color: "#141413", lineHeight: 1.45 }}>{living.momentum}</p>
-                  </div>
-                )}
               </motion.div>
             )}
 

@@ -3,9 +3,9 @@ import { motion, AnimatePresence, useInView, useScroll, useTransform, useSpring 
 import { supabase } from "../lib/supabase";
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
-const SANS = "'Space Grotesk', sans-serif";
-const BODY = "'Space Grotesk', sans-serif";
-const MONO = "'Space Grotesk', sans-serif";
+const SANS = "'Raleway', sans-serif";
+const BODY = "'Raleway', sans-serif";
+const MONO = "'Raleway', sans-serif";
 const P    = "#1d4ed8";
 const B2   = "#2563eb";
 const B3   = "#3b82f6";
@@ -863,7 +863,7 @@ export default function LandingPage() {
   return (
     <div style={{ background: BG, minHeight: "100vh", color: FG, fontFamily: BODY, overflowX: "hidden" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
         html,body { overflow-x: hidden; max-width: 100%; }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         ::selection { background: rgba(37,99,235,0.25); }

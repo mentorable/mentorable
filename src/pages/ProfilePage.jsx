@@ -29,8 +29,8 @@ const RESPONSE_STYLES = [
 
 // ─── Atom components ──────────────────────────────────────────────────────────
 
-const SG = "'Space Grotesk', sans-serif";
-const JK = "'Space Grotesk', sans-serif";
+const SG = "'Raleway', sans-serif";
+const JK = "'Raleway', sans-serif";
 
 function Label({ children }) {
   return (
@@ -69,7 +69,7 @@ const inputStyle = {
   border: "1.5px solid #e2e8f0",
   borderRadius: "0.75rem",
   fontSize: "1rem",
-  fontFamily: "'Space Grotesk', sans-serif",
+  fontFamily: "'Raleway', sans-serif",
   color: "#141413",
   background: "#faf9f5",
   outline: "none",
@@ -96,7 +96,7 @@ function PillSelector({ options, value, onChange, accent = ACCENT }) {
               fontSize: "0.9rem",
               fontWeight: active ? 700 : 500,
               cursor: "pointer",
-              fontFamily: "'Space Grotesk', sans-serif",
+              fontFamily: "'Raleway', sans-serif",
               transition: "all 0.14s",
               whiteSpace: "nowrap",
             }}
@@ -258,14 +258,14 @@ export default function ProfilePage({ navigate }) {
       background: "#faf9f5",
       backgroundImage: "radial-gradient(circle, rgba(29,78,216,0.06) 1px, transparent 1px)",
       backgroundSize: "28px 28px",
-      fontFamily: "'Space Grotesk', sans-serif",
+      fontFamily: "'Raleway', sans-serif",
       paddingLeft: isMobile ? 0 : SIDEBAR_WIDTH,
       paddingBottom: isMobile ? 96 : 0,
       position: "relative",
     }}>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
         @import
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         .pf-input:focus  { border-color: ${accent} !important; box-shadow: 0 0 0 4px ${accent}18, 0 2px 12px ${accent}20 !important; }
@@ -295,17 +295,17 @@ export default function ProfilePage({ navigate }) {
                   background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   boxShadow: `0 0 0 2px ${accent}22, 0 6px 24px ${accent}40`,
-                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontFamily: "'Raleway', sans-serif",
                   fontWeight: 700, fontSize: "1.35rem", color: "white",
                 }}>
                   {(preferredName || userEmail || "?").charAt(0).toUpperCase()}
                 </div>
               </div>
               <div>
-                <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "1.9rem", fontWeight: 600, color: "#141413", letterSpacing: "-0.01em", lineHeight: 1.15 }}>
+                <h1 style={{ fontFamily: "'Raleway', sans-serif", fontSize: "1.9rem", fontWeight: 600, color: "#141413", letterSpacing: "-0.01em", lineHeight: 1.15 }}>
                   {preferredName || "Your Profile"}
                 </h1>
-                {userEmail && <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "0.82rem", color: "#6a6760", marginTop: "0.25rem" }}>{userEmail}</p>}
+                {userEmail && <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "0.82rem", color: "#6a6760", marginTop: "0.25rem" }}>{userEmail}</p>}
               </div>
             </div>
           )}
@@ -440,7 +440,7 @@ export default function ProfilePage({ navigate }) {
                     padding: "0.55rem 1.1rem",
                     background: "transparent", border: "1.5px solid #e2e8f0",
                     borderRadius: "0.5rem", fontSize: "0.85rem", fontWeight: 600,
-                    color: "#3d3d3a", fontFamily: "'Space Grotesk', sans-serif",
+                    color: "#3d3d3a", fontFamily: "'Raleway', sans-serif",
                     cursor: loggingOut ? "not-allowed" : "pointer",
                     opacity: loggingOut ? 0.6 : 1, whiteSpace: "nowrap",
                     flexShrink: 0, marginLeft: "1rem",
@@ -464,7 +464,7 @@ export default function ProfilePage({ navigate }) {
                     padding: "0.55rem 1.1rem", background: "transparent",
                     border: "1.5px solid #fca5a5", borderRadius: "0.5rem",
                     fontSize: "0.85rem", fontWeight: 600, color: "#ef4444",
-                    fontFamily: "'Space Grotesk', sans-serif", cursor: "pointer",
+                    fontFamily: "'Raleway', sans-serif", cursor: "pointer",
                     whiteSpace: "nowrap", flexShrink: 0, marginLeft: "1rem",
                     transition: "border-color 0.15s, background 0.15s",
                   }}
@@ -517,7 +517,7 @@ export default function ProfilePage({ navigate }) {
                 <button
                   onClick={() => setDeleteModal(false)}
                   disabled={deleting}
-                  style={{ padding: "0.6rem 1.1rem", background: "transparent", border: "1.5px solid #e2e8f0", borderRadius: "0.5rem", fontSize: "0.875rem", fontWeight: 600, color: "#3d3d3a", cursor: "pointer", fontFamily: "'Space Grotesk', sans-serif" }}
+                  style={{ padding: "0.6rem 1.1rem", background: "transparent", border: "1.5px solid #e2e8f0", borderRadius: "0.5rem", fontSize: "0.875rem", fontWeight: 600, color: "#3d3d3a", cursor: "pointer", fontFamily: "'Raleway', sans-serif" }}
                 >
                   Cancel
                 </button>
@@ -530,7 +530,7 @@ export default function ProfilePage({ navigate }) {
                     border: "none", borderRadius: "0.5rem",
                     fontSize: "0.875rem", fontWeight: 700, color: "white",
                     cursor: deleteConfirmText.trim().toLowerCase() === "delete my account" && !deleting ? "pointer" : "not-allowed",
-                    fontFamily: "'Space Grotesk', sans-serif", transition: "background 0.15s",
+                    fontFamily: "'Raleway', sans-serif", transition: "background 0.15s",
                   }}
                 >
                   {deleting ? "Deleting…" : "Delete account"}
@@ -588,7 +588,7 @@ export default function ProfilePage({ navigate }) {
           borderRadius: "0.875rem",
           fontSize: "1rem",
           fontWeight: 700,
-          fontFamily: "'Space Grotesk', sans-serif",
+          fontFamily: "'Raleway', sans-serif",
           cursor: saving ? "not-allowed" : "pointer",
           boxShadow: saving ? "none" : `0 6px 24px ${accent}55, 0 2px 8px rgba(0,0,0,0.12)`,
           display: "flex",

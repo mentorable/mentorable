@@ -10,7 +10,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
 // ─── Design tokens (shared app palette) ───────────────────────────────────────
-const SANS        = "'Space Grotesk', sans-serif";
+const SANS        = "'Raleway', sans-serif";
 const BG          = "#f5f1ed";
 const WHITE       = "#ffffff";
 const BLUE        = "#1d4ed8";
@@ -517,7 +517,7 @@ export default function RoadmapPage({ navigate }) {
 
   return (
     <div data-sidebar-offset style={pagePad}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');`}</style>
 
       {phase === "empty" && (
         <GoalEntry onStart={handleStart} starting={starting} atLimit={roadmapUsed >= LIMITS.roadmap_gen} onLimit={() => showLimit("roadmap_gen")} />

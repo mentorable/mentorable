@@ -7,7 +7,7 @@ import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
-const SANS = "'Space Grotesk', sans-serif";
+const SANS = "'Raleway', sans-serif";
 const BG = "#f5f1ed", WHITE = "#fff", BLUE = "#1d4ed8";
 const TEXT = "#141413", TEXT_MID = "#3d3d3a", TEXT_MUTED = "#494742", TEXT_FAINT = "#6a6760", BORDER = "#e6dfd8";
 
@@ -333,7 +333,7 @@ export default function PortfolioPage({ navigate }) {
 
   return (
     <div data-sidebar-offset style={pad}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');`}</style>
       <div style={{ maxWidth: 760, margin: "0 auto", width: "100%" }}>
 
         {/* Header */}
