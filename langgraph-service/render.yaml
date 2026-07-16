@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: mentorable-langgraph
+    runtime: python
+    plan: free
+    rootDir: langgraph-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: BRAVE_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: DEV_BYPASS_EMAILS
+        sync: false
