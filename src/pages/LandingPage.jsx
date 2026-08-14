@@ -828,6 +828,7 @@ function Newsletter() {
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
 function Footer() {
+  const go = (p) => { window.history.pushState({}, "", p); window.dispatchEvent(new PopStateEvent("popstate")); };
   return (
     <footer style={{ background: FOOT, color: "#fff", padding: "3.5rem clamp(1.25rem,4vw,2.5rem) 2rem" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
@@ -839,7 +840,15 @@ function Footer() {
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
           flexWrap: "wrap", gap: 14, paddingTop: "1.8rem", borderTop: "1px solid rgba(255,255,255,0.18)" }}>
-          <div style={{ fontFamily: SANS, fontSize: "0.78rem", color: "rgba(255,255,255,0.55)" }}>© 2026 Mentorable Inc. All rights reserved.</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "1.4rem", flexWrap: "wrap" }}>
+            <div style={{ fontFamily: SANS, fontSize: "0.78rem", color: "rgba(255,255,255,0.55)" }}>© 2026 Mentorable Inc. All rights reserved.</div>
+            <button onClick={() => go("/privacy")} style={{ fontFamily: SANS, fontSize: "0.78rem", color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "none" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}>Privacy Policy</button>
+            <button onClick={() => go("/terms")} style={{ fontFamily: SANS, fontSize: "0.78rem", color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "none" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}>Terms of Service</button>
+          </div>
           <div style={{ display: "flex", gap: "1.5rem" }}>
             {[
               { label: "X", href: "https://x.com/MentorableAI" },

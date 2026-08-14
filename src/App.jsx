@@ -12,6 +12,8 @@ import QuestPage from "./pages/QuestPage.jsx";
 import RoadmapPage from "./pages/RoadmapPage.jsx";
 import RoadmapNodePage from "./pages/RoadmapNodePage.jsx";
 import PortfolioPage from "./pages/PortfolioPage.jsx";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage.jsx";
+import TermsOfServicePage from "./pages/TermsOfServicePage.jsx";
 import Sidebar from "./components/common/Sidebar.jsx";
 import MobileNav from "./components/common/MobileNav.jsx";
 import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
@@ -95,6 +97,16 @@ function ProfileRoute() {
   return <ProfilePage navigate={navigate} />;
 }
 
+function PrivacyPolicyRoute() {
+  const navigate = useNavigate();
+  return <PrivacyPolicyPage navigate={navigate} />;
+}
+
+function TermsOfServiceRoute() {
+  const navigate = useNavigate();
+  return <TermsOfServicePage navigate={navigate} />;
+}
+
 function ResearchRoute() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
@@ -163,6 +175,8 @@ export default function App() {
         <Route path="/roadmap" element={<ErrorBoundary><RoadmapRoute /></ErrorBoundary>} />
         <Route path="/roadmap/node/:nodeId" element={<ErrorBoundary><RoadmapNodeRoute /></ErrorBoundary>} />
         <Route path="/portfolio" element={<ErrorBoundary><PortfolioRoute /></ErrorBoundary>} />
+        <Route path="/privacy" element={<PrivacyPolicyRoute />} />
+        <Route path="/terms" element={<TermsOfServiceRoute />} />
         <Route path="/" element={<RootRoute />} />
         <Route path="*" element={<LandingPage />} />
       </Routes>
