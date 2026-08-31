@@ -576,7 +576,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
           position: "relative", padding: "7px 10px", borderRadius: 8,
           cursor: isRenaming ? "default" : "pointer",
           display: "flex", alignItems: "center", gap: 8,
-          background: isActive ? "#f5f1ed" : hovered ? "#eee9e0" : "transparent",
+          background: isActive ? "#fff" : hovered ? "#f5f1ed" : "transparent",
           borderLeft: isActive ? "2px solid var(--accent)" : "2px solid transparent",
           marginBottom: 1, transition: "background 0.12s",
         }}
@@ -618,7 +618,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
   return (
     <div style={{
       width: fullWidth ? "100%" : HISTORY_W, flexShrink: 0,
-      background: "#f5f1ed",
+      background: "#fff",
       borderLeft: fullWidth ? "none" : "1.5px solid #e2e8f0",
       display: "flex", flexDirection: "column", overflow: "hidden",
       flex: fullWidth ? 1 : undefined,

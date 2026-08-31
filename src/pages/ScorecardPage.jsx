@@ -509,21 +509,19 @@ export default function ScorecardPage({ navigate }) {
 
         {phase === "loaded" && profile && (
           <>
-            {/* Disclaimer note, top-right */}
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
-              <span style={{ fontFamily: SANS, fontSize: "0.76rem", color: "#6a6760", textAlign: "right", maxWidth: 300, lineHeight: 1.4 }}>
-                Your scores aren't comparable to anyone else's — they're just here to help you spot where to focus next.
-              </span>
-            </div>
-
             {/* Header */}
             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
               style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap", marginBottom: "2rem" }}>
               <ReadinessRing value={readiness} accent={theme.accent} />
               <div style={{ flex: 1, minWidth: 220 }}>
-                <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: "#141413", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
-                  {first}'s Scorecard
-                </h1>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+                  <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: "#141413", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
+                    {first}'s Scorecard
+                  </h1>
+                  <span style={{ fontFamily: SANS, fontSize: "0.9rem", color: "#3d3d3a", textAlign: "right", maxWidth: 300, lineHeight: 1.4, marginTop: 2 }}>
+                    Your scores aren't comparable to anyone else's. They're just here to help you spot where to focus next.
+                  </span>
+                </div>
                 <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: "#494742", lineHeight: 1.55, marginTop: "0.5rem", maxWidth: 440 }}>
                   Five skills that grow as you work. <strong style={{ color: theme.accent }}>Tap a glowing axis</strong> and Mentorable builds quests to raise it.
                 </p>

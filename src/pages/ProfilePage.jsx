@@ -381,7 +381,7 @@ export default function ProfilePage({ navigate }) {
                   ))}
                 </div>
                 <div style={{ marginTop: "0.5rem" }}>
-                  <Hint>Sets the accent color across Mentorable — your avatar, nav, and highlights everywhere.</Hint>
+                  <Hint>Sets the accent color across Mentorable: your avatar, nav, and highlights everywhere.</Hint>
                 </div>
               </div>
             </div>
