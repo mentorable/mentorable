@@ -945,7 +945,7 @@ export default function ResearchPage({ navigate, initialSessionId }) {
           return (
             <div style={{ textAlign: "center", maxWidth: 640, margin: "6px auto 4px" }}>
               <span style={{ fontFamily: FONT, fontSize: 11, fontWeight: 600,
-                color: left <= 1 ? "#dc2626" : "#9ca3af" }}>
+                color: left <= 1 ? "#dc2626" : "#6a6760" }}>
                 {left === 0 ? "No research queries remaining" : `${left} research quer${left === 1 ? "y" : "ies"} remaining`}
               </span>
             </div>

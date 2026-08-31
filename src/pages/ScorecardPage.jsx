@@ -22,15 +22,6 @@ const AXES = [
   { key: "execution",      label: "Execution",      blurb: "Turning knowledge into finished work" },
 ];
 
-// ─── Card color themes (recolor the shareable radar card) ─────────────────────
-const themes = [
-  { name: "Ocean",   accent: "#3b82f6", glow: "rgba(59,130,246,0.25)",  rgb: "59,130,246"  },
-  { name: "Violet",  accent: "#8b5cf6", glow: "rgba(139,92,246,0.25)",  rgb: "139,92,246"  },
-  { name: "Emerald", accent: "#10b981", glow: "rgba(16,185,129,0.25)",  rgb: "16,185,129"  },
-  { name: "Rose",    accent: "#f43f5e", glow: "rgba(244,63,94,0.25)",   rgb: "244,63,94"   },
-  { name: "Amber",   accent: "#f59e0b", glow: "rgba(245,158,11,0.25)",  rgb: "245,158,11"  },
-];
-
 const DEFAULT = 40;
 const clamp = (n) => Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
 
@@ -371,17 +362,10 @@ function ImproveModal({ axisKey, accent, onClose, onAdded, onLimit, onConsumed }
 // ─── ScorecardPage ────────────────────────────────────────────────────────────
 export default function ScorecardPage({ navigate }) {
   const { accent: siteAccent, accentRgb: siteAccentRgb } = useTheme();
-  // Default card theme = the site-wide accent (from Profile settings); the
-  // dot picker below still lets you override just the shareable card image.
-  const yourColorTheme = { name: "Your color", accent: siteAccent, glow: `rgba(${siteAccentRgb},0.25)`, rgb: siteAccentRgb };
+  // Card theme always matches the site-wide accent (from Profile settings).
+  const theme = { name: "Your color", accent: siteAccent, glow: `rgba(${siteAccentRgb},0.25)`, rgb: siteAccentRgb };
   const [phase, setPhase] = useState(() => { const uid = getKnownUserId(); return (uid && getCache(`profile:${uid}`)) ? "loaded" : "loading"; });
   const [profile, setProfile] = useState(() => { const uid = getKnownUserId(); return uid ? getCache(`profile:${uid}`) : null; });
-  const [theme, setTheme] = useState(yourColorTheme);
-  // Keep the card in sync with the site accent (e.g. it loads async from
-  // Supabase after mount) as long as the user hasn't picked a preset dot.
-  useEffect(() => {
-    setTheme((t) => (t.name === "Your color" ? { name: "Your color", accent: siteAccent, glow: `rgba(${siteAccentRgb},0.25)`, rgb: siteAccentRgb } : t));
-  }, [siteAccent, siteAccentRgb]);
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -500,8 +484,6 @@ export default function ScorecardPage({ navigate }) {
         .sc-btn { display:inline-flex; align-items:center; gap:0.5rem; padding:0.65rem 1.15rem; border:1.5px solid #141413; border-radius:0.7rem; background:transparent; color:#141413; font-family:${SANS}; font-size:0.85rem; font-weight:600; cursor:pointer; transition:background .15s,color .15s,transform .15s; }
         .sc-btn:hover:not(:disabled) { background:#141413; color:#fff; transform:translateY(-1px); }
         .sc-btn:disabled { opacity:.55; cursor:not-allowed; }
-        .sc-dot { width:20px; height:20px; border-radius:50%; cursor:pointer; border:none; padding:0; transition:transform .15s; }
-        .sc-dot:hover { transform:scale(1.18); }
         @media (max-width: 860px) {
           .sc-grid { grid-template-columns: 1fr !important; }
         }
@@ -527,6 +509,13 @@ export default function ScorecardPage({ navigate }) {
 
         {phase === "loaded" && profile && (
           <>
+            {/* Disclaimer note, top-right */}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
+              <span style={{ fontFamily: SANS, fontSize: "0.76rem", color: "#6a6760", textAlign: "right", maxWidth: 300, lineHeight: 1.4 }}>
+                Your scores aren't comparable to anyone else's — they're just here to help you spot where to focus next.
+              </span>
+            </div>
+
             {/* Header */}
             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
               style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap", marginBottom: "2rem" }}>
@@ -553,7 +542,7 @@ export default function ScorecardPage({ navigate }) {
                 <button onClick={() => navigate("/portfolio")}
                   style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, color: siteAccent, background: "none",
                     border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}>
-                  Complete your portfolio!
+                  Complete your portfolio
                 </button>
                 <PortfolioLearnMore />
                 <span style={{ fontFamily: SANS, fontSize: "0.85rem", color: "#494742" }}>
@@ -599,18 +588,10 @@ export default function ScorecardPage({ navigate }) {
                   </div>
                 </div>
 
-                {/* theme + actions */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", marginTop: "1rem", flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", gap: "0.5rem" }}>
-                    {[yourColorTheme, ...themes].map((t) => (
-                      <button key={t.name} className="sc-dot" title={t.name} onClick={() => setTheme(t)}
-                        style={{ background: t.accent, boxShadow: theme.name === t.name ? `0 0 0 2px #f5f1ed, 0 0 0 4px ${t.accent}` : "none", transform: theme.name === t.name ? "scale(1.15)" : "scale(1)" }} />
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <button className="sc-btn" disabled={downloading} onClick={handleDownload}>{downloading ? <Spinner size={14} color="#141413" /> : "Download"}</button>
-                    <button className="sc-btn" disabled={sharing} onClick={handleShare}>{sharing ? <Spinner size={14} color="#141413" /> : "Share"}</button>
-                  </div>
+                {/* actions */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "0.5rem", marginTop: "1rem" }}>
+                  <button className="sc-btn" disabled={downloading} onClick={handleDownload}>{downloading ? <Spinner size={14} color="#141413" /> : "Download"}</button>
+                  <button className="sc-btn" disabled={sharing} onClick={handleShare}>{sharing ? <Spinner size={14} color="#141413" /> : "Share"}</button>
                 </div>
               </motion.div>
 

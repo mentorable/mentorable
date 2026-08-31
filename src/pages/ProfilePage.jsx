@@ -259,7 +259,7 @@ export default function ProfilePage({ navigate }) {
   return (
     <div data-sidebar-offset style={{
       minHeight: "100vh",
-      background: "#faf9f5",
+      background: "#f5f1ed",
       backgroundImage: `radial-gradient(circle, rgba(${accentRgb},0.06) 1px, transparent 1px)`,
       backgroundSize: "28px 28px",
       fontFamily: "'Raleway', sans-serif",
@@ -380,7 +380,9 @@ export default function ProfilePage({ navigate }) {
                     />
                   ))}
                 </div>
-                <Hint>Sets the accent color across Mentorable — your avatar, nav, and highlights everywhere.</Hint>
+                <div style={{ marginTop: "0.5rem" }}>
+                  <Hint>Sets the accent color across Mentorable — your avatar, nav, and highlights everywhere.</Hint>
+                </div>
               </div>
             </div>
 

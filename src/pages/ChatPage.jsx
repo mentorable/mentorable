@@ -328,7 +328,7 @@ function Message({ msg, isMobile = false }) {
         <div
           className={isStreaming ? "streaming-bubble" : undefined}
           style={{
-            background: "#faf9f5",
+            background: "#fff",
             borderRadius: "3px 16px 16px 16px",
             padding: "16px 18px",
             border: isStreaming
@@ -438,7 +438,7 @@ function InputBar({ onSend, disabled, isMobile = false }) {
           {value.length}/{MAX_INPUT}
         </p>
       )}
-      <p style={{ fontFamily: SG, fontSize: 11, color: "#b0bac6", textAlign: "center", marginTop: 8 }}>
+      <p style={{ fontFamily: SG, fontSize: 11, color: "#7a7f88", textAlign: "center", marginTop: 8 }}>
         Mentorable Agent can make mistakes. Verify important decisions with a counselor.
       </p>
     </div>
@@ -576,7 +576,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
           position: "relative", padding: "7px 10px", borderRadius: 8,
           cursor: isRenaming ? "default" : "pointer",
           display: "flex", alignItems: "center", gap: 8,
-          background: isActive ? "#f5f0e8" : hovered ? "#faf9f5" : "transparent",
+          background: isActive ? "#f5f1ed" : hovered ? "#eee9e0" : "transparent",
           borderLeft: isActive ? "2px solid var(--accent)" : "2px solid transparent",
           marginBottom: 1, transition: "background 0.12s",
         }}
@@ -618,7 +618,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
   return (
     <div style={{
       width: fullWidth ? "100%" : HISTORY_W, flexShrink: 0,
-      background: "#f5f0e8",
+      background: "#f5f1ed",
       borderLeft: fullWidth ? "none" : "1.5px solid #e2e8f0",
       display: "flex", flexDirection: "column", overflow: "hidden",
       flex: fullWidth ? 1 : undefined,
@@ -662,7 +662,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
           ) : null
         )}
         {sessions.length === 0 && (
-          <p style={{ fontFamily: SG, fontSize: 12, color: "#b0bac6", textAlign: "center", marginTop: 32, padding: "0 12px", lineHeight: 1.6 }}>
+          <p style={{ fontFamily: SG, fontSize: 12, color: "#7a7f88", textAlign: "center", marginTop: 32, padding: "0 12px", lineHeight: 1.6 }}>
             No conversations yet.
           </p>
         )}
@@ -682,7 +682,7 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
   }, [messages]);
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: "#faf9f5", overflow: "hidden", backgroundImage: "radial-gradient(circle, rgba(59,130,246,0.05) 1px, transparent 1px)", backgroundSize: "32px 32px", position: "relative" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: "#f5f1ed", overflow: "hidden", backgroundImage: "radial-gradient(circle, rgba(var(--accent-rgb),0.05) 1px, transparent 1px)", backgroundSize: "32px 32px", position: "relative" }}>
 
 
       {/* Top bar */}
@@ -704,14 +704,6 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
           </span>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.18)", borderRadius: 20, padding: "3px 9px" }}>
-            <motion.span
-              animate={{ boxShadow: ["0 0 0 0 rgba(16,185,129,0.4)", "0 0 0 4px rgba(16,185,129,0)", "0 0 0 0 rgba(16,185,129,0)"] }}
-              transition={{ duration: 2.5, repeat: Infinity }}
-              style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block" }}
-            />
-            <span style={{ fontFamily: SG, fontSize: 11, fontWeight: 700, color: "#059669" }}>Online</span>
-          </div>
           {onOpenHistory && (
             <button
               onClick={onOpenHistory}
@@ -764,7 +756,7 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
         return (
           <div style={{ padding: "4px 16px 6px", textAlign: "center" }}>
             <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: 11, fontWeight: 600,
-              color: left <= 3 ? "#dc2626" : "#9ca3af" }}>
+              color: left <= 3 ? "#dc2626" : "#6a6760" }}>
               {left === 0 ? "No messages remaining" : `${left} message${left === 1 ? "" : "s"} remaining`}
             </span>
           </div>

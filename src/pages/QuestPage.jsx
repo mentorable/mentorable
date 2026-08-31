@@ -11,7 +11,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const BG          = "#faf9f5";
+const BG          = "#f5f1ed";
 const WHITE       = "#ffffff";
 const BLUE        = "#1d4ed8";
 const BLUE_MID    = "#3b82f6";
@@ -918,7 +918,7 @@ export default function QuestPage({ navigate }) {
                 return (
                   <div style={{ textAlign: "center", marginTop: 6 }}>
                     <span style={{ fontFamily: FONT, fontSize: 11, fontWeight: 600,
-                      color: left === 0 ? "#dc2626" : "#9ca3af" }}>
+                      color: left === 0 ? "#dc2626" : "#6a6760" }}>
                       {left === 0 ? "No generations remaining" : `${left} generation${left === 1 ? "" : "s"} remaining`}
                     </span>
                   </div>

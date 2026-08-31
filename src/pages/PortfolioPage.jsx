@@ -342,7 +342,7 @@ export default function PortfolioPage({ navigate }) {
             Portfolio
           </h1>
           <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: TEXT_MUTED, lineHeight: 1.55, marginTop: "0.5rem", display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-            Complete your portfolio! <LearnMore /> Add your experiences, awards, courses, and more.
+            Complete your portfolio <LearnMore /> Add your experiences, awards, courses, and more.
           </p>
         </motion.div>
 
