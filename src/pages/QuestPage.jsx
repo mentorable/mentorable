@@ -851,12 +851,12 @@ export default function QuestPage({ navigate }) {
                 disabled={generating}
                 style={{
                   width: "100%", fontFamily: FONT, fontSize: 14, fontWeight: 700,
-                  color: WHITE, background: generating ? BLUE_MID : `linear-gradient(135deg, ${BLUE}, ${BLUE_MID})`,
+                  color: WHITE, background: generating ? "var(--accent)" : "linear-gradient(135deg, var(--accent), var(--accent-light))",
                   border: "none", borderRadius: 12, padding: "13px 16px",
                   cursor: generating ? "default" : "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
                   opacity: generating ? 0.8 : 1,
-                  boxShadow: "0 3px 14px rgba(29,78,216,0.2)",
+                  boxShadow: "0 3px 14px rgba(var(--accent-rgb),0.2)",
                   transition: "opacity 0.15s",
                 }}
               >
@@ -1085,7 +1085,7 @@ export default function QuestPage({ navigate }) {
                       style={{
                         fontFamily: FONT, fontSize: 11, fontWeight: 700,
                         color: WHITE,
-                        background: generating ? "#93c5fd" : BLUE,
+                        background: generating ? "#93c5fd" : "var(--accent)",
                         border: "none", borderRadius: 7,
                         padding: "4px 9px",
                         cursor: generating ? "default" : "pointer",

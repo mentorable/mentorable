@@ -11,15 +11,16 @@ const SANS = "'Raleway', sans-serif";
 const BG = "#f5f1ed", WHITE = "#fff";
 const TEXT = "#141413", TEXT_MID = "#3d3d3a", TEXT_MUTED = "#494742", TEXT_FAINT = "#6a6760", BORDER = "#e6dfd8";
 
-// 8 categories, each a different shade of blue (backgrounds only, dark text).
+// 8 categories, each a progressively lighter tint of the accent color
+// (backgrounds only, dark text). "Other" stays a neutral gray catch-all.
 const CATEGORIES = [
-  { key: "experience",    label: "Experience",    bg: "#a8c8fb" },
-  { key: "volunteering",  label: "Volunteering",  bg: "#b8d3fc" },
-  { key: "award",         label: "Award",         bg: "#c8ddfd" },
-  { key: "course",        label: "Course",        bg: "#d4e4fd" },
-  { key: "certification", label: "Certification", bg: "#dfebfe" },
-  { key: "club",          label: "Club",          bg: "#e8f0fe" },
-  { key: "skill",         label: "Skill",         bg: "#f0f5ff" },
+  { key: "experience",    label: "Experience",    bg: "color-mix(in srgb, var(--accent) 42%, white)" },
+  { key: "volunteering",  label: "Volunteering",  bg: "color-mix(in srgb, var(--accent) 34%, white)" },
+  { key: "award",         label: "Award",         bg: "color-mix(in srgb, var(--accent) 27%, white)" },
+  { key: "course",        label: "Course",        bg: "color-mix(in srgb, var(--accent) 21%, white)" },
+  { key: "certification", label: "Certification", bg: "color-mix(in srgb, var(--accent) 15%, white)" },
+  { key: "club",          label: "Club",          bg: "color-mix(in srgb, var(--accent) 10%, white)" },
+  { key: "skill",         label: "Skill",         bg: "color-mix(in srgb, var(--accent) 6%, white)" },
   { key: "other",         label: "Other",         bg: "#eceff4" },
 ];
 const CAT_BY_KEY = Object.fromEntries(CATEGORIES.map((c) => [c.key, c]));

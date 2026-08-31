@@ -53,7 +53,7 @@ function Hint({ children }) {
 function SectionHeading({ children }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: "1.25rem" }}>
-      <p style={{ fontFamily: SG, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#3b82f6", margin: 0 }}>
+      <p style={{ fontFamily: SG, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--accent)", margin: 0 }}>
         {children}
       </p>
       <div style={{ flex: 1, height: 1, background: "#e6dfd8" }} />

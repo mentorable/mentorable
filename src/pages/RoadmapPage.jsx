@@ -219,7 +219,7 @@ function PlanModal({ roadmap, onClose }) {
       <motion.div initial={{ opacity: 0, y: 22, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         onClick={(e) => e.stopPropagation()}
         style={{ width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto", background: BG, borderRadius: 20, border: `1px solid ${BORDER}`, boxShadow: "0 30px 80px rgba(0,0,0,0.3)", padding: "1.75rem" }}>
-        <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: BLUE, marginBottom: 6 }}>The big picture</p>
+        <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 6 }}>The big picture</p>
         <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.35rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: 16 }}>{roadmap.display_title || roadmap.goal}</h2>
         {phases.map((p, i) => {
           const pal = phasePalette(i);
@@ -240,7 +240,7 @@ function PlanModal({ roadmap, onClose }) {
             </div>
           );
         })}
-        <button onClick={onClose} style={{ width: "100%", fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, cursor: "pointer", padding: "12px", borderRadius: 11, border: "none", background: BLUE, color: WHITE, marginTop: 6 }}>Got it</button>
+        <button onClick={onClose} style={{ width: "100%", fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, cursor: "pointer", padding: "12px", borderRadius: 11, border: "none", background: "var(--accent)", color: WHITE, marginTop: 6 }}>Got it</button>
       </motion.div>
     </motion.div>
   );
@@ -484,7 +484,7 @@ export default function RoadmapPage({ navigate }) {
 
   if (phase === "loading") {
     return <div data-sidebar-offset style={{ ...pagePad, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: 26, height: 26, borderRadius: "50%", border: `3px solid ${BLUE_SOFT}`, borderTopColor: BLUE, animation: "rm-spin 0.7s linear infinite" }} />
+      <div style={{ width: 26, height: 26, borderRadius: "50%", border: "3px solid rgba(var(--accent-rgb),0.2)", borderTopColor: "var(--accent)", animation: "rm-spin 0.7s linear infinite" }} />
       <style>{`@keyframes rm-spin { to { transform: rotate(360deg) } }`}</style>
     </div>;
   }
@@ -496,7 +496,7 @@ export default function RoadmapPage({ navigate }) {
     const isDone = node.state === "done";
     let progress;
     if (isDone) progress = { text: "Done", color: GREEN, bg: GREEN_SOFT };
-    else if (tc && tc.total) progress = { text: `${tc.done}/${tc.total}`, color: BLUE, bg: BLUE_SOFT };
+    else if (tc && tc.total) progress = { text: `${tc.done}/${tc.total}`, color: "var(--accent)", bg: "rgba(var(--accent-rgb),0.14)" };
     else progress = { text: "Open", color: TEXT_FAINT, bg: BG };
     return (
       <motion.button layout whileHover={{ y: -1 }} onClick={() => openNode(node)}
@@ -589,7 +589,7 @@ export default function RoadmapPage({ navigate }) {
 
           {/* Header */}
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ marginBottom: "2.25rem" }}>
-            <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: BLUE, marginBottom: 8 }}>
+            <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 8 }}>
               Your roadmap · {roadmap.timeframe_months} months
             </p>
             <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: TEXT, letterSpacing: "-0.025em", lineHeight: 1.15 }}>
