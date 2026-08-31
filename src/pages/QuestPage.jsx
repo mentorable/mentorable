@@ -796,7 +796,7 @@ export default function QuestPage({ navigate }) {
           background: "rgba(250,249,245,0.93)",
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
-          borderBottom: `1px solid rgba(29,78,216,0.08)`,
+          borderBottom: `1px solid rgba(var(--accent-rgb),0.08)`,
         }}>
           <div style={{ padding: "16px 16px 0" }}>
             <h1 style={{
@@ -986,7 +986,7 @@ export default function QuestPage({ navigate }) {
     <div style={{
       height: "100vh",
       background: BG,
-      backgroundImage: "radial-gradient(circle, rgba(29,78,216,0.055) 1px, transparent 1px)",
+      backgroundImage: "radial-gradient(circle, rgba(var(--accent-rgb),0.055) 1px, transparent 1px)",
       backgroundSize: "28px 28px",
       paddingLeft: SIDEBAR_WIDTH,
       display: "flex",
@@ -998,7 +998,7 @@ export default function QuestPage({ navigate }) {
       {/* Page header */}
       <div style={{
         padding: "16px 24px 13px",
-        borderBottom: `1px solid rgba(29,78,216,0.07)`,
+        borderBottom: `1px solid rgba(var(--accent-rgb),0.07)`,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         flexShrink: 0,
         background: "rgba(250,249,245,0.85)",
@@ -1213,7 +1213,6 @@ export default function QuestPage({ navigate }) {
 function GlobalStyles() {
   return (
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
       @keyframes quest-spin { to { transform: rotate(360deg); } }
       @keyframes quest-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
       * { box-sizing: border-box; }

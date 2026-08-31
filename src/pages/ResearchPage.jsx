@@ -8,15 +8,12 @@ import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
 import Drawer from "../components/common/Drawer.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
+import { useTheme } from "../lib/ThemeContext.jsx";
 
 const FONT   = "'Raleway', sans-serif";
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL; // reuse same base URL
 const BODY   = "'Raleway', sans-serif";
 const NAVY   = "#141413";
-const BLUE   = "#1d4ed8";
-const BLUE_MID = "#3b82f6";
-const BLUE_SOFT = "#dbeafe";
-const BLUE_TINT = "#eff6ff";
 const SESSIONS_W = 256;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -127,8 +124,8 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
           position: "relative", padding: "7px 10px", borderRadius: 8,
           cursor: "pointer",
           display: "flex", alignItems: "center", gap: 8,
-          background: isActive ? "rgba(29,78,216,0.07)" : hovered ? "#faf9f5" : "transparent",
-          borderLeft: isActive ? `2px solid ${BLUE}` : "2px solid transparent",
+          background: isActive ? "rgba(var(--accent-rgb),0.07)" : hovered ? "#faf9f5" : "transparent",
+          borderLeft: isActive ? "2px solid var(--accent)" : "2px solid transparent",
           marginBottom: 1, transition: "background 0.12s",
         }}
       >
@@ -158,8 +155,8 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
         {isPending && (
           <span style={{
             width: 14, height: 14, flexShrink: 0,
-            border: "2px solid rgba(29,78,216,0.15)",
-            borderTopColor: BLUE_MID, borderRadius: "50%",
+            border: "2px solid rgba(var(--accent-rgb),0.15)",
+            borderTopColor: "var(--accent)", borderRadius: "50%",
             animation: "spinner-rotate 0.7s linear infinite",
             display: "inline-block",
           }} />
@@ -173,7 +170,7 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
       width: fullWidth ? "100%" : SESSIONS_W, flexShrink: 0,
       height: fullWidth ? undefined : "100%",
       background: "#f5f0e8",
-      borderLeft: fullWidth ? "none" : "1.5px solid rgba(29,78,216,0.1)",
+      borderLeft: fullWidth ? "none" : "1.5px solid rgba(var(--accent-rgb),0.1)",
       display: "flex", flexDirection: "column", overflow: "hidden",
       flex: fullWidth ? 1 : undefined,
     }}>
@@ -196,7 +193,7 @@ function SessionsPanel({ sessions, activeId, onSelect, onNew, onDelete, fullWidt
             fontFamily: FONT, fontWeight: 600, fontSize: 12.5, color: "#3d3d3a",
             cursor: "pointer", transition: "border-color 0.15s",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${BLUE}50`; }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(var(--accent-rgb),0.31)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e6dfd8"; }}
         >
           <IconPlus size={13} color="#3d3d3a" /> New search
@@ -265,16 +262,16 @@ function SearchBar({ value, onChange, onSubmit, loading, isMobile = false }) {
             width: "100%", resize: "none", boxSizing: "border-box",
             fontFamily: FONT, fontSize: "1rem", fontWeight: 500, color: NAVY,
             background: "#fff",
-            border: "2px solid rgba(29,78,216,0.15)",
+            border: "2px solid rgba(var(--accent-rgb),0.15)",
             borderRadius: "0.875rem",
             padding: "1.1rem 1.375rem",
             outline: "none", lineHeight: 1.55,
             transition: "border-color 0.15s, box-shadow 0.15s",
-            boxShadow: "0 2px 8px rgba(29,78,216,0.06)",
+            boxShadow: "0 2px 8px rgba(var(--accent-rgb),0.06)",
             opacity: loading ? 0.7 : 1,
           }}
-          onFocus={(e) => { e.target.style.borderColor = "rgba(29,78,216,0.5)"; e.target.style.boxShadow = "0 0 0 4px rgba(29,78,216,0.07)"; }}
-          onBlur={(e)  => { e.target.style.borderColor = "rgba(29,78,216,0.15)"; e.target.style.boxShadow = "0 2px 8px rgba(29,78,216,0.06)"; }}
+          onFocus={(e) => { e.target.style.borderColor = "rgba(var(--accent-rgb),0.5)"; e.target.style.boxShadow = "0 0 0 4px rgba(var(--accent-rgb),0.07)"; }}
+          onBlur={(e)  => { e.target.style.borderColor = "rgba(var(--accent-rgb),0.15)"; e.target.style.boxShadow = "0 2px 8px rgba(var(--accent-rgb),0.06)"; }}
         />
       </div>
       <motion.button
@@ -285,13 +282,13 @@ function SearchBar({ value, onChange, onSubmit, loading, isMobile = false }) {
         style={{
           padding: "0 1.75rem", height: isMobile ? 52 : 62,
           justifyContent: "center",
-          background: value.trim() && !loading ? "linear-gradient(135deg, #1d4ed8, #3b82f6)" : "#e6dfd8",
+          background: value.trim() && !loading ? "linear-gradient(135deg, var(--accent), var(--accent-light))" : "#e6dfd8",
           color: value.trim() && !loading ? "white" : "#6a6760",
           border: "none", borderRadius: "0.75rem",
           fontFamily: FONT, fontWeight: 700, fontSize: "0.9375rem",
           cursor: value.trim() && !loading ? "pointer" : "not-allowed",
           transition: "all 0.15s", whiteSpace: "nowrap",
-          boxShadow: value.trim() && !loading ? "0 4px 14px rgba(29,78,216,0.28)" : "none",
+          boxShadow: value.trim() && !loading ? "0 4px 14px rgba(var(--accent-rgb),0.28)" : "none",
           display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0,
         }}
       >
@@ -322,14 +319,14 @@ function ExampleChips({ onSelect, loading }) {
             whileTap={{ scale: 0.97 }}
             disabled={loading}
             style={{
-              fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, color: BLUE,
-              background: BLUE_TINT, border: `1.5px solid ${BLUE_SOFT}`,
+              fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, color: "var(--accent)",
+              background: "rgba(var(--accent-rgb),0.06)", border: "1.5px solid rgba(var(--accent-rgb),0.2)",
               borderRadius: "2rem", padding: "0.4rem 0.875rem",
               cursor: loading ? "not-allowed" : "pointer", transition: "background 0.12s, border-color 0.12s",
               opacity: loading ? 0.5 : 1,
             }}
-            onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.background = "#dbeafe"; e.currentTarget.style.borderColor = "#93c5fd"; } }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = BLUE_TINT; e.currentTarget.style.borderColor = BLUE_SOFT; }}
+            onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.background = "rgba(var(--accent-rgb),0.12)"; e.currentTarget.style.borderColor = "rgba(var(--accent-rgb),0.35)"; } }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(var(--accent-rgb),0.06)"; e.currentTarget.style.borderColor = "rgba(var(--accent-rgb),0.2)"; }}
           >
             {chip}
           </motion.button>
@@ -342,14 +339,15 @@ function ExampleChips({ onSelect, loading }) {
 // ─── Loading state ────────────────────────────────────────────────────────────
 
 function LoadingState({ step }) {
+  const { accent, accentRgb } = useTheme();
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-      style={{ background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1.5px solid #bfdbfe", borderRadius: "1.25rem", padding: "2.25rem 2rem", textAlign: "center", marginBottom: "2rem" }}
+      style={{ background: `linear-gradient(135deg, rgba(${accentRgb},0.06) 0%, rgba(${accentRgb},0.14) 100%)`, border: `1.5px solid rgba(${accentRgb},0.25)`, borderRadius: "1.25rem", padding: "2.25rem 2rem", textAlign: "center", marginBottom: "2rem" }}
     >
-      <div style={{ width: 50, height: 50, borderRadius: "50%", background: "#faf9f5", border: "1.5px solid #bfdbfe", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.25rem", position: "relative", boxShadow: "0 4px 16px rgba(29,78,216,0.1)" }}>
-        <div style={{ position: "absolute", inset: -4, borderRadius: "50%", border: "2px solid transparent", borderTopColor: BLUE, animation: "spinner-rotate 1s linear infinite" }} />
-        <IconSearch size={20} color={BLUE} />
+      <div style={{ width: 50, height: 50, borderRadius: "50%", background: "#faf9f5", border: `1.5px solid rgba(${accentRgb},0.25)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.25rem", position: "relative", boxShadow: `0 4px 16px rgba(${accentRgb},0.1)` }}>
+        <div style={{ position: "absolute", inset: -4, borderRadius: "50%", border: "2px solid transparent", borderTopColor: accent, animation: "spinner-rotate 1s linear infinite" }} />
+        <IconSearch size={20} color={accent} />
       </div>
       <AnimatePresence mode="wait">
         <motion.p key={step} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.25 }}
@@ -359,7 +357,7 @@ function LoadingState({ step }) {
       </AnimatePresence>
       <div style={{ display: "flex", justifyContent: "center", gap: "0.4rem", marginTop: "1rem" }}>
         {LOADING_STEPS.map((_, i) => (
-          <div key={i} style={{ width: i === step ? 18 : 5, height: 5, borderRadius: 3, background: i === step ? BLUE : "rgba(29,78,216,0.15)", transition: "all 0.3s" }} />
+          <div key={i} style={{ width: i === step ? 18 : 5, height: 5, borderRadius: 3, background: i === step ? accent : `rgba(${accentRgb},0.15)`, transition: "all 0.3s" }} />
         ))}
       </div>
       <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: "#494742", marginTop: "0.75rem" }}>
@@ -372,6 +370,7 @@ function LoadingState({ step }) {
 // ─── Result card ──────────────────────────────────────────────────────────────
 
 function ResultCard({ result, index }) {
+  const { accent } = useTheme();
   const meta = TYPE_META[result.type] || TYPE_META.article;
   const details = result.details || {};
   const [planOpen, setPlanOpen] = useState(false);
@@ -443,11 +442,11 @@ function ResultCard({ result, index }) {
           style={{
             display: "flex", alignItems: "center", gap: "0.3rem",
             padding: "0.4rem 0.875rem",
-            background: "linear-gradient(135deg, #1d4ed8, #3b82f6)",
+            background: "linear-gradient(135deg, var(--accent), var(--accent-light))",
             color: "white", borderRadius: "2rem",
             fontFamily: FONT, fontSize: "0.75rem", fontWeight: 700,
             textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
-            boxShadow: "0 2px 8px rgba(29,78,216,0.28)",
+            boxShadow: "0 2px 8px rgba(var(--accent-rgb),0.28)",
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -481,13 +480,13 @@ function ResultCard({ result, index }) {
       {result.relevance_note && (
         <div style={{
           display: "flex", gap: "0.45rem", alignItems: "flex-start",
-          background: BLUE_TINT,
-          border: `1px solid ${BLUE_SOFT}`,
+          background: "rgba(var(--accent-rgb),0.06)",
+          border: "1px solid rgba(var(--accent-rgb),0.2)",
           borderRadius: "0.75rem", padding: "0.6rem 0.875rem",
           marginBottom: result.gamePlan ? "0.75rem" : 0,
         }}>
-          <IconStar size={13} color={BLUE} style={{ flexShrink: 0, marginTop: 2 }} />
-          <p style={{ fontFamily: FONT, fontSize: "0.79rem", color: BLUE, fontWeight: 600, lineHeight: 1.55, margin: 0 }}>
+          <IconStar size={13} color={accent} style={{ flexShrink: 0, marginTop: 2 }} />
+          <p style={{ fontFamily: FONT, fontSize: "0.79rem", color: "var(--accent)", fontWeight: 600, lineHeight: 1.55, margin: 0 }}>
             {result.relevance_note}
           </p>
         </div>
@@ -544,6 +543,7 @@ function ResultCard({ result, index }) {
 
 function SourcesSection({ sources }) {
   const [open, setOpen] = useState(false);
+  const { accent } = useTheme();
   if (!sources?.length) return null;
 
   return (
@@ -569,14 +569,14 @@ function SourcesSection({ sources }) {
               {sources.map((s, i) => (
                 <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
                   style={{
-                    fontFamily: FONT, fontSize: "0.8rem", color: BLUE, fontWeight: 500,
+                    fontFamily: FONT, fontSize: "0.8rem", color: "var(--accent)", fontWeight: 500,
                     textDecoration: "none", display: "flex", alignItems: "center", gap: "0.375rem",
                     padding: "0.3rem 0",
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
                 >
-                  <IconExternal size={10} color={BLUE} />
+                  <IconExternal size={10} color={accent} />
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title || s.url}</span>
                 </a>
               ))}
@@ -882,11 +882,9 @@ export default function ResearchPage({ navigate, initialSessionId }) {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#faf9f5", backgroundImage: "radial-gradient(circle, rgba(29,78,216,0.07) 1px, transparent 1px)", backgroundSize: "28px 28px", display: "flex", position: "relative" }}>
+    <div style={{ minHeight: "100vh", background: "#faf9f5", backgroundImage: "radial-gradient(circle, rgba(var(--accent-rgb),0.07) 1px, transparent 1px)", backgroundSize: "28px 28px", display: "flex", position: "relative" }}>
 
       <style>{`
-        @import
-        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
         @keyframes spinner-rotate { to { transform: rotate(360deg); } }
       `}</style>
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Routes, Route, useNavigate, useParams, useLocation } from "react-router-dom";
 import { supabase } from "./lib/supabase.js";
+import { ThemeProvider } from "./lib/ThemeContext.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import OnboardingPage from "./pages/OnboardingPage.jsx";
@@ -162,6 +163,7 @@ function RootRoute() {
 
 export default function App() {
   return (
+    <ThemeProvider>
     <AppShell>
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
@@ -181,5 +183,6 @@ export default function App() {
         <Route path="*" element={<LandingPage />} />
       </Routes>
     </AppShell>
+    </ThemeProvider>
   );
 }

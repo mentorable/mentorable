@@ -50,7 +50,7 @@ function renderOverview(text, references) {
     if (ref) {
       out.push(
         <a key={key++} href={ref.url} target="_blank" rel="noopener noreferrer"
-          style={{ fontWeight: 700, color: BLUE, textDecoration: "none", borderBottom: `1.5px solid ${BLUE}40`, cursor: "pointer" }}>
+          style={{ fontWeight: 700, color: "var(--accent)", textDecoration: "none", borderBottom: "1.5px solid rgba(var(--accent-rgb),0.25)", cursor: "pointer" }}>
           {phrase}
         </a>
       );
@@ -142,7 +142,6 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
   return (
     <div data-sidebar-offset style={pad}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
         @keyframes rn-shimmer { 0% { background-position: -480px 0 } 100% { background-position: 480px 0 } }
         .rn-sk { background: linear-gradient(90deg, ${BORDER}55 25%, ${BORDER}aa 50%, ${BORDER}55 75%); background-size: 480px 100%; animation: rn-shimmer 1.5s infinite; border-radius: 8px; }
       `}</style>
@@ -164,7 +163,7 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
               {isDone && <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: GREEN, background: GREEN_SOFT, borderRadius: 6, padding: "3px 10px" }}>Done</span>}
               <button
                 onClick={() => navigate("/chat", { state: { seedNode: { id: node.id, title: node.title } } })}
-                style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: 12, fontWeight: 700, color: BLUE, background: BLUE_TINT, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer" }}>
+                style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: 12, fontWeight: 700, color: "var(--accent)", background: "rgba(var(--accent-rgb),0.08)", border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
                 Chat about this
               </button>
@@ -185,7 +184,7 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
             {phase === "error" && (
               <div style={{ textAlign: "center", padding: "1rem 0" }}>
                 <p style={{ fontFamily: SANS, color: "#dc2626", fontWeight: 600, marginBottom: 8 }}>Couldn't load resources.</p>
-                <button onClick={() => expand(node)} style={{ fontFamily: SANS, color: BLUE, background: "none", border: "none", cursor: "pointer", fontWeight: 600, textDecoration: "underline" }}>Try again</button>
+                <button onClick={() => expand(node)} style={{ fontFamily: SANS, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", fontWeight: 600, textDecoration: "underline" }}>Try again</button>
               </div>
             )}
 
@@ -195,7 +194,7 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
                 {tasks.length > 0 && (
                   <div style={{ marginBottom: 28 }}>
                     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
-                      <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: BLUE, margin: 0 }}>Your checklist</p>
+                      <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--accent)", margin: 0 }}>Your checklist</p>
                       <span style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, color: isDone ? GREEN : TEXT_MUTED }}>{doneCount}/{tasks.length} done</span>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -217,7 +216,7 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
 
                 {node.overview && (
                   <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "1.4rem 1.5rem", marginBottom: 24 }}>
-                    <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: BLUE, marginBottom: 10 }}>Overview</p>
+                    <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 10 }}>Overview</p>
                     <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT_MID, lineHeight: 1.7, margin: 0 }}>
                       {renderOverview(node.overview, node.references)}
                     </p>
@@ -232,7 +231,7 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
                     return (
                       <a key={ref.id} href={ref.url} target="_blank" rel="noopener noreferrer"
                         style={{ display: "flex", alignItems: "center", gap: 12, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "13px 16px", textDecoration: "none", transition: "border-color 0.15s, transform 0.15s" }}
-                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = BLUE; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
                         onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.transform = "none"; }}>
                         <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, color: WHITE, background: tm.color, borderRadius: 6, padding: "3px 7px", flexShrink: 0, minWidth: 28, textAlign: "center" }}>{ref.id}</span>
                         <div style={{ minWidth: 0, flex: 1 }}>

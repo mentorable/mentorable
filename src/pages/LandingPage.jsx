@@ -872,7 +872,6 @@ export default function LandingPage() {
   return (
     <div style={{ background: BG, minHeight: "100vh", color: FG, fontFamily: BODY, overflowX: "hidden" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
         html,body { overflow-x: hidden; max-width: 100%; }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         ::selection { background: rgba(37,99,235,0.25); }

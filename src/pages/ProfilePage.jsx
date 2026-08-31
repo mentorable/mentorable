@@ -4,6 +4,8 @@ import { supabase } from "../lib/supabase.js";
 import { getCache, setCache, invalidateCache, getKnownUserId, setKnownUserId } from "../lib/cache.js";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
+import { useTheme } from "../lib/ThemeContext.jsx";
+import { hexToRgbString } from "../lib/theme.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -124,6 +126,7 @@ export default function ProfilePage({ navigate }) {
   const [preferredName, setPreferredName] = useState(_cp?.full_name || "");
   const [bio, setBio] = useState(_cp?.bio || "");
   const [profileColor, setProfileColor] = useState(_cp?.profile_color || ACCENT);
+  const { setAccent: setGlobalAccent } = useTheme();
 
   // Agent behavior
   const [agentResponseStyle, setAgentResponseStyle] = useState(_cp?.agent_response_style || "balanced");
@@ -240,15 +243,16 @@ export default function ProfilePage({ navigate }) {
 
   // Active accent for this page = chosen profile color
   const accent = profileColor || ACCENT;
+  const accentRgb = hexToRgbString(accent);
 
   const card = {
     background: "#faf9f5",
-    border: "1px solid rgba(29,78,216,0.1)",
+    border: `1px solid rgba(${accentRgb},0.1)`,
     borderTop: `3px solid ${accent}`,
     borderRadius: "1rem",
     padding: "1.5rem",
     marginBottom: "1rem",
-    boxShadow: `0 4px 20px rgba(29,78,216,0.07), 0 1px 4px rgba(15,23,42,0.04), 0 0 0 0 ${accent}`,
+    boxShadow: `0 4px 20px rgba(${accentRgb},0.07), 0 1px 4px rgba(15,23,42,0.04), 0 0 0 0 ${accent}`,
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -256,7 +260,7 @@ export default function ProfilePage({ navigate }) {
     <div data-sidebar-offset style={{
       minHeight: "100vh",
       background: "#faf9f5",
-      backgroundImage: "radial-gradient(circle, rgba(29,78,216,0.06) 1px, transparent 1px)",
+      backgroundImage: `radial-gradient(circle, rgba(${accentRgb},0.06) 1px, transparent 1px)`,
       backgroundSize: "28px 28px",
       fontFamily: "'Raleway', sans-serif",
       paddingLeft: isMobile ? 0 : SIDEBAR_WIDTH,
@@ -265,8 +269,6 @@ export default function ProfilePage({ navigate }) {
     }}>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
-        @import
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         .pf-input:focus  { border-color: ${accent} !important; box-shadow: 0 0 0 4px ${accent}18, 0 2px 12px ${accent}20 !important; }
         .pf-ta:focus     { border-color: ${accent} !important; box-shadow: 0 0 0 4px ${accent}18, 0 2px 12px ${accent}20 !important; }
@@ -364,7 +366,7 @@ export default function ProfilePage({ navigate }) {
                     <button
                       key={c.hex}
                       title={c.label}
-                      onClick={() => setProfileColor(c.hex)}
+                      onClick={() => { setProfileColor(c.hex); setGlobalAccent(c.hex); }}
                       style={{
                         width: 28, height: 28, borderRadius: "50%",
                         background: c.hex, border: "none",
@@ -378,7 +380,7 @@ export default function ProfilePage({ navigate }) {
                     />
                   ))}
                 </div>
-                <Hint>Sets the accent color for your avatar and highlights.</Hint>
+                <Hint>Sets the accent color across Mentorable — your avatar, nav, and highlights everywhere.</Hint>
               </div>
             </div>
 

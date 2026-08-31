@@ -8,7 +8,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 const SANS = "'Raleway', sans-serif";
-const BG = "#f5f1ed", WHITE = "#fff", BLUE = "#1d4ed8";
+const BG = "#f5f1ed", WHITE = "#fff";
 const TEXT = "#141413", TEXT_MID = "#3d3d3a", TEXT_MUTED = "#494742", TEXT_FAINT = "#6a6760", BORDER = "#e6dfd8";
 
 // 8 categories, each a different shade of blue (backgrounds only, dark text).
@@ -86,16 +86,16 @@ function PieceForm({ initial, onSave, onCancel, onDelete, saving }) {
   };
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-      style={{ background: WHITE, borderRadius: 14, border: `1.5px solid rgba(37,99,235,0.35)`, padding: "13px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+      style={{ background: WHITE, borderRadius: 14, border: `1.5px solid rgba(var(--accent-rgb),0.35)`, padding: "13px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
       <input autoFocus value={title} maxLength={120} placeholder="Title (e.g. AP Computer Science A)"
         onChange={(e) => setTitle(e.target.value)} style={inputStyle}
-        onFocus={(e) => (e.target.style.borderColor = BLUE)} onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+        onFocus={(e) => (e.target.style.borderColor = "var(--accent)")} onBlur={(e) => (e.target.style.borderColor = BORDER)} />
       <textarea value={description} maxLength={500} rows={2} placeholder="Description: dates, role, scope, results (optional)"
         onChange={(e) => setDescription(e.target.value)} style={{ ...inputStyle, resize: "vertical" }}
-        onFocus={(e) => (e.target.style.borderColor = BLUE)} onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+        onFocus={(e) => (e.target.style.borderColor = "var(--accent)")} onBlur={(e) => (e.target.style.borderColor = BORDER)} />
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <button onClick={() => title.trim() && onSave(title.trim(), description.trim())} disabled={!title.trim() || saving}
-          style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: WHITE, background: BLUE, border: "none",
+          style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: WHITE, background: "var(--accent)", border: "none",
             borderRadius: 8, padding: "7px 16px", cursor: title.trim() && !saving ? "pointer" : "not-allowed", opacity: title.trim() && !saving ? 1 : 0.55 }}>
           {saving ? "Saving…" : "Save"}
         </button>
@@ -167,7 +167,7 @@ function ReviewModal({ items, onConfirm, onClose, saving }) {
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        style={{ background: "#faf9f5", borderRadius: 22, border: "1px solid rgba(37,99,235,0.19)",
+        style={{ background: "#faf9f5", borderRadius: 22, border: "1px solid rgba(var(--accent-rgb),0.19)",
           boxShadow: "0 30px 80px rgba(0,0,0,0.3)", width: "100%", maxWidth: 620,
           maxHeight: "85vh", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "1.4rem 1.5rem 0.9rem" }}>
@@ -184,7 +184,7 @@ function ReviewModal({ items, onConfirm, onClose, saving }) {
             <div key={i} style={{ background: WHITE, border: `1px solid ${row.checked ? BORDER : "#efece8"}`, borderRadius: 12,
               padding: "10px 12px", display: "flex", gap: 10, opacity: row.checked ? 1 : 0.55, transition: "opacity 0.15s" }}>
               <input type="checkbox" checked={row.checked} onChange={(e) => update(i, { checked: e.target.checked })}
-                style={{ width: 16, height: 16, marginTop: 4, accentColor: BLUE, cursor: "pointer", flexShrink: 0 }} />
+                style={{ width: 16, height: 16, marginTop: 4, accentColor: "var(--accent)", cursor: "pointer", flexShrink: 0 }} />
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   <select value={row.category} onChange={(e) => update(i, { category: e.target.value })}
@@ -204,7 +204,7 @@ function ReviewModal({ items, onConfirm, onClose, saving }) {
 
         <div style={{ padding: "0.9rem 1.5rem 1.3rem", display: "flex", gap: 10, alignItems: "center", borderTop: `1px solid ${BORDER}` }}>
           <button onClick={() => onConfirm(selected)} disabled={!selected.length || saving}
-            style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: WHITE, background: BLUE, border: "none",
+            style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: WHITE, background: "var(--accent)", border: "none",
               borderRadius: 10, padding: "10px 20px", cursor: selected.length && !saving ? "pointer" : "not-allowed",
               opacity: selected.length && !saving ? 1 : 0.55 }}>
             {saving ? "Adding…" : `Add ${selected.length} to portfolio`}
@@ -333,7 +333,6 @@ export default function PortfolioPage({ navigate }) {
 
   return (
     <div data-sidebar-offset style={pad}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');`}</style>
       <div style={{ maxWidth: 760, margin: "0 auto", width: "100%" }}>
 
         {/* Header */}
@@ -405,7 +404,7 @@ export default function PortfolioPage({ navigate }) {
 
             {/* Upload */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.45 }}
-              style={{ marginTop: "2.2rem", background: WHITE, border: `1.5px dashed rgba(37,99,235,0.35)`, borderRadius: 16, padding: "1.4rem 1.5rem", textAlign: "center" }}>
+              style={{ marginTop: "2.2rem", background: WHITE, border: `1.5px dashed rgba(var(--accent-rgb),0.35)`, borderRadius: 16, padding: "1.4rem 1.5rem", textAlign: "center" }}>
               <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: TEXT, margin: 0 }}>
                 Have a resume or brag sheet?
               </p>
@@ -415,7 +414,7 @@ export default function PortfolioPage({ navigate }) {
               <input ref={fileRef} type="file" accept=".pdf,.docx" style={{ display: "none" }}
                 onChange={(e) => handleFile(e.target.files?.[0])} />
               <button onClick={() => uploadsLeft > 0 ? fileRef.current?.click() : setLimitModal(true)} disabled={uploading}
-                style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: WHITE, background: uploading ? "#93b4f8" : BLUE,
+                style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: WHITE, background: uploading ? "#93b4f8" : "var(--accent)",
                   border: "none", borderRadius: 10, padding: "10px 22px", cursor: uploading ? "wait" : "pointer" }}>
                 {uploading ? "Reading your file…" : "Upload resume"}
               </button>

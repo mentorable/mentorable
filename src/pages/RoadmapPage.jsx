@@ -140,7 +140,7 @@ function GoalEntry({ onStart, starting, atLimit, onLimit }) {
         <button
           onClick={() => { if (atLimit) { onLimit(); return; } if (canGo) onStart(goal.trim(), decide ? null : `${endMonth}-01`); }}
           disabled={!canGo}
-          style={{ width: "100%", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: canGo ? "pointer" : "not-allowed", padding: "14px", borderRadius: 12, border: "none", marginTop: "1rem", background: canGo ? BLUE : "#c7d2e8", color: WHITE, boxShadow: canGo ? "0 6px 20px rgba(29,78,216,0.3)" : "none", transition: "all 0.15s" }}>
+          style={{ width: "100%", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: canGo ? "pointer" : "not-allowed", padding: "14px", borderRadius: 12, border: "none", marginTop: "1rem", background: canGo ? "var(--accent)" : "#c7d2e8", color: WHITE, boxShadow: canGo ? "0 6px 20px rgba(var(--accent-rgb),0.3)" : "none", transition: "all 0.15s" }}>
           {starting ? "Setting up…" : "Continue"}
         </button>
         <p style={{ fontFamily: SANS, fontSize: "0.78rem", color: TEXT_FAINT, textAlign: "center", marginTop: 10 }}>
@@ -198,7 +198,7 @@ function QuestionnaireStep({ questions, generating, onSubmit, onSkip }) {
           onSubmit(clean);
         }}
         disabled={generating}
-        style={{ width: "100%", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: generating ? "default" : "pointer", padding: "14px", borderRadius: 12, border: "none", background: BLUE, color: WHITE, boxShadow: "0 6px 20px rgba(29,78,216,0.3)", transition: "all 0.15s" }}>
+        style={{ width: "100%", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: generating ? "default" : "pointer", padding: "14px", borderRadius: 12, border: "none", background: "var(--accent)", color: WHITE, boxShadow: "0 6px 20px rgba(var(--accent-rgb),0.3)", transition: "all 0.15s" }}>
         {generating ? "Building your roadmap…" : "Build my roadmap"}
       </button>
       <button onClick={onSkip} disabled={generating}
@@ -273,7 +273,7 @@ function ReflectModal({ phase, nodeTitles, submitting, onSubmit, onCancel }) {
             Not yet
           </button>
           <button onClick={() => onSubmit(text.trim())} disabled={submitting || text.trim().length < 2}
-            style={{ flex: 1, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: submitting || text.trim().length < 2 ? "not-allowed" : "pointer", padding: "12px", borderRadius: 11, border: "none", background: text.trim().length < 2 ? "#c7d2e8" : BLUE, color: WHITE, boxShadow: text.trim().length < 2 ? "none" : "0 6px 18px rgba(29,78,216,0.3)" }}>
+            style={{ flex: 1, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: submitting || text.trim().length < 2 ? "not-allowed" : "pointer", padding: "12px", borderRadius: 11, border: "none", background: text.trim().length < 2 ? "#c7d2e8" : "var(--accent)", color: WHITE, boxShadow: text.trim().length < 2 ? "none" : "0 6px 18px rgba(var(--accent-rgb),0.3)" }}>
             {submitting ? "Generating next phase…" : "Submit and continue"}
           </button>
         </div>
@@ -517,7 +517,6 @@ export default function RoadmapPage({ navigate }) {
 
   return (
     <div data-sidebar-offset style={pagePad}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');`}</style>
 
       {phase === "empty" && (
         <GoalEntry onStart={handleStart} starting={starting} atLimit={roadmapUsed >= LIMITS.roadmap_gen} onLimit={() => showLimit("roadmap_gen")} />
@@ -572,7 +571,7 @@ export default function RoadmapPage({ navigate }) {
             );
           })}
           <button onClick={() => setPhase("ready")}
-            style={{ width: "100%", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: "pointer", padding: "14px", borderRadius: 12, border: "none", marginTop: "0.5rem", background: BLUE, color: WHITE, boxShadow: "0 6px 20px rgba(29,78,216,0.3)" }}>
+            style={{ width: "100%", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: "pointer", padding: "14px", borderRadius: 12, border: "none", marginTop: "0.5rem", background: "var(--accent)", color: WHITE, boxShadow: "0 6px 20px rgba(var(--accent-rgb),0.3)" }}>
             {phaseBusy ? "Preparing Phase 1…" : "Start Phase 1"}
           </button>
         </motion.div>

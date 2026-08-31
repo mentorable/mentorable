@@ -7,6 +7,8 @@ import LimitModal from "../components/common/LimitModal.jsx";
 import Spinner from "../components/common/Spinner.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { LearnMore as PortfolioLearnMore } from "./PortfolioPage.jsx";
+import { useTheme } from "../lib/ThemeContext.jsx";
+import { hexToRgbString } from "../lib/theme.js";
 
 const SANS = "'Raleway', sans-serif";
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
@@ -168,7 +170,7 @@ function AxisRow({ axis, score, isWeak, accent, onClick, delay }) {
       <div style={{ height: 7, borderRadius: 99, background: "#efe9e2", overflow: "hidden" }}>
         <motion.div
           initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ delay: delay + 0.15, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-          style={{ height: "100%", borderRadius: 99, background: isWeak ? accent : "linear-gradient(90deg, #1d4ed8, #60a5fa)" }}
+          style={{ height: "100%", borderRadius: 99, background: isWeak ? accent : `${accent}99` }}
         />
       </div>
       <p style={{ fontFamily: SANS, fontSize: "0.74rem", color: "#6a6760", marginTop: 7 }}>{axis.blurb}</p>
@@ -236,7 +238,7 @@ function WelcomePopup({ profile, accent, onClose }) {
 
         <button onClick={onClose} style={{
           width: "100%", padding: "0.95rem", border: "none", borderRadius: 12, cursor: "pointer",
-          background: "#1d4ed8", color: "#fff", fontFamily: SANS, fontWeight: 700, fontSize: "1rem", boxShadow: "0 6px 20px rgba(29,78,216,0.3)",
+          background: accent, color: "#fff", fontFamily: SANS, fontWeight: 700, fontSize: "1rem", boxShadow: `0 6px 20px ${accent}4d`,
         }}>
           Got it, show my scorecard
         </button>
@@ -368,9 +370,18 @@ function ImproveModal({ axisKey, accent, onClose, onAdded, onLimit, onConsumed }
 
 // ─── ScorecardPage ────────────────────────────────────────────────────────────
 export default function ScorecardPage({ navigate }) {
+  const { accent: siteAccent, accentRgb: siteAccentRgb } = useTheme();
+  // Default card theme = the site-wide accent (from Profile settings); the
+  // dot picker below still lets you override just the shareable card image.
+  const yourColorTheme = { name: "Your color", accent: siteAccent, glow: `rgba(${siteAccentRgb},0.25)`, rgb: siteAccentRgb };
   const [phase, setPhase] = useState(() => { const uid = getKnownUserId(); return (uid && getCache(`profile:${uid}`)) ? "loaded" : "loading"; });
   const [profile, setProfile] = useState(() => { const uid = getKnownUserId(); return uid ? getCache(`profile:${uid}`) : null; });
-  const [theme, setTheme] = useState(themes[0]);
+  const [theme, setTheme] = useState(yourColorTheme);
+  // Keep the card in sync with the site accent (e.g. it loads async from
+  // Supabase after mount) as long as the user hasn't picked a preset dot.
+  useEffect(() => {
+    setTheme((t) => (t.name === "Your color" ? { name: "Your color", accent: siteAccent, glow: `rgba(${siteAccentRgb},0.25)`, rgb: siteAccentRgb } : t));
+  }, [siteAccent, siteAccentRgb]);
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -480,13 +491,12 @@ export default function ScorecardPage({ navigate }) {
       fontFamily: SANS, padding: "2.5rem 1.5rem 6rem", paddingLeft: `calc(${SIDEBAR_WIDTH}px + 1.5rem)`, background: "#f5f1ed",
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
         @keyframes sc-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.55 } }
         .sc-axis-weak text { animation: sc-pulse 1.8s ease-in-out infinite; }
         .sc-axis:hover text { fill: #ffffff; }
         .sc-row-weak { animation: sc-glow 2.4s ease-in-out infinite; }
-        @keyframes sc-glow { 0%,100% { box-shadow: 0 4px 18px rgba(29,78,216,0.14) } 50% { box-shadow: 0 6px 26px rgba(29,78,216,0.30) } }
+        @keyframes sc-glow { 0%,100% { box-shadow: 0 4px 18px rgba(${theme.rgb},0.14) } 50% { box-shadow: 0 6px 26px rgba(${theme.rgb},0.30) } }
         .sc-btn { display:inline-flex; align-items:center; gap:0.5rem; padding:0.65rem 1.15rem; border:1.5px solid #141413; border-radius:0.7rem; background:transparent; color:#141413; font-family:${SANS}; font-size:0.85rem; font-weight:600; cursor:pointer; transition:background .15s,color .15s,transform .15s; }
         .sc-btn:hover:not(:disabled) { background:#141413; color:#fff; transform:translateY(-1px); }
         .sc-btn:disabled { opacity:.55; cursor:not-allowed; }
@@ -511,7 +521,7 @@ export default function ScorecardPage({ navigate }) {
         {phase === "error" && (
           <div style={{ textAlign: "center", padding: "5rem 0" }}>
             <p style={{ color: "#dc2626", fontWeight: 600, marginBottom: "0.5rem" }}>Couldn't load your scorecard.</p>
-            <button onClick={() => window.location.reload()} style={{ color: "#1d4ed8", background: "none", border: "none", cursor: "pointer", fontWeight: 600, textDecoration: "underline" }}>Try again</button>
+            <button onClick={() => window.location.reload()} style={{ color: siteAccent, background: "none", border: "none", cursor: "pointer", fontWeight: 600, textDecoration: "underline" }}>Try again</button>
           </div>
         )}
 
@@ -535,13 +545,13 @@ export default function ScorecardPage({ navigate }) {
             {portfolioCount === 0 && profile.portfolio_banner_dismissed !== true && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 }}
                 style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: "#fff",
-                  border: "1.5px solid rgba(37,99,235,0.25)", borderRadius: 14, padding: "0.8rem 1.1rem",
+                  border: `1.5px solid rgba(${siteAccentRgb},0.25)`, borderRadius: 14, padding: "0.8rem 1.1rem",
                   marginBottom: "1.5rem", boxShadow: "0 1px 3px rgba(15,23,42,0.04)" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={siteAccent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                   <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                 </svg>
                 <button onClick={() => navigate("/portfolio")}
-                  style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, color: "#1d4ed8", background: "none",
+                  style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, color: siteAccent, background: "none",
                     border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}>
                   Complete your portfolio!
                 </button>
@@ -592,7 +602,7 @@ export default function ScorecardPage({ navigate }) {
                 {/* theme + actions */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", marginTop: "1rem", flexWrap: "wrap" }}>
                   <div style={{ display: "flex", gap: "0.5rem" }}>
-                    {themes.map((t) => (
+                    {[yourColorTheme, ...themes].map((t) => (
                       <button key={t.name} className="sc-dot" title={t.name} onClick={() => setTheme(t)}
                         style={{ background: t.accent, boxShadow: theme.name === t.name ? `0 0 0 2px #f5f1ed, 0 0 0 4px ${t.accent}` : "none", transform: theme.name === t.name ? "scale(1.15)" : "scale(1)" }} />
                     ))}
@@ -623,7 +633,7 @@ export default function ScorecardPage({ navigate }) {
         {addedToast > 0 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
             className="sc-toast"
-            style={{ position: "fixed", bottom: 24, right: 24, zIndex: 220, display: "flex", alignItems: "center", gap: 10, background: "#1d4ed8", color: "#fff", padding: "12px 16px", borderRadius: 12, boxShadow: "0 8px 24px rgba(29,78,216,0.32)", fontFamily: SANS, fontSize: 14, maxWidth: "calc(100vw - 24px)", flexWrap: "wrap" }}>
+            style={{ position: "fixed", bottom: 24, right: 24, zIndex: 220, display: "flex", alignItems: "center", gap: 10, background: siteAccent, color: "#fff", padding: "12px 16px", borderRadius: 12, boxShadow: `0 8px 24px rgba(${siteAccentRgb},0.32)`, fontFamily: SANS, fontSize: 14, maxWidth: "calc(100vw - 24px)", flexWrap: "wrap" }}>
             ✓ Added {addedToast} quest{addedToast > 1 ? "s" : ""} to your board
             <button onClick={() => navigate("/quest")} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", fontFamily: SANS, fontWeight: 700, fontSize: 13, padding: "4px 10px", borderRadius: 7, cursor: "pointer" }}>View →</button>
           </motion.div>

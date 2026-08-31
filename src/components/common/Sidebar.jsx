@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import FeedbackModal from "./FeedbackModal.jsx";
+import { useTheme } from "../../lib/ThemeContext.jsx";
 
 const FONT = "'Raleway', sans-serif";
 export const SIDEBAR_WIDTH = 220;
@@ -67,7 +68,7 @@ const BOTTOM_NAV = [
   },
 ];
 
-function NavBtn({ item, activePath, navigate }) {
+function NavBtn({ item, activePath, navigate, accent, accentRgb }) {
   const isActive = activePath === item.path || activePath?.startsWith(item.path + "/");
   return (
     <motion.button
@@ -78,13 +79,13 @@ function NavBtn({ item, activePath, navigate }) {
         display: "flex", alignItems: "center", gap: "0.75rem",
         padding: "0.7rem 1rem", borderRadius: "0.75rem",
         border: "none", cursor: "pointer",
-        background: isActive ? "rgba(37,99,235,0.08)" : "transparent",
-        color: isActive ? "#1d4ed8" : "#4b5470",
+        background: isActive ? `rgba(${accentRgb},0.08)` : "transparent",
+        color: isActive ? accent : "#4b5470",
         fontFamily: FONT, fontWeight: isActive ? 700 : 600,
         fontSize: "0.9rem", transition: "background 0.15s, color 0.15s",
         textAlign: "left", width: "100%",
       }}
-      onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(37,99,235,0.04)"; }}
+      onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = `rgba(${accentRgb},0.04)`; }}
       onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
     >
       <span style={{ flexShrink: 0, opacity: isActive ? 1 : 0.7 }}>{item.icon}</span>
@@ -93,7 +94,7 @@ function NavBtn({ item, activePath, navigate }) {
   );
 }
 
-function FeedbackBtn({ onClick }) {
+function FeedbackBtn({ onClick, accentRgb }) {
   return (
     <motion.button
       onClick={onClick}
@@ -108,7 +109,7 @@ function FeedbackBtn({ onClick }) {
         fontSize: "0.9rem", transition: "background 0.15s, color 0.15s",
         textAlign: "left", width: "100%",
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(37,99,235,0.04)"; }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = `rgba(${accentRgb},0.04)`; }}
       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
     >
       <span style={{ flexShrink: 0, opacity: 0.7 }}>
@@ -123,6 +124,7 @@ function FeedbackBtn({ onClick }) {
 
 export default function Sidebar({ activePath, navigate }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const { accent, accentLight, accentRgb } = useTheme();
 
   return (
     <div id="main-sidebar" style={{
@@ -130,25 +132,25 @@ export default function Sidebar({ activePath, navigate }) {
       left: 0, top: 0, bottom: 0,
       width: SIDEBAR_WIDTH,
       background: "#faf9f5",
-      borderRight: "1px solid rgba(37,99,235,0.08)",
+      borderRight: `1px solid rgba(${accentRgb},0.08)`,
       display: "flex",
       flexDirection: "column",
       zIndex: 30,
-      boxShadow: "2px 0 12px rgba(37,99,235,0.04)",
+      boxShadow: `2px 0 12px rgba(${accentRgb},0.04)`,
     }}>
       {/* Logo */}
       <div style={{ padding: "1.5rem 1.25rem 1rem", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{
             fontFamily: FONT, fontWeight: 700, fontSize: "1.1rem",
-            color: "#1d4ed8", letterSpacing: "-0.04em",
+            color: accent, letterSpacing: "-0.04em",
           }}>
             mentorable
           </span>
           <span style={{
             width: 6, height: 6, borderRadius: "50%",
-            background: "linear-gradient(135deg, #1d4ed8, #60a5fa)",
-            boxShadow: "0 0 6px rgba(37,99,235,0.45)",
+            background: `linear-gradient(135deg, ${accent}, ${accentLight})`,
+            boxShadow: `0 0 6px rgba(${accentRgb},0.45)`,
             flexShrink: 0, marginBottom: 1,
           }} />
         </div>
@@ -156,7 +158,7 @@ export default function Sidebar({ activePath, navigate }) {
 
       {/* Top nav */}
       <nav style={{ flex: 1, padding: "0.25rem 0.75rem", display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
-        {TOP_NAV.map((item) => <NavBtn key={item.key} item={item} activePath={activePath} navigate={navigate} />)}
+        {TOP_NAV.map((item) => <NavBtn key={item.key} item={item} activePath={activePath} navigate={navigate} accent={accent} accentRgb={accentRgb} />)}
       </nav>
 
       {/* Divider */}
@@ -164,8 +166,8 @@ export default function Sidebar({ activePath, navigate }) {
 
       {/* Bottom nav */}
       <nav style={{ padding: "0.5rem 0.75rem 1rem", display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
-        {BOTTOM_NAV.map((item) => <NavBtn key={item.key} item={item} activePath={activePath} navigate={navigate} />)}
-        <FeedbackBtn onClick={() => setFeedbackOpen(true)} />
+        {BOTTOM_NAV.map((item) => <NavBtn key={item.key} item={item} activePath={activePath} navigate={navigate} accent={accent} accentRgb={accentRgb} />)}
+        <FeedbackBtn onClick={() => setFeedbackOpen(true)} accentRgb={accentRgb} />
       </nav>
 
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}

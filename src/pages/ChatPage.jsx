@@ -9,8 +9,8 @@ import LimitModal from "../components/common/LimitModal.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import Drawer from "../components/common/Drawer.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
+import { useTheme } from "../lib/ThemeContext.jsx";
 
-const ACCENT  = "#3b82f6";
 const NAVY    = "#141413";
 const SG      = "'Raleway', sans-serif";
 const JK      = "'Raleway', sans-serif";
@@ -98,8 +98,8 @@ const IconCopy  = ({ size = 13, color = "currentColor" }) => (
 
 const STREAMING_CSS = `
 @keyframes streamPulse {
-  0%, 100% { box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 0 0 1.5px rgba(59,130,246,0.15); }
-  50%       { box-shadow: 0 2px 16px rgba(59,130,246,0.1),  0 0 0 1.5px rgba(59,130,246,0.4); }
+  0%, 100% { box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 0 0 1.5px rgba(var(--accent-rgb),0.15); }
+  50%       { box-shadow: 0 2px 16px rgba(var(--accent-rgb),0.1),  0 0 0 1.5px rgba(var(--accent-rgb),0.4); }
 }
 @keyframes streamSweep {
   0%   { transform: translateX(-100%); opacity: 0.6; }
@@ -113,7 +113,7 @@ const STREAMING_CSS = `
 .streaming-bubble::before {
   content: "";
   position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, ${ACCENT}80, ${ACCENT}, transparent);
+  background: linear-gradient(90deg, transparent, var(--accent-light), var(--accent), transparent);
   animation: streamSweep 1.8s ease-in-out infinite;
   border-radius: 2px 2px 0 0;
 }
@@ -140,10 +140,10 @@ function AgentAvatar({ size = 28 }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: "50%",
-      background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)`,
+      background: "linear-gradient(135deg, var(--accent), var(--accent-light))",
       display: "flex", alignItems: "center", justifyContent: "center",
       flexShrink: 0,
-      boxShadow: `0 2px 8px ${ACCENT}44`,
+      boxShadow: "0 2px 8px rgba(var(--accent-rgb),0.27)",
     }}>
       <span style={{
         fontFamily: JK, fontWeight: 700,
@@ -208,7 +208,7 @@ function MarkdownRenderer({ text, streaming = false }) {
   const lastBlockIdx = blocks.length - 1;
   const cursor = streaming ? (
     <motion.span animate={{ opacity: [1, 0, 1] }} transition={{ duration: 0.7, repeat: Infinity }}
-      style={{ display: "inline-block", width: 2, height: "0.9em", background: ACCENT, marginLeft: 2, borderRadius: 1, verticalAlign: "text-bottom" }} />
+      style={{ display: "inline-block", width: 2, height: "0.9em", background: "var(--accent)", marginLeft: 2, borderRadius: 1, verticalAlign: "text-bottom" }} />
   ) : null;
 
   return (
@@ -303,11 +303,11 @@ function Message({ msg, isMobile = false }) {
         style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20, paddingLeft: isMobile ? 32 : 80 }}
       >
         <div style={{
-          background: ACCENT,
+          background: "var(--accent)",
           borderRadius: "16px 16px 3px 16px",
           padding: "13px 18px",
           maxWidth: 520,
-          boxShadow: `0 2px 10px ${ACCENT}33`,
+          boxShadow: "0 2px 10px rgba(var(--accent-rgb),0.2)",
         }}>
           <p style={{ fontFamily: SG, fontSize: 15.5, color: "#fff", lineHeight: 1.65, margin: 0 }}>{msg.content}</p>
           <p style={{ fontFamily: SG, fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 5, textAlign: "right" }}>{msg.time}</p>
@@ -332,11 +332,11 @@ function Message({ msg, isMobile = false }) {
             borderRadius: "3px 16px 16px 16px",
             padding: "16px 18px",
             border: isStreaming
-              ? `1px solid ${ACCENT}40`
-              : "1px solid rgba(29,78,216,0.1)",
+              ? "1px solid rgba(var(--accent-rgb),0.25)"
+              : "1px solid rgba(var(--accent-rgb),0.1)",
             boxShadow: isStreaming
-              ? `0 0 0 1px rgba(59,130,246,0.08), 0 4px 20px rgba(59,130,246,0.1)`
-              : "0 2px 12px rgba(29,78,216,0.06), 0 1px 4px rgba(15,23,42,0.04)",
+              ? "0 0 0 1px rgba(var(--accent-rgb),0.08), 0 4px 20px rgba(var(--accent-rgb),0.1)"
+              : "0 2px 12px rgba(var(--accent-rgb),0.06), 0 1px 4px rgba(15,23,42,0.04)",
             maxWidth: 600,
           }}
         >
@@ -397,11 +397,11 @@ function InputBar({ onSend, disabled, isMobile = false }) {
     <div style={{ padding: isMobile ? "12px 14px 14px" : "16px 28px 24px", flexShrink: 0 }}>
       <div style={{
         background: "#fff",
-        border: `1.5px solid ${value.length > MAX_INPUT ? "#ef4444" : value ? ACCENT + "60" : "rgba(29,78,216,0.12)"}`,
+        border: `1.5px solid ${value.length > MAX_INPUT ? "#ef4444" : value ? "rgba(var(--accent-rgb),0.38)" : "rgba(var(--accent-rgb),0.12)"}`,
         borderRadius: 16,
         boxShadow: value
-          ? `0 0 0 3px ${ACCENT}14, 0 4px 20px rgba(59,130,246,0.1)`
-          : "0 2px 12px rgba(29,78,216,0.06)",
+          ? "0 0 0 3px rgba(var(--accent-rgb),0.08), 0 4px 20px rgba(var(--accent-rgb),0.1)"
+          : "0 2px 12px rgba(var(--accent-rgb),0.06)",
         transition: "border-color 0.18s, box-shadow 0.18s",
         padding: "14px 14px 14px 20px",
         display: "flex", alignItems: "flex-end", gap: 10,
@@ -420,7 +420,7 @@ function InputBar({ onSend, disabled, isMobile = false }) {
           disabled={!canSend}
           style={{
             width: 40, height: 40, borderRadius: 12, border: "none", flexShrink: 0,
-            background: canSend ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT}cc)` : "#e6dfd8",
+            background: canSend ? "linear-gradient(135deg, var(--accent), var(--accent-light))" : "#e6dfd8",
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: canSend ? "pointer" : "not-allowed",
             transition: "background 0.18s, transform 0.12s",
@@ -451,9 +451,10 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
   const firstName = userName?.split(" ")[0];
+  const { accent, accentRgb } = useTheme();
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 32px 24px", background: "radial-gradient(ellipse at 50% 30%, rgba(59,130,246,0.08) 0%, transparent 65%)" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 32px 24px", background: `radial-gradient(ellipse at 50% 30%, rgba(${accentRgb},0.08) 0%, transparent 65%)` }}>
 
       {/* Wordmark */}
       <motion.div
@@ -467,9 +468,9 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
             mentorable
           </span>
           <motion.span
-            animate={{ boxShadow: [`0 0 6px ${ACCENT}80`, `0 0 12px ${ACCENT}`, `0 0 6px ${ACCENT}80`] }}
+            animate={{ boxShadow: [`0 0 6px ${accent}80`, `0 0 12px ${accent}`, `0 0 6px ${accent}80`] }}
             transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-            style={{ width: 7, height: 7, borderRadius: "50%", background: ACCENT, display: "inline-block", marginBottom: 2 }}
+            style={{ width: 7, height: 7, borderRadius: "50%", background: accent, display: "inline-block", marginBottom: 2 }}
           />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -508,7 +509,7 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.28, delay: 0.18 + i * 0.06 }}
-            whileHover={{ y: -2, boxShadow: `0 4px 20px ${ACCENT}14` }}
+            whileHover={{ y: -2, boxShadow: `0 4px 20px ${accent}14` }}
             whileTap={{ scale: 0.97 }}
             style={{
               background: "#fff", border: "1.5px solid #e8edf2",
@@ -517,7 +518,7 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
               boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
               transition: "border-color 0.15s",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${ACCENT}55`; }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${accent}55`; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e6dfd8"; }}
           >
             <span style={{ fontFamily: SG, fontSize: 14.5, color: "#334155", fontWeight: 600, lineHeight: 1.5 }}>
@@ -534,6 +535,7 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
 
 function RenameInput({ initial, onSave, onCancel }) {
   const [val, setVal] = useState(initial);
+  const { accent } = useTheme();
   const inputRef = useRef(null);
   useEffect(() => { inputRef.current?.focus(); inputRef.current?.select(); }, []);
   return (
@@ -543,10 +545,10 @@ function RenameInput({ initial, onSave, onCancel }) {
         onChange={(e) => setVal(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}
         onBlur={onCancel}
-        style={{ flex: 1, fontFamily: SG, fontSize: 12, fontWeight: 600, color: NAVY, border: `1.5px solid ${ACCENT}50`, borderRadius: 5, padding: "2px 7px", outline: "none", background: "#fff" }}
+        style={{ flex: 1, fontFamily: SG, fontSize: 12, fontWeight: 600, color: NAVY, border: "1.5px solid rgba(var(--accent-rgb),0.31)", borderRadius: 5, padding: "2px 7px", outline: "none", background: "#fff" }}
       />
-      <button type="submit" onMouseDown={(e) => e.preventDefault()} style={{ padding: "2px 6px", borderRadius: 5, border: "none", background: `${ACCENT}15`, cursor: "pointer" }}>
-        <IconCheck size={11} color={ACCENT} />
+      <button type="submit" onMouseDown={(e) => e.preventDefault()} style={{ padding: "2px 6px", borderRadius: 5, border: "none", background: "rgba(var(--accent-rgb),0.08)", cursor: "pointer" }}>
+        <IconCheck size={11} color={accent} />
       </button>
     </form>
   );
@@ -575,7 +577,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
           cursor: isRenaming ? "default" : "pointer",
           display: "flex", alignItems: "center", gap: 8,
           background: isActive ? "#f5f0e8" : hovered ? "#faf9f5" : "transparent",
-          borderLeft: isActive ? `2px solid ${ACCENT}` : "2px solid transparent",
+          borderLeft: isActive ? "2px solid var(--accent)" : "2px solid transparent",
           marginBottom: 1, transition: "background 0.12s",
         }}
       >
@@ -640,7 +642,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
             fontFamily: SG, fontWeight: 600, fontSize: 12.5, color: "#3d3d3a",
             cursor: "pointer", transition: "border-color 0.15s, background 0.15s",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${ACCENT}50`; e.currentTarget.style.background = "#fff"; }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(var(--accent-rgb),0.31)"; e.currentTarget.style.background = "#fff"; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e6dfd8"; }}
         >
           <IconPlus size={13} color="#3d3d3a" /> New conversation
@@ -688,8 +690,8 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
         height: 54, flexShrink: 0, paddingLeft: 24, paddingRight: 16,
         background: "rgba(248,250,255,0.92)",
         backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-        borderBottom: "1px solid rgba(29,78,216,0.1)",
-        boxShadow: "0 1px 0 0 rgba(29,78,216,0.05), 0 4px 24px rgba(29,78,216,0.03)",
+        borderBottom: "1px solid rgba(var(--accent-rgb),0.1)",
+        boxShadow: "0 1px 0 0 rgba(var(--accent-rgb),0.05), 0 4px 24px rgba(var(--accent-rgb),0.03)",
         display: "flex", alignItems: "center", gap: 10, zIndex: 5,
       }}>
         <AgentAvatar size={28} />
@@ -1023,12 +1025,10 @@ export default function ChatPage({ navigate, seedNode }) {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
-        @import
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(29,78,216,0.15); border-radius: 99px; }
+        ::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb),0.15); border-radius: 99px; }
         ${STREAMING_CSS}
         @keyframes questToastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
@@ -1045,10 +1045,10 @@ export default function ChatPage({ navigate, seedNode }) {
             gap: 10,
             maxWidth: isMobile ? "calc(100vw - 24px)" : 340,
             padding: "12px 16px",
-            background: "#1d4ed8",
+            background: "var(--accent)",
             color: "#fff",
             borderRadius: 12,
-            boxShadow: "0 8px 24px rgba(29,78,216,0.32)",
+            boxShadow: "0 8px 24px rgba(var(--accent-rgb),0.32)",
             fontFamily: "'Raleway', sans-serif",
             fontSize: 14,
             animation: "questToastIn 0.25s ease",

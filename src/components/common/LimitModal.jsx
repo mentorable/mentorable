@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useTheme } from '../../lib/ThemeContext.jsx'
 
 const SANS = "'Raleway', sans-serif"
 
@@ -19,6 +20,7 @@ export default function LimitModal({ feature, onClose }) {
   const copy = FEATURE_COPY[feature] ?? FEATURE_COPY.chat
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState('idle') // idle | loading | done | error
+  const { accent, accentLight, accentRgb } = useTheme()
 
   const handleJoin = async () => {
     if (!email.trim()) return
@@ -40,12 +42,12 @@ export default function LimitModal({ feature, onClose }) {
       <div style={{
         background: '#fff', borderRadius: 20, padding: '2.5rem 2rem',
         maxWidth: 420, width: '90%',
-        boxShadow: '0 32px 80px rgba(0,0,0,0.18), 0 4px 20px rgba(29,78,216,0.1)',
+        boxShadow: `0 32px 80px rgba(0,0,0,0.18), 0 4px 20px rgba(${accentRgb},0.1)`,
         display: 'flex', flexDirection: 'column', gap: '1.25rem',
       }}>
         {/* Icon */}
         <div style={{ width: 48, height: 48, borderRadius: 14,
-          background: 'linear-gradient(135deg,#1d4ed8,#60a5fa)',
+          background: `linear-gradient(135deg,${accent},${accentLight})`,
           display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
@@ -77,12 +79,12 @@ export default function LimitModal({ feature, onClose }) {
               onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
               style={{
                 fontFamily: SANS, fontSize: '0.92rem', padding: '0.85rem 1rem',
-                border: '1.5px solid rgba(37,99,235,0.2)', borderRadius: 10,
+                border: `1.5px solid rgba(${accentRgb},0.2)`, borderRadius: 10,
                 outline: 'none', color: '#141413', background: '#fafafa',
                 transition: 'border-color 0.2s',
               }}
-              onFocus={(e) => (e.target.style.borderColor = '#1d4ed8')}
-              onBlur={(e) => (e.target.style.borderColor = 'rgba(37,99,235,0.2)')}
+              onFocus={(e) => (e.target.style.borderColor = accent)}
+              onBlur={(e) => (e.target.style.borderColor = `rgba(${accentRgb},0.2)`)}
             />
             {status === 'error' && (
               <p style={{ fontFamily: SANS, fontSize: '0.8rem', color: '#dc2626', margin: 0 }}>
@@ -94,7 +96,7 @@ export default function LimitModal({ feature, onClose }) {
               disabled={status === 'loading' || !email.trim()}
               style={{
                 fontFamily: SANS, fontWeight: 700, fontSize: '0.92rem',
-                color: '#fff', background: 'linear-gradient(135deg,#1d4ed8,#60a5fa)',
+                color: '#fff', background: `linear-gradient(135deg,${accent},${accentLight})`,
                 border: 'none', borderRadius: 10, padding: '0.9rem',
                 cursor: status === 'loading' || !email.trim() ? 'not-allowed' : 'pointer',
                 opacity: status === 'loading' || !email.trim() ? 0.7 : 1,

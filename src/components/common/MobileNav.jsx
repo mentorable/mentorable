@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import FeedbackModal from "./FeedbackModal.jsx";
+import { useTheme } from "../../lib/ThemeContext.jsx";
 
 const FONT = "'Raleway', sans-serif";
 
@@ -83,6 +84,7 @@ const NAV_ITEMS = [
 
 export default function MobileNav({ activePath, navigate }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const { accent, accentRgb } = useTheme();
 
   return (
     <>
@@ -92,9 +94,9 @@ export default function MobileNav({ activePath, navigate }) {
         position: "fixed",
         left: 12, bottom: "calc(60px + env(safe-area-inset-bottom, 0px) + 12px)",
         width: 44, height: 44, borderRadius: "50%",
-        background: "#1d4ed8", border: "none", cursor: "pointer",
+        background: accent, border: "none", cursor: "pointer",
         display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: "0 4px 16px rgba(29,78,216,0.35)",
+        boxShadow: `0 4px 16px rgba(${accentRgb},0.35)`,
         zIndex: 101,
       }}
       aria-label="Feedback"
@@ -111,7 +113,7 @@ export default function MobileNav({ activePath, navigate }) {
       background: "rgba(255,255,255,0.96)",
       backdropFilter: "blur(12px)",
       WebkitBackdropFilter: "blur(12px)",
-      borderTop: "1px solid rgba(37,99,235,0.08)",
+      borderTop: `1px solid rgba(${accentRgb},0.08)`,
       display: "flex", alignItems: "stretch",
       zIndex: 100,
       boxShadow: "0 -2px 16px rgba(15,23,42,0.06)",
@@ -132,7 +134,7 @@ export default function MobileNav({ activePath, navigate }) {
               gap: 2,
               border: "none", background: "transparent",
               cursor: "pointer",
-              color: isActive ? "#1d4ed8" : "#6a6760",
+              color: isActive ? accent : "#6a6760",
               padding: "4px 0",
               minWidth: 44, minHeight: 44,
             }}

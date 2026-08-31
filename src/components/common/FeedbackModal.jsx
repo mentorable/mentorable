@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useTheme } from '../../lib/ThemeContext.jsx'
 
 const SANS = "'Raleway', sans-serif"
 
 export default function FeedbackModal({ onClose }) {
   const [message, setMessage] = useState('')
   const [status, setStatus] = useState('idle') // idle | loading | done | error
+  const { accent, accentRgb } = useTheme()
 
   const handleSubmit = async () => {
     if (!message.trim()) return
@@ -28,11 +30,11 @@ export default function FeedbackModal({ onClose }) {
       <div style={{
         background: '#fff', borderRadius: 20, padding: '2.5rem 2rem',
         maxWidth: 440, width: '90%',
-        boxShadow: '0 32px 80px rgba(0,0,0,0.18), 0 4px 20px rgba(29,78,216,0.1)',
+        boxShadow: `0 32px 80px rgba(0,0,0,0.18), 0 4px 20px rgba(${accentRgb},0.1)`,
         display: 'flex', flexDirection: 'column', gap: '1.25rem',
       }}>
         <div style={{ width: 48, height: 48, borderRadius: 14,
-          background: '#1d4ed8',
+          background: accent,
           display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -62,12 +64,12 @@ export default function FeedbackModal({ onClose }) {
               rows={5}
               style={{
                 fontFamily: SANS, fontSize: '0.92rem', padding: '0.85rem 1rem',
-                border: '1.5px solid rgba(37,99,235,0.2)', borderRadius: 10,
+                border: `1.5px solid rgba(${accentRgb},0.2)`, borderRadius: 10,
                 outline: 'none', color: '#141413', background: '#fafafa',
                 transition: 'border-color 0.2s', resize: 'vertical', minHeight: 110,
               }}
-              onFocus={(e) => (e.target.style.borderColor = '#1d4ed8')}
-              onBlur={(e) => (e.target.style.borderColor = 'rgba(37,99,235,0.2)')}
+              onFocus={(e) => (e.target.style.borderColor = accent)}
+              onBlur={(e) => (e.target.style.borderColor = `rgba(${accentRgb},0.2)`)}
             />
             {status === 'error' && (
               <p style={{ fontFamily: SANS, fontSize: '0.8rem', color: '#dc2626', margin: 0 }}>
@@ -79,7 +81,7 @@ export default function FeedbackModal({ onClose }) {
               disabled={status === 'loading' || !message.trim()}
               style={{
                 fontFamily: SANS, fontWeight: 700, fontSize: '0.92rem',
-                color: '#fff', background: '#1d4ed8',
+                color: '#fff', background: accent,
                 border: 'none', borderRadius: 10, padding: '0.9rem',
                 cursor: status === 'loading' || !message.trim() ? 'not-allowed' : 'pointer',
                 opacity: status === 'loading' || !message.trim() ? 0.7 : 1,
