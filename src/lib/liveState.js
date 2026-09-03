@@ -1,15 +1,14 @@
 // Live, navigation-surviving UI state. Module-level (like cache.js): persists
 // across in-app page switches (React unmount/remount) but resets on hard refresh.
 //
-// Used so that returning to a page restores the exact chat/research you were on,
-// and reflects work that's still generating/loading in the background. In-flight
+// Used so that returning to a page restores the exact chat you were on, and
+// reflects work that's still generating/loading in the background. In-flight
 // fetches are NOT aborted on unmount, so server-side work (research, quest gen,
 // chat's onDone save) finishes on its own — we just need to show it on return.
 
 const S = {
   activeChat: {},       // uid -> chatId | null   (which chat session was open)
   chatGenerating: {},   // uid -> Set<chatId>     (chats with a reply in flight)
-  activeResearch: {},   // uid -> sessionId | null
   questGenerating: {},  // uid -> bool
 };
 
@@ -23,10 +22,6 @@ export const markChatGenerating = (uid, chatId) => {
   (S.chatGenerating[uid] ??= new Set()).add(chatId);
 };
 export const clearChatGenerating = (uid, chatId) => { S.chatGenerating[uid]?.delete(chatId); };
-
-// ── Research ─────────────────────────────────────────────────────────────────
-export const getActiveResearch = (uid) => (uid ? S.activeResearch[uid] ?? null : null);
-export const setActiveResearch = (uid, id) => { if (uid) S.activeResearch[uid] = id; };
 
 // ── Quests ───────────────────────────────────────────────────────────────────
 export const getQuestGenerating = (uid) => !!(uid && S.questGenerating[uid]);

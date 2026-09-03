@@ -50,16 +50,6 @@ const NAV_ITEMS = [
     ),
   },
   {
-    key: "research",
-    label: "Research",
-    path: "/research",
-    icon: (active) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-      </svg>
-    ),
-  },
-  {
     key: "portfolio",
     label: "Portfolio",
     path: "/portfolio",

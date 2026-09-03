@@ -10,6 +10,8 @@ import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import Drawer from "../components/common/Drawer.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { useTheme } from "../lib/ThemeContext.jsx";
+import { runResearch, summarizeResearchForHistory, ResearchLimitError } from "../lib/research.js";
+import { ResultCard, SourcesSection } from "../components/common/ResearchResults.jsx";
 
 const NAVY    = "#141413";
 const SG      = "'Raleway', sans-serif";
@@ -91,6 +93,11 @@ const IconCopy  = ({ size = 13, color = "currentColor" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="9" y="9" width="13" height="13" rx="2"/>
     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+  </svg>
+);
+const IconSearch = ({ size = 13, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
   </svg>
 );
 
@@ -282,6 +289,65 @@ function useTypewriter(targetText, active) {
 
 // ─── Message ──────────────────────────────────────────────────────────────────
 
+const RESEARCHING_STEPS = ["Searching the web…", "Reading sources…", "Putting it together…"];
+
+function ResearchingIndicator() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const iv = setInterval(() => setStep((s) => (s + 1) % RESEARCHING_STEPS.length), 2200);
+    return () => clearInterval(iv);
+  }, []);
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ width: 14, height: 14, border: "2px solid rgba(var(--accent-rgb),0.25)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spinner-rotate 0.8s linear infinite", flexShrink: 0 }} />
+      <AnimatePresence mode="wait">
+        <motion.span key={step} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }}
+          style={{ fontFamily: SG, fontSize: 13.5, color: "#494742" }}>
+          {RESEARCHING_STEPS[step]}
+        </motion.span>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function ResearchMessage({ msg, isMobile = false }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+      style={{ display: "flex", gap: 11, marginBottom: 20, paddingRight: isMobile ? 24 : 40, alignItems: "flex-start" }}
+    >
+      <AgentAvatar size={30} />
+      <div style={{ flex: 1, minWidth: 0, maxWidth: 640 }}>
+        <div style={{
+          background: "rgba(var(--accent-rgb),0.05)",
+          border: "1.5px solid rgba(var(--accent-rgb),0.22)",
+          borderRadius: "3px 16px 16px 16px",
+          padding: "16px 18px",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: msg.researching ? 0 : 14 }}>
+            <IconSearch size={13} color="var(--accent)" />
+            <span style={{ fontFamily: SG, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--accent)" }}>
+              Research
+            </span>
+          </div>
+          {msg.researching ? (
+            <ResearchingIndicator />
+          ) : (
+            <>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {(msg.results || []).map((r, i) => <ResultCard key={r.url || i} result={r} index={i} />)}
+              </div>
+              <SourcesSection sources={msg.sources} />
+            </>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function Message({ msg, isMobile = false }) {
   const [copied, setCopied] = useState(false);
   const isUser      = msg.role === "user";
@@ -314,6 +380,10 @@ function Message({ msg, isMobile = false }) {
         </div>
       </motion.div>
     );
+  }
+
+  if (msg.type === "research") {
+    return <ResearchMessage msg={msg} isMobile={isMobile} />;
   }
 
   return (
@@ -371,7 +441,7 @@ function sanitizeChatInput(text) {
   return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
 }
 
-function InputBar({ onSend, disabled, isMobile = false }) {
+function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, researchMode, onToggleResearch, isMobile = false }) {
   const [value, setValue] = useState("");
   const taRef = useRef(null);
 
@@ -381,6 +451,9 @@ function InputBar({ onSend, disabled, isMobile = false }) {
     ta.style.height = "auto";
     ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
   };
+
+  const limitReached = researchMode ? researchLimitReached : chatLimitReached;
+  const disabled = busy || limitReached;
 
   const handleSend = () => {
     const sanitized = sanitizeChatInput(value);
@@ -411,10 +484,29 @@ function InputBar({ onSend, disabled, isMobile = false }) {
           value={value}
           onChange={(e) => { if (e.target.value.length <= MAX_INPUT + 50) setValue(e.target.value); autoResize(); }}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-          placeholder="Ask anything about your career…"
+          placeholder={researchMode ? "Find scholarships, internships, programs…" : "Ask anything about your career…"}
           rows={1}
           style={{ flex: 1, border: "none", background: "transparent", resize: "none", fontFamily: SG, fontSize: 16, color: NAVY, lineHeight: 1.6, padding: 0, outline: "none", maxHeight: 160, minHeight: 26 }}
         />
+        <button
+          onClick={onToggleResearch}
+          disabled={researchLimitReached}
+          title={researchLimitReached ? "No research queries remaining" : researchMode ? "Research mode on" : "Search the web for this"}
+          style={{
+            display: "flex", alignItems: "center", gap: 5, flexShrink: 0,
+            height: 40, padding: "0 12px", borderRadius: 12,
+            border: researchMode ? "1.5px solid var(--accent)" : "1.5px solid #e2e8f0",
+            background: researchMode ? "rgba(var(--accent-rgb),0.1)" : "transparent",
+            color: researchLimitReached ? "#b0bac6" : researchMode ? "var(--accent)" : "#6a6760",
+            cursor: researchLimitReached ? "not-allowed" : "pointer",
+            opacity: researchLimitReached ? 0.6 : 1,
+            fontFamily: SG, fontSize: 13, fontWeight: 600,
+            transition: "background 0.15s, border-color 0.15s, color 0.15s",
+          }}
+        >
+          <IconSearch size={13} color={researchLimitReached ? "#b0bac6" : researchMode ? "var(--accent)" : "#6a6760"} />
+          {!isMobile && "Research"}
+        </button>
         <button
           onClick={handleSend}
           disabled={!canSend}
@@ -566,6 +658,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
     const [hovered, setHovered] = useState(false);
     const isRenaming = renamingId === session.id;
     const title = sessionTitle(session);
+    const hasResearch = session.messages?.some((m) => m.type === "research");
 
     return (
       <div
@@ -590,9 +683,12 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
             />
           ) : (
             <>
-              <p style={{ fontFamily: SG, fontSize: 12.5, fontWeight: isActive ? 700 : 500, color: isActive ? NAVY : "#3d3d3a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.4 }}>
-                {title}
-              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+                {hasResearch && <span style={{ flexShrink: 0, display: "flex" }}><IconSearch size={10} color="var(--accent)" /></span>}
+                <p style={{ fontFamily: SG, fontSize: 12.5, fontWeight: isActive ? 700 : 500, color: isActive ? NAVY : "#3d3d3a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.4 }}>
+                  {title}
+                </p>
+              </div>
               <p style={{ fontFamily: SG, fontSize: 10.5, color: "#6a6760", marginTop: 1 }}>
                 {timeAgo(session.updated_at)}
               </p>
@@ -673,7 +769,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
 
 // ─── ChatMain ─────────────────────────────────────────────────────────────────
 
-function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, onOpenHistory, chatUsed = 0, isMobile = false }) {
+function ChatMain({ activeChatId, messages, busy, onSend, userName, error, onOpenHistory, chatUsed = 0, researchUsed = 0, researchMode, onToggleResearch, isMobile = false }) {
   const bottomRef = useRef(null);
   const isNew = activeChatId === null;
 
@@ -752,17 +848,30 @@ function ChatMain({ activeChatId, messages, disabled, onSend, userName, error, o
 
       {/* Usage counter */}
       {(() => {
-        const left = Math.max(0, LIMITS.chat - chatUsed);
+        const left = researchMode
+          ? Math.max(0, LIMITS.research - researchUsed)
+          : Math.max(0, LIMITS.chat - chatUsed);
+        const label = researchMode
+          ? (left === 0 ? "No research queries remaining" : `${left} research quer${left === 1 ? "y" : "ies"} remaining`)
+          : (left === 0 ? "No messages remaining" : `${left} message${left === 1 ? "" : "s"} remaining`);
         return (
           <div style={{ padding: "4px 16px 6px", textAlign: "center" }}>
             <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: 11, fontWeight: 600,
-              color: left <= 3 ? "#dc2626" : "#6a6760" }}>
-              {left === 0 ? "No messages remaining" : `${left} message${left === 1 ? "" : "s"} remaining`}
+              color: left <= (researchMode ? 0 : 3) ? "#dc2626" : "#6a6760" }}>
+              {label}
             </span>
           </div>
         );
       })()}
-      <InputBar onSend={onSend} disabled={disabled} isMobile={isMobile} />
+      <InputBar
+        onSend={onSend}
+        busy={busy}
+        chatLimitReached={chatUsed >= LIMITS.chat}
+        researchLimitReached={researchUsed >= LIMITS.research}
+        researchMode={researchMode}
+        onToggleResearch={onToggleResearch}
+        isMobile={isMobile}
+      />
     </div>
   );
 }
@@ -783,7 +892,10 @@ export default function ChatPage({ navigate, seedNode }) {
   const [chatError, setChatError]     = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [chatUsed, setChatUsed]       = useState(0);
-  const [limitModal, setLimitModal]   = useState(false);
+  const [researchUsed, setResearchUsed] = useState(0);
+  const [researchMode, setResearchMode] = useState(false);
+  const [researching, setResearching] = useState(false);
+  const [limitModal, setLimitModal]   = useState(null);
   const [questToast, setQuestToast]   = useState(null);
   const questToastTimer = useRef(null);
   const isMobile = useIsMobile();
@@ -839,7 +951,7 @@ export default function ChatPage({ navigate, seedNode }) {
       }
 
       // Load lifetime usage
-      fetchUsage(supabase).then((u) => setChatUsed(u.chat_messages_used));
+      fetchUsage(supabase).then((u) => { setChatUsed(u.chat_messages_used); setResearchUsed(u.research_queries_used); });
     });
   }, []);
 
@@ -991,7 +1103,7 @@ export default function ChatPage({ navigate, seedNode }) {
       setMessages((prev) => prev.filter((m) => m.id !== aiMsgId));
       setStreaming(false);
       if (err?.message?.includes('LIMIT_REACHED') || err?.message?.includes('429')) {
-        setLimitModal(true);
+        setLimitModal("chat");
         setChatUsed(LIMITS.chat);
       } else {
         setChatError("The agent couldn't respond right now. Please try again.");
@@ -1001,6 +1113,76 @@ export default function ChatPage({ navigate, seedNode }) {
       }).eq("id", sessionId);
     }
   }, [user, activeChatId, messages, sessions, streaming, refreshSessions]);
+
+  const handleResearchSend = useCallback(async (text) => {
+    if (!user || streaming || researching) return;
+    setResearchMode(false); // single-shot: revert the toggle the moment it's used
+    setChatError(null);
+
+    const now = new Date().toISOString();
+    const userMsg = { id: `m_${Date.now()}`, role: "user", content: text, time: formatTime(now), created_at: now };
+    const researchMsgId = `m_${Date.now() + 1}`;
+    const researchingMsg = { id: researchMsgId, role: "ai", type: "research", researching: true, time: formatTime(now), created_at: now };
+
+    let sessionId = activeChatId;
+    let historyBeforeSend;
+    const nodeId = sessionId ? (sessions.find((s) => s.id === sessionId)?.roadmap_node_id ?? null) : null;
+
+    if (!sessionId) {
+      const { data: newSession, error } = await supabase.from("chat_sessions")
+        .insert({ user_id: user.id, messages: [userMsg], updated_at: new Date().toISOString(), roadmap_node_id: nodeId })
+        .select().single();
+      if (error || !newSession) { setChatError("Failed to start a new chat. Please try again."); return; }
+      sessionId = newSession.id;
+      skipHydrationRef.current = true;
+      setActiveChatId(sessionId);
+      setSessions((prev) => [newSession, ...prev]);
+      historyBeforeSend = [userMsg];
+    } else {
+      historyBeforeSend = [...messages, userMsg];
+    }
+
+    setMessages([...historyBeforeSend, researchingMsg]);
+    setResearching(true);
+
+    try {
+      const { results, sources } = await runResearch(text);
+      const finalMsg = {
+        id: researchMsgId, role: "ai", type: "research",
+        content: summarizeResearchForHistory(text, results),
+        results, sources,
+        time: formatTime(now), created_at: now,
+      };
+      const finalMessages = [...historyBeforeSend, finalMsg];
+      setMessages(finalMessages);
+      const { error: saveError } = await supabase.from("chat_sessions").update({
+        messages: finalMessages, updated_at: new Date().toISOString(),
+      }).eq("id", sessionId);
+      if (saveError) console.error("[Research] failed to save messages:", saveError.message);
+      setResearchUsed((n) => n + 1);
+      await refreshSessions(user.id);
+      skipHydrationRef.current = false;
+    } catch (err) {
+      skipHydrationRef.current = false;
+      setMessages((prev) => prev.filter((m) => m.id !== researchMsgId));
+      if (err instanceof ResearchLimitError) {
+        setLimitModal("research");
+        setResearchUsed(LIMITS.research);
+        await supabase.from("chat_sessions").update({
+          messages: historyBeforeSend, updated_at: new Date().toISOString(),
+        }).eq("id", sessionId);
+      } else {
+        setChatError("Research couldn't complete right now. Please try again.");
+        await supabase.from("chat_sessions").update({
+          messages: historyBeforeSend, updated_at: new Date().toISOString(),
+        }).eq("id", sessionId);
+      }
+    } finally {
+      setResearching(false);
+    }
+  }, [user, activeChatId, messages, sessions, streaming, researching, refreshSessions]);
+
+  const handleUnifiedSend = (text) => (researchMode ? handleResearchSend(text) : handleSend(text));
 
   const historyPanel = (
     <HistoryPanel
@@ -1023,6 +1205,7 @@ export default function ChatPage({ navigate, seedNode }) {
         ::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb),0.15); border-radius: 99px; }
         ${STREAMING_CSS}
         @keyframes questToastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spinner-rotate { to { transform: rotate(360deg); } }
       `}</style>
 
       {questToast && (
@@ -1068,12 +1251,15 @@ export default function ChatPage({ navigate, seedNode }) {
         <ChatMain
           activeChatId={activeChatId}
           messages={messages}
-          disabled={streaming || chatUsed >= LIMITS.chat}
-          onSend={handleSend}
+          busy={streaming || researching}
+          onSend={handleUnifiedSend}
           userName={profile?.full_name || ""}
           error={chatError}
           onOpenHistory={isMobile ? () => setHistoryOpen(true) : null}
           chatUsed={chatUsed}
+          researchUsed={researchUsed}
+          researchMode={researchMode}
+          onToggleResearch={() => setResearchMode((v) => !v)}
           isMobile={isMobile}
         />
         {!isMobile && historyPanel}
@@ -1086,7 +1272,7 @@ export default function ChatPage({ navigate, seedNode }) {
         </Drawer>
       )}
 
-      {limitModal && <LimitModal feature="chat" onClose={() => setLimitModal(false)} />}
+      {limitModal && <LimitModal feature={limitModal} onClose={() => setLimitModal(null)} />}
     </>
   );
 }
