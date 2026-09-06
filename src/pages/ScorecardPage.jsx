@@ -480,12 +480,12 @@ export default function ScorecardPage({ navigate }) {
         @keyframes sc-float { 0%,100% { transform: translateY(0) rotate(-0.6deg); } 50% { transform: translateY(-6px) rotate(0.6deg); } }
         .sc-cloud {
           position: relative; display: flex; align-items: center; justify-content: center; text-align: center;
-          background: rgba(29,78,216,0.1); border: 2px solid #141413; border-radius: 20px;
+          background: #e3f3fd; border: 2px solid #141413; border-radius: 20px;
           padding: 12px 18px 10px;
           animation: sc-float 4.5s ease-in-out infinite;
         }
         .sc-cloud::before, .sc-cloud::after {
-          content: ""; position: absolute; background: rgba(29,78,216,0.1); border: 2px solid #141413; border-radius: 50%; z-index: 0;
+          content: ""; position: absolute; background: #e3f3fd; border: 2px solid #141413; border-radius: 50%; z-index: 0;
         }
         .sc-cloud::before { width: 22px; height: 22px; top: -13px; left: 22px; }
         .sc-cloud::after { width: 16px; height: 16px; top: -9px; left: 44px; }
@@ -529,7 +529,7 @@ export default function ScorecardPage({ navigate }) {
                 </div>
                 <div className="sc-cloud-wrap">
                   <div className="sc-cloud">
-                    <span style={{ fontFamily: SANS, fontSize: "0.85rem", fontWeight: 600, color: "#3d3d3a", lineHeight: 1.4, position: "relative", zIndex: 1 }}>
+                    <span style={{ fontFamily: SANS, fontSize: "0.85rem", fontWeight: 600, color: "#141413", lineHeight: 1.4, position: "relative", zIndex: 1 }}>
                       Your scores aren't comparable to anyone else's. They're just here to help you spot where to focus next.
                     </span>
                   </div>
