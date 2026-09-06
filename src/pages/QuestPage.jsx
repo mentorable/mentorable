@@ -960,12 +960,12 @@ export default function QuestPage({ navigate }) {
               style={{ padding: "48px 24px", textAlign: "center" }}
             >
               <div style={{
-                width: 52, height: 52, borderRadius: 14,
+                width: 68, height: 68, borderRadius: 18,
                 background: activeCol.soft,
-                margin: "0 auto 14px",
+                margin: "0 auto 16px",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <div style={{ width: 16, height: 16, borderRadius: "50%", background: `${activeCol.accent}35` }} />
+                <div style={{ width: 30, height: 30, borderRadius: "50%", background: activeCol.accent }} />
               </div>
               <p style={{ fontFamily: FONT, fontSize: 16.5, fontWeight: 700, color: TEXT_MID, lineHeight: 1.6, margin: "0 auto", maxWidth: 340 }}>
                 {activeCol.emptyText}
@@ -1114,7 +1114,7 @@ export default function QuestPage({ navigate }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <div style={{ width: 9, height: 9, borderRadius: "50%", background: col.accent }} />
                   <span style={{
-                    fontFamily: FONT, fontWeight: 800, fontSize: 15,
+                    fontFamily: FONT, fontWeight: 800, fontSize: 18,
                     color: TEXT, letterSpacing: "0.05em",
                   }}>
                     {col.label}
@@ -1170,12 +1170,12 @@ export default function QuestPage({ navigate }) {
                     }}
                   >
                     <div style={{
-                      width: 46, height: 46, borderRadius: 12,
+                      width: 64, height: 64, borderRadius: 16,
                       background: col.soft,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      marginBottom: 14,
+                      marginBottom: 16,
                     }}>
-                      <div style={{ width: 16, height: 16, borderRadius: "50%", background: `${col.accent}45` }} />
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: col.accent }} />
                     </div>
                     <p style={{
                       fontFamily: FONT, fontSize: 15.5, fontWeight: 700, color: TEXT_MID,
