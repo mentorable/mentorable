@@ -77,7 +77,7 @@ function ReadinessRing({ value, accent }) {
 
 // ─── Radar (standardized 5 axes, real scores, clickable) ──────────────────────
 function RadarChart({ scores, weakSet, theme, onAxisClick }) {
-  const R = 96, N = 5, LABEL_R = 115;
+  const R = 108, N = 5, LABEL_R = 128;
   const polar = (r, deg) => {
     const rad = (Math.PI / 180) * deg;
     return [r * Math.cos(rad), r * Math.sin(rad)];
@@ -90,7 +90,7 @@ function RadarChart({ scores, weakSet, theme, onAxisClick }) {
       .map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ") + " Z";
 
   return (
-    <svg viewBox="-215 -185 430 370" style={{ width: "100%", maxWidth: 380, height: "auto", display: "block", margin: "0 auto", overflow: "visible" }}>
+    <svg viewBox="-232 -144 464 264" style={{ width: "100%", maxWidth: 480, height: "auto", display: "block", margin: "0 auto", overflow: "visible" }}>
       {[0.25, 0.5, 0.75, 1].map((lvl, i) => (
         <path key={i} d={grid(lvl)} fill="none" stroke="rgba(20,20,19,0.08)" strokeWidth="1" />
       ))}
@@ -104,7 +104,7 @@ function RadarChart({ scores, weakSet, theme, onAxisClick }) {
       <motion.path d={dataPath} fill="none" stroke={theme.accent} strokeWidth="2.5" strokeLinejoin="round"
         initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: "easeOut", delay: 0.3 }} />
       {pts.map((p, i) => (
-        <motion.circle key={i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="4" fill={theme.accent}
+        <motion.circle key={i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="4.5" fill={theme.accent}
           initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1.1 + i * 0.07, type: "spring", stiffness: 400 }} />
       ))}
       {AXES.map((a, i) => {
@@ -116,12 +116,12 @@ function RadarChart({ scores, weakSet, theme, onAxisClick }) {
             {/* generous transparent hit target */}
             <circle cx={lx.toFixed(1)} cy={(ly - 4).toFixed(1)} r="34" fill="transparent" />
             <text x={lx.toFixed(1)} y={(ly - 4).toFixed(1)} textAnchor={anchor}
-              fontFamily={SANS} fontSize="12.5" fontWeight="600"
-              fill={isWeak ? theme.accent : "#3d3d3a"}>
+              fontFamily={SANS} fontSize="13.5" fontWeight="700"
+              fill={isWeak ? theme.accent : "#141413"}>
               {a.label}
             </text>
-            <text x={lx.toFixed(1)} y={(ly + 12).toFixed(1)} textAnchor={anchor}
-              fontFamily={SANS} fontSize="13" fontWeight="700"
+            <text x={lx.toFixed(1)} y={(ly + 15).toFixed(1)} textAnchor={anchor}
+              fontFamily={SANS} fontSize="14.5" fontWeight="700"
               fill={isWeak ? theme.accent : "#141413"}>
               {scores[i]}{isWeak ? "  ↗" : ""}
             </text>
@@ -561,24 +561,24 @@ export default function ScorecardPage({ navigate }) {
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.08 }}>
                 <div id="scorecard-card" style={{
                   background: "#fff", borderRadius: "1.5rem", border: `1px solid rgba(${theme.rgb},0.22)`,
-                  boxShadow: `0 8px 32px rgba(15,23,42,0.08), 0 0 60px ${theme.glow}`, padding: "1.75rem", position: "relative", overflow: "hidden",
+                  boxShadow: "0 3px 14px rgba(15,23,42,0.06)", padding: "1.75rem", position: "relative", overflow: "hidden",
                 }}>
                   <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `linear-gradient(135deg, rgba(${theme.rgb},0.07) 0%, transparent 58%)` }} />
                   <div style={{ position: "relative", zIndex: 1 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.9rem", borderBottom: "1px solid rgba(20,20,19,0.08)", marginBottom: "1rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.9rem", borderBottom: "1.5px solid rgba(20,20,19,0.16)", marginBottom: "1rem" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                         <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: "#141413", letterSpacing: "-0.02em" }}>mentorable</span>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: theme.accent, boxShadow: `0 0 8px ${theme.accent}`, marginBottom: 2 }} />
                       </div>
-                      <span style={{ fontFamily: SANS, fontSize: "0.66rem", fontWeight: 700, color: "#8a8680", letterSpacing: "0.1em", textTransform: "uppercase" }}>{readiness}% Ready</span>
+                      <span style={{ fontFamily: SANS, fontSize: "0.66rem", fontWeight: 700, color: "#141413", letterSpacing: "0.1em", textTransform: "uppercase" }}>{readiness}% Ready</span>
                     </div>
                     <RadarChart scores={scores} weakSet={weakSet} theme={theme} onAxisClick={openImprove} />
                     {careerMatches.length > 0 && (
-                      <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid rgba(20,20,19,0.08)" }}>
+                      <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1.5px solid rgba(20,20,19,0.16)" }}>
                         <p style={{ fontFamily: SANS, fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: theme.accent, marginBottom: "0.6rem" }}>Top Career Matches</p>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
                           {careerMatches.map((c, i) => (
-                            <span key={i} style={{ fontFamily: SANS, fontSize: "0.8rem", fontWeight: 600, color: "#3d3d3a", background: `rgba(${theme.rgb},0.07)`, border: `1px solid rgba(${theme.rgb},0.2)`, borderRadius: 8, padding: "0.35rem 0.7rem" }}>{c}</span>
+                            <span key={i} style={{ fontFamily: SANS, fontSize: "0.8rem", fontWeight: 600, color: "#141413", background: `rgba(${theme.rgb},0.07)`, border: `1px solid rgba(${theme.rgb},0.2)`, borderRadius: 8, padding: "0.35rem 0.7rem" }}>{c}</span>
                           ))}
                         </div>
                       </div>
