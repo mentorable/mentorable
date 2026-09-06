@@ -220,7 +220,7 @@ function WelcomePopup({ profile, accent, onClose }) {
         <div style={{ background: `${accent}0c`, border: `1.5px solid ${accent}30`, borderRadius: 14, padding: "1rem 1.2rem", marginTop: "0.5rem", marginBottom: "1.6rem" }}>
           <p style={{ fontFamily: SANS, fontSize: "0.88rem", color: "#141413", lineHeight: 1.6 }}>
             Your radar tracks <strong>5 skills</strong>: Communication, Leadership, Technicality, Resourcefulness, and Execution.
-            They start from this conversation and climb as you work. <strong>Tap a glowing (weak) axis</strong> any time and Mentorable will hand you quests to raise it.
+            They start from this conversation and climb as you work. <strong>Tap a skill card</strong> any time and Mentorable will hand you quests to raise it.
           </p>
         </div>
 
@@ -524,7 +524,7 @@ export default function ScorecardPage({ navigate }) {
                     {first}'s Scorecard
                   </h1>
                   <p style={{ fontFamily: SANS, fontSize: "1.05rem", fontWeight: 600, color: "#141413", lineHeight: 1.4, marginTop: "0.25rem", maxWidth: 440 }}>
-                    Five skills that grow as you work. <strong style={{ color: theme.accent }}>Tap a glowing axis</strong> and Mentorable builds quests to raise it.
+                    Five skills that grow as you work. <strong style={{ color: theme.accent }}>Tap a skill card on the right-hand side</strong>, and Mentorable builds quests to raise it.
                   </p>
                 </div>
               </div>
