@@ -1074,7 +1074,7 @@ export default function QuestPage({ navigate }) {
       <div style={{
         flex: 1, display: "flex",
         overflow: "hidden",
-        borderTop: `1px solid ${BORDER}`,
+        borderTop: `1.5px solid #c9c2b8`,
       }}>
         {COLUMNS.map((col, idx) => {
           const cards    = colItems(col.status);
@@ -1096,7 +1096,7 @@ export default function QuestPage({ navigate }) {
                 minWidth: 200,
                 display: "flex",
                 flexDirection: "column",
-                borderRight: isLast ? "none" : `1px solid ${BORDER}`,
+                borderRight: isLast ? "none" : `1.5px solid #c9c2b8`,
                 background: isOver ? col.soft : "transparent",
                 transition: "background 0.14s",
                 overflow: "hidden",
@@ -1105,7 +1105,7 @@ export default function QuestPage({ navigate }) {
               {/* Column header */}
               <div style={{
                 padding: "13px 14px 10px",
-                borderBottom: `1.5px solid ${isOver ? col.border : BORDER}`,
+                borderBottom: `2px solid ${isOver ? col.border : "#c9c2b8"}`,
                 transition: "border-color 0.14s",
                 flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
