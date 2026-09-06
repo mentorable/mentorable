@@ -161,7 +161,7 @@ function AxisRow({ axis, score, isWeak, accent, onClick, delay }) {
           style={{ height: "100%", borderRadius: 99, background: isWeak ? accent : `${accent}99` }}
         />
       </div>
-      <p style={{ fontFamily: SANS, fontWeight: 500, fontSize: "0.74rem", color: "#1c1b19", marginTop: 7, lineHeight: 1.4, minHeight: "2.1em" }}>{axis.blurb}</p>
+      <p style={{ fontFamily: SANS, fontWeight: 500, fontSize: "0.74rem", color: "#000", marginTop: 7, lineHeight: 1.4, minHeight: "2.1em" }}>{axis.blurb}</p>
     </motion.button>
   );
 }
