@@ -11,7 +11,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const BG          = "#f5f1ed";
+const BG          = "#faf7f2";
 const WHITE       = "#ffffff";
 const BLUE        = "#1d4ed8";
 const BLUE_MID    = "#3b82f6";

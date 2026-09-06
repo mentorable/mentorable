@@ -148,7 +148,7 @@ function RootRoute() {
     const t = setTimeout(() => setShowLanding(true), 1200);
     return () => clearTimeout(t);
   }, [showLanding]);
-  if (!showLanding) return <div style={{ minHeight: "100vh", background: "#f5f1ed" }} />;
+  if (!showLanding) return <div style={{ minHeight: "100vh", background: "#faf7f2" }} />;
   return <LandingPage />;
 }
 
