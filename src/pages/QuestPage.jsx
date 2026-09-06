@@ -143,7 +143,7 @@ function SkeletonCard({ delay = 0 }) {
   return (
     <div style={{
       background: WHITE, borderRadius: 14,
-      border: `2px solid ${TEXT}`, padding: "14px 16px",
+      border: `1.5px solid ${TEXT}`, padding: "14px 16px",
       animation: `quest-pulse 1.6s ease-in-out ${delay}s infinite`,
     }}>
       <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
@@ -193,7 +193,7 @@ function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove,
       style={{
         background: WHITE,
         borderRadius: 14,
-        border: `2px solid ${TEXT}`,
+        border: `1.5px solid ${TEXT}`,
         padding: "13px 14px",
         boxShadow: isDragging
           ? "0 10px 32px rgba(0,0,0,0.13)"
