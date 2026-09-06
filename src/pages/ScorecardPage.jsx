@@ -480,12 +480,12 @@ export default function ScorecardPage({ navigate }) {
         @keyframes sc-float { 0%,100% { transform: translateY(0) rotate(-0.6deg); } 50% { transform: translateY(-6px) rotate(0.6deg); } }
         .sc-cloud {
           position: relative; display: flex; align-items: center; justify-content: center; text-align: center;
-          background: #c8f5d0; border: 2px solid #141413; border-radius: 20px;
+          background: ${theme.accent}; border: 2px solid #141413; border-radius: 20px;
           padding: 12px 18px 10px;
           animation: sc-float 4.5s ease-in-out infinite;
         }
         .sc-cloud::before, .sc-cloud::after {
-          content: ""; position: absolute; background: #c8f5d0; border: 2px solid #141413; border-radius: 50%; z-index: 0;
+          content: ""; position: absolute; background: ${theme.accent}; border: 2px solid #141413; border-radius: 50%; z-index: 0;
         }
         .sc-cloud::before { width: 22px; height: 22px; top: -13px; left: 22px; }
         .sc-cloud::after { width: 16px; height: 16px; top: -9px; left: 44px; }
