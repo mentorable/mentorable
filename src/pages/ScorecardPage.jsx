@@ -476,11 +476,19 @@ export default function ScorecardPage({ navigate }) {
         .sc-btn { display:inline-flex; align-items:center; gap:0.5rem; padding:0.65rem 1.15rem; border:2px solid #000; border-radius:0.7rem; background:transparent; color:#000; font-family:${SANS}; font-size:0.85rem; font-weight:700; cursor:pointer; transition:background .15s,color .15s,transform .15s; }
         .sc-btn:hover:not(:disabled) { background:#000; color:#fff; transform:translateY(-1px); }
         .sc-btn:disabled { opacity:.55; cursor:not-allowed; }
-        .sc-cloud-wrap { position: relative; display: flex; justify-content: center; align-items: center; width: 100%; max-width: 320px; aspect-ratio: 640 / 400; margin-top: 8px; }
+        .sc-cloud-wrap { display: flex; justify-content: center; max-width: 300px; padding-top: 8px; }
         @keyframes sc-float { 0%,100% { transform: translateY(0) rotate(-0.6deg); } 50% { transform: translateY(-6px) rotate(0.6deg); } }
-        .sc-cloud { animation: sc-float 4.5s ease-in-out infinite; }
-        .sc-cloud-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-        .sc-cloud-text { position: relative; z-index: 1; padding: 0 46px; text-align: center; }
+        .sc-cloud {
+          position: relative; display: flex; align-items: center; justify-content: center; text-align: center;
+          background: rgba(${theme.rgb},0.20); border: 2px solid #141413; border-radius: 20px;
+          padding: 12px 18px 10px;
+          animation: sc-float 4.5s ease-in-out infinite;
+        }
+        .sc-cloud::before, .sc-cloud::after {
+          content: ""; position: absolute; background: rgba(${theme.rgb},0.20); border: 2px solid #141413; border-radius: 50%; z-index: 0;
+        }
+        .sc-cloud::before { width: 22px; height: 22px; top: -13px; left: 22px; }
+        .sc-cloud::after { width: 16px; height: 16px; top: -9px; left: 44px; }
         @media (max-width: 860px) {
           .sc-grid { grid-template-columns: 1fr !important; }
         }
@@ -519,16 +527,12 @@ export default function ScorecardPage({ navigate }) {
                     Five skills that grow as you work. <strong style={{ color: theme.accent }}>Tap a glowing axis</strong> and Mentorable builds quests to raise it.
                   </p>
                 </div>
-                <div className="sc-cloud-wrap sc-cloud">
-                  <svg className="sc-cloud-svg" viewBox="0 0 640 512" preserveAspectRatio="none">
-                    <path
-                      d="M0,320c0,53,43,96,96,96h368c61.9,0,112-50.1,112-112c0-51.7-35.2-95.2-82.9-107.7c.6-5.7,.9-11.5,.9-17.3c0-88.4-71.6-160-160-160c-59.3,0-111,32.2-138.7,80.2C185.5,97,181.8,96,178,96c-70.7,0-128,57.3-128,128c0,12.3,1.7,24.2,5,35.5C23,271.4,0,299,0,320z"
-                      fill={`rgba(${theme.rgb},0.20)`} stroke="#141413" strokeWidth="10" strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span className="sc-cloud-text" style={{ fontFamily: SANS, fontSize: "0.8rem", fontWeight: 600, color: "#141413", lineHeight: 1.35 }}>
-                    Your scores aren't comparable to anyone else's. They're just here to help you spot where to focus next.
-                  </span>
+                <div className="sc-cloud-wrap">
+                  <div className="sc-cloud">
+                    <span style={{ fontFamily: SANS, fontSize: "0.85rem", fontWeight: 600, color: "#141413", lineHeight: 1.4, position: "relative", zIndex: 1 }}>
+                      Your scores aren't comparable to anyone else's. They're just here to help you spot where to focus next.
+                    </span>
+                  </div>
                 </div>
               </div>
             </motion.div>
