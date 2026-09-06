@@ -518,22 +518,25 @@ export default function ScorecardPage({ navigate }) {
             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
               style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap", marginBottom: "2rem" }}>
               <ReadinessRing value={readiness} accent={theme.accent} />
-              <div style={{ flex: 1, minWidth: 220 }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+                <div style={{
+                  background: "#fff", border: "2px solid #141413", borderRadius: 14,
+                  padding: "0.85rem 1.1rem",
+                }}>
                   <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: "#141413", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
                     {first}'s Scorecard
                   </h1>
-                  <div className="sc-cloud-wrap">
-                    <div className="sc-cloud">
-                      <span style={{ fontFamily: SANS, fontSize: "0.85rem", fontWeight: 600, color: "#141413", lineHeight: 1.4, position: "relative", zIndex: 1 }}>
-                        Your scores aren't comparable to anyone else's. They're just here to help you spot where to focus next.
-                      </span>
-                    </div>
+                  <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: "#494742", lineHeight: 1.4, marginTop: "0.25rem", maxWidth: 440 }}>
+                    Five skills that grow as you work. <strong style={{ color: theme.accent }}>Tap a glowing axis</strong> and Mentorable builds quests to raise it.
+                  </p>
+                </div>
+                <div className="sc-cloud-wrap">
+                  <div className="sc-cloud">
+                    <span style={{ fontFamily: SANS, fontSize: "0.85rem", fontWeight: 600, color: "#141413", lineHeight: 1.4, position: "relative", zIndex: 1 }}>
+                      Your scores aren't comparable to anyone else's. They're just here to help you spot where to focus next.
+                    </span>
                   </div>
                 </div>
-                <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: "#494742", lineHeight: 1.55, marginTop: "0.15rem", maxWidth: 440 }}>
-                  Five skills that grow as you work. <strong style={{ color: theme.accent }}>Tap a glowing axis</strong> and Mentorable builds quests to raise it.
-                </p>
               </div>
             </motion.div>
 
