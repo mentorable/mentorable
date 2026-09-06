@@ -547,6 +547,7 @@ export default function QuestPage({ navigate }) {
   const [items, setItems]             = useState(() => getCache(`quest_items:${getKnownUserId()}`) || []);
   const [loading, setLoading]         = useState(() => !getCache(`quest_items:${getKnownUserId()}`));
   const [generating, setGenerating]   = useState(() => getQuestGenerating(getKnownUserId()));
+  const [genCount, setGenCount]       = useState(3);
   const [draggingId, setDraggingId]   = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
   const [dragOverTrash, setDragOverTrash] = useState(false);
@@ -612,6 +613,7 @@ export default function QuestPage({ navigate }) {
   // ── Generate ────────────────────────────────────────────────────────────────
   const handleGenerate = useCallback(async (count = 3) => {
     if (!userIdRef.current || generating) return;
+    setGenCount(count);
     setGenerating(true);
     setQuestGenerating(userIdRef.current, true);  // survives navigation away mid-gen
     setShowPicker(false);
@@ -930,7 +932,7 @@ export default function QuestPage({ navigate }) {
           {/* Generating skeletons */}
           {generating && mobileTab === "suggested" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[0, 0.2, 0.4].map((d, i) => <SkeletonCard key={i} delay={d} />)}
+              {Array.from({ length: genCount }, (_, i) => <SkeletonCard key={i} delay={i * 0.15} />)}
             </div>
           )}
 
@@ -1154,7 +1156,7 @@ export default function QuestPage({ navigate }) {
                 {/* Generating skeletons */}
                 {generating && isSugg && (
                   <>
-                    {[0, 0.2, 0.4].map((d, i) => <SkeletonCard key={i} delay={d} />)}
+                    {Array.from({ length: genCount }, (_, i) => <SkeletonCard key={i} delay={i * 0.15} />)}
                   </>
                 )}
 
