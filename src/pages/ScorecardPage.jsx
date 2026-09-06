@@ -529,7 +529,7 @@ export default function ScorecardPage({ navigate }) {
                 </div>
                 <div className="sc-cloud-wrap">
                   <div className="sc-cloud">
-                    <span style={{ fontFamily: SANS, fontSize: "0.85rem", fontWeight: 600, color: "#141413", lineHeight: 1.4, position: "relative", zIndex: 1 }}>
+                    <span style={{ fontFamily: SANS, fontSize: "0.85rem", fontWeight: 600, color: "#fff", lineHeight: 1.4, position: "relative", zIndex: 1 }}>
                       Your scores aren't comparable to anyone else's. They're just here to help you spot where to focus next.
                     </span>
                   </div>
