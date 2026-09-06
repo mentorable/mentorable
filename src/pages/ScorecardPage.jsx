@@ -552,16 +552,12 @@ export default function ScorecardPage({ navigate }) {
               {/* Radar card (shareable) */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.08 }}>
                 <div id="scorecard-card" style={{
-                  background: "#fff", borderRadius: "1.5rem", border: `1px solid rgba(${theme.rgb},0.22)`,
+                  background: "#fff", borderRadius: "1.5rem", border: `1.5px solid rgba(${theme.rgb},0.4)`,
                   boxShadow: "0 3px 14px rgba(15,23,42,0.06)", padding: "1.75rem", position: "relative", overflow: "hidden",
                 }}>
                   <div style={{ position: "relative", zIndex: 1 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.9rem", borderBottom: "1.5px solid rgba(20,20,19,0.16)", marginBottom: "1rem" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: "#141413", letterSpacing: "-0.02em" }}>mentorable</span>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: theme.accent, boxShadow: `0 0 8px ${theme.accent}`, marginBottom: 2 }} />
-                      </div>
-                      <span style={{ fontFamily: SANS, fontSize: "0.66rem", fontWeight: 700, color: "#141413", letterSpacing: "0.1em" }}>{readiness}% Ready</span>
+                    <div style={{ textAlign: "center", paddingBottom: "0.9rem", borderBottom: "1.5px solid rgba(20,20,19,0.16)", marginBottom: "1rem" }}>
+                      <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", color: "#141413", letterSpacing: "-0.01em" }}>Scorecard Radar Map</span>
                     </div>
                     <div style={{ padding: "0.75rem 0" }}>
                       <RadarChart scores={scores} weakSet={weakSet} theme={theme} />
