@@ -477,10 +477,12 @@ export default function ScorecardPage({ navigate }) {
         .sc-btn:hover:not(:disabled) { background:#141413; color:#fff; transform:translateY(-1px); }
         .sc-btn:disabled { opacity:.55; cursor:not-allowed; }
         .sc-cloud-wrap { display: flex; justify-content: center; max-width: 300px; padding-top: 8px; }
+        @keyframes sc-float { 0%,100% { transform: translateY(0) rotate(-0.6deg); } 50% { transform: translateY(-6px) rotate(0.6deg); } }
         .sc-cloud {
           position: relative; display: flex; align-items: center; justify-content: center; text-align: center;
           background: #e3f3fd; border: 2px solid #141413; border-radius: 20px;
           padding: 12px 18px 10px;
+          animation: sc-float 4.5s ease-in-out infinite;
         }
         .sc-cloud::before, .sc-cloud::after {
           content: ""; position: absolute; background: #e3f3fd; border: 2px solid #141413; border-radius: 50%; z-index: 0;
@@ -567,7 +569,7 @@ export default function ScorecardPage({ navigate }) {
               {/* Radar card (shareable) */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.08 }}>
                 <div id="scorecard-card" style={{
-                  background: "#fff", borderRadius: "1.5rem", border: `1.5px solid rgba(${theme.rgb},0.4)`,
+                  background: "#fff", borderRadius: "1.5rem", border: "2px solid #141413",
                   boxShadow: "0 3px 14px rgba(15,23,42,0.06)", padding: "1.75rem", position: "relative", overflow: "hidden",
                 }}>
                   <div style={{ position: "relative", zIndex: 1 }}>
@@ -602,9 +604,14 @@ export default function ScorecardPage({ navigate }) {
                 {AXES.map((a, i) => (
                   <AxisRow key={a.key} axis={a} score={scores[i]} isWeak={weakSet.has(a.key)} accent={theme.accent} onClick={() => openImprove(a.key)} delay={0.15 + i * 0.06} />
                 ))}
-                <p style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.88rem", color: "#141413", textAlign: "center", marginTop: "0.4rem" }}>
-                  {Math.max(0, LIMITS.axis_boost - boostsUsed)} skill boosts left in the demo
-                </p>
+                <div style={{
+                  background: "#fff", border: "2px solid #141413", borderRadius: 14,
+                  padding: "10px 16px", marginTop: "0.4rem", textAlign: "center",
+                }}>
+                  <p style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.88rem", color: "#141413" }}>
+                    {Math.max(0, LIMITS.axis_boost - boostsUsed)} skill boosts left in the demo
+                  </p>
+                </div>
               </div>
             </div>
           </>
