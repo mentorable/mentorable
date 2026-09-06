@@ -469,7 +469,7 @@ export default function ScorecardPage({ navigate }) {
   return (
     <div data-sidebar-offset style={{
       minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", position: "relative",
-      fontFamily: SANS, padding: "2.5rem 1.5rem 6rem", paddingLeft: `calc(${SIDEBAR_WIDTH}px + 1.5rem)`, background: "#faf7f2",
+      fontFamily: SANS, padding: "2.5rem 1.5rem 6rem", paddingLeft: `calc(${SIDEBAR_WIDTH}px + 1.5rem)`, background: "#F5F5F5",
     }}>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
@@ -555,7 +555,6 @@ export default function ScorecardPage({ navigate }) {
                   background: "#fff", borderRadius: "1.5rem", border: `1px solid rgba(${theme.rgb},0.22)`,
                   boxShadow: "0 3px 14px rgba(15,23,42,0.06)", padding: "1.75rem", position: "relative", overflow: "hidden",
                 }}>
-                  <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `linear-gradient(135deg, rgba(${theme.rgb},0.07) 0%, transparent 58%)` }} />
                   <div style={{ position: "relative", zIndex: 1 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.9rem", borderBottom: "1.5px solid rgba(20,20,19,0.16)", marginBottom: "1rem" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
