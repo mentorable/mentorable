@@ -67,7 +67,7 @@ function ReadinessRing({ value, accent }) {
         <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.5rem", color: "#141413", lineHeight: 1, letterSpacing: "-0.03em" }}>
           {display}
         </span>
-        <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.7rem", color: "#6a6760", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 4 }}>
+        <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.7rem", color: "#6a6760", letterSpacing: "0.08em", marginTop: 4 }}>
           Career Ready
         </span>
       </div>
@@ -75,8 +75,8 @@ function ReadinessRing({ value, accent }) {
   );
 }
 
-// ─── Radar (standardized 5 axes, real scores, clickable) ──────────────────────
-function RadarChart({ scores, weakSet, theme, onAxisClick }) {
+// ─── Radar (standardized 5 axes, real scores, read-only) ──────────────────────
+function RadarChart({ scores, weakSet, theme }) {
   const R = 108, N = 5, LABEL_R = 128;
   const polar = (r, deg) => {
     const rad = (Math.PI / 180) * deg;
@@ -112,9 +112,7 @@ function RadarChart({ scores, weakSet, theme, onAxisClick }) {
         const isWeak = weakSet.has(a.key);
         const anchor = Math.abs(lx) < 12 ? "middle" : lx > 0 ? "start" : "end";
         return (
-          <g key={a.key} onClick={() => onAxisClick(a.key)} style={{ cursor: "pointer" }} className={isWeak ? "sc-axis-weak" : "sc-axis"}>
-            {/* generous transparent hit target */}
-            <circle cx={lx.toFixed(1)} cy={(ly - 4).toFixed(1)} r="34" fill="transparent" />
+          <g key={a.key}>
             <text x={lx.toFixed(1)} y={(ly - 4).toFixed(1)} textAnchor={anchor}
               fontFamily={SANS} fontSize="13.5" fontWeight="700"
               fill={isWeak ? theme.accent : "#141413"}>
@@ -139,19 +137,18 @@ function AxisRow({ axis, score, isWeak, accent, onClick, delay }) {
       onClick={onClick}
       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, duration: 0.4 }}
       whileHover={{ x: 3 }} whileTap={{ scale: 0.99 }}
-      className={isWeak ? "sc-row-weak" : ""}
       style={{
         display: "block", width: "100%", textAlign: "left", cursor: "pointer",
         background: "#ffffff", border: `1.5px solid ${isWeak ? accent : "#e6dfd8"}`,
         borderRadius: 14, padding: "13px 16px",
-        boxShadow: isWeak ? `0 4px 18px ${accent}22` : "0 1px 3px rgba(15,23,42,0.04)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.04)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", color: "#141413" }}>{axis.label}</span>
           {isWeak && (
-            <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.62rem", letterSpacing: "0.06em", textTransform: "uppercase", color: accent, background: `${accent}14`, padding: "2px 7px", borderRadius: 5 }}>
+            <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.62rem", letterSpacing: "0.06em", color: accent, background: `${accent}14`, padding: "2px 7px", borderRadius: 5 }}>
               Improve ↗
             </span>
           )}
@@ -164,7 +161,7 @@ function AxisRow({ axis, score, isWeak, accent, onClick, delay }) {
           style={{ height: "100%", borderRadius: 99, background: isWeak ? accent : `${accent}99` }}
         />
       </div>
-      <p style={{ fontFamily: SANS, fontSize: "0.74rem", color: "#6a6760", marginTop: 7 }}>{axis.blurb}</p>
+      <p style={{ fontFamily: SANS, fontSize: "0.74rem", color: "#494742", marginTop: 7 }}>{axis.blurb}</p>
     </motion.button>
   );
 }
@@ -181,7 +178,7 @@ function WelcomePopup({ profile, accent, onClose }) {
   );
   const Sec = ({ label, children }) => (
     <div style={{ marginBottom: "1.1rem" }}>
-      <p style={{ fontFamily: SANS, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: accent, marginBottom: "0.5rem" }}>{label}</p>
+      <p style={{ fontFamily: SANS, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.09em", color: accent, marginBottom: "0.5rem" }}>{label}</p>
       {children}
     </div>
   );
@@ -305,7 +302,7 @@ function ImproveModal({ axisKey, accent, onClose, onAdded, onLimit, onConsumed }
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
           <div>
-            <p style={{ fontFamily: SANS, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: accent, marginBottom: 4 }}>Improve · {axis?.label}</p>
+            <p style={{ fontFamily: SANS, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.09em", color: accent, marginBottom: 4 }}>Improve · {axis?.label}</p>
             <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.35rem", color: "#141413", letterSpacing: "-0.02em" }}>Quests to raise your {axis?.label}</h2>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.4rem", color: "#6a6760", lineHeight: 1, padding: 4 }}>×</button>
@@ -332,7 +329,7 @@ function ImproveModal({ axisKey, accent, onClose, onAdded, onLimit, onConsumed }
               return (
                 <div key={idx} style={{ background: "#fff", border: "1.5px solid #e6dfd8", borderRadius: 14, padding: "1rem 1.1rem" }}>
                   <div style={{ display: "flex", gap: 6, marginBottom: 7, flexWrap: "wrap" }}>
-                    {s.difficulty && <span style={{ fontFamily: SANS, fontSize: "0.62rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#494742", background: "#efe9e2", padding: "2px 7px", borderRadius: 5 }}>{s.difficulty}</span>}
+                    {s.difficulty && <span style={{ fontFamily: SANS, fontSize: "0.62rem", fontWeight: 700, textTransform: "capitalize", letterSpacing: "0.05em", color: "#494742", background: "#efe9e2", padding: "2px 7px", borderRadius: 5 }}>{s.difficulty}</span>}
                     {s.estimated_time && <span style={{ fontFamily: SANS, fontSize: "0.62rem", fontWeight: 600, color: "#6a6760", padding: "2px 4px" }}>{s.estimated_time}</span>}
                   </div>
                   <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.98rem", color: "#141413", marginBottom: 4 }}>{s.title}</p>
@@ -476,11 +473,6 @@ export default function ScorecardPage({ navigate }) {
     }}>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
-        @keyframes sc-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.55 } }
-        .sc-axis-weak text { animation: sc-pulse 1.8s ease-in-out infinite; }
-        .sc-axis:hover text { fill: var(--accent); }
-        .sc-row-weak { animation: sc-glow 2.4s ease-in-out infinite; }
-        @keyframes sc-glow { 0%,100% { box-shadow: 0 4px 18px rgba(${theme.rgb},0.14) } 50% { box-shadow: 0 6px 26px rgba(${theme.rgb},0.30) } }
         .sc-btn { display:inline-flex; align-items:center; gap:0.5rem; padding:0.65rem 1.15rem; border:1.5px solid #141413; border-radius:0.7rem; background:transparent; color:#141413; font-family:${SANS}; font-size:0.85rem; font-weight:600; cursor:pointer; transition:background .15s,color .15s,transform .15s; }
         .sc-btn:hover:not(:disabled) { background:#141413; color:#fff; transform:translateY(-1px); }
         .sc-btn:disabled { opacity:.55; cursor:not-allowed; }
@@ -522,7 +514,7 @@ export default function ScorecardPage({ navigate }) {
                     Your scores aren't comparable to anyone else's. They're just here to help you spot where to focus next.
                   </span>
                 </div>
-                <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: "#494742", lineHeight: 1.55, marginTop: "0.5rem", maxWidth: 440 }}>
+                <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: "#494742", lineHeight: 1.55, marginTop: "0.15rem", maxWidth: 440 }}>
                   Five skills that grow as you work. <strong style={{ color: theme.accent }}>Tap a glowing axis</strong> and Mentorable builds quests to raise it.
                 </p>
               </div>
@@ -570,12 +562,14 @@ export default function ScorecardPage({ navigate }) {
                         <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: "#141413", letterSpacing: "-0.02em" }}>mentorable</span>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: theme.accent, boxShadow: `0 0 8px ${theme.accent}`, marginBottom: 2 }} />
                       </div>
-                      <span style={{ fontFamily: SANS, fontSize: "0.66rem", fontWeight: 700, color: "#141413", letterSpacing: "0.1em", textTransform: "uppercase" }}>{readiness}% Ready</span>
+                      <span style={{ fontFamily: SANS, fontSize: "0.66rem", fontWeight: 700, color: "#141413", letterSpacing: "0.1em" }}>{readiness}% Ready</span>
                     </div>
-                    <RadarChart scores={scores} weakSet={weakSet} theme={theme} onAxisClick={openImprove} />
+                    <div style={{ padding: "0.75rem 0" }}>
+                      <RadarChart scores={scores} weakSet={weakSet} theme={theme} />
+                    </div>
                     {careerMatches.length > 0 && (
                       <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1.5px solid rgba(20,20,19,0.16)" }}>
-                        <p style={{ fontFamily: SANS, fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: theme.accent, marginBottom: "0.6rem" }}>Top Career Matches</p>
+                        <p style={{ fontFamily: SANS, fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.1em", color: theme.accent, marginBottom: "0.6rem" }}>Top Career Matches</p>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
                           {careerMatches.map((c, i) => (
                             <span key={i} style={{ fontFamily: SANS, fontSize: "0.8rem", fontWeight: 600, color: "#141413", background: `rgba(${theme.rgb},0.07)`, border: `1px solid rgba(${theme.rgb},0.2)`, borderRadius: 8, padding: "0.35rem 0.7rem" }}>{c}</span>
@@ -598,7 +592,7 @@ export default function ScorecardPage({ navigate }) {
                 {AXES.map((a, i) => (
                   <AxisRow key={a.key} axis={a} score={scores[i]} isWeak={weakSet.has(a.key)} accent={theme.accent} onClick={() => openImprove(a.key)} delay={0.15 + i * 0.06} />
                 ))}
-                <p style={{ fontFamily: SANS, fontSize: "0.74rem", color: "#6a6760", textAlign: "center", marginTop: "0.4rem" }}>
+                <p style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.88rem", color: "#141413", textAlign: "center", marginTop: "0.4rem" }}>
                   {Math.max(0, LIMITS.axis_boost - boostsUsed)} skill boosts left in the demo
                 </p>
               </div>
