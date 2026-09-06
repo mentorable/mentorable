@@ -476,7 +476,7 @@ export default function ScorecardPage({ navigate }) {
         .sc-btn { display:inline-flex; align-items:center; gap:0.5rem; padding:0.65rem 1.15rem; border:2px solid #000; border-radius:0.7rem; background:transparent; color:#000; font-family:${SANS}; font-size:0.85rem; font-weight:700; cursor:pointer; transition:background .15s,color .15s,transform .15s; }
         .sc-btn:hover:not(:disabled) { background:#000; color:#fff; transform:translateY(-1px); }
         .sc-btn:disabled { opacity:.55; cursor:not-allowed; }
-        .sc-cloud-wrap { display: flex; justify-content: center; max-width: 300px; padding-top: 8px; }
+        .sc-cloud-wrap { display: flex; justify-content: center; width: 100%; max-width: 300px; padding-top: 8px; justify-self: center; }
         @keyframes sc-float { 0%,100% { transform: translateY(0) rotate(-0.6deg); } 50% { transform: translateY(-6px) rotate(0.6deg); } }
         .sc-cloud {
           position: relative; display: flex; align-items: center; justify-content: center; text-align: center;
