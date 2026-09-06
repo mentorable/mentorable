@@ -473,8 +473,8 @@ export default function ScorecardPage({ navigate }) {
     }}>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
-        .sc-btn { display:inline-flex; align-items:center; gap:0.5rem; padding:0.65rem 1.15rem; border:1.5px solid #141413; border-radius:0.7rem; background:transparent; color:#141413; font-family:${SANS}; font-size:0.85rem; font-weight:600; cursor:pointer; transition:background .15s,color .15s,transform .15s; }
-        .sc-btn:hover:not(:disabled) { background:#141413; color:#fff; transform:translateY(-1px); }
+        .sc-btn { display:inline-flex; align-items:center; gap:0.5rem; padding:0.65rem 1.15rem; border:1.5px solid #141413; border-radius:0.7rem; background:#141413; color:#fff; font-family:${SANS}; font-size:0.85rem; font-weight:600; cursor:pointer; transition:background .15s,color .15s,transform .15s; }
+        .sc-btn:hover:not(:disabled) { background:#000; transform:translateY(-1px); }
         .sc-btn:disabled { opacity:.55; cursor:not-allowed; }
         .sc-cloud-wrap { display: flex; justify-content: center; max-width: 300px; padding-top: 8px; }
         @keyframes sc-float { 0%,100% { transform: translateY(0) rotate(-0.6deg); } 50% { transform: translateY(-6px) rotate(0.6deg); } }
@@ -594,8 +594,8 @@ export default function ScorecardPage({ navigate }) {
 
                 {/* actions */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "0.5rem", marginTop: "1rem" }}>
-                  <button className="sc-btn" disabled={downloading} onClick={handleDownload}>{downloading ? <Spinner size={14} color="#141413" /> : "Download"}</button>
-                  <button className="sc-btn" disabled={sharing} onClick={handleShare}>{sharing ? <Spinner size={14} color="#141413" /> : "Share"}</button>
+                  <button className="sc-btn" disabled={downloading} onClick={handleDownload}>{downloading ? <Spinner size={14} color="#fff" /> : "Download"}</button>
+                  <button className="sc-btn" disabled={sharing} onClick={handleShare}>{sharing ? <Spinner size={14} color="#fff" /> : "Share"}</button>
                 </div>
               </motion.div>
 
