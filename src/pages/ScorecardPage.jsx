@@ -476,6 +476,17 @@ export default function ScorecardPage({ navigate }) {
         .sc-btn { display:inline-flex; align-items:center; gap:0.5rem; padding:0.65rem 1.15rem; border:1.5px solid #141413; border-radius:0.7rem; background:transparent; color:#141413; font-family:${SANS}; font-size:0.85rem; font-weight:600; cursor:pointer; transition:background .15s,color .15s,transform .15s; }
         .sc-btn:hover:not(:disabled) { background:#141413; color:#fff; transform:translateY(-1px); }
         .sc-btn:disabled { opacity:.55; cursor:not-allowed; }
+        .sc-cloud-wrap { display: flex; justify-content: center; max-width: 300px; padding-top: 8px; }
+        .sc-cloud {
+          position: relative; display: flex; align-items: center; justify-content: center; text-align: center;
+          background: #e3f3fd; border: 2px solid #141413; border-radius: 20px;
+          padding: 12px 18px 10px;
+        }
+        .sc-cloud::before, .sc-cloud::after {
+          content: ""; position: absolute; background: #e3f3fd; border: 2px solid #141413; border-radius: 50%; z-index: 0;
+        }
+        .sc-cloud::before { width: 22px; height: 22px; top: -13px; left: 22px; }
+        .sc-cloud::after { width: 16px; height: 16px; top: -9px; left: 44px; }
         @media (max-width: 860px) {
           .sc-grid { grid-template-columns: 1fr !important; }
         }
@@ -510,9 +521,13 @@ export default function ScorecardPage({ navigate }) {
                   <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: "#141413", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
                     {first}'s Scorecard
                   </h1>
-                  <span style={{ fontFamily: SANS, fontSize: "0.9rem", color: "#3d3d3a", textAlign: "right", maxWidth: 300, lineHeight: 1.4, marginTop: 2 }}>
-                    Your scores aren't comparable to anyone else's. They're just here to help you spot where to focus next.
-                  </span>
+                  <div className="sc-cloud-wrap">
+                    <div className="sc-cloud">
+                      <span style={{ fontFamily: SANS, fontSize: "0.85rem", fontWeight: 600, color: "#141413", lineHeight: 1.4, position: "relative", zIndex: 1 }}>
+                        Your scores aren't comparable to anyone else's. They're just here to help you spot where to focus next.
+                      </span>
+                    </div>
+                  </div>
                 </div>
                 <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: "#494742", lineHeight: 1.55, marginTop: "0.15rem", maxWidth: 440 }}>
                   Five skills that grow as you work. <strong style={{ color: theme.accent }}>Tap a glowing axis</strong> and Mentorable builds quests to raise it.
