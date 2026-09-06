@@ -8,7 +8,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 const SANS = "'Raleway', sans-serif";
-const BG = "#faf7f2", WHITE = "#fff", BLUE = "#1d4ed8", BLUE_TINT = "#f0f5ff", BLUE_SOFT = "#dbeafe";
+const BG = "#F5F5F5", WHITE = "#fff", BLUE = "#1d4ed8", BLUE_TINT = "#f0f5ff", BLUE_SOFT = "#dbeafe";
 const TEXT = "#141413", TEXT_MID = "#3d3d3a", TEXT_MUTED = "#494742", TEXT_FAINT = "#6a6760", BORDER = "#e6dfd8";
 const AMBER_SOFT = "#fef3c7", AMBER = "#d97706", GREEN_SOFT = "#d1fae5", GREEN = "#059669", PURPLE_SOFT = "#ede9fe", PURPLE = "#7c3aed";
 

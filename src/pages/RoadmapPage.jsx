@@ -11,7 +11,7 @@ const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
 // ─── Design tokens (shared app palette) ───────────────────────────────────────
 const SANS        = "'Raleway', sans-serif";
-const BG          = "#faf7f2";
+const BG          = "#F5F5F5";
 const WHITE       = "#ffffff";
 const BLUE        = "#1d4ed8";
 const BLUE_MID    = "#3b82f6";

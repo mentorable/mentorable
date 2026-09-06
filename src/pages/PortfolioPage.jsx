@@ -8,7 +8,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 const SANS = "'Raleway', sans-serif";
-const BG = "#faf7f2", WHITE = "#fff";
+const BG = "#F5F5F5", WHITE = "#fff";
 const TEXT = "#141413", TEXT_MID = "#3d3d3a", TEXT_MUTED = "#494742", TEXT_FAINT = "#6a6760", BORDER = "#e6dfd8";
 
 // 8 categories, each a progressively lighter tint of the accent color

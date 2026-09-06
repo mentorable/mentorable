@@ -669,7 +669,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
           position: "relative", padding: "7px 10px", borderRadius: 8,
           cursor: isRenaming ? "default" : "pointer",
           display: "flex", alignItems: "center", gap: 8,
-          background: isActive ? "#fff" : hovered ? "#faf7f2" : "transparent",
+          background: isActive ? "#fff" : hovered ? "#F5F5F5" : "transparent",
           borderLeft: isActive ? "2px solid var(--accent)" : "2px solid transparent",
           marginBottom: 1, transition: "background 0.12s",
         }}
@@ -778,7 +778,7 @@ function ChatMain({ activeChatId, messages, busy, onSend, userName, error, onOpe
   }, [messages]);
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: "#faf7f2", overflow: "hidden", backgroundImage: "radial-gradient(circle, rgba(var(--accent-rgb),0.05) 1px, transparent 1px)", backgroundSize: "32px 32px", position: "relative" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: "#F5F5F5", overflow: "hidden", backgroundImage: "radial-gradient(circle, rgba(var(--accent-rgb),0.05) 1px, transparent 1px)", backgroundSize: "32px 32px", position: "relative" }}>
 
 
       {/* Top bar */}
