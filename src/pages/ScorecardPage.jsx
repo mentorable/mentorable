@@ -92,11 +92,11 @@ function RadarChart({ scores, weakSet, theme, onAxisClick }) {
   return (
     <svg viewBox="-215 -185 430 370" style={{ width: "100%", maxWidth: 380, height: "auto", display: "block", margin: "0 auto", overflow: "visible" }}>
       {[0.25, 0.5, 0.75, 1].map((lvl, i) => (
-        <path key={i} d={grid(lvl)} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+        <path key={i} d={grid(lvl)} fill="none" stroke="rgba(20,20,19,0.08)" strokeWidth="1" />
       ))}
       {Array.from({ length: N }, (_, i) => {
         const [x, y] = polar(R, angle(i));
-        return <line key={i} x1="0" y1="0" x2={x.toFixed(1)} y2={y.toFixed(1)} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />;
+        return <line key={i} x1="0" y1="0" x2={x.toFixed(1)} y2={y.toFixed(1)} stroke="rgba(20,20,19,0.1)" strokeWidth="1" />;
       })}
       <motion.path d={dataPath} fill={`rgba(${theme.rgb},0.20)`}
         initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }}
@@ -117,12 +117,12 @@ function RadarChart({ scores, weakSet, theme, onAxisClick }) {
             <circle cx={lx.toFixed(1)} cy={(ly - 4).toFixed(1)} r="34" fill="transparent" />
             <text x={lx.toFixed(1)} y={(ly - 4).toFixed(1)} textAnchor={anchor}
               fontFamily={SANS} fontSize="12.5" fontWeight="600"
-              fill={isWeak ? theme.accent : "rgba(255,255,255,0.82)"}>
+              fill={isWeak ? theme.accent : "#3d3d3a"}>
               {a.label}
             </text>
             <text x={lx.toFixed(1)} y={(ly + 12).toFixed(1)} textAnchor={anchor}
               fontFamily={SANS} fontSize="13" fontWeight="700"
-              fill={isWeak ? theme.accent : "#ffffff"}>
+              fill={isWeak ? theme.accent : "#141413"}>
               {scores[i]}{isWeak ? "  ↗" : ""}
             </text>
           </g>
@@ -435,7 +435,7 @@ export default function ScorecardPage({ navigate }) {
   // Capture / share
   const captureCard = async () => {
     const html2canvas = (await import("html2canvas")).default;
-    return html2canvas(document.getElementById("scorecard-card"), { backgroundColor: "#141413", scale: 2, useCORS: true });
+    return html2canvas(document.getElementById("scorecard-card"), { backgroundColor: "#fff", scale: 2, useCORS: true });
   };
   const handleDownload = async () => {
     if (downloading) return; setDownloading(true);
@@ -478,7 +478,7 @@ export default function ScorecardPage({ navigate }) {
         *, *::before, *::after { box-sizing: border-box; }
         @keyframes sc-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.55 } }
         .sc-axis-weak text { animation: sc-pulse 1.8s ease-in-out infinite; }
-        .sc-axis:hover text { fill: #ffffff; }
+        .sc-axis:hover text { fill: var(--accent); }
         .sc-row-weak { animation: sc-glow 2.4s ease-in-out infinite; }
         @keyframes sc-glow { 0%,100% { box-shadow: 0 4px 18px rgba(${theme.rgb},0.14) } 50% { box-shadow: 0 6px 26px rgba(${theme.rgb},0.30) } }
         .sc-btn { display:inline-flex; align-items:center; gap:0.5rem; padding:0.65rem 1.15rem; border:1.5px solid #141413; border-radius:0.7rem; background:transparent; color:#141413; font-family:${SANS}; font-size:0.85rem; font-weight:600; cursor:pointer; transition:background .15s,color .15s,transform .15s; }
@@ -560,25 +560,25 @@ export default function ScorecardPage({ navigate }) {
               {/* Radar card (shareable) */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.08 }}>
                 <div id="scorecard-card" style={{
-                  background: "#141413", borderRadius: "1.5rem", border: `1px solid rgba(${theme.rgb},0.35)`,
-                  boxShadow: `0 25px 60px rgba(0,0,0,0.28), 0 0 90px ${theme.glow}`, padding: "1.75rem", position: "relative", overflow: "hidden",
+                  background: "#fff", borderRadius: "1.5rem", border: `1px solid rgba(${theme.rgb},0.22)`,
+                  boxShadow: `0 8px 32px rgba(15,23,42,0.08), 0 0 60px ${theme.glow}`, padding: "1.75rem", position: "relative", overflow: "hidden",
                 }}>
-                  <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `linear-gradient(135deg, rgba(${theme.rgb},0.16) 0%, transparent 58%)` }} />
+                  <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `linear-gradient(135deg, rgba(${theme.rgb},0.07) 0%, transparent 58%)` }} />
                   <div style={{ position: "relative", zIndex: 1 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.9rem", borderBottom: "1px solid rgba(255,255,255,0.1)", marginBottom: "1rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.9rem", borderBottom: "1px solid rgba(20,20,19,0.08)", marginBottom: "1rem" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: "#fff", letterSpacing: "-0.02em" }}>mentorable</span>
+                        <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: "#141413", letterSpacing: "-0.02em" }}>mentorable</span>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: theme.accent, boxShadow: `0 0 8px ${theme.accent}`, marginBottom: 2 }} />
                       </div>
-                      <span style={{ fontFamily: SANS, fontSize: "0.66rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: "0.1em", textTransform: "uppercase" }}>{readiness}% Ready</span>
+                      <span style={{ fontFamily: SANS, fontSize: "0.66rem", fontWeight: 700, color: "#8a8680", letterSpacing: "0.1em", textTransform: "uppercase" }}>{readiness}% Ready</span>
                     </div>
                     <RadarChart scores={scores} weakSet={weakSet} theme={theme} onAxisClick={openImprove} />
                     {careerMatches.length > 0 && (
-                      <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                      <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid rgba(20,20,19,0.08)" }}>
                         <p style={{ fontFamily: SANS, fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: theme.accent, marginBottom: "0.6rem" }}>Top Career Matches</p>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
                           {careerMatches.map((c, i) => (
-                            <span key={i} style={{ fontFamily: SANS, fontSize: "0.8rem", fontWeight: 600, color: "rgba(255,255,255,0.92)", background: "rgba(255,255,255,0.06)", border: `1px solid rgba(${theme.rgb},0.3)`, borderRadius: 8, padding: "0.35rem 0.7rem" }}>{c}</span>
+                            <span key={i} style={{ fontFamily: SANS, fontSize: "0.8rem", fontWeight: 600, color: "#3d3d3a", background: `rgba(${theme.rgb},0.07)`, border: `1px solid rgba(${theme.rgb},0.2)`, borderRadius: 8, padding: "0.35rem 0.7rem" }}>{c}</span>
                           ))}
                         </div>
                       </div>
