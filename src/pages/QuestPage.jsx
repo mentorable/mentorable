@@ -967,7 +967,7 @@ export default function QuestPage({ navigate }) {
               }}>
                 <div style={{ width: 16, height: 16, borderRadius: "50%", background: `${activeCol.accent}35` }} />
               </div>
-              <p style={{ fontFamily: FONT, fontSize: 16.5, fontWeight: 700, color: TEXT, lineHeight: 1.6, margin: "0 auto", maxWidth: 280 }}>
+              <p style={{ fontFamily: FONT, fontSize: 16.5, fontWeight: 700, color: TEXT_MID, lineHeight: 1.6, margin: "0 auto", maxWidth: 340 }}>
                 {activeCol.emptyText}
               </p>
             </motion.div>
@@ -1114,7 +1114,7 @@ export default function QuestPage({ navigate }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <div style={{ width: 9, height: 9, borderRadius: "50%", background: col.accent }} />
                   <span style={{
-                    fontFamily: FONT, fontWeight: 700, fontSize: 13,
+                    fontFamily: FONT, fontWeight: 800, fontSize: 15,
                     color: TEXT, letterSpacing: "0.05em",
                   }}>
                     {col.label}
@@ -1178,8 +1178,8 @@ export default function QuestPage({ navigate }) {
                       <div style={{ width: 16, height: 16, borderRadius: "50%", background: `${col.accent}45` }} />
                     </div>
                     <p style={{
-                      fontFamily: FONT, fontSize: 15.5, fontWeight: 700, color: TEXT,
-                      lineHeight: 1.55, margin: 0, maxWidth: 200,
+                      fontFamily: FONT, fontSize: 15.5, fontWeight: 700, color: TEXT_MID,
+                      lineHeight: 1.55, margin: 0, maxWidth: 260,
                     }}>
                       {col.emptyText}
                     </p>
