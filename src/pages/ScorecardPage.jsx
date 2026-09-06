@@ -516,15 +516,24 @@ export default function ScorecardPage({ navigate }) {
           <>
             {/* Header */}
             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-              style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap", marginBottom: "2rem" }}>
-              <ReadinessRing value={readiness} accent={theme.accent} />
-              <div style={{ flex: 1, minWidth: 220 }}>
-                <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.3rem", color: theme.accent, letterSpacing: "-0.03em", lineHeight: 1.1 }}>
-                  {first}'s Scorecard
-                </h1>
-                <p style={{ fontFamily: SANS, fontSize: "1.05rem", fontWeight: 600, color: "#141413", lineHeight: 1.4, marginTop: "0.25rem", maxWidth: 440 }}>
-                  Five skills that grow as you work. <strong style={{ color: theme.accent }}>Tap a glowing axis</strong> and Mentorable builds quests to raise it.
-                </p>
+              className="sc-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.15fr) minmax(0, 1fr)", gap: "1.5rem", alignItems: "center", marginBottom: "2rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap" }}>
+                <ReadinessRing value={readiness} accent={theme.accent} />
+                <div style={{ flex: 1, minWidth: 220 }}>
+                  <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.3rem", color: theme.accent, letterSpacing: "-0.03em", lineHeight: 1.1 }}>
+                    {first}'s Scorecard
+                  </h1>
+                  <p style={{ fontFamily: SANS, fontSize: "1.05rem", fontWeight: 600, color: "#141413", lineHeight: 1.4, marginTop: "0.25rem", maxWidth: 440 }}>
+                    Five skills that grow as you work. <strong style={{ color: theme.accent }}>Tap a glowing axis</strong> and Mentorable builds quests to raise it.
+                  </p>
+                </div>
+              </div>
+              <div className="sc-cloud-wrap" style={{ justifyContent: "center" }}>
+                <div className="sc-cloud">
+                  <span style={{ fontFamily: SANS, fontSize: "0.85rem", fontWeight: 600, color: "#fff", lineHeight: 1.4, position: "relative", zIndex: 1 }}>
+                    Your scores aren't comparable to anyone else's. They're just here to help you spot where to focus next.
+                  </span>
+                </div>
               </div>
             </motion.div>
 
@@ -592,13 +601,6 @@ export default function ScorecardPage({ navigate }) {
 
               {/* Axis breakdown */}
               <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
-                <div className="sc-cloud-wrap" style={{ justifyContent: "flex-end", marginBottom: "0.4rem" }}>
-                  <div className="sc-cloud">
-                    <span style={{ fontFamily: SANS, fontSize: "0.85rem", fontWeight: 600, color: "#fff", lineHeight: 1.4, position: "relative", zIndex: 1 }}>
-                      Your scores aren't comparable to anyone else's. They're just here to help you spot where to focus next.
-                    </span>
-                  </div>
-                </div>
                 {AXES.map((a, i) => (
                   <AxisRow key={a.key} axis={a} score={scores[i]} isWeak={weakSet.has(a.key)} accent={theme.accent} onClick={() => openImprove(a.key)} delay={0.15 + i * 0.06} />
                 ))}
