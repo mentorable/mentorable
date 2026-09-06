@@ -139,7 +139,7 @@ function AxisRow({ axis, score, isWeak, accent, onClick, delay }) {
       whileHover={{ x: 3 }} whileTap={{ scale: 0.99 }}
       style={{
         display: "block", width: "100%", textAlign: "left", cursor: "pointer",
-        background: isWeak ? `${accent}0d` : "#ffffff", border: "2px solid #141413",
+        background: "#ffffff", border: "2px solid #141413",
         borderRadius: 14, padding: "13px 16px",
         boxShadow: "0 1px 3px rgba(15,23,42,0.04)",
       }}
@@ -161,7 +161,7 @@ function AxisRow({ axis, score, isWeak, accent, onClick, delay }) {
           style={{ height: "100%", borderRadius: 99, background: isWeak ? accent : `${accent}99` }}
         />
       </div>
-      <p style={{ fontFamily: SANS, fontSize: "0.74rem", color: "#494742", marginTop: 7 }}>{axis.blurb}</p>
+      <p style={{ fontFamily: SANS, fontSize: "0.74rem", color: "#494742", marginTop: 7, lineHeight: 1.4, minHeight: "2.1em" }}>{axis.blurb}</p>
     </motion.button>
   );
 }
