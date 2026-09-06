@@ -65,7 +65,7 @@ function ReadinessRing({ value, accent }) {
         alignItems: "center", justifyContent: "center",
       }}>
         <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.5rem", color: "#141413", lineHeight: 1, letterSpacing: "-0.03em" }}>
-          {display}
+          {display}%
         </span>
         <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.7rem", color: "#6a6760", letterSpacing: "0.08em", marginTop: 4 }}>
           Career Ready
