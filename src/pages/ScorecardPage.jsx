@@ -520,7 +520,7 @@ export default function ScorecardPage({ navigate }) {
               <ReadinessRing value={readiness} accent={theme.accent} />
               <div style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
                 <div>
-                  <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: "#141413", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
+                  <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.3rem", color: theme.accent, letterSpacing: "-0.03em", lineHeight: 1.1 }}>
                     {first}'s Scorecard
                   </h1>
                   <p style={{ fontFamily: SANS, fontSize: "1.05rem", fontWeight: 600, color: "#141413", lineHeight: 1.4, marginTop: "0.25rem", maxWidth: 440 }}>
