@@ -518,7 +518,7 @@ export default function ScorecardPage({ navigate }) {
             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
               style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap", marginBottom: "2rem" }}>
               <ReadinessRing value={readiness} accent={theme.accent} />
-              <div style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "flex-start", justifyContent: "flex-start", gap: "1.5rem", flexWrap: "wrap" }}>
                 <div>
                   <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.3rem", color: theme.accent, letterSpacing: "-0.03em", lineHeight: 1.1 }}>
                     {first}'s Scorecard
