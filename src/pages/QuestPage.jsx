@@ -967,7 +967,7 @@ export default function QuestPage({ navigate }) {
               }}>
                 <div style={{ width: 16, height: 16, borderRadius: "50%", background: `${activeCol.accent}35` }} />
               </div>
-              <p style={{ fontFamily: FONT, fontSize: 15.5, fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.6, margin: "0 auto", maxWidth: 280 }}>
+              <p style={{ fontFamily: FONT, fontSize: 16.5, fontWeight: 700, color: TEXT, lineHeight: 1.6, margin: "0 auto", maxWidth: 280 }}>
                 {activeCol.emptyText}
               </p>
             </motion.div>
@@ -1003,17 +1003,71 @@ export default function QuestPage({ navigate }) {
         flexShrink: 0,
         background: BG,
       }}>
-        <h1 style={{
-          fontFamily: FONT, fontWeight: 700, fontSize: 28, margin: 0,
-          letterSpacing: "-0.02em", color: TEXT,
-        }}>
-          Quest
-        </h1>
-        <span style={{ fontFamily: FONT, fontSize: 15, fontWeight: 700, color: TEXT }}>
-          {items.filter(i => i.status !== "completed").length} active
-          {" · "}
-          {items.filter(i => i.status === "completed").length} completed
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <h1 style={{
+            fontFamily: FONT, fontWeight: 700, fontSize: 28, margin: 0,
+            letterSpacing: "-0.02em", color: TEXT,
+          }}>
+            Quest
+          </h1>
+          <span style={{ fontFamily: FONT, fontSize: 15, fontWeight: 700, color: TEXT }}>
+            {items.filter(i => i.status !== "completed").length} active
+            {" · "}
+            {items.filter(i => i.status === "completed").length} completed
+          </span>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {(() => {
+            const left = Math.max(0, LIMITS.quest_gen - questGenUsed);
+            return (
+              <span style={{ fontFamily: FONT, fontSize: 14, fontWeight: 700,
+                color: left === 0 ? "#dc2626" : TEXT, whiteSpace: "nowrap" }}>
+                {left === 0 ? "No generations left" : `${left} left`}
+              </span>
+            );
+          })()}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => questGenUsed >= LIMITS.quest_gen ? setLimitModal(true) : setShowPicker(v => !v)}
+              disabled={generating}
+              style={{
+                fontFamily: FONT, fontSize: 13, fontWeight: 700,
+                color: WHITE,
+                background: generating ? "#93c5fd" : "var(--accent)",
+                border: "none", borderRadius: 9,
+                padding: "8px 14px",
+                cursor: generating ? "default" : "pointer",
+                display: "flex", alignItems: "center", gap: 5,
+                opacity: generating ? 0.8 : 1,
+                transition: "opacity 0.15s",
+              }}
+            >
+              {generating ? (
+                <span style={{
+                  width: 11, height: 11, borderRadius: "50%",
+                  border: "1.5px solid rgba(255,255,255,0.35)", borderTopColor: WHITE,
+                  animation: "quest-spin 0.7s linear infinite", display: "inline-block",
+                }} />
+              ) : (
+                <>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  Generate
+                </>
+              )}
+            </button>
+            <AnimatePresence>
+              {showPicker && !generating && (
+                <CountPicker
+                  onSelect={handleGenerate}
+                  onClose={() => setShowPicker(false)}
+                />
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
 
       {/* Kanban columns */}
@@ -1054,7 +1108,7 @@ export default function QuestPage({ navigate }) {
                 borderBottom: `2px solid ${isOver ? col.border : TEXT}`,
                 transition: "border-color 0.14s",
                 flexShrink: 0,
-                display: "flex", alignItems: "center", justifyContent: "space-between",
+                display: "flex", alignItems: "center", justifyContent: "center",
                 minHeight: 50,
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -1073,59 +1127,6 @@ export default function QuestPage({ navigate }) {
                     {cards.length}
                   </span>
                 </div>
-
-                {/* Generate button (Suggestions only) */}
-                {isSugg && (
-                  <div style={{ position: "relative" }}>
-                    <button
-                      onClick={() => questGenUsed >= LIMITS.quest_gen ? setLimitModal(true) : setShowPicker(v => !v)}
-                      disabled={generating}
-                      style={{
-                        fontFamily: FONT, fontSize: 11, fontWeight: 700,
-                        color: WHITE,
-                        background: generating ? "#93c5fd" : "var(--accent)",
-                        border: "none", borderRadius: 7,
-                        padding: "4px 9px",
-                        cursor: generating ? "default" : "pointer",
-                        display: "flex", alignItems: "center", gap: 3,
-                        opacity: generating ? 0.8 : 1,
-                        transition: "opacity 0.15s",
-                      }}
-                    >
-                      {generating ? (
-                        <span style={{
-                          width: 9, height: 9, borderRadius: "50%",
-                          border: "1.5px solid rgba(255,255,255,0.35)", borderTopColor: WHITE,
-                          animation: "quest-spin 0.7s linear infinite", display: "inline-block",
-                        }} />
-                      ) : (
-                        <>
-                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                          </svg>
-                          Generate
-                        </>
-                      )}
-                    </button>
-                    <AnimatePresence>
-                      {showPicker && !generating && (
-                        <CountPicker
-                          onSelect={handleGenerate}
-                          onClose={() => setShowPicker(false)}
-                        />
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
-                {isSugg && (() => {
-                  const left = Math.max(0, LIMITS.quest_gen - questGenUsed);
-                  return (
-                    <span style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700,
-                      color: left === 0 ? "#dc2626" : TEXT, whiteSpace: "nowrap" }}>
-                      {left === 0 ? "No generations left" : `${left} left`}
-                    </span>
-                  );
-                })()}
               </div>
 
               {/* Cards list */}
@@ -1177,7 +1178,7 @@ export default function QuestPage({ navigate }) {
                       <div style={{ width: 16, height: 16, borderRadius: "50%", background: `${col.accent}45` }} />
                     </div>
                     <p style={{
-                      fontFamily: FONT, fontSize: 14.5, fontWeight: 500, color: TEXT_MUTED,
+                      fontFamily: FONT, fontSize: 15.5, fontWeight: 700, color: TEXT,
                       lineHeight: 1.55, margin: 0, maxWidth: 200,
                     }}>
                       {col.emptyText}
