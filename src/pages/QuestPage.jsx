@@ -143,7 +143,7 @@ function SkeletonCard({ delay = 0 }) {
   return (
     <div style={{
       background: WHITE, borderRadius: 14,
-      border: `1px solid ${BORDER}`, padding: "14px 16px",
+      border: `2px solid ${TEXT}`, padding: "14px 16px",
       animation: `quest-pulse 1.6s ease-in-out ${delay}s infinite`,
     }}>
       <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
@@ -193,7 +193,7 @@ function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove,
       style={{
         background: WHITE,
         borderRadius: 14,
-        border: `1px solid ${BORDER}`,
+        border: `2px solid ${TEXT}`,
         padding: "13px 14px",
         boxShadow: isDragging
           ? "0 10px 32px rgba(0,0,0,0.13)"
@@ -208,7 +208,7 @@ function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove,
       <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
         <span style={{
           fontFamily: FONT, fontSize: 10, fontWeight: 700,
-          letterSpacing: "0.05em", textTransform: "uppercase",
+          letterSpacing: "0.05em",
           background: catStyle.bg, color: catStyle.color,
           borderRadius: 5, padding: "2px 7px",
         }}>
@@ -217,7 +217,7 @@ function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove,
         {item.roadmap_node_id && (
           <span style={{
             fontFamily: FONT, fontSize: 10, fontWeight: 700,
-            letterSpacing: "0.04em", textTransform: "uppercase",
+            letterSpacing: "0.04em",
             background: "#eef2ff", color: BLUE,
             borderRadius: 5, padding: "2px 7px",
             display: "inline-flex", alignItems: "center", gap: 3,
@@ -231,7 +231,7 @@ function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove,
         {diffStyle && (
           <span style={{
             fontFamily: FONT, fontSize: 10, fontWeight: 700,
-            letterSpacing: "0.04em", textTransform: "uppercase",
+            letterSpacing: "0.04em",
             background: diffStyle.bg, color: diffStyle.color,
             borderRadius: 5, padding: "2px 7px",
           }}>
@@ -379,7 +379,7 @@ function QuestDetailModal({ item, onClose }) {
   const catStyle  = CATEGORY_STYLES[item.category] || CATEGORY_STYLES.Other;
   const diffStyle = item.difficulty ? (DIFFICULTY_STYLES[item.difficulty] || null) : null;
   const Badge = ({ bg, color, children }) => (
-    <span style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", background: bg, color, borderRadius: 6, padding: "3px 9px" }}>{children}</span>
+    <span style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", background: bg, color, borderRadius: 6, padding: "3px 9px" }}>{children}</span>
   );
   return (
     <motion.div
@@ -412,7 +412,7 @@ function QuestDetailModal({ item, onClose }) {
 
         {item.why_it_matters && (
           <div style={{ marginTop: 16, padding: "0.9rem 1.1rem", background: BLUE_TINT, borderRadius: 12, borderLeft: `3px solid ${BLUE}` }}>
-            <p style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: BLUE, marginBottom: 5 }}>Why it matters</p>
+            <p style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: BLUE, marginBottom: 5 }}>Why it matters</p>
             <p style={{ fontFamily: FONT, fontSize: "0.92rem", color: TEXT_MID, lineHeight: 1.55, margin: 0 }}>{item.why_it_matters}</p>
           </div>
         )}
@@ -1001,9 +1001,7 @@ export default function QuestPage({ navigate }) {
         borderBottom: `1px solid rgba(var(--accent-rgb),0.07)`,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         flexShrink: 0,
-        background: "rgba(250,249,245,0.85)",
-        backdropFilter: "blur(10px)",
-        WebkitBackdropFilter: "blur(10px)",
+        background: BG,
       }}>
         <h1 style={{
           fontFamily: FONT, fontWeight: 700, fontSize: 28, margin: 0,
@@ -1011,7 +1009,7 @@ export default function QuestPage({ navigate }) {
         }}>
           Quest
         </h1>
-        <span style={{ fontFamily: FONT, fontSize: 12, color: TEXT_FAINT }}>
+        <span style={{ fontFamily: FONT, fontSize: 15, fontWeight: 700, color: TEXT }}>
           {items.filter(i => i.status !== "completed").length} active
           {" · "}
           {items.filter(i => i.status === "completed").length} completed
@@ -1022,7 +1020,7 @@ export default function QuestPage({ navigate }) {
       <div style={{
         flex: 1, display: "flex",
         overflow: "hidden",
-        borderTop: `1px solid ${BORDER}`,
+        borderTop: `2px solid ${TEXT}`,
       }}>
         {COLUMNS.map((col, idx) => {
           const cards    = colItems(col.status);
@@ -1044,7 +1042,7 @@ export default function QuestPage({ navigate }) {
                 minWidth: 200,
                 display: "flex",
                 flexDirection: "column",
-                borderRight: isLast ? "none" : `1px solid ${BORDER}`,
+                borderRight: isLast ? "none" : `2px solid ${TEXT}`,
                 background: isOver ? col.soft : "transparent",
                 transition: "background 0.14s",
                 overflow: "hidden",
@@ -1053,7 +1051,7 @@ export default function QuestPage({ navigate }) {
               {/* Column header */}
               <div style={{
                 padding: "13px 14px 10px",
-                borderBottom: `2px solid ${isOver ? col.border : BORDER}`,
+                borderBottom: `2px solid ${isOver ? col.border : TEXT}`,
                 transition: "border-color 0.14s",
                 flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -1063,7 +1061,7 @@ export default function QuestPage({ navigate }) {
                   <div style={{ width: 9, height: 9, borderRadius: "50%", background: col.accent }} />
                   <span style={{
                     fontFamily: FONT, fontWeight: 700, fontSize: 13,
-                    color: TEXT, letterSpacing: "0.05em", textTransform: "uppercase",
+                    color: TEXT, letterSpacing: "0.05em",
                   }}>
                     {col.label}
                   </span>
@@ -1122,8 +1120,8 @@ export default function QuestPage({ navigate }) {
                 {isSugg && (() => {
                   const left = Math.max(0, LIMITS.quest_gen - questGenUsed);
                   return (
-                    <span style={{ fontFamily: FONT, fontSize: 10, fontWeight: 600,
-                      color: left === 0 ? "#dc2626" : "#9ca3af", whiteSpace: "nowrap" }}>
+                    <span style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700,
+                      color: left === 0 ? "#dc2626" : TEXT, whiteSpace: "nowrap" }}>
                       {left === 0 ? "No generations left" : `${left} left`}
                     </span>
                   );
