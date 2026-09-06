@@ -519,14 +519,11 @@ export default function ScorecardPage({ navigate }) {
               style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap", marginBottom: "2rem" }}>
               <ReadinessRing value={readiness} accent={theme.accent} />
               <div style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-                <div style={{
-                  background: "#fff", border: "2px solid #141413", borderRadius: 14,
-                  padding: "0.85rem 1.1rem",
-                }}>
+                <div>
                   <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: "#141413", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
                     {first}'s Scorecard
                   </h1>
-                  <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: "#494742", lineHeight: 1.4, marginTop: "0.25rem", maxWidth: 440 }}>
+                  <p style={{ fontFamily: SANS, fontSize: "1.05rem", fontWeight: 600, color: "#141413", lineHeight: 1.4, marginTop: "0.25rem", maxWidth: 440 }}>
                     Five skills that grow as you work. <strong style={{ color: theme.accent }}>Tap a glowing axis</strong> and Mentorable builds quests to raise it.
                   </p>
                 </div>
