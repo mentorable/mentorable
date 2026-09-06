@@ -139,7 +139,7 @@ function AxisRow({ axis, score, isWeak, accent, onClick, delay }) {
       whileHover={{ x: 3 }} whileTap={{ scale: 0.99 }}
       style={{
         display: "block", width: "100%", textAlign: "left", cursor: "pointer",
-        background: "#ffffff", border: `1.5px solid ${isWeak ? accent : "#e6dfd8"}`,
+        background: isWeak ? `${accent}0d` : "#ffffff", border: "2px solid #141413",
         borderRadius: 14, padding: "13px 16px",
         boxShadow: "0 1px 3px rgba(15,23,42,0.04)",
       }}
@@ -604,14 +604,9 @@ export default function ScorecardPage({ navigate }) {
                 {AXES.map((a, i) => (
                   <AxisRow key={a.key} axis={a} score={scores[i]} isWeak={weakSet.has(a.key)} accent={theme.accent} onClick={() => openImprove(a.key)} delay={0.15 + i * 0.06} />
                 ))}
-                <div style={{
-                  background: "#fff", border: "2px solid #141413", borderRadius: 14,
-                  padding: "10px 16px", marginTop: "0.4rem", textAlign: "center",
-                }}>
-                  <p style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.88rem", color: "#141413" }}>
-                    {Math.max(0, LIMITS.axis_boost - boostsUsed)} skill boosts left in the demo
-                  </p>
-                </div>
+                <p style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.88rem", color: "#141413", textAlign: "center", marginTop: "0.4rem" }}>
+                  {Math.max(0, LIMITS.axis_boost - boostsUsed)} skill boosts left in the demo
+                </p>
               </div>
             </div>
           </>
