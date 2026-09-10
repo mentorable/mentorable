@@ -969,7 +969,7 @@ export default function QuestPage({ navigate }) {
               }}>
                 <div style={{ width: 30, height: 30, borderRadius: "50%", background: activeCol.accent }} />
               </div>
-              <p style={{ fontFamily: FONT, fontSize: 16.5, fontWeight: 700, color: TEXT_MID, lineHeight: 1.6, margin: "0 auto", maxWidth: 340 }}>
+              <p style={{ fontFamily: FONT, fontSize: 16.5, fontWeight: 500, color: TEXT_FAINT, lineHeight: 1.6, margin: "0 auto", maxWidth: 340 }}>
                 {activeCol.emptyText}
               </p>
             </motion.div>
@@ -1076,7 +1076,7 @@ export default function QuestPage({ navigate }) {
       <div style={{
         flex: 1, display: "flex",
         overflow: "hidden",
-        borderTop: `1.5px solid #c4bfb8`,
+        borderTop: `2.5px solid #c4bfb8`,
       }}>
         {COLUMNS.map((col, idx) => {
           const cards    = colItems(col.status);
@@ -1098,7 +1098,7 @@ export default function QuestPage({ navigate }) {
                 minWidth: 200,
                 display: "flex",
                 flexDirection: "column",
-                borderRight: isLast ? "none" : `1.5px solid #c4bfb8`,
+                borderRight: isLast ? "none" : `2.5px solid #c4bfb8`,
                 background: isOver ? col.soft : "transparent",
                 transition: "background 0.14s",
                 overflow: "hidden",
@@ -1107,7 +1107,7 @@ export default function QuestPage({ navigate }) {
               {/* Column header */}
               <div style={{
                 padding: "13px 14px 10px",
-                borderBottom: `1.5px solid ${isOver ? col.border : "#c4bfb8"}`,
+                borderBottom: `2.5px solid ${isOver ? col.border : "#c4bfb8"}`,
                 transition: "border-color 0.14s",
                 flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -1180,7 +1180,7 @@ export default function QuestPage({ navigate }) {
                       <div style={{ width: 28, height: 28, borderRadius: "50%", background: col.accent }} />
                     </div>
                     <p style={{
-                      fontFamily: FONT, fontSize: 15.5, fontWeight: 700, color: TEXT_MID,
+                      fontFamily: FONT, fontSize: 15.5, fontWeight: 500, color: TEXT_FAINT,
                       lineHeight: 1.55, margin: 0, maxWidth: 260,
                     }}>
                       {col.emptyText}
