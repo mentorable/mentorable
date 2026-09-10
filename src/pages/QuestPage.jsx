@@ -143,7 +143,7 @@ function SkeletonCard({ delay = 0 }) {
   return (
     <div style={{
       background: WHITE, borderRadius: 14,
-      border: `1.5px solid ${TEXT}`, padding: "14px 16px",
+      border: `2.5px solid ${TEXT}`, padding: "14px 16px",
       animation: `quest-pulse 1.6s ease-in-out ${delay}s infinite`,
     }}>
       <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
@@ -193,7 +193,7 @@ function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove,
       style={{
         background: WHITE,
         borderRadius: 14,
-        border: `1.5px solid ${TEXT}`,
+        border: `2.5px solid ${TEXT}`,
         padding: "13px 14px",
         boxShadow: isDragging
           ? "0 10px 32px rgba(0,0,0,0.13)"
@@ -1076,7 +1076,7 @@ export default function QuestPage({ navigate }) {
       <div style={{
         flex: 1, display: "flex",
         overflow: "hidden",
-        borderTop: `1.5px solid #3a3a38`,
+        borderTop: `2.5px solid #3a3a38`,
       }}>
         {COLUMNS.map((col, idx) => {
           const cards    = colItems(col.status);
@@ -1098,7 +1098,7 @@ export default function QuestPage({ navigate }) {
                 minWidth: 200,
                 display: "flex",
                 flexDirection: "column",
-                borderRight: isLast ? "none" : `1.5px solid #3a3a38`,
+                borderRight: isLast ? "none" : `2.5px solid #3a3a38`,
                 background: isOver ? col.soft : "transparent",
                 transition: "background 0.14s",
                 overflow: "hidden",
@@ -1107,7 +1107,7 @@ export default function QuestPage({ navigate }) {
               {/* Column header */}
               <div style={{
                 padding: "13px 14px 10px",
-                borderBottom: `2px solid ${isOver ? col.border : "#3a3a38"}`,
+                borderBottom: `2.5px solid ${isOver ? col.border : "#3a3a38"}`,
                 transition: "border-color 0.14s",
                 flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
