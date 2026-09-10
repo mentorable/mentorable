@@ -1076,7 +1076,6 @@ export default function QuestPage({ navigate }) {
       <div style={{
         flex: 1, display: "flex",
         overflow: "hidden",
-        borderTop: `1px solid #9c9690`,
       }}>
         {COLUMNS.map((col, idx) => {
           const cards    = colItems(col.status);
