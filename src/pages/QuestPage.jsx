@@ -47,7 +47,7 @@ const COLUMNS = [
     accent: BLUE,
     soft: BLUE_TINT,
     border: BLUE_SOFT,
-    emptyText: "Hit Generate to get your first quest suggestions.",
+    emptyText: "Hit \"Generate\" to get your first quest suggestions.",
   },
   {
     status: "considered",
