@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
 import { getCache, setCache, getKnownUserId, setKnownUserId } from "../lib/cache.js";
@@ -7,6 +7,7 @@ import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
+import { useTheme } from "../lib/ThemeContext.jsx";
 
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
@@ -40,40 +41,30 @@ const AXIS_LABELS = {
 };
 
 // ─── Column config ────────────────────────────────────────────────────────────
-const COLUMNS = [
-  {
-    status: "suggested",
-    label: "Suggestions",
-    accent: BLUE,
-    soft: BLUE_TINT,
-    border: BLUE_SOFT,
-    emptyText: "Hit Generate to get your first quest suggestions.",
-  },
-  {
-    status: "considered",
-    label: "Considered",
-    accent: PURPLE,
-    soft: PURPLE_SOFT,
-    border: PURPLE_MID,
-    emptyText: "Drag quests here when you're thinking about them.",
-  },
-  {
-    status: "in_progress",
-    label: "In Progress",
-    accent: AMBER,
-    soft: AMBER_SOFT,
-    border: "#fcd34d",
-    emptyText: "Move quests here once you start working on them.",
-  },
-  {
-    status: "completed",
-    label: "Completed",
-    accent: GREEN,
-    soft: GREEN_SOFT,
-    border: "#6ee7b7",
-    emptyText: "Drag quests here when you finish them.",
-  },
+// Each column is a light→dark step of the user's chosen accent color, so the
+// board reads as one cohesive gradient (Suggestions = lightest, Completed =
+// darkest) instead of four unrelated hues.
+const COLUMN_META = [
+  { status: "suggested",   label: "Suggestions",  emptyText: "Hit Generate to get your first quest suggestions." },
+  { status: "considered",  label: "Considered",   emptyText: "Drag quests here when you're thinking about them." },
+  { status: "in_progress", label: "In Progress",  emptyText: "Move quests here once you start working on them." },
+  { status: "completed",   label: "Completed",    emptyText: "Drag quests here when you finish them." },
 ];
+
+function buildColumns(accent) {
+  const steps = [
+    { accentMix: `color-mix(in srgb, ${accent} 55%, white 45%)`, softMix: `color-mix(in srgb, ${accent} 10%, white 90%)`, borderMix: `color-mix(in srgb, ${accent} 35%, white 65%)` },
+    { accentMix: `color-mix(in srgb, ${accent} 72%, white 28%)`, softMix: `color-mix(in srgb, ${accent} 16%, white 84%)`, borderMix: `color-mix(in srgb, ${accent} 55%, white 45%)` },
+    { accentMix: `color-mix(in srgb, ${accent} 88%, black 4%)`,  softMix: `color-mix(in srgb, ${accent} 22%, white 78%)`, borderMix: `color-mix(in srgb, ${accent} 75%, white 25%)` },
+    { accentMix: `color-mix(in srgb, ${accent} 100%, black 18%)`,softMix: `color-mix(in srgb, ${accent} 28%, white 72%)`, borderMix: `color-mix(in srgb, ${accent} 95%, black 5%)` },
+  ];
+  return COLUMN_META.map((meta, i) => ({
+    ...meta,
+    accent: steps[i].accentMix,
+    soft: steps[i].softMix,
+    border: steps[i].borderMix,
+  }));
+}
 
 // ─── Badge configs ────────────────────────────────────────────────────────────
 const CATEGORY_STYLES = {
@@ -158,7 +149,7 @@ function SkeletonCard({ delay = 0 }) {
 }
 
 // ─── Quest card ───────────────────────────────────────────────────────────────
-function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove, isDismissing, onOpen }) {
+function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove, isDismissing, onOpen, columns }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -173,7 +164,7 @@ function QuestCard({ item, isDragging, onDragStart, onDragEnd, isMobile, onMove,
 
   const catStyle  = CATEGORY_STYLES[item.category] || CATEGORY_STYLES.Other;
   const diffStyle = item.difficulty ? (DIFFICULTY_STYLES[item.difficulty] || null) : null;
-  const otherCols = COLUMNS.filter(c => c.status !== item.status);
+  const otherCols = columns.filter(c => c.status !== item.status);
 
   return (
     <motion.div
@@ -543,6 +534,8 @@ function CountPicker({ onSelect, onClose }) {
 // ─── QuestPage ────────────────────────────────────────────────────────────────
 export default function QuestPage({ navigate }) {
   const isMobile = useIsMobile();
+  const { accent } = useTheme();
+  const COLUMNS = useMemo(() => buildColumns(accent), [accent]);
   const [userId, setUserId]           = useState(getKnownUserId);
   const [items, setItems]             = useState(() => getCache(`quest_items:${getKnownUserId()}`) || []);
   const [loading, setLoading]         = useState(() => !getCache(`quest_items:${getKnownUserId()}`));
@@ -949,6 +942,7 @@ export default function QuestPage({ navigate }) {
                   onMove={handleMove}
                   isDismissing={dismissingId === item.id}
                   onOpen={setSelectedItem}
+                  columns={COLUMNS}
                 />
               </motion.div>
             ))}
@@ -1149,6 +1143,7 @@ export default function QuestPage({ navigate }) {
                       onMove={handleMove}
                       isDismissing={dismissingId === item.id}
                       onOpen={setSelectedItem}
+                      columns={COLUMNS}
                     />
                   ))}
                 </AnimatePresence>
