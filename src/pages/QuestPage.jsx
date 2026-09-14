@@ -7,6 +7,7 @@ import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
+import { useTheme } from "../lib/ThemeContext.jsx";
 
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
@@ -543,6 +544,7 @@ function CountPicker({ onSelect, onClose }) {
 // ─── QuestPage ────────────────────────────────────────────────────────────────
 export default function QuestPage({ navigate }) {
   const isMobile = useIsMobile();
+  const { accent } = useTheme();
   const [userId, setUserId]           = useState(getKnownUserId);
   const [items, setItems]             = useState(() => getCache(`quest_items:${getKnownUserId()}`) || []);
   const [loading, setLoading]         = useState(() => !getCache(`quest_items:${getKnownUserId()}`));
@@ -803,7 +805,7 @@ export default function QuestPage({ navigate }) {
           <div style={{ padding: "16px 16px 0" }}>
             <h1 style={{
               fontFamily: FONT, fontWeight: 700, fontSize: 26,
-              margin: "0 0 14px", letterSpacing: "-0.02em", color: TEXT,
+              margin: "0 0 14px", letterSpacing: "-0.02em", color: accent,
             }}>
               Quest
             </h1>
@@ -1008,7 +1010,7 @@ export default function QuestPage({ navigate }) {
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
           <h1 style={{
             fontFamily: FONT, fontWeight: 700, fontSize: 28, margin: 0,
-            letterSpacing: "-0.02em", color: TEXT,
+            letterSpacing: "-0.02em", color: accent,
           }}>
             Quest
           </h1>
