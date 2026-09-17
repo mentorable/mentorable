@@ -17,6 +17,7 @@ LIMITS = {
     "node_expand": 6,    # nodes are per-phase now, several per phase
     "roadmap_reeval": 1, # retired in v3 (kept for back-compat)
     "portfolio_upload": 2,
+    "resume_export": 1,
 }
 
 # feature → usage_tracking column (for refunds when the work fails after incrementing).
@@ -30,6 +31,7 @@ _USAGE_COLUMN = {
     "node_expand": "node_expansions_used",
     "roadmap_reeval": "roadmap_reevals_used",
     "portfolio_upload": "portfolio_uploads_used",
+    "resume_export": "resume_exports_used",
 }
 
 

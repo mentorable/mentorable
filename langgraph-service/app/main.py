@@ -7,7 +7,7 @@ from typing import Any, Optional
 from anthropic import AsyncAnthropic
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
 from app.auth import verify_jwt
@@ -20,6 +20,7 @@ from app.nodes.chat.extract_signals import extract_signals
 from app.nodes.chat.tools import CHAT_TOOLS, execute_chat_tool
 from app.nodes.onboarding.extract import extract_profile
 from app.nodes.portfolio.extract import extract_file_text, extract_portfolio_items
+from app.nodes.portfolio.resume import PdfEngineUnavailable, build_resume_tex, compile_tex_to_pdf
 from app.nodes.quest.generate import generate_quest_items
 from app.nodes.scorecard.improve import improve_axis
 from app.nodes.research.run import run_research
@@ -559,6 +560,73 @@ async def portfolio_extract(file: UploadFile = File(...), user_id: str = Depends
         logger.error(f"[portfolio] Unexpected error for {user_id}: {exc}")
         await refund_usage(user_id, "portfolio_upload")
         raise HTTPException(status_code=500, detail="Extraction failed")
+
+
+@app.post("/portfolio/resume/pdf")
+async def portfolio_resume_pdf(raw: Request, user_id: str = Depends(verify_jwt)):
+    """
+    Build a one-page LaTeX resume from the student's selected portfolio items and
+    compile it to PDF. Rate-limited to 1/lifetime in the demo; the compile is the
+    only cost (no AI call).
+    """
+    try:
+        body = await raw.json()
+    except Exception:
+        body = {}
+    item_ids = [str(i) for i in (body.get("item_ids") or []) if i]
+    contact = body.get("contact") if isinstance(body.get("contact"), dict) else {}
+    if not item_ids:
+        raise HTTPException(status_code=422, detail="Select at least one portfolio item to export.")
+
+    supabase = get_supabase()
+    profile_res = supabase.from_("profiles").select("full_name").eq("id", user_id).maybe_single().execute()
+    name = ((profile_res.data or {}).get("full_name") or "").strip()
+
+    # Never trust titles/descriptions from the client; re-read the rows scoped to this user.
+    items_res = (
+        supabase.from_("portfolio_items")
+        .select("id, category, title, description, order_index")
+        .eq("user_id", user_id)
+        .in_("id", item_ids)
+        .order("order_index")
+        .execute()
+    )
+    items = items_res.data or []
+    if not items:
+        raise HTTPException(status_code=422, detail="None of the selected items belong to your portfolio.")
+
+    # Build (cheap, pure) BEFORE the rate limit so a validation problem never burns the export.
+    try:
+        tex = build_resume_tex(name, contact, items)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    await check_rate_limit(user_id, "resume_export")
+
+    try:
+        pdf = await compile_tex_to_pdf(tex)
+    except PdfEngineUnavailable as exc:
+        logger.error(f"[resume] engine unavailable: {exc}")
+        await refund_usage(user_id, "resume_export")
+        raise HTTPException(status_code=500, detail="PDF export is temporarily unavailable. Please try again later.")
+    except ValueError as exc:
+        await refund_usage(user_id, "resume_export")
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        logger.error(f"[resume] Unexpected error for {user_id}: {exc}")
+        await refund_usage(user_id, "resume_export")
+        raise HTTPException(status_code=500, detail="Could not build the PDF")
+
+    posthog_client.capture(
+        "resume_exported",
+        distinct_id=user_id,
+        properties={"item_count": len(items)},
+    )
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="resume.pdf"'},
+    )
 
 
 @app.post("/onboarding/extract")

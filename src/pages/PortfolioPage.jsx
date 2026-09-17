@@ -236,6 +236,156 @@ function ReviewModal({ items, onConfirm, onClose, saving }) {
   );
 }
 
+// ─── Export-as-resume modal ────────────────────────────────────────────────────
+const EMPTY_CONTACT = { email: "", phone: "", location: "", links: [] };
+const SPARSE_THRESHOLD = 3; // below this, warn that the resume will look thin
+
+function ExportResumeModal({ items, fullName, contact: initialContact, exportsLeft, generating, error, onGenerate, onClose }) {
+  const [contact, setContact] = useState(() => ({
+    ...EMPTY_CONTACT, ...(initialContact || {}),
+    links: Array.isArray(initialContact?.links) ? initialContact.links : [],
+  }));
+  const [checked, setChecked] = useState(() => new Set(items.map((i) => i.id)));
+  const selectedCount = checked.size;
+  const sparse = selectedCount > 0 && selectedCount < SPARSE_THRESHOLD;
+
+  const setField = (k, v) => setContact((c) => ({ ...c, [k]: v }));
+  const setLink = (i, patch) => setContact((c) => ({ ...c, links: c.links.map((l, j) => (j === i ? { ...l, ...patch } : l)) }));
+  const addLink = () => setContact((c) => ({ ...c, links: [...c.links, { label: "", url: "" }] }));
+  const removeLink = (i) => setContact((c) => ({ ...c, links: c.links.filter((_, j) => j !== i) }));
+  const toggle = (id) => setChecked((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const cleanContact = () => ({ ...contact, links: contact.links.filter((l) => (l.url || "").trim()) });
+
+  const inputStyle = {
+    fontFamily: SANS, fontSize: 12.5, color: TEXT, background: "#fafafa",
+    border: `1px solid ${BORDER}`, borderRadius: 8, padding: "7px 10px", outline: "none", minWidth: 0,
+  };
+  const sectionLabel = { fontFamily: SANS, fontSize: 11.5, fontWeight: 700, color: TEXT, letterSpacing: "0.04em", margin: "0 0 8px" };
+  const canGenerate = selectedCount > 0 && !generating;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center",
+      background: "rgba(20,20,19,0.45)", backdropFilter: "blur(6px)", padding: 16 }}
+      onClick={(e) => { if (e.target === e.currentTarget && !generating) onClose(cleanContact()); }}>
+      <motion.div
+        initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        style={{ background: "#faf9f5", borderRadius: 22, border: "1px solid rgba(var(--accent-rgb),0.19)",
+          boxShadow: "0 30px 80px rgba(0,0,0,0.3)", width: "100%", maxWidth: 620,
+          maxHeight: "88vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "1.4rem 1.5rem 0.9rem" }}>
+          <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", color: TEXT, margin: 0, letterSpacing: "-0.02em" }}>
+            Export as a PDF resume
+          </h2>
+          <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: TEXT_MUTED, lineHeight: 1.55, margin: "0.35rem 0 0" }}>
+            Add contact details for the header, then pick which pieces to include. Everything is optional except at least one piece.
+          </p>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "0.25rem 1.5rem 0.5rem", display: "flex", flexDirection: "column", gap: 18 }}>
+          {/* Contact header */}
+          <div>
+            <p style={sectionLabel}>Contact header</p>
+            <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "12px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+              <p style={{ fontFamily: SANS, fontSize: 12.5, color: TEXT_MUTED, margin: 0 }}>
+                Name: <strong style={{ color: TEXT }}>{fullName || "Set your name in Profile"}</strong>
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
+                <input value={contact.email} onChange={(e) => setField("email", e.target.value)} placeholder="Email" maxLength={120} style={inputStyle} />
+                <input value={contact.phone} onChange={(e) => setField("phone", e.target.value)} placeholder="Phone" maxLength={40} style={inputStyle} />
+                <input value={contact.location} onChange={(e) => setField("location", e.target.value)} placeholder="City, State" maxLength={80} style={inputStyle} />
+              </div>
+              {contact.links.map((l, i) => (
+                <div key={i} style={{ display: "flex", gap: 6 }}>
+                  <input value={l.label} onChange={(e) => setLink(i, { label: e.target.value })} placeholder="Label (e.g. LinkedIn)" maxLength={40} style={{ ...inputStyle, flex: "0 0 38%" }} />
+                  <input value={l.url} onChange={(e) => setLink(i, { url: e.target.value })} placeholder="https://" maxLength={200} style={{ ...inputStyle, flex: 1 }} />
+                  <button onClick={() => removeLink(i)} aria-label="Remove link"
+                    style={{ border: "none", background: "transparent", color: TEXT_FAINT, cursor: "pointer", padding: "0 4px", display: "inline-flex", alignItems: "center" }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              ))}
+              <button onClick={addLink}
+                style={{ alignSelf: "flex-start", fontFamily: SANS, fontSize: 12, fontWeight: 700, color: "var(--accent)", background: "transparent", border: "none", cursor: "pointer", padding: "2px 0" }}>
+                + Add a link (LinkedIn, GitHub, portfolio site)
+              </button>
+            </div>
+          </div>
+
+          {/* Item picker */}
+          <div>
+            <p style={sectionLabel}>Pieces to include ({selectedCount} of {items.length})</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {CATEGORIES.map((cat) => {
+                const catItems = items.filter((i) => i.category === cat.key);
+                if (!catItems.length) return null;
+                return (
+                  <div key={cat.key}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "4px 0 6px" }}>
+                      <CategoryBadge category={cat.key} />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {catItems.map((item) => {
+                        const on = checked.has(item.id);
+                        return (
+                          <label key={item.id} style={{ background: WHITE, border: `1px solid ${on ? BORDER : "#efece8"}`, borderRadius: 10,
+                            padding: "8px 10px", display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer",
+                            opacity: on ? 1 : 0.55, transition: "opacity 0.15s" }}>
+                            <input type="checkbox" checked={on} onChange={() => toggle(item.id)}
+                              style={{ width: 16, height: 16, marginTop: 2, accentColor: "var(--accent)", cursor: "pointer", flexShrink: 0 }} />
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontFamily: SANS, fontSize: 13, fontWeight: 700, color: TEXT, lineHeight: 1.3 }}>{item.title}</div>
+                              {item.description && (
+                                <div style={{ fontFamily: SANS, fontSize: 12, color: TEXT_MUTED, lineHeight: 1.4, marginTop: 2,
+                                  display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                                  {item.description}
+                                </div>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {selectedCount === 0 && (
+            <p style={{ fontFamily: SANS, fontSize: 12.5, color: "#991b1b", background: "#fee2e2", border: "1px solid #fecaca", borderRadius: 10, padding: "9px 12px", margin: 0, lineHeight: 1.5 }}>
+              Select at least one piece to export a resume.
+            </p>
+          )}
+          {sparse && (
+            <p style={{ fontFamily: SANS, fontSize: 12.5, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: "9px 12px", margin: 0, lineHeight: 1.5 }}>
+              Heads up: with fewer than {SPARSE_THRESHOLD} pieces your resume will look sparse. Consider adding a few more before you export, since the demo includes only one export.
+            </p>
+          )}
+        </div>
+
+        <div style={{ padding: "0.9rem 1.5rem 1.3rem", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", borderTop: `1px solid ${BORDER}` }}>
+          <button onClick={() => onGenerate([...checked], cleanContact())} disabled={!canGenerate}
+            style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: WHITE, background: "var(--accent)", border: "none",
+              borderRadius: 10, padding: "10px 20px", cursor: canGenerate ? "pointer" : "not-allowed", opacity: canGenerate ? 1 : 0.55 }}>
+            {generating ? "Building your PDF…" : "Download PDF"}
+          </button>
+          <button onClick={() => onClose(cleanContact())} disabled={generating}
+            style={{ fontFamily: SANS, fontSize: 13, fontWeight: 600, color: TEXT_MUTED, background: "transparent", border: "none", cursor: "pointer" }}>
+            Cancel
+          </button>
+          <span style={{ marginLeft: "auto", fontFamily: SANS, fontSize: 12, fontWeight: 600, color: exportsLeft === 0 ? "#dc2626" : TEXT }}>
+            {exportsLeft} of {LIMITS.resume_export} export{LIMITS.resume_export === 1 ? "" : "s"} remaining
+          </span>
+          {error && (
+            <p style={{ width: "100%", fontFamily: SANS, fontSize: 12.5, color: "#dc2626", margin: 0 }}>{error}</p>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────────
 export default function PortfolioPage({ navigate }) {
   const { accent } = useTheme();
@@ -249,7 +399,13 @@ export default function PortfolioPage({ navigate }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [extracted, setExtracted] = useState(null); // items awaiting review
-  const [limitModal, setLimitModal] = useState(false);
+  const [limitModal, setLimitModal] = useState(null); // feature key of the limit that was hit
+  const [fullName, setFullName] = useState("");
+  const [contact, setContact] = useState(EMPTY_CONTACT);
+  const [exportsUsed, setExportsUsed] = useState(0);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
   const fileRef = useRef(null);
   const isMobile = useIsMobile();
 
@@ -257,13 +413,17 @@ export default function PortfolioPage({ navigate }) {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data?.user) { navigate("/auth"); return; }
       setUserId(data.user.id);
-      const [itemsRes, usage] = await Promise.all([
+      const [itemsRes, usage, profileRes] = await Promise.all([
         supabase.from("portfolio_items").select("*").eq("user_id", data.user.id)
           .order("category").order("order_index"),
         fetchUsage(supabase),
+        supabase.from("profiles").select("full_name, resume_contact").eq("id", data.user.id).maybeSingle(),
       ]);
       setItems(itemsRes.data || []);
       setUploadsUsed(usage.portfolio_uploads_used || 0);
+      setExportsUsed(usage.resume_exports_used || 0);
+      setFullName(profileRes.data?.full_name || "");
+      setContact({ ...EMPTY_CONTACT, ...(profileRes.data?.resume_contact || {}) });
       setPhase("ready");
     });
   }, []);
@@ -342,7 +502,45 @@ export default function PortfolioPage({ navigate }) {
     if (!error && data) { setItems((prev) => [...prev, ...data]); setExtracted(null); }
   };
 
+  const saveContact = async (next) => {
+    setContact(next);
+    if (userId) await supabase.from("profiles").update({ resume_contact: next }).eq("id", userId);
+  };
+
+  const generateResume = async (selectedIds, nextContact) => {
+    setExportError(null);
+    setExporting(true);
+    try {
+      await saveContact(nextContact);
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${LANGGRAPH_URL}/portfolio/resume/pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ item_ids: selectedIds, contact: nextContact }),
+      });
+      if (res.status === 429) { setExportOpen(false); setExportsUsed(LIMITS.resume_export); setLimitModal("resume_export"); return; }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setExportError(typeof data.detail === "string" ? data.detail : "Export failed. Please try again.");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "resume.pdf"; a.click();
+      URL.revokeObjectURL(url);
+      setExportsUsed((u) => u + 1);
+      setExportOpen(false);
+    } catch {
+      setExportError("Export failed. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const uploadsLeft = Math.max(0, LIMITS.portfolio_upload - uploadsUsed);
+  const exportsLeft = Math.max(0, LIMITS.resume_export - exportsUsed);
+  const canExport = items.length > 0;
   const pad = {
     minHeight: "100vh", background: BG, fontFamily: SANS,
     padding: isMobile ? "1.5rem 1rem 6rem" : "2.5rem 2rem 4rem",
@@ -355,9 +553,30 @@ export default function PortfolioPage({ navigate }) {
 
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ marginBottom: "1.8rem" }}>
-          <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: accent, letterSpacing: "-0.03em", lineHeight: 1.1, margin: 0 }}>
-            Portfolio
-          </h1>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: accent, letterSpacing: "-0.03em", lineHeight: 1.1, margin: 0 }}>
+              Portfolio
+            </h1>
+            {phase === "ready" && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                <button
+                  onClick={() => { if (!canExport) return; if (exportsLeft <= 0) { setLimitModal("resume_export"); return; } setExportError(null); setExportOpen(true); }}
+                  disabled={!canExport}
+                  title={canExport ? "Export your portfolio as a PDF resume" : "Add at least one portfolio piece first"}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: SANS, fontSize: 13, fontWeight: 700,
+                    color: "#000", background: "transparent", border: "2px solid #000", borderRadius: 10, padding: "8px 14px",
+                    cursor: canExport ? "pointer" : "not-allowed", opacity: canExport ? 1 : 0.45 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Export resume
+                </button>
+                {!canExport && (
+                  <span style={{ fontFamily: SANS, fontSize: 11.5, color: TEXT_MUTED }}>Add at least one piece to export</span>
+                )}
+              </div>
+            )}
+          </div>
           <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: TEXT, lineHeight: 1.55, marginTop: "0.5rem", display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
             Complete your portfolio <LearnMore /> Add your experiences, awards, courses, and more.
           </p>
@@ -431,7 +650,7 @@ export default function PortfolioPage({ navigate }) {
               </p>
               <input ref={fileRef} type="file" accept=".pdf,.docx" style={{ display: "none" }}
                 onChange={(e) => handleFile(e.target.files?.[0])} />
-              <button onClick={() => uploadsLeft > 0 ? fileRef.current?.click() : setLimitModal(true)} disabled={uploading}
+              <button onClick={() => uploadsLeft > 0 ? fileRef.current?.click() : setLimitModal("portfolio_upload")} disabled={uploading}
                 style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: WHITE, background: uploading ? "#93b4f8" : "var(--accent)",
                   border: "none", borderRadius: 10, padding: "10px 22px", cursor: uploading ? "wait" : "pointer" }}>
                 {uploading ? "Reading your file…" : "Upload resume"}
@@ -455,7 +674,16 @@ export default function PortfolioPage({ navigate }) {
         )}
       </AnimatePresence>
 
-      {limitModal && <LimitModal feature="portfolio_upload" onClose={() => setLimitModal(false)} />}
+      <AnimatePresence>
+        {exportOpen && (
+          <ExportResumeModal items={items} fullName={fullName} contact={contact}
+            exportsLeft={exportsLeft} generating={exporting} error={exportError}
+            onGenerate={generateResume}
+            onClose={(next) => { saveContact(next); setExportOpen(false); }} />
+        )}
+      </AnimatePresence>
+
+      {limitModal && <LimitModal feature={limitModal} onClose={() => setLimitModal(null)} />}
     </div>
   );
 }
