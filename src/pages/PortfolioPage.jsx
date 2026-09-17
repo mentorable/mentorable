@@ -26,6 +26,18 @@ const CATEGORIES = [
 ];
 const CAT_BY_KEY = Object.fromEntries(CATEGORIES.map((c) => [c.key, c]));
 
+// Per-category placeholder examples so the add/edit form doesn't feel generic.
+const PLACEHOLDER_EXAMPLES = {
+  experience:    { title: "Title (e.g. Marketing Intern, Acme Co.)",            description: "Description: dates, role, scope, results (optional) — e.g. Summer 2025, ran social campaigns, grew followers 30%" },
+  volunteering:  { title: "Title (e.g. Weekend Tutor, City Library)",            description: "Description: dates, cause, hours, impact (optional) — e.g. 2024–2025, tutored 5 students weekly in math" },
+  award:         { title: "Title (e.g. Dean's List, Fall 2025)",                description: "Description: awarding body, date, why you earned it (optional) — e.g. Top 10% of class, awarded by the university" },
+  course:        { title: "Title (e.g. AP Computer Science A)",                 description: "Description: institution, grade, key topics (optional) — e.g. Completed Spring 2025, grade A, built a Java app" },
+  certification: { title: "Title (e.g. Google Data Analytics Certificate)",     description: "Description: issuer, date earned, skills covered (optional) — e.g. Issued 2025 by Google, covers SQL and Tableau" },
+  club:          { title: "Title (e.g. Vice President, Robotics Club)",         description: "Description: dates, responsibilities, achievements (optional) — e.g. 2024–present, led a team of 12 to states" },
+  skill:         { title: "Title (e.g. Python)",                                description: "Description: proficiency, how you use it, projects (optional) — e.g. Intermediate, used in 3 personal projects" },
+  other:         { title: "Title (e.g. Published Blog Post)",                   description: "Description: dates, context, why it matters (optional)" },
+};
+
 function CategoryBadge({ category }) {
   const cat = CAT_BY_KEY[category] || CAT_BY_KEY.other;
   return (
@@ -78,9 +90,10 @@ function PieceCard({ item, onEdit, onDelete }) {
 }
 
 // ─── Inline add/edit form ──────────────────────────────────────────────────────
-function PieceForm({ initial, onSave, onCancel, onDelete, saving }) {
+function PieceForm({ initial, category, onSave, onCancel, onDelete, saving }) {
   const [title, setTitle] = useState(initial?.title || "");
   const [description, setDescription] = useState(initial?.description || "");
+  const examples = PLACEHOLDER_EXAMPLES[category || initial?.category] || PLACEHOLDER_EXAMPLES.other;
   const inputStyle = {
     fontFamily: SANS, fontSize: 13, color: TEXT, background: "#fafafa",
     border: `1.5px solid ${BORDER}`, borderRadius: 10, padding: "9px 12px",
@@ -89,10 +102,10 @@ function PieceForm({ initial, onSave, onCancel, onDelete, saving }) {
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
       style={{ background: WHITE, borderRadius: 14, border: `1.5px solid rgba(var(--accent-rgb),0.35)`, padding: "13px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-      <input autoFocus value={title} maxLength={120} placeholder="Title (e.g. AP Computer Science A)"
+      <input autoFocus value={title} maxLength={120} placeholder={examples.title}
         onChange={(e) => setTitle(e.target.value)} style={inputStyle}
         onFocus={(e) => (e.target.style.borderColor = "var(--accent)")} onBlur={(e) => (e.target.style.borderColor = BORDER)} />
-      <textarea value={description} maxLength={500} rows={2} placeholder="Description: dates, role, scope, results (optional)"
+      <textarea value={description} maxLength={500} rows={2} placeholder={examples.description}
         onChange={(e) => setDescription(e.target.value)} style={{ ...inputStyle, resize: "vertical" }}
         onFocus={(e) => (e.target.style.borderColor = "var(--accent)")} onBlur={(e) => (e.target.style.borderColor = BORDER)} />
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -377,7 +390,7 @@ export default function PortfolioPage({ navigate }) {
 
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {formFor === cat.key && (
-                      <PieceForm saving={saving}
+                      <PieceForm saving={saving} category={cat.key}
                         onSave={(t, d) => addPiece(cat.key, t, d)}
                         onCancel={() => setFormFor(null)} />
                     )}
