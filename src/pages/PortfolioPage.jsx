@@ -16,12 +16,13 @@ const TEXT = "#141413", TEXT_MID = "#3d3d3a", TEXT_MUTED = "#494742", TEXT_FAINT
 // (backgrounds only, dark text). "Other" stays a neutral gray catch-all.
 const CATEGORIES = [
   { key: "experience",    label: "Experience",    bg: "color-mix(in srgb, var(--accent) 42%, white)" },
-  { key: "volunteering",  label: "Volunteering",  bg: "color-mix(in srgb, var(--accent) 34%, white)" },
-  { key: "award",         label: "Award",         bg: "color-mix(in srgb, var(--accent) 27%, white)" },
-  { key: "course",        label: "Course",        bg: "color-mix(in srgb, var(--accent) 21%, white)" },
-  { key: "certification", label: "Certification", bg: "color-mix(in srgb, var(--accent) 15%, white)" },
-  { key: "club",          label: "Club",          bg: "color-mix(in srgb, var(--accent) 10%, white)" },
-  { key: "skill",         label: "Skill",         bg: "color-mix(in srgb, var(--accent) 6%, white)" },
+  { key: "project",       label: "Project",       bg: "color-mix(in srgb, var(--accent) 36%, white)" },
+  { key: "volunteering",  label: "Volunteering",  bg: "color-mix(in srgb, var(--accent) 30%, white)" },
+  { key: "award",         label: "Award",         bg: "color-mix(in srgb, var(--accent) 25%, white)" },
+  { key: "course",        label: "Course",        bg: "color-mix(in srgb, var(--accent) 20%, white)" },
+  { key: "certification", label: "Certification", bg: "color-mix(in srgb, var(--accent) 16%, white)" },
+  { key: "club",          label: "Club",          bg: "color-mix(in srgb, var(--accent) 12%, white)" },
+  { key: "skill",         label: "Skill",         bg: "color-mix(in srgb, var(--accent) 8%, white)" },
   { key: "other",         label: "Other",         bg: "#eceff4" },
 ];
 const CAT_BY_KEY = Object.fromEntries(CATEGORIES.map((c) => [c.key, c]));
@@ -29,6 +30,7 @@ const CAT_BY_KEY = Object.fromEntries(CATEGORIES.map((c) => [c.key, c]));
 // Per-category placeholder examples so the add/edit form doesn't feel generic.
 const PLACEHOLDER_EXAMPLES = {
   experience:    { title: "Title (e.g. Marketing Intern, Acme Co.)",            description: "Description: dates, role, scope, results (optional) — e.g. Summer 2025, ran social campaigns, grew followers 30%" },
+  project:       { title: "Title (e.g. Personal Budgeting App)",                description: "Description: what it does, tools used, outcome (optional) — e.g. Built with React and Supabase, used by 20 classmates" },
   volunteering:  { title: "Title (e.g. Weekend Tutor, City Library)",            description: "Description: dates, cause, hours, impact (optional) — e.g. 2024–2025, tutored 5 students weekly in math" },
   award:         { title: "Title (e.g. Dean's List, Fall 2025)",                description: "Description: awarding body, date, why you earned it (optional) — e.g. Top 10% of class, awarded by the university" },
   course:        { title: "Title (e.g. AP Computer Science A)",                 description: "Description: institution, grade, key topics (optional) — e.g. Completed Spring 2025, grade A, built a Java app" },

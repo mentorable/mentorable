@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 HAIKU = "claude-haiku-4-5-20251001"
 
-CATEGORIES = ["experience", "volunteering", "award", "course", "certification", "club", "skill", "other"]
+CATEGORIES = ["experience", "project", "volunteering", "award", "course", "certification", "club", "skill", "other"]
 
 MAX_FILE_BYTES = 5 * 1024 * 1024   # 5MB — resumes are tiny; anything bigger is wrong
 MAX_TEXT_CHARS = 20_000            # bounds the Haiku input for cost
@@ -85,7 +85,7 @@ EXTRACTION_PROMPT = """You extract structured portfolio pieces from a student's 
 Pull out every distinct item: jobs, internships, volunteer work, awards, honors, courses (AP/IB/dual enrollment/online), certifications, clubs, leadership roles, notable skills, and projects.
 
 Rules:
-- category must be exactly one of: experience, volunteering, award, course, certification, club, skill, other
+- category must be exactly one of: experience, project, volunteering, award, course, certification, club, skill, other
 - title: short and specific, max 80 characters (e.g. "Software Engineering Intern at Acme", "AP Computer Science A", "DECA State Finalist")
 - description: 1-2 sentences capturing the concrete details present in the document (dates, role, scope, results). Use only what the document says, do not invent details. Empty string if the document gives nothing beyond the title.
 - Skip contact info, objective/summary paragraphs, and references.

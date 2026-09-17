@@ -249,7 +249,7 @@ You can add quests directly to the student's quest board with the add_quest_to_b
 PORTFOLIO_CAPABILITY = """
 
 ## The Student's Portfolio
-The student keeps a portfolio of concrete pieces: experiences, volunteering, awards, courses, certifications, clubs, and skills. A category-and-title summary may appear above; full descriptions live behind the view_portfolio tool.
+The student keeps a portfolio of concrete pieces: experiences, projects, volunteering, awards, courses, certifications, clubs, and skills. A category-and-title summary may appear above; full descriptions live behind the view_portfolio tool.
 - Call view_portfolio when the student asks about their portfolio, or when giving advice that depends on their concrete background (what's missing, what to refine, how to word a piece). Don't guess at contents you haven't viewed.
 - Call add_portfolio_piece when the student asks you to add something to their portfolio or clearly agrees to your offer. One piece per call, never speculatively. After it succeeds, confirm in one short line.
 - To edit or remove existing pieces, point them to the Portfolio page. You cannot modify existing pieces."""

@@ -25,7 +25,7 @@ COLUMN_TO_STATUS = {
 
 _AXES = {"communication", "leadership", "technicality", "resourcefulness", "execution"}
 
-PORTFOLIO_CATEGORIES = ["experience", "volunteering", "award", "course", "certification", "club", "skill", "other"]
+PORTFOLIO_CATEGORIES = ["experience", "project", "volunteering", "award", "course", "certification", "club", "skill", "other"]
 
 
 def _coerce_axis(value) -> str:
@@ -90,7 +90,7 @@ CHAT_TOOLS = [
     {
         "name": "view_portfolio",
         "description": (
-            "Look up the student's portfolio: their recorded experiences, volunteering, "
+            "Look up the student's portfolio: their recorded experiences, projects, volunteering, "
             "awards, courses, certifications, clubs, and skills. Call this when the student "
             "asks about their portfolio, or when you need their concrete background (e.g. to "
             "advise on what's missing or how to reword a piece). Returns full titles and "
@@ -111,7 +111,7 @@ CHAT_TOOLS = [
     {
         "name": "add_portfolio_piece",
         "description": (
-            "Add one piece to the student's portfolio (an experience, award, course, "
+            "Add one piece to the student's portfolio (an experience, project, award, course, "
             "certification, club, volunteering role, or skill). Call this when the student "
             "asks you to add something to their portfolio, or explicitly agrees when you "
             "offer. Do NOT call it speculatively."
