@@ -420,7 +420,7 @@ export default function PortfolioPage({ navigate }) {
 
             {/* Upload */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.45 }}
-              style={{ marginTop: "2.2rem", background: WHITE, border: `1.5px dashed rgba(var(--accent-rgb),0.35)`, borderRadius: 16, padding: "1.4rem 1.5rem", textAlign: "center" }}>
+              style={{ marginTop: "2.2rem", background: WHITE, border: `1.5px solid rgba(var(--accent-rgb),0.35)`, borderRadius: 16, padding: "1.4rem 1.5rem", textAlign: "center" }}>
               <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: TEXT, margin: 0 }}>
                 Have a resume or brag sheet?
               </p>
