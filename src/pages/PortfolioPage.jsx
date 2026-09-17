@@ -5,6 +5,7 @@ import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
+import { useTheme } from "../lib/ThemeContext.jsx";
 
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 const SANS = "'Raleway', sans-serif";
@@ -30,7 +31,7 @@ function CategoryBadge({ category }) {
   return (
     <span style={{
       fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em",
-      textTransform: "uppercase", background: cat.bg, color: TEXT_MID,
+      background: cat.bg, color: TEXT_MID,
       borderRadius: 5, padding: "2px 7px", flexShrink: 0,
     }}>
       {cat.label}
@@ -189,7 +190,7 @@ function ReviewModal({ items, onConfirm, onClose, saving }) {
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   <select value={row.category} onChange={(e) => update(i, { category: e.target.value })}
-                    style={{ ...inputStyle, fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em",
+                    style={{ ...inputStyle, fontWeight: 700, fontSize: 11, letterSpacing: "0.04em",
                       background: (CAT_BY_KEY[row.category] || CAT_BY_KEY.other).bg, color: TEXT_MID, border: "none", cursor: "pointer" }}>
                     {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
                   </select>
@@ -222,6 +223,7 @@ function ReviewModal({ items, onConfirm, onClose, saving }) {
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 export default function PortfolioPage({ navigate }) {
+  const { accent } = useTheme();
   const [items, setItems] = useState([]);
   const [phase, setPhase] = useState("loading"); // loading | ready
   const [userId, setUserId] = useState(null);
@@ -338,7 +340,7 @@ export default function PortfolioPage({ navigate }) {
 
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ marginBottom: "1.8rem" }}>
-          <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: TEXT, letterSpacing: "-0.03em", lineHeight: 1.1, margin: 0 }}>
+          <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: accent, letterSpacing: "-0.03em", lineHeight: 1.1, margin: 0 }}>
             Portfolio
           </h1>
           <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: TEXT_MUTED, lineHeight: 1.55, marginTop: "0.5rem", display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
@@ -358,7 +360,7 @@ export default function PortfolioPage({ navigate }) {
                   initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 * ci }}
                   style={{ marginBottom: "1.6rem" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                    <span style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
+                    <span style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em",
                       background: cat.bg, color: TEXT_MID, borderRadius: 6, padding: "3px 10px" }}>
                       {cat.label}
                     </span>
