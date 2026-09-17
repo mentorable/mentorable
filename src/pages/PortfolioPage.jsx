@@ -356,7 +356,7 @@ export default function PortfolioPage({ navigate }) {
           <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: accent, letterSpacing: "-0.03em", lineHeight: 1.1, margin: 0 }}>
             Portfolio
           </h1>
-          <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: TEXT_MUTED, lineHeight: 1.55, marginTop: "0.5rem", display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+          <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: TEXT, lineHeight: 1.55, marginTop: "0.5rem", display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
             Complete your portfolio <LearnMore /> Add your experiences, awards, courses, and more.
           </p>
         </motion.div>
@@ -374,7 +374,7 @@ export default function PortfolioPage({ navigate }) {
                   style={{ marginBottom: "1.6rem" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                     <span style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em",
-                      background: cat.bg, color: TEXT_MID, borderRadius: 6, padding: "3px 10px" }}>
+                      background: cat.bg, color: TEXT, borderRadius: 6, padding: "3px 10px" }}>
                       {cat.label}
                     </span>
                     {catItems.length > 0 && (
