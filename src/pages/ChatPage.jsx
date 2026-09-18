@@ -188,6 +188,19 @@ function Inline({ text, color = NAVY }) {
   );
 }
 
+// GFM-style pipe tables, e.g. "| # | Program | Key Detail |" over a
+// "|---|---|---|" separator row.
+function isTableRow(line) {
+  return /\|/.test(line) && line.trim() !== "";
+}
+function isTableSeparator(line) {
+  return /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(line);
+}
+function splitTableRow(line) {
+  const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
+  return trimmed.split("|").map((c) => c.trim());
+}
+
 function MarkdownRenderer({ text, streaming = false }) {
   const lines = text.split("\n");
   const blocks = [];
@@ -207,6 +220,13 @@ function MarkdownRenderer({ text, streaming = false }) {
       const items = [];
       while (i < lines.length && /^\d+\. /.test(lines[i])) { items.push(lines[i].replace(/^\d+\. /, "")); i++; }
       blocks.push({ type: "ol", items }); continue;
+    }
+    if (isTableRow(line) && i + 1 < lines.length && isTableSeparator(lines[i + 1])) {
+      const header = splitTableRow(line);
+      i += 2;
+      const rows = [];
+      while (i < lines.length && isTableRow(lines[i])) { rows.push(splitTableRow(lines[i])); i++; }
+      blocks.push({ type: "table", header, rows }); continue;
     }
     if (line.trim() === "") { blocks.push({ type: "spacer" }); i++; continue; }
     blocks.push({ type: "p", text: line }); i++;
@@ -246,6 +266,32 @@ function MarkdownRenderer({ text, streaming = false }) {
               </li>
             ))}
           </ol>
+        );
+        if (block.type === "table") return (
+          <div key={bi} style={{ overflowX: "auto", margin: "8px 0" }}>
+            <table style={{ borderCollapse: "collapse", width: "100%", fontFamily: SG, fontSize: 13.5 }}>
+              <thead>
+                <tr>
+                  {block.header.map((cell, ci) => (
+                    <th key={ci} style={{ textAlign: "left", padding: "7px 12px", borderBottom: "1.5px solid #e2e8f0", color: NAVY, fontWeight: 700, whiteSpace: "nowrap" }}>
+                      <Inline text={cell}/>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {block.rows.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((cell, ci) => (
+                      <td key={ci} style={{ textAlign: "left", padding: "7px 12px", borderBottom: "1px solid #eef0f2", color: NAVY, lineHeight: 1.55, verticalAlign: "top" }}>
+                        <Inline text={cell}/>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         );
         return <p key={bi} style={{ fontFamily: SG, fontSize: 14, color: NAVY, lineHeight: 1.7, margin: 0 }}><Inline text={block.text}/>{cur}</p>;
       })}
