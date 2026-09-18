@@ -441,7 +441,7 @@ function sanitizeChatInput(text) {
   return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
 }
 
-function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, researchMode, onToggleResearch, isMobile = false }) {
+function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, researchMode, onToggleResearch, isMobile = false, chatUsed = 0, researchUsed = 0 }) {
   const [value, setValue] = useState("");
   const taRef = useRef(null);
 
@@ -530,9 +530,25 @@ function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, resear
           {value.length}/{MAX_INPUT}
         </p>
       )}
-      <p style={{ fontFamily: SG, fontSize: 11, color: NAVY, textAlign: "center", marginTop: 8 }}>
-        Mentorable Agent can make mistakes. Verify decisions on your own accord.
-      </p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+        <p style={{ fontFamily: SG, fontSize: 11, color: NAVY, margin: 0 }}>
+          Mentorable Agent can make mistakes. Verify decisions on your own accord.
+        </p>
+        {(() => {
+          const left = researchMode
+            ? Math.max(0, LIMITS.research - researchUsed)
+            : Math.max(0, LIMITS.chat - chatUsed);
+          const label = researchMode
+            ? (left === 0 ? "No research queries remaining" : `${left} research quer${left === 1 ? "y" : "ies"} remaining`)
+            : (left === 0 ? "No messages remaining" : `${left} message${left === 1 ? "" : "s"} remaining`);
+          return (
+            <span style={{ fontFamily: SG, fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap",
+              color: left <= (researchMode ? 0 : 3) ? "#dc2626" : "#6a6760" }}>
+              {label}
+            </span>
+          );
+        })()}
+      </div>
     </div>
   );
 }
@@ -819,7 +835,7 @@ function ChatMain({ activeChatId, messages, busy, onSend, userName, error, onOpe
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", padding: isNew ? 0 : isMobile ? "16px 14px 8px" : "28px 28px 8px", position: "relative", zIndex: 1 }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: isNew ? (isMobile ? "0 0 110px" : "0 0 130px") : isMobile ? "16px 14px 110px" : "28px 28px 130px", position: "relative", zIndex: 1 }}>
         {isNew ? (
           <WelcomeScreen onSend={onSend} userName={userName} isMobile={isMobile} />
         ) : (
@@ -843,32 +859,24 @@ function ChatMain({ activeChatId, messages, busy, onSend, userName, error, onOpe
         )}
       </div>
 
-      {/* Usage counter */}
-      {(() => {
-        const left = researchMode
-          ? Math.max(0, LIMITS.research - researchUsed)
-          : Math.max(0, LIMITS.chat - chatUsed);
-        const label = researchMode
-          ? (left === 0 ? "No research queries remaining" : `${left} research quer${left === 1 ? "y" : "ies"} remaining`)
-          : (left === 0 ? "No messages remaining" : `${left} message${left === 1 ? "" : "s"} remaining`);
-        return (
-          <div style={{ padding: "4px 16px 6px", textAlign: "center" }}>
-            <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: 13.5, fontWeight: 700,
-              color: left <= (researchMode ? 0 : 3) ? "#dc2626" : "#6a6760" }}>
-              {label}
-            </span>
-          </div>
-        );
-      })()}
-      <InputBar
-        onSend={onSend}
-        busy={busy}
-        chatLimitReached={chatUsed >= LIMITS.chat}
-        researchLimitReached={researchUsed >= LIMITS.research}
-        researchMode={researchMode}
-        onToggleResearch={onToggleResearch}
-        isMobile={isMobile}
-      />
+      {/* Bottom input area — floats over the message list with a fade above it
+          so scrolled content softens into it instead of hitting a hard edge */}
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 10 }}>
+        <div style={{ height: 48, background: "linear-gradient(to bottom, rgba(245,245,245,0), rgba(245,245,245,0.94) 70%, #F5F5F5)", pointerEvents: "none" }} />
+        <div style={{ background: "#F5F5F5" }}>
+          <InputBar
+            onSend={onSend}
+            busy={busy}
+            chatLimitReached={chatUsed >= LIMITS.chat}
+            researchLimitReached={researchUsed >= LIMITS.research}
+            researchMode={researchMode}
+            onToggleResearch={onToggleResearch}
+            isMobile={isMobile}
+            chatUsed={chatUsed}
+            researchUsed={researchUsed}
+          />
+        </div>
+      </div>
     </div>
   );
 }
