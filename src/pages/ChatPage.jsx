@@ -853,7 +853,7 @@ function ChatMain({ activeChatId, messages, busy, onSend, userName, error, onOpe
           : (left === 0 ? "No messages remaining" : `${left} message${left === 1 ? "" : "s"} remaining`);
         return (
           <div style={{ padding: "4px 16px 6px", textAlign: "center" }}>
-            <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: 11, fontWeight: 600,
+            <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: 13.5, fontWeight: 700,
               color: left <= (researchMode ? 0 : 3) ? "#dc2626" : "#6a6760" }}>
               {label}
             </span>
