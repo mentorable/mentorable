@@ -530,8 +530,8 @@ function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, resear
           {value.length}/{MAX_INPUT}
         </p>
       )}
-      <p style={{ fontFamily: SG, fontSize: 11, color: "#7a7f88", textAlign: "center", marginTop: 8 }}>
-        Mentorable Agent can make mistakes. Verify important decisions with a counselor.
+      <p style={{ fontFamily: SG, fontSize: 11, color: NAVY, textAlign: "center", marginTop: 8 }}>
+        Mentorable Agent can make mistakes. Verify decisions on your own accord.
       </p>
     </div>
   );
