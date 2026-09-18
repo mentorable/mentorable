@@ -486,7 +486,7 @@ function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, resear
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
           placeholder={researchMode ? "Find scholarships, internships, programs…" : "Ask anything about your career…"}
           rows={1}
-          style={{ flex: 1, border: "none", background: "transparent", resize: "none", fontFamily: SG, fontSize: 16, color: NAVY, lineHeight: 1.6, padding: 0, outline: "none", maxHeight: 160, minHeight: 26 }}
+          style={{ flex: 1, border: "none", background: "transparent", resize: "none", fontFamily: SG, fontSize: 16, color: NAVY, lineHeight: 1.6, padding: 0, outline: "none", maxHeight: 160, minHeight: 26, textAlign: "center" }}
         />
         <button
           onClick={onToggleResearch}
