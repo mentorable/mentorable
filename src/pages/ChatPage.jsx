@@ -477,7 +477,7 @@ function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, resear
           : "0 2px 12px rgba(var(--accent-rgb),0.06)",
         transition: "border-color 0.18s, box-shadow 0.18s",
         padding: "14px 14px 14px 20px",
-        display: "flex", alignItems: "flex-end", gap: 10,
+        display: "flex", alignItems: "center", gap: 10,
       }}>
         <textarea
           ref={taRef}
@@ -486,7 +486,7 @@ function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, resear
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
           placeholder={researchMode ? "Find scholarships, internships, programs…" : "Ask anything about your career…"}
           rows={1}
-          style={{ flex: 1, border: "none", background: "transparent", resize: "none", fontFamily: SG, fontSize: 16, color: NAVY, lineHeight: 1.6, padding: 0, outline: "none", maxHeight: 160, minHeight: 26, textAlign: "center" }}
+          style={{ flex: 1, border: "none", background: "transparent", resize: "none", fontFamily: SG, fontSize: 16, color: NAVY, lineHeight: 1.6, padding: 0, outline: "none", maxHeight: 160, minHeight: 26 }}
         />
         <button
           onClick={onToggleResearch}
