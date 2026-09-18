@@ -775,7 +775,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
 
   return (
     <div style={{
-      width: fullWidth ? "100%" : HISTORY_W, flexShrink: 0,
+      width: fullWidth ? "100%" : HISTORY_W, height: "100%", flexShrink: 0,
       background: "#fff",
       borderLeft: fullWidth ? "none" : "1.5px solid #e2e8f0",
       display: "flex", flexDirection: "column", overflow: "hidden",
@@ -1331,7 +1331,7 @@ export default function ChatPage({ navigate, seedNode }) {
             initial={false}
             animate={{ width: historyCollapsed ? 0 : HISTORY_W }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            style={{ overflow: "hidden", flexShrink: 0 }}
+            style={{ overflow: "hidden", flexShrink: 0, height: "100%" }}
           >
             {historyPanel}
           </motion.div>
