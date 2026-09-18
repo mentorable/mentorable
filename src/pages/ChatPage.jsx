@@ -795,9 +795,6 @@ function ChatMain({ activeChatId, messages, busy, onSend, userName, error, onOpe
           <span style={{ fontFamily: JK, fontWeight: 700, fontSize: 14, color: NAVY, letterSpacing: "-0.03em" }}>
             Mentorable Chat
           </span>
-          <span style={{ fontFamily: SG, fontSize: 11, color: "#6a6760", fontWeight: 500, marginLeft: 6 }}>
-            · AI Career Mentor
-          </span>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
           {onOpenHistory && (
