@@ -954,6 +954,7 @@ export default function ChatPage({ navigate, seedNode }) {
   const [streaming, setStreaming]     = useState(false);
   const [chatError, setChatError]     = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyCollapsed, setHistoryCollapsed] = useState(false); // desktop-only collapse
   const [chatUsed, setChatUsed]       = useState(0);
   const [researchUsed, setResearchUsed] = useState(0);
   const [researchMode, setResearchMode] = useState(false);
@@ -1318,14 +1319,23 @@ export default function ChatPage({ navigate, seedNode }) {
           onSend={handleUnifiedSend}
           userName={displayName || profile?.full_name || ""}
           error={chatError}
-          onOpenHistory={isMobile ? () => setHistoryOpen(true) : null}
+          onOpenHistory={isMobile ? () => setHistoryOpen(true) : () => setHistoryCollapsed((v) => !v)}
           chatUsed={chatUsed}
           researchUsed={researchUsed}
           researchMode={researchMode}
           onToggleResearch={() => setResearchMode((v) => !v)}
           isMobile={isMobile}
         />
-        {!isMobile && historyPanel}
+        {!isMobile && (
+          <motion.div
+            initial={false}
+            animate={{ width: historyCollapsed ? 0 : HISTORY_W }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            style={{ overflow: "hidden", flexShrink: 0 }}
+          >
+            {historyPanel}
+          </motion.div>
+        )}
       </div>
 
       {/* Mobile history drawer */}
