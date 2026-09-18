@@ -878,9 +878,21 @@ function ChatMain({ activeChatId, messages, busy, onSend, userName, error, onOpe
 
 // ─── ChatPage ─────────────────────────────────────────────────────────────────
 
+// Persists just the display name across hard refreshes (the in-memory cache in
+// lib/cache.js resets on reload) so the welcome greeting never has to show
+// "Good morning." without a name while the profile re-fetches.
+const NAME_STORAGE_KEY = "mentorable_display_name";
+function getStoredName() {
+  try { return localStorage.getItem(NAME_STORAGE_KEY) || ""; } catch { return ""; }
+}
+function storeName(name) {
+  try { if (name) localStorage.setItem(NAME_STORAGE_KEY, name); } catch { /* ignore */ }
+}
+
 export default function ChatPage({ navigate, seedNode }) {
   const [user, setUser]               = useState(null);
   const [profile, setProfile]         = useState(() => getCache(`profile:${getKnownUserId()}`) || null);
+  const [displayName, setDisplayName] = useState(() => getCache(`profile:${getKnownUserId()}`)?.full_name || getStoredName());
   const [completedQuests, setCompletedQuests] = useState(() => getCache(`completed_quests:${getKnownUserId()}`) || []);
   const [activeQuests, setActiveQuests]       = useState(() => getCache(`active_quests:${getKnownUserId()}`) || []);
   const [deletedQuestTitles, setDeletedQuestTitles] = useState(() => getCache(`deleted_quest_titles:${getKnownUserId()}`) || []);
@@ -936,7 +948,7 @@ export default function ChatPage({ navigate, seedNode }) {
       ]);
 
       if (sessionsRes.data)  { setSessions(sessionsRes.data); setCache(`chat_sessions:${uid}`, sessionsRes.data); }
-      if (profileRes.data)   { setProfile(profileRes.data);   setCache(`profile:${uid}`, profileRes.data); }
+      if (profileRes.data)   { setProfile(profileRes.data);   setCache(`profile:${uid}`, profileRes.data); if (profileRes.data.full_name) { setDisplayName(profileRes.data.full_name); storeName(profileRes.data.full_name); } }
       if (allQuestsRes.data) {
         const completed = allQuestsRes.data.filter(q => q.status === "completed");
         const active    = allQuestsRes.data.filter(q => ["in_progress", "considered"].includes(q.status));
@@ -1253,7 +1265,7 @@ export default function ChatPage({ navigate, seedNode }) {
           messages={messages}
           busy={streaming || researching}
           onSend={handleUnifiedSend}
-          userName={profile?.full_name || ""}
+          userName={displayName || profile?.full_name || ""}
           error={chatError}
           onOpenHistory={isMobile ? () => setHistoryOpen(true) : null}
           chatUsed={chatUsed}
