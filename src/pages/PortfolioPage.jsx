@@ -580,6 +580,14 @@ export default function PortfolioPage({ navigate }) {
           <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: TEXT, lineHeight: 1.55, marginTop: "0.5rem", display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
             Complete your portfolio <LearnMore /> Add your experiences, awards, courses, and more.
           </p>
+          <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: TEXT_MUTED, lineHeight: 1.5, marginTop: "0.35rem" }}>
+            You can also reference your portfolio directly in the{" "}
+            <button onClick={() => navigate("/chat")}
+              style={{ fontFamily: SANS, fontSize: "0.85rem", color: "var(--accent)", fontWeight: 700, background: "none",
+                border: "none", padding: 0, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>
+              chat page
+            </button>.
+          </p>
         </motion.div>
 
         {phase === "loading" && <p style={{ fontFamily: SANS, color: TEXT_FAINT }}>Loading…</p>}
