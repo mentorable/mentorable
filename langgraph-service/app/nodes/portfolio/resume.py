@@ -13,9 +13,22 @@ import asyncio
 import logging
 import os
 import re
+import shutil
 import tempfile
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+# Render's buildCommand (see langgraph-service/render.yaml) downloads the static
+# Tectonic binary straight into the service's rootDir (langgraph-service/), since
+# Render's native Python runtime has no package manager for system binaries. Prefer
+# a `tectonic` already on PATH (e.g. installed via Homebrew for local dev) and fall
+# back to that dropped binary.
+_LOCAL_TECTONIC = Path(__file__).resolve().parents[3] / "tectonic"
+
+
+def _tectonic_bin() -> str:
+    return shutil.which("tectonic") or str(_LOCAL_TECTONIC)
 
 # Mirrors CATEGORIES order on the frontend so the resume reads top-to-bottom
 # the same way the Portfolio page does.
@@ -246,15 +259,16 @@ async def compile_tex_to_pdf(tex_source: str) -> bytes:
         with open(tex_path, "w", encoding="utf-8") as fh:
             fh.write(tex_source)
 
+        tectonic_bin = _tectonic_bin()
         try:
             proc = await asyncio.create_subprocess_exec(
-                "tectonic", "--outdir", workdir, "--chatter", "minimal", tex_path,
+                tectonic_bin, "--outdir", workdir, "--chatter", "minimal", tex_path,
                 cwd=workdir,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
         except FileNotFoundError as exc:
-            raise PdfEngineUnavailable("tectonic is not installed on this server") from exc
+            raise PdfEngineUnavailable(f"tectonic binary not found at {tectonic_bin}") from exc
 
         try:
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=COMPILE_TIMEOUT_SECONDS)

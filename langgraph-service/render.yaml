@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     rootDir: langgraph-service
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && curl -sSL "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%400.17.0/tectonic-0.17.0-x86_64-unknown-linux-musl.tar.gz" | tar xz && chmod +x tectonic
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
