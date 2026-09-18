@@ -543,10 +543,10 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
   const firstName = userName?.split(" ")[0];
-  const { accent, accentRgb } = useTheme();
+  const { accent } = useTheme();
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 32px 24px", background: `radial-gradient(ellipse at 50% 30%, rgba(${accentRgb},0.08) 0%, transparent 65%)` }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 32px 24px" }}>
 
       {/* Wordmark */}
       <motion.div
