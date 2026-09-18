@@ -579,10 +579,10 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
         transition={{ duration: 0.38, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
         style={{ textAlign: "center", marginBottom: 32 }}
       >
-        <h2 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600, fontSize: 34, color: NAVY, letterSpacing: "-0.02em", marginBottom: 10, lineHeight: 1.15 }}>
+        <h2 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600, fontSize: 42, color: NAVY, letterSpacing: "-0.02em", marginBottom: 14, lineHeight: 1.15 }}>
           Good {timeOfDay}{firstName ? `, ${firstName}` : ""}.
         </h2>
-        <p style={{ fontFamily: SG, fontSize: 16, color: "#494742", fontWeight: 500, maxWidth: 380, lineHeight: 1.65 }}>
+        <p style={{ fontFamily: SG, fontSize: 19, color: "#494742", fontWeight: 500, maxWidth: 460, lineHeight: 1.65 }}>
           What's on your mind? Ask about your Quest, career options, or anything you're working through.
         </p>
       </motion.div>
@@ -592,7 +592,7 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.38, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-        style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8, width: "100%", maxWidth: 500 }}
+        style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10, width: "100%", maxWidth: 620 }}
       >
         {SUGGESTIONS.map((s, i) => (
           <motion.button
@@ -605,7 +605,7 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
             whileTap={{ scale: 0.97 }}
             style={{
               background: "#fff", border: "1.5px solid #e8edf2",
-              borderRadius: 14, padding: "16px 18px",
+              borderRadius: 16, padding: "20px 22px",
               textAlign: "left", cursor: "pointer",
               boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
               transition: "border-color 0.15s",
@@ -613,7 +613,7 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${accent}55`; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e6dfd8"; }}
           >
-            <span style={{ fontFamily: SG, fontSize: 14.5, color: "#334155", fontWeight: 600, lineHeight: 1.5 }}>
+            <span style={{ fontFamily: SG, fontSize: 17, color: "#334155", fontWeight: 600, lineHeight: 1.5 }}>
               {s.label}
             </span>
           </motion.button>
