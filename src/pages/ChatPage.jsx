@@ -567,7 +567,7 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 28, height: 1, background: "#e6dfd8" }} />
-          <span style={{ fontFamily: SG, fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#6a6760" }}>your ai mentor</span>
+          <span style={{ fontFamily: SG, fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: "#6a6760" }}>Your AI Mentor</span>
           <div style={{ width: 28, height: 1, background: "#e6dfd8" }} />
         </div>
       </motion.div>
