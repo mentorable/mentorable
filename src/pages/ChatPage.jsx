@@ -29,13 +29,13 @@ const SUGGESTIONS = [
 
 function groupChatsByDate(sessions) {
   const now = new Date();
-  const result = { Today: [], Yesterday: [], "This week": [], "This month": [], Older: [] };
+  const result = { Today: [], Yesterday: [], "This Week": [], "This Month": [], Older: [] };
   sessions.forEach((s) => {
     const diffDays = (now - new Date(s.updated_at)) / 86400000;
     if (diffDays < 1)       result["Today"].push(s);
     else if (diffDays < 2)  result["Yesterday"].push(s);
-    else if (diffDays < 7)  result["This week"].push(s);
-    else if (diffDays < 30) result["This month"].push(s);
+    else if (diffDays < 7)  result["This Week"].push(s);
+    else if (diffDays < 30) result["This Month"].push(s);
     else                    result["Older"].push(s);
   });
   return result;
@@ -374,7 +374,7 @@ function ResearchMessage({ msg, isMobile = false }) {
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: msg.researching ? 0 : 14 }}>
             <IconSearch size={13} color="var(--accent)" />
-            <span style={{ fontFamily: SG, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--accent)" }}>
+            <span style={{ fontFamily: SG, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "var(--accent)" }}>
               Research
             </span>
           </div>
@@ -712,7 +712,7 @@ function RenameInput({ initial, onSave, onCancel }) {
 
 function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDeleteChat, onRenameChat, fullWidth = false }) {
   const grouped = groupChatsByDate(sessions);
-  const ORDER   = ["Today", "Yesterday", "This week", "This month", "Older"];
+  const ORDER   = ["Today", "Yesterday", "This Week", "This Month", "Older"];
   const [renamingId, setRenamingId] = useState(null);
 
   const ChatItem = ({ session }) => {
@@ -812,7 +812,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
         {ORDER.map((group) =>
           grouped[group]?.length > 0 ? (
             <div key={group} style={{ marginBottom: 14 }}>
-              <p style={{ fontFamily: SG, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#b0bac6", padding: "3px 4px 5px", marginBottom: 2 }}>
+              <p style={{ fontFamily: SG, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "#b0bac6", padding: "3px 4px 5px", marginBottom: 2 }}>
                 {group}
               </p>
               {grouped[group].map((s) => <ChatItem key={s.id} session={s} />)}
