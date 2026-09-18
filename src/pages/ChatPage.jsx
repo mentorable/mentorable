@@ -462,12 +462,12 @@ function Message({ msg, isMobile = false }) {
           }
           {!isStreaming && msg.content && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
-              <p style={{ fontFamily: SG, fontSize: 10, color: "#b0bac6" }}>{msg.time}</p>
+              <p style={{ fontFamily: SG, fontSize: 10, color: "#6a6760" }}>{msg.time}</p>
               <button
                 onClick={handleCopy}
-                style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 5, border: "1px solid #f1f5f9", background: copied ? "#f0fdf4" : "transparent", color: copied ? "#10b981" : "#b0bac6", fontFamily: SG, fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}
+                style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 5, border: "1px solid #f1f5f9", background: copied ? "#f0fdf4" : "transparent", color: copied ? "#10b981" : "#6a6760", fontFamily: SG, fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}
               >
-                <IconCopy size={11} color={copied ? "#10b981" : "#b0bac6"} />
+                <IconCopy size={11} color={copied ? "#10b981" : "#6a6760"} />
                 {copied ? "Copied" : "Copy"}
               </button>
             </div>
