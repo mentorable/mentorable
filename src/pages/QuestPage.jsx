@@ -1078,6 +1078,7 @@ export default function QuestPage({ navigate }) {
       <div style={{
         flex: 1, display: "flex",
         overflow: "hidden",
+        borderTop: `1.5px solid rgba(196,191,184,0.55)`,
       }}>
         {COLUMNS.map((col, idx) => {
           const cards    = colItems(col.status);
@@ -1108,7 +1109,7 @@ export default function QuestPage({ navigate }) {
               {/* Column header */}
               <div style={{
                 padding: "13px 14px 10px",
-                borderBottom: `1.5px solid ${isOver ? col.border : "rgba(196,191,184,0.55)"}`,
+                borderBottom: isOver ? `1.5px solid ${col.border}` : "1.5px solid transparent",
                 transition: "border-color 0.14s",
                 flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
