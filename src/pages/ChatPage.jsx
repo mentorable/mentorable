@@ -588,7 +588,7 @@ function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, resear
             ? (left === 0 ? "No research queries remaining" : `${left} research quer${left === 1 ? "y" : "ies"} remaining`)
             : (left === 0 ? "No messages remaining" : `${left} message${left === 1 ? "" : "s"} remaining`);
           return (
-            <span style={{ fontFamily: SG, fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap",
+            <span style={{ fontFamily: SG, fontSize: 13.5, fontWeight: 500, whiteSpace: "nowrap",
               color: left <= (researchMode ? 0 : 3) ? "#dc2626" : "#6a6760" }}>
               {label}
             </span>
