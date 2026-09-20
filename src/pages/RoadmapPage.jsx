@@ -725,7 +725,7 @@ export default function RoadmapPage({ navigate }) {
       {phase === "reveal" && roadmap && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
           style={{ maxWidth: 820, margin: "0 auto", width: "100%" }}>
-          <p style={{ fontFamily: SANS, fontSize: "0.8rem", fontWeight: 700, letterSpacing: "0.02em", color: accent, marginBottom: 9 }}>Your Big Picture</p>
+          <p style={{ fontFamily: SANS, fontSize: "0.8rem", fontWeight: 700, letterSpacing: "0.02em", color: TEXT, marginBottom: 9 }}>Your Big Picture</p>
           <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.3rem", color: accent, letterSpacing: "-0.025em", lineHeight: 1.15, marginBottom: 12 }}>{roadmap.display_title || roadmap.goal}</h1>
           <p style={{ fontFamily: SANS, fontSize: "1.05rem", color: TEXT_MID, lineHeight: 1.6, marginBottom: "2.25rem" }}>
             Here is the whole path, the phases you'll move through. You'll work one phase at a time, and it adapts as you go. This overview is shown once.
