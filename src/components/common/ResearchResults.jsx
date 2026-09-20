@@ -5,12 +5,12 @@ const FONT = "'Raleway', sans-serif";
 const NAVY = "#141413";
 
 export const TYPE_META = {
-  competition: { label: "Competition", color: "#075985", bg: "rgba(3,105,161,0.08)",  border: "rgba(3,105,161,0.2)"  },
-  internship:  { label: "Internship",  color: "#1e40af", bg: "rgba(29,78,216,0.07)",  border: "rgba(29,78,216,0.18)" },
-  scholarship: { label: "Scholarship", color: "#064e3b", bg: "rgba(6,95,70,0.07)",    border: "rgba(6,95,70,0.15)"   },
-  program:     { label: "Program",     color: "#92400e", bg: "rgba(180,83,9,0.07)",   border: "rgba(180,83,9,0.15)"  },
-  resource:    { label: "Resource",    color: "#262421", bg: "rgba(55,65,81,0.06)",   border: "rgba(55,65,81,0.12)"  },
-  article:     { label: "Article",     color: "#2d2a25", bg: "rgba(100,116,139,0.06)", border: "rgba(100,116,139,0.12)" },
+  competition: { label: "Competition", color: "#053a56", bg: "rgba(3,105,161,0.08)",  border: "rgba(3,105,161,0.2)"  },
+  internship:  { label: "Internship",  color: "#142a72", bg: "rgba(29,78,216,0.07)",  border: "rgba(29,78,216,0.18)" },
+  scholarship: { label: "Scholarship", color: "#043326", bg: "rgba(6,95,70,0.07)",    border: "rgba(6,95,70,0.15)"   },
+  program:     { label: "Program",     color: "#5f2a09", bg: "rgba(180,83,9,0.07)",   border: "rgba(180,83,9,0.15)"  },
+  resource:    { label: "Resource",    color: "#191715", bg: "rgba(55,65,81,0.06)",   border: "rgba(55,65,81,0.12)"  },
+  article:     { label: "Article",     color: "#1d1b18", bg: "rgba(100,116,139,0.06)", border: "rgba(100,116,139,0.12)" },
 };
 
 const IconExternal = ({ size = 11, color = "currentColor" }) => (
@@ -92,7 +92,7 @@ export function ResultCard({ result, index }) {
       </div>
 
       {/* Description */}
-      <p style={{ fontFamily: FONT, fontSize: "0.86rem", color: "#262421", lineHeight: 1.65, margin: "0 0 0.875rem" }}>
+      <p style={{ fontFamily: FONT, fontSize: "0.86rem", color: "#191715", lineHeight: 1.65, margin: "0 0 0.875rem" }}>
         {result.description}
       </p>
 
@@ -106,8 +106,8 @@ export function ResultCard({ result, index }) {
               borderRadius: "0.5rem", padding: "0.3rem 0.625rem",
               display: "flex", gap: "0.3rem", alignItems: "center",
             }}>
-              <span style={{ color: "#494742", fontWeight: 600 }}>{label}:</span>
-              <span style={{ color: "#262421", fontWeight: 600 }}>{value}</span>
+              <span style={{ color: "#2f2e2b", fontWeight: 600 }}>{label}:</span>
+              <span style={{ color: "#191715", fontWeight: 600 }}>{value}</span>
             </div>
           ))}
         </div>
@@ -122,7 +122,7 @@ export function ResultCard({ result, index }) {
           borderRadius: "0.75rem", padding: "0.6rem 0.875rem",
           marginBottom: 0,
         }}>
-          <p style={{ fontFamily: FONT, fontSize: "0.79rem", color: "color-mix(in srgb, var(--accent) 100%, black 22%)", fontWeight: 600, lineHeight: 1.55, margin: 0 }}>
+          <p style={{ fontFamily: FONT, fontSize: "0.79rem", color: "color-mix(in srgb, var(--accent) 100%, black 42%)", fontWeight: 600, lineHeight: 1.55, margin: 0 }}>
             {result.relevance_note}
           </p>
         </div>
@@ -143,7 +143,7 @@ export function SourcesSection({ sources }) {
         style={{
           display: "flex", alignItems: "center", gap: "0.5rem",
           background: "none", border: "none", cursor: "pointer",
-          fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, color: "#2d2a25",
+          fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, color: "#1d1b18",
           padding: "0.5rem 0",
         }}
       >
@@ -159,14 +159,14 @@ export function SourcesSection({ sources }) {
               {sources.map((s, i) => (
                 <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
                   style={{
-                    fontFamily: FONT, fontSize: "0.8rem", color: "color-mix(in srgb, var(--accent) 100%, black 22%)", fontWeight: 500,
+                    fontFamily: FONT, fontSize: "0.8rem", color: "color-mix(in srgb, var(--accent) 100%, black 42%)", fontWeight: 500,
                     textDecoration: "none", display: "flex", alignItems: "center", gap: "0.375rem",
                     padding: "0.3rem 0",
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
                 >
-                  <IconExternal size={10} color="color-mix(in srgb, var(--accent) 100%, black 22%)" />
+                  <IconExternal size={10} color="color-mix(in srgb, var(--accent) 100%, black 42%)" />
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title || s.url}</span>
                 </a>
               ))}

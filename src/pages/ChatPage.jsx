@@ -348,7 +348,7 @@ function ResearchingIndicator() {
       <span style={{ width: 14, height: 14, border: "2px solid rgba(var(--accent-rgb),0.25)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spinner-rotate 0.8s linear infinite", flexShrink: 0 }} />
       <AnimatePresence mode="wait">
         <motion.span key={step} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }}
-          style={{ fontFamily: SG, fontSize: 13.5, color: "#2d2a25" }}>
+          style={{ fontFamily: SG, fontSize: 13.5, color: "#1d1b18" }}>
           {RESEARCHING_STEPS[step]}
         </motion.span>
       </AnimatePresence>
@@ -373,8 +373,8 @@ function ResearchMessage({ msg, isMobile = false }) {
           padding: "16px 18px",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: msg.researching ? 0 : 14 }}>
-            <IconSearch size={13} color="color-mix(in srgb, var(--accent) 100%, black 22%)" />
-            <span style={{ fontFamily: SG, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "color-mix(in srgb, var(--accent) 100%, black 22%)" }}>
+            <IconSearch size={13} color="color-mix(in srgb, var(--accent) 100%, black 42%)" />
+            <span style={{ fontFamily: SG, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "color-mix(in srgb, var(--accent) 100%, black 42%)" }}>
               Research
             </span>
           </div>
