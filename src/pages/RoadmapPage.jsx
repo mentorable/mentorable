@@ -768,7 +768,7 @@ export default function RoadmapPage({ navigate }) {
 
           {/* Header */}
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ marginBottom: "2.5rem" }}>
-            <p style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.02em", color: "var(--accent)", marginBottom: 9 }}>
+            <p style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.02em", color: TEXT, marginBottom: 9 }}>
               Your Roadmap · {roadmap.timeframe_months} months
             </p>
             <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.3rem", color: accent, letterSpacing: "-0.025em", lineHeight: 1.15 }}>
