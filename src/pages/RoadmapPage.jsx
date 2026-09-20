@@ -423,7 +423,6 @@ function PlanModal({ roadmap, onClose }) {
                 <span style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: pal.accent, background: "rgba(255,255,255,0.65)", borderRadius: 7, padding: "3px 9px" }}>{p.month_count} mo</span>
                 <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: 17, color: TEXT }}>{p.title}</span>
               </div>
-              {p.blurb && <p style={{ fontFamily: SANS, fontSize: 14.5, color: TEXT_MID, lineHeight: 1.5, margin: "0 0 9px" }}>{p.blurb}</p>}
               {(p.month_focuses || []).filter(Boolean).length > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                   {(p.month_focuses || []).filter(Boolean).map((f, j) => (
@@ -811,8 +810,7 @@ export default function RoadmapPage({ navigate }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 }}>
                   <span style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: pal.accent, background: "rgba(255,255,255,0.65)", borderRadius: 7, padding: "4px 10px" }}>Phase {i + 1} · {p.month_count} month{p.month_count > 1 ? "s" : ""}</span>
                 </div>
-                <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 21, color: TEXT, letterSpacing: "-0.01em", marginBottom: p.blurb ? 7 : 9 }}>{p.title}</div>
-                {p.blurb && <p style={{ fontFamily: SANS, fontSize: 15, color: TEXT_MID, lineHeight: 1.55, margin: "0 0 11px" }}>{p.blurb}</p>}
+                <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 21, color: TEXT, letterSpacing: "-0.01em", marginBottom: 9 }}>{p.title}</div>
                 {(p.month_focuses || []).filter(Boolean).length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                     {(p.month_focuses || []).filter(Boolean).map((f, j) => (
@@ -901,7 +899,6 @@ export default function RoadmapPage({ navigate }) {
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       <span style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.02em", color: isActive ? pal.accent : TEXT_MID }}>Phase {i + 1} · {p.month_count} mo</span>
-                      {isActive && <span style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.02em", background: pal.accent, color: WHITE, borderRadius: 6, padding: "3px 9px" }}>Active</span>}
                       {isCompleted && p.reflection?.readiness_score != null && (
                         <span style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: GREEN }}>Readiness {p.reflection.readiness_score}</span>
                       )}
@@ -921,7 +918,6 @@ export default function RoadmapPage({ navigate }) {
                   {isOpen && status !== "locked" && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25 }}
                       style={{ overflow: "hidden", paddingLeft: 8, marginTop: 13 }}>
-                      {p.blurb && <p style={{ fontFamily: SANS, fontSize: "0.98rem", color: TEXT_MID, lineHeight: 1.55, margin: "0 0 13px" }}>{p.blurb}</p>}
                       {isActive && phaseBusy && pn.length === 0 ? (
                         <p style={{ fontFamily: SANS, fontSize: "0.98rem", color: TEXT_MID, marginBottom: 13 }}>Generating this phase…</p>
                       ) : (
