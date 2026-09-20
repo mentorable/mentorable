@@ -340,6 +340,46 @@ function PlanModal({ roadmap, onClose }) {
   );
 }
 
+// ─── Delete confirmation ──────────────────────────────────────────────────────
+const DANGER = "#dc2626";
+
+function DeleteRoadmapModal({ title, canRebuild, deleting, onConfirm, onCancel }) {
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 320, background: "rgba(20,20,19,0.45)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}
+      onClick={deleting ? undefined : onCancel}>
+      <motion.div initial={{ opacity: 0, y: 22, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        onClick={(e) => e.stopPropagation()}
+        style={{ width: "100%", maxWidth: 520, background: BG, borderRadius: 20, border: `1px solid ${BORDER}`, boxShadow: "0 30px 80px rgba(0,0,0,0.3)", padding: "1.9rem" }}>
+        <p style={{ fontFamily: SANS, fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.02em", color: DANGER, marginBottom: 7 }}>Delete Roadmap</p>
+        <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.4rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: 11, lineHeight: 1.25 }}>
+          Delete "{title}"?
+        </h2>
+        <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT_MID, lineHeight: 1.6, marginBottom: canRebuild ? 17 : 14 }}>
+          This clears the whole roadmap: every phase, all of its steps, and everything you have checked off. It cannot be undone.
+        </p>
+        {!canRebuild && (
+          <div style={{ background: AMBER_SOFT, border: `1.5px solid ${AMBER}55`, borderRadius: 12, padding: "12px 14px", marginBottom: 17 }}>
+            <p style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: "#7c4a03", lineHeight: 1.5, margin: 0 }}>
+              The demo includes one roadmap, and you have used it. Deleting this one means you will not be able to build another.
+            </p>
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onCancel} disabled={deleting}
+            style={{ flex: 1, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: deleting ? "default" : "pointer", padding: "12px", borderRadius: 11, border: `1.5px solid ${BORDER}`, background: WHITE, color: TEXT_MID }}>
+            Keep it
+          </button>
+          <button onClick={onConfirm} disabled={deleting}
+            style={{ flex: 1, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: deleting ? "default" : "pointer", padding: "12px", borderRadius: 11, border: "none", background: DANGER, color: WHITE, boxShadow: "0 6px 18px rgba(220,38,38,0.28)" }}>
+            {deleting ? "Deleting…" : "Delete roadmap"}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ─── Reflection modal (required before the next phase) ─────────────────────────
 function ReflectModal({ phase, nodeTitles, submitting, onSubmit, onCancel }) {
   const { accent } = useTheme();
@@ -396,6 +436,8 @@ export default function RoadmapPage({ navigate }) {
   const [reflectFor, setReflectFor] = useState(null);    // phase index pending reflection
   const [reflecting, setReflecting] = useState(false);
   const [phaseBusy, setPhaseBusy] = useState(false);     // a phase is being generated
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const pendingRef = useRef({ goal: "", endMonth: null });
   const userIdRef = useRef(null);
 
@@ -538,6 +580,25 @@ export default function RoadmapPage({ navigate }) {
   useEffect(() => {
     if (phase === "phasing" && !phaseBusy) setPhase("ready");
   }, [phase, phaseBusy]);
+
+  // Delete the roadmap. Archiving is how the app already retires a roadmap (the
+  // legacy sweep on load does the same), so the nodes/tasks rows stay intact and
+  // the user simply lands back on the goal-entry screen.
+  const handleDelete = useCallback(async () => {
+    if (!roadmap) return;
+    setDeleting(true);
+    const { error } = await supabase.from("roadmaps").update({ status: "archived" }).eq("id", roadmap.id);
+    setDeleting(false);
+    if (error) { console.error("[Roadmap] delete error:", error); return; }
+    setDeleteModal(false);
+    setPlanModal(false);
+    setReflectFor(null);
+    setRoadmap(null);
+    setNodes([]);
+    setTaskCounts({});
+    setExpanded(new Set());
+    setPhase("empty");
+  }, [roadmap]);
 
   const openNode = useCallback((node) => navigate(`/roadmap/node/${node.id}`), [navigate]);
 
@@ -715,11 +776,21 @@ export default function RoadmapPage({ navigate }) {
             <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.3rem", color: accent, letterSpacing: "-0.025em", lineHeight: 1.15 }}>
               {roadmap.display_title || roadmap.goal}
             </h1>
-            <button onClick={() => setPlanModal(true)}
-              style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: TEXT_MID, background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 10, display: "inline-flex", alignItems: "center", gap: 5 }}>
-              View full plan
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 10, flexWrap: "wrap" }}>
+              <button onClick={() => setPlanModal(true)}
+                style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: TEXT_MID, background: "none", border: "none", cursor: "pointer", padding: 0, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                View full plan
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+              <span style={{ width: 4, height: 4, borderRadius: "50%", background: BORDER, flexShrink: 0 }} />
+              <button onClick={() => setDeleteModal(true)}
+                style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: TEXT_MID, background: "none", border: "none", cursor: "pointer", padding: 0, display: "inline-flex", alignItems: "center", gap: 5, transition: "color 0.15s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = DANGER)}
+                onMouseLeave={(e) => (e.currentTarget.style.color = TEXT_MID)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Delete roadmap
+              </button>
+            </div>
           </motion.div>
 
           {/* Phases */}
@@ -804,6 +875,15 @@ export default function RoadmapPage({ navigate }) {
 
       <AnimatePresence>
         {planModal && roadmap && <PlanModal roadmap={roadmap} onClose={() => setPlanModal(false)} />}
+        {deleteModal && roadmap && (
+          <DeleteRoadmapModal
+            title={roadmap.display_title || roadmap.goal}
+            canRebuild={roadmapUsed < LIMITS.roadmap_gen}
+            deleting={deleting}
+            onConfirm={handleDelete}
+            onCancel={() => setDeleteModal(false)}
+          />
+        )}
         {reflectFor != null && phases[reflectFor] && (
           <ReflectModal
             phase={phases[reflectFor]}
