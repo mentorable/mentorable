@@ -211,6 +211,98 @@ function QuestionnaireStep({ questions, generating, onSubmit, onSkip }) {
   );
 }
 
+// ─── Shared loading screen (every roadmap wait state) ─────────────────────────
+const LOADING_CSS = `
+  @keyframes rm-spin    { to { transform: rotate(360deg) } }
+  @keyframes rm-breathe { 0% { transform: scale(0.92); opacity: 0.5 } 70%, 100% { transform: scale(1.5); opacity: 0 } }
+  @keyframes rm-rail    { 0% { left: -40% } 100% { left: 100% } }
+  @keyframes rm-sheen   { 0% { transform: translateX(-100%) } 55%, 100% { transform: translateX(220%) } }
+`;
+
+// The accent orb used by every loading state, so they all feel like one thing.
+function LoadingOrb({ size = 62 }) {
+  const ring = Math.max(2.5, size * 0.05);
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "rgba(var(--accent-rgb),0.2)", animation: "rm-breathe 2.6s ease-out infinite" }} />
+      <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `${ring}px solid rgba(var(--accent-rgb),0.16)`, borderTopColor: "var(--accent)", animation: "rm-spin 0.95s linear infinite" }} />
+      <div style={{ position: "absolute", inset: size * 0.19, borderRadius: "50%", border: `${ring}px solid rgba(var(--accent-rgb),0.1)`, borderBottomColor: "var(--accent)", animation: "rm-spin 1.6s linear infinite reverse" }} />
+    </div>
+  );
+}
+
+function SkelBar({ w, h = 12, mt = 0, tone = "mid", radius }) {
+  const bg = tone === "accent" ? "rgba(var(--accent-rgb),0.16)" : tone === "mid" ? "#e8e4df" : "#efece8";
+  return <div style={{ width: w, height: h, marginTop: mt, borderRadius: radius ?? h / 2, background: bg }} />;
+}
+
+function RoadmapLoading({ title, subtitle, messages = [], cards = 3 }) {
+  const { accent } = useTheme();
+  const [idx, setIdx] = useState(0);
+  const count = messages.length;
+
+  useEffect(() => {
+    setIdx(0);
+    if (count < 2) return;
+    const id = setInterval(() => setIdx((i) => Math.min(i + 1, count - 1)), 3400);
+    return () => clearInterval(id);
+  }, [count, title]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      style={{ maxWidth: 680, margin: "0 auto", width: "100%", paddingTop: "2.5rem" }}
+    >
+      <style>{LOADING_CSS}</style>
+
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
+        <LoadingOrb />
+      </div>
+
+      <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2rem", color: accent, letterSpacing: "-0.02em", textAlign: "center", marginBottom: 10 }}>
+        {title}
+      </h1>
+      <p style={{ fontFamily: SANS, fontSize: "1.02rem", color: TEXT_MUTED, lineHeight: 1.6, textAlign: "center", marginBottom: "1.4rem" }}>
+        {subtitle}
+      </p>
+
+      {count > 0 && (
+        <div style={{ height: 22, marginBottom: "1.5rem", position: "relative" }}>
+          <AnimatePresence mode="wait">
+            <motion.p key={idx}
+              initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -7 }} transition={{ duration: 0.3 }}
+              style={{ fontFamily: SANS, fontSize: "0.94rem", fontWeight: 600, color: TEXT_MID, textAlign: "center", margin: 0, position: "absolute", inset: 0 }}>
+              {messages[idx]}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* Indeterminate progress rail */}
+      <div style={{ position: "relative", height: 4, borderRadius: 99, background: "rgba(var(--accent-rgb),0.13)", overflow: "hidden", marginBottom: "1.9rem" }}>
+        <span style={{ position: "absolute", top: 0, bottom: 0, width: "40%", borderRadius: 99, background: "linear-gradient(90deg, transparent, var(--accent), transparent)", animation: "rm-rail 1.6s ease-in-out infinite" }} />
+      </div>
+
+      {/* Phase-shaped skeletons, so the wait looks like the page filling in */}
+      {Array.from({ length: cards }, (_, i) => (
+        <motion.div key={i}
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42, delay: 0.14 + i * 0.13, ease: [0.22, 1, 0.36, 1] }}
+          style={{ position: "relative", overflow: "hidden", background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: "20px 22px", marginBottom: 14 }}>
+          <SkelBar w={112} h={20} tone="accent" radius={7} />
+          <SkelBar w="68%" h={18} mt={14} />
+          <SkelBar w="92%" h={11} mt={13} tone="soft" />
+          <SkelBar w="54%" h={11} mt={8} tone="soft" />
+          <span style={{
+            position: "absolute", inset: 0, pointerEvents: "none",
+            background: "linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.85) 50%, transparent 80%)",
+            animation: "rm-sheen 2.1s ease-in-out infinite", animationDelay: `${i * 0.22}s`,
+          }} />
+        </motion.div>
+      ))}
+    </motion.div>
+  );
+}
+
 // ─── Full-plan modal (the broad outline, re-viewable any time) ─────────────────
 function PlanModal({ roadmap, onClose }) {
   const phases = roadmap.phases || [];
@@ -289,7 +381,7 @@ function ReflectModal({ phase, nodeTitles, submitting, onSubmit, onCancel }) {
 export default function RoadmapPage({ navigate }) {
   const isMobile = useIsMobile();
   const { accent } = useTheme();
-  const [phase, setPhase] = useState("loading");  // loading | empty | intake | generating | reveal | ready | error
+  const [phase, setPhase] = useState("loading");  // loading | empty | intake | generating | reveal | phasing | ready | error
   const [roadmap, setRoadmap] = useState(null);
   const [nodes, setNodes] = useState([]);
   const [taskCounts, setTaskCounts] = useState({});   // node_id → {done, total}
@@ -441,6 +533,12 @@ export default function RoadmapPage({ navigate }) {
     }
   }, []);
 
+  // "Start Phase 1" pressed while phase 1 is still generating: hold on the loading
+  // screen until it lands (generatePhase clears phaseBusy on success and on failure).
+  useEffect(() => {
+    if (phase === "phasing" && !phaseBusy) setPhase("ready");
+  }, [phase, phaseBusy]);
+
   const openNode = useCallback((node) => navigate(`/roadmap/node/${node.id}`), [navigate]);
 
   // Submit a phase reflection → score it, then generate the next phase.
@@ -488,8 +586,8 @@ export default function RoadmapPage({ navigate }) {
 
   if (phase === "loading") {
     return <div data-sidebar-offset style={{ ...pagePad, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: 26, height: 26, borderRadius: "50%", border: "3px solid rgba(var(--accent-rgb),0.2)", borderTopColor: "var(--accent)", animation: "rm-spin 0.7s linear infinite" }} />
-      <style>{`@keyframes rm-spin { to { transform: rotate(360deg) } }`}</style>
+      <LoadingOrb size={44} />
+      <style>{LOADING_CSS}</style>
     </div>;
   }
 
@@ -522,8 +620,17 @@ export default function RoadmapPage({ navigate }) {
   return (
     <div data-sidebar-offset style={pagePad}>
 
-      {phase === "empty" && (
+      {phase === "empty" && !starting && (
         <GoalEntry onStart={handleStart} starting={starting} atLimit={roadmapUsed >= LIMITS.roadmap_gen} onLimit={() => showLimit("roadmap_gen")} />
+      )}
+
+      {phase === "empty" && starting && (
+        <RoadmapLoading
+          title="Reading Your Goal"
+          subtitle="Mentorable is working out the few things it still needs to ask you."
+          messages={["Taking in what you wrote", "Checking what Mentorable already knows about you", "Picking the questions that matter"]}
+          cards={2}
+        />
       )}
 
       {phase === "intake" && (
@@ -531,12 +638,21 @@ export default function RoadmapPage({ navigate }) {
       )}
 
       {phase === "generating" && (
-        <div style={{ maxWidth: 680, margin: "3rem auto 0", textAlign: "center" }}>
-          <div style={{ width: 34, height: 34, borderRadius: "50%", border: "3px solid rgba(var(--accent-rgb),0.2)", borderTopColor: "var(--accent)", margin: "0 auto 1.4rem", animation: "rm-spin 0.7s linear infinite" }} />
-          <style>{`@keyframes rm-spin { to { transform: rotate(360deg) } }`}</style>
-          <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.8rem", color: accent, letterSpacing: "-0.02em", marginBottom: 8 }}>Mapping your phases…</h1>
-          <p style={{ fontFamily: SANS, fontSize: "1.02rem", color: TEXT_MUTED }}>Laying out the broad stages of your path. This takes a moment.</p>
-        </div>
+        <RoadmapLoading
+          title="Mapping Your Phases"
+          subtitle="Laying out the broad stages of your path. This takes a moment."
+          messages={["Shaping the stages you'll move through", "Pacing them across your timeline", "Setting a focus for every month", "Putting it all together"]}
+          cards={3}
+        />
+      )}
+
+      {phase === "phasing" && (
+        <RoadmapLoading
+          title="Preparing Phase 1"
+          subtitle="Turning the first stage into the concrete work you'll actually do."
+          messages={["Breaking the phase into real steps", "Choosing projects, research and activities", "Tuning the depth to where you are", "Nearly ready"]}
+          cards={3}
+        />
       )}
 
       {phase === "error" && (
@@ -574,9 +690,9 @@ export default function RoadmapPage({ navigate }) {
               </div>
             );
           })}
-          <button onClick={() => setPhase("ready")}
+          <button onClick={() => setPhase(phaseBusy ? "phasing" : "ready")}
             style={{ width: "100%", fontFamily: SANS, fontSize: "1.05rem", fontWeight: 700, cursor: "pointer", padding: "15px", borderRadius: 12, border: "none", marginTop: "0.6rem", background: "var(--accent)", color: WHITE, boxShadow: "0 6px 20px rgba(var(--accent-rgb),0.3)" }}>
-            {phaseBusy ? "Preparing Phase 1…" : "Start Phase 1"}
+            Start Phase 1
           </button>
         </motion.div>
       )}
