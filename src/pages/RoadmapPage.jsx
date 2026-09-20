@@ -72,49 +72,38 @@ function glowRgba(hex, a) {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
 }
 
-// One node: a glowing disc. Untouched sits flat and quiet, an opened node
-// lights up in its pillar color with the ring tracking checklist progress,
-// and a finished node goes solid green with a check.
+// One node: the outline itself is the progress bar, filling clockwise in the
+// pillar color. Done goes solid green with a check. Nothing distinguishes an
+// opened node from an untouched one.
 function NodeCircle({ node, pct, size }) {
   const ps = pillarStyle(node.pillar);
   const isDone = node.state === "done";
-  const live = node.state !== "explore";
   const c = isDone ? GREEN : ps.dot;
   const stroke = Math.max(3.5, size * 0.055);
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
 
-  const glow = isDone
-    ? `0 0 0 7px ${BG}, 0 10px 26px ${glowRgba(GREEN, 0.4)}, 0 0 26px ${glowRgba(GREEN, 0.34)}`
-    : live
-      ? `0 0 0 7px ${BG}, 0 8px 22px ${glowRgba(c, 0.26)}, 0 0 20px ${glowRgba(c, 0.2)}`
-      : `0 0 0 7px ${BG}, 0 4px 14px rgba(20,20,19,0.07)`;
-
   return (
     <span className="rm-node" style={{
       position: "relative", width: size, height: size, borderRadius: "50%", flexShrink: 0,
       display: "inline-flex", alignItems: "center", justifyContent: "center",
-      background: isDone
-        ? "linear-gradient(145deg, #10b981, #047857)"
-        : `linear-gradient(145deg, #ffffff, ${live ? glowRgba(c, 0.09) : "#f4f1ed"})`,
-      boxShadow: glow,
+      background: isDone ? "linear-gradient(145deg, #10b981, #047857)" : WHITE,
+      boxShadow: isDone
+        ? `0 2px 10px ${glowRgba(GREEN, 0.22)}`
+        : "0 2px 8px rgba(20,20,19,0.05)",
     }}>
       {isDone ? (
         <svg width={size * 0.44} height={size * 0.44} viewBox="0 0 24 24" fill="none" stroke={WHITE} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12" />
         </svg>
       ) : (
-        <>
-          <svg width={size} height={size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={c} strokeOpacity={live ? 0.18 : 0.26} strokeWidth={stroke} />
-            {pct > 0 && (
-              <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={c} strokeWidth={stroke}
-                strokeLinecap="round" strokeDasharray={`${circ * pct} ${circ}`}
-                style={{ filter: `drop-shadow(0 0 5px ${glowRgba(c, 0.85)})` }} />
-            )}
-          </svg>
-          <span style={{ width: size * 0.15, height: size * 0.15, borderRadius: "50%", background: c, opacity: live ? 0.9 : 0.3, boxShadow: live ? `0 0 10px ${glowRgba(c, 0.8)}` : "none" }} />
-        </>
+        <svg width={size} height={size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={c} strokeOpacity={0.17} strokeWidth={stroke} />
+          {pct > 0 && (
+            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={c} strokeWidth={stroke}
+              strokeLinecap="round" strokeDasharray={`${circ * pct} ${circ}`} />
+          )}
+        </svg>
       )}
     </span>
   );
@@ -129,7 +118,7 @@ function NodeTree({ nodes, taskCounts, isMobile, onOpen }) {
   const spine = isMobile ? `${size / 2 + 2}px` : "50%";
   const cy = (i) => i * rowH + rowH / 2;
   const gapFromSpine = size / 2 + 26;
-  const segInset = size / 2 + 11;
+  const segInset = size / 2 + 9;
 
   return (
     <div style={{ position: "relative", height: total, marginBottom: 12 }}>
@@ -141,9 +130,9 @@ function NodeTree({ nodes, taskCounts, isMobile, onOpen }) {
             position: "absolute", left: spine, transform: "translateX(-50%)",
             top: cy(i) + segInset, height: rowH - segInset * 2, width: linked ? 3 : 2.5, borderRadius: 2,
             background: linked
-              ? `linear-gradient(180deg, ${GREEN}, ${GREEN})`
+              ? GREEN
               : "linear-gradient(180deg, rgba(20,20,19,0.06), rgba(20,20,19,0.13), rgba(20,20,19,0.06))",
-            boxShadow: linked ? `0 0 12px ${glowRgba(GREEN, 0.45)}` : "none",
+            opacity: linked ? 0.5 : 1,
           }} />
         );
       })}
