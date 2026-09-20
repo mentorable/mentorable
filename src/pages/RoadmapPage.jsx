@@ -148,7 +148,7 @@ function GoalEntry({ onStart, starting, atLimit, onLimit }) {
           A couple of quick questions next. The demo includes one roadmap.
         </p>
       </div>
-      <p style={{ fontFamily: SANS, fontSize: "0.86rem", color: TEXT_FAINT, textAlign: "center", marginTop: "1.3rem" }}>
+      <p style={{ fontFamily: SANS, fontSize: "0.98rem", color: TEXT_MID, textAlign: "center", marginTop: "1.3rem" }}>
         Tip: the more specific your goal, the better your roadmap will be.
       </p>
     </motion.div>
