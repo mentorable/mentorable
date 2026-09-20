@@ -219,7 +219,7 @@ const LOADING_CSS = `
   @keyframes rm-spin    { to { transform: rotate(360deg) } }
   @keyframes rm-breathe { 0% { transform: scale(0.92); opacity: 0.5 } 70%, 100% { transform: scale(1.5); opacity: 0 } }
   @keyframes rm-rail    { 0% { left: -40% } 100% { left: 100% } }
-  @keyframes rm-sheen   { 0% { transform: translateX(-100%) } 55%, 100% { transform: translateX(220%) } }
+  @keyframes rm-bar     { 0%, 100% { transform: scaleY(0.35) } 50% { transform: scaleY(1) } }
 `;
 
 // The accent orb used by every loading state, so they all feel like one thing.
@@ -234,12 +234,25 @@ function LoadingOrb({ size = 62 }) {
   );
 }
 
-function SkelBar({ w, h = 12, mt = 0, tone = "mid", radius }) {
-  const bg = tone === "accent" ? "rgba(var(--accent-rgb),0.16)" : tone === "mid" ? "#e8e4df" : "#efece8";
-  return <div style={{ width: w, height: h, marginTop: mt, borderRadius: radius ?? h / 2, background: bg }} />;
+// A generic "working on it" visual: doesn't mimic any specific page layout,
+// so it never looks mismatched with whatever screen appears once loading ends.
+function LoadingBars() {
+  const heights = [0.5, 0.85, 0.65, 1, 0.7];
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 8, height: 46 }}>
+      {heights.map((h, i) => (
+        <span key={i} style={{
+          width: 9, height: `${h * 46}px`, borderRadius: 5,
+          background: "linear-gradient(180deg, var(--accent), var(--accent-light))",
+          transformOrigin: "bottom", animation: "rm-bar 1.1s ease-in-out infinite",
+          animationDelay: `${i * 0.12}s`,
+        }} />
+      ))}
+    </div>
+  );
 }
 
-function RoadmapLoading({ title, subtitle, messages = [], cards = 3 }) {
+function RoadmapLoading({ title, subtitle, messages = [] }) {
   const { accent } = useTheme();
   const [idx, setIdx] = useState(0);
   const count = messages.length;
@@ -282,26 +295,11 @@ function RoadmapLoading({ title, subtitle, messages = [], cards = 3 }) {
       )}
 
       {/* Indeterminate progress rail */}
-      <div style={{ position: "relative", height: 4, borderRadius: 99, background: "rgba(var(--accent-rgb),0.13)", overflow: "hidden", marginBottom: "1.9rem" }}>
+      <div style={{ position: "relative", height: 4, borderRadius: 99, background: "rgba(var(--accent-rgb),0.13)", overflow: "hidden", marginBottom: "2.2rem" }}>
         <span style={{ position: "absolute", top: 0, bottom: 0, width: "40%", borderRadius: 99, background: "linear-gradient(90deg, transparent, var(--accent), transparent)", animation: "rm-rail 1.6s ease-in-out infinite" }} />
       </div>
 
-      {/* Phase-shaped skeletons, so the wait looks like the page filling in */}
-      {Array.from({ length: cards }, (_, i) => (
-        <motion.div key={i}
-          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42, delay: 0.14 + i * 0.13, ease: [0.22, 1, 0.36, 1] }}
-          style={{ position: "relative", overflow: "hidden", background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: "20px 22px", marginBottom: 14 }}>
-          <SkelBar w={112} h={20} tone="accent" radius={7} />
-          <SkelBar w="68%" h={18} mt={14} />
-          <SkelBar w="92%" h={11} mt={13} tone="soft" />
-          <SkelBar w="54%" h={11} mt={8} tone="soft" />
-          <span style={{
-            position: "absolute", inset: 0, pointerEvents: "none",
-            background: "linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.85) 50%, transparent 80%)",
-            animation: "rm-sheen 2.1s ease-in-out infinite", animationDelay: `${i * 0.22}s`,
-          }} />
-        </motion.div>
-      ))}
+      <LoadingBars />
     </motion.div>
   );
 }
@@ -693,7 +691,6 @@ export default function RoadmapPage({ navigate }) {
           title="Reading Your Goal"
           subtitle="Mentorable is working out the few things it still needs to ask you."
           messages={["Taking in what you wrote", "Checking what Mentorable already knows about you", "Picking the questions that matter"]}
-          cards={2}
         />
       )}
 
@@ -706,7 +703,6 @@ export default function RoadmapPage({ navigate }) {
           title="Mapping Your Phases"
           subtitle="Laying out the broad stages of your path. This takes a moment."
           messages={["Shaping the stages you'll move through", "Pacing them across your timeline", "Setting a focus for every month", "Putting it all together"]}
-          cards={3}
         />
       )}
 
@@ -715,7 +711,6 @@ export default function RoadmapPage({ navigate }) {
           title="Preparing Phase 1"
           subtitle="Turning the first stage into the concrete work you'll actually do."
           messages={["Breaking the phase into real steps", "Choosing projects, research and activities", "Tuning the depth to where you are", "Nearly ready"]}
-          cards={3}
         />
       )}
 
