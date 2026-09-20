@@ -59,44 +59,62 @@ function prettyMonth(val) {
 
 // ─── Node tree (the nodes inside an expanded phase) ───────────────────────────
 const TREE_CSS = `
-  .rm-node { transition: transform 0.18s cubic-bezier(0.22,1,0.36,1); display: inline-flex; }
-  .rm-node-btn:hover .rm-node { transform: scale(1.07); }
-  .rm-node-btn:hover .rm-node-title { text-decoration: underline; text-underline-offset: 3px; }
-  .rm-node-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 12px; }
+  .rm-node { transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s ease; }
+  .rm-node-btn:hover .rm-node { transform: scale(1.06); }
+  .rm-node-btn:hover .rm-node-title { color: var(--accent); }
+  .rm-node-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 14px; }
 `;
 
-const TREE_LINE = "#d6d0c8";
+// Pillar hex + alpha → rgba, for the glow layers.
+function glowRgba(hex, a) {
+  const h = hex.replace("#", "");
+  const n = parseInt(h, 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+}
 
-// One circle: dashed ring until opened, ring fills with task progress, solid
-// green with a check once done.
+// One node: a glowing disc. Untouched sits flat and quiet, an opened node
+// lights up in its pillar color with the ring tracking checklist progress,
+// and a finished node goes solid green with a check.
 function NodeCircle({ node, pct, size }) {
   const ps = pillarStyle(node.pillar);
   const isDone = node.state === "done";
-  const untouched = node.state === "explore";
-  const stroke = Math.max(3, size * 0.067);
+  const live = node.state !== "explore";
+  const c = isDone ? GREEN : ps.dot;
+  const stroke = Math.max(3.5, size * 0.055);
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
+
+  const glow = isDone
+    ? `0 0 0 7px ${BG}, 0 10px 26px ${glowRgba(GREEN, 0.4)}, 0 0 26px ${glowRgba(GREEN, 0.34)}`
+    : live
+      ? `0 0 0 7px ${BG}, 0 8px 22px ${glowRgba(c, 0.26)}, 0 0 20px ${glowRgba(c, 0.2)}`
+      : `0 0 0 7px ${BG}, 0 4px 14px rgba(20,20,19,0.07)`;
+
   return (
     <span className="rm-node" style={{
       position: "relative", width: size, height: size, borderRadius: "50%", flexShrink: 0,
-      alignItems: "center", justifyContent: "center",
-      background: isDone ? GREEN : WHITE,
-      // A page-colored halo punches the gap that makes connectors read edge-to-edge.
-      boxShadow: `0 0 0 5px ${BG}`,
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      background: isDone
+        ? "linear-gradient(145deg, #10b981, #047857)"
+        : `linear-gradient(145deg, #ffffff, ${live ? glowRgba(c, 0.09) : "#f4f1ed"})`,
+      boxShadow: glow,
     }}>
       {isDone ? (
-        <svg width={size * 0.44} height={size * 0.44} viewBox="0 0 24 24" fill="none" stroke={WHITE} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+        <svg width={size * 0.44} height={size * 0.44} viewBox="0 0 24 24" fill="none" stroke={WHITE} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12" />
         </svg>
       ) : (
-        <svg width={size} height={size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={ps.dot} strokeWidth={stroke}
-            strokeOpacity={untouched ? 0.45 : 0.24} strokeDasharray={untouched ? "5 6" : undefined} />
-          {pct > 0 && (
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={ps.dot} strokeWidth={stroke}
-              strokeLinecap="round" strokeDasharray={`${circ * pct} ${circ}`} />
-          )}
-        </svg>
+        <>
+          <svg width={size} height={size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={c} strokeOpacity={live ? 0.18 : 0.26} strokeWidth={stroke} />
+            {pct > 0 && (
+              <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={c} strokeWidth={stroke}
+                strokeLinecap="round" strokeDasharray={`${circ * pct} ${circ}`}
+                style={{ filter: `drop-shadow(0 0 5px ${glowRgba(c, 0.85)})` }} />
+            )}
+          </svg>
+          <span style={{ width: size * 0.15, height: size * 0.15, borderRadius: "50%", background: c, opacity: live ? 0.9 : 0.3, boxShadow: live ? `0 0 10px ${glowRgba(c, 0.8)}` : "none" }} />
+        </>
       )}
     </span>
   );
@@ -104,49 +122,54 @@ function NodeCircle({ node, pct, size }) {
 
 function NodeTree({ nodes, taskCounts, isMobile, onOpen }) {
   if (!nodes.length) return null;
-  const size = isMobile ? 48 : 60;
-  const rowH = isMobile ? 96 : 118;
+  const size = isMobile ? 58 : 78;
+  const rowH = isMobile ? 112 : 142;
   const total = nodes.length * rowH;
-  // Desktop zigzags between two columns; mobile runs a straight left spine.
-  const cx = (i) => (isMobile ? `${size / 2 + 4}px` : i % 2 === 0 ? "26%" : "60%");
+  // A single vertical spine: centred on desktop, left-hand on mobile.
+  const spine = isMobile ? `${size / 2 + 2}px` : "50%";
   const cy = (i) => i * rowH + rowH / 2;
-  const gap = size / 2 + 20;
+  const gapFromSpine = size / 2 + 26;
+  const segInset = size / 2 + 11;
 
   return (
-    <div style={{ position: "relative", height: total, marginBottom: 10 }}>
-      {/* Connectors sit behind the circles; each circle's halo trims them to its edge. */}
-      <svg width="100%" height={total} style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "visible" }}>
-        {nodes.slice(0, -1).map((n, i) => {
-          const linked = n.state === "done" && nodes[i + 1].state === "done";
-          return (
-            <line key={n.id} x1={cx(i)} y1={cy(i)} x2={cx(i + 1)} y2={cy(i + 1)}
-              stroke={linked ? GREEN : TREE_LINE} strokeWidth={linked ? 3 : 2.5} strokeLinecap="round" />
-          );
-        })}
-      </svg>
+    <div style={{ position: "relative", height: total, marginBottom: 12 }}>
+      {/* Spine segments, behind the discs; each disc's halo trims them to its edge. */}
+      {nodes.slice(0, -1).map((n, i) => {
+        const linked = n.state === "done" && nodes[i + 1].state === "done";
+        return (
+          <span key={`seg-${n.id}`} style={{
+            position: "absolute", left: spine, transform: "translateX(-50%)",
+            top: cy(i) + segInset, height: rowH - segInset * 2, width: linked ? 3 : 2.5, borderRadius: 2,
+            background: linked
+              ? `linear-gradient(180deg, ${GREEN}, ${GREEN})`
+              : "linear-gradient(180deg, rgba(20,20,19,0.06), rgba(20,20,19,0.13), rgba(20,20,19,0.06))",
+            boxShadow: linked ? `0 0 12px ${glowRgba(GREEN, 0.45)}` : "none",
+          }} />
+        );
+      })}
 
       {nodes.map((node, i) => {
         const ps = pillarStyle(node.pillar);
         const tc = taskCounts[node.id];
         const isDone = node.state === "done";
         const pct = tc && tc.total ? Math.min(1, tc.done / tc.total) : 0;
-        const onLeft = isMobile || i % 2 === 0;
+        // Text alternates sides of the spine; on mobile it always sits right.
         const textPos = isMobile
-          ? { left: size + 20, right: 2, textAlign: "left" }
-          : onLeft
-            ? { left: `calc(26% + ${gap}px)`, right: "5%", textAlign: "left" }
-            : { left: "5%", right: `calc(40% + ${gap}px)`, textAlign: "right" };
+          ? { left: size + 22, right: 2, textAlign: "left" }
+          : i % 2 === 0
+            ? { left: `calc(50% + ${gapFromSpine}px)`, right: "3%", textAlign: "left" }
+            : { left: "3%", right: `calc(50% + ${gapFromSpine}px)`, textAlign: "right" };
         return (
           <button key={node.id} className="rm-node-btn" onClick={() => onOpen(node)}
             style={{ position: "absolute", top: i * rowH, left: 0, right: 0, height: rowH, width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
-            <span style={{ position: "absolute", top: "50%", left: cx(i), transform: "translate(-50%,-50%)", zIndex: 1, display: "inline-flex" }}>
+            <span style={{ position: "absolute", top: "50%", left: spine, transform: "translate(-50%,-50%)", zIndex: 1, display: "inline-flex" }}>
               <NodeCircle node={node} pct={pct} size={size} />
             </span>
             <span style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", ...textPos }}>
-              <span style={{ display: "block", fontFamily: SANS, fontSize: isMobile ? 11.5 : 12.5, fontWeight: 700, color: isDone ? TEXT_FAINT : ps.color, marginBottom: 4 }}>
+              <span style={{ display: "block", fontFamily: SANS, fontSize: isMobile ? 11.5 : 12.5, fontWeight: 700, letterSpacing: "0.01em", color: isDone ? TEXT_FAINT : ps.color, marginBottom: 5 }}>
                 {node.pillar}
               </span>
-              <span className="rm-node-title" style={{ display: "block", fontFamily: SANS, fontWeight: 700, fontSize: isMobile ? 15.5 : 17, lineHeight: 1.3, color: isDone ? TEXT_MUTED : TEXT }}>
+              <span className="rm-node-title" style={{ display: "block", fontFamily: SANS, fontWeight: 700, fontSize: isMobile ? 16 : 18.5, lineHeight: 1.3, letterSpacing: "-0.01em", color: isDone ? TEXT_MUTED : TEXT, transition: "color 0.18s ease" }}>
                 {node.title}
               </span>
             </span>
