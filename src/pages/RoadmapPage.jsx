@@ -313,7 +313,7 @@ function PlanModal({ roadmap, onClose }) {
       <motion.div initial={{ opacity: 0, y: 22, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         onClick={(e) => e.stopPropagation()}
         style={{ width: "100%", maxWidth: 640, maxHeight: "85vh", overflowY: "auto", background: BG, borderRadius: 20, border: `1px solid ${BORDER}`, boxShadow: "0 30px 80px rgba(0,0,0,0.3)", padding: "1.9rem" }}>
-        <p style={{ fontFamily: SANS, fontSize: "0.8rem", fontWeight: 700, letterSpacing: "0.02em", color: "var(--accent)", marginBottom: 7 }}>The Big Picture</p>
+        <p style={{ fontFamily: SANS, fontSize: "0.8rem", fontWeight: 700, letterSpacing: "0.02em", color: TEXT, marginBottom: 7 }}>The Big Picture</p>
         <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.5rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: 18 }}>{roadmap.display_title || roadmap.goal}</h2>
         {phases.map((p, i) => {
           const pal = phasePalette(i);
