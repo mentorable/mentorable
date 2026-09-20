@@ -6,6 +6,7 @@ import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
+import { useTheme } from "../lib/ThemeContext.jsx";
 
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
@@ -16,7 +17,6 @@ const WHITE       = "#ffffff";
 const BLUE        = "#1d4ed8";
 const BLUE_MID    = "#3b82f6";
 const BLUE_TINT   = "#f0f5ff";
-const BLUE_SOFT   = "#dbeafe";
 const GREEN       = "#059669";
 const GREEN_SOFT  = "#d1fae5";
 const AMBER       = "#d97706";
@@ -72,6 +72,7 @@ function DepthPips({ depth }) {
 
 // ─── Goal-capture entry (empty state) ─────────────────────────────────────────
 function GoalEntry({ onStart, starting, atLimit, onLimit }) {
+  const { accent } = useTheme();
   const [goal, setGoal] = useState("");
   const [decide, setDecide] = useState(true);
   const [endMonth, setEndMonth] = useState("");
@@ -85,19 +86,19 @@ function GoalEntry({ onStart, starting, atLimit, onLimit }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-      style={{ maxWidth: 560, margin: "0 auto", width: "100%", textAlign: "center", paddingTop: "2rem" }}
+      style={{ maxWidth: 680, margin: "0 auto", width: "100%", textAlign: "center", paddingTop: "2rem" }}
     >
-      <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2rem", color: TEXT, letterSpacing: "-0.03em", marginBottom: "0.6rem" }}>
-        Build your roadmap
+      <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.4rem", color: accent, letterSpacing: "-0.03em", marginBottom: "0.7rem" }}>
+        Build Your Roadmap
       </h1>
-      <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT_MUTED, lineHeight: 1.6, marginBottom: "2rem", maxWidth: 460, marginLeft: "auto", marginRight: "auto" }}>
+      <p style={{ fontFamily: SANS, fontSize: "1.08rem", color: TEXT_MUTED, lineHeight: 1.6, marginBottom: "2.25rem", maxWidth: 520, marginLeft: "auto", marginRight: "auto" }}>
         Tell Mentorable your ultimate goal. You'll get a path built in phases, the broad stages you
         move through. You unlock and shape each phase as you go.
       </p>
 
-      <div style={{ textAlign: "left", background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: "1.5rem", boxShadow: "0 2px 12px rgba(15,23,42,0.05)" }}>
-        <label style={{ fontFamily: SANS, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: BLUE, display: "block", marginBottom: 8 }}>
-          Your ultimate goal
+      <div style={{ textAlign: "left", background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 20, padding: "2rem", boxShadow: "0 2px 12px rgba(15,23,42,0.05)" }}>
+        <label style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.02em", color: accent, display: "block", marginBottom: 9 }}>
+          Your Ultimate Goal
         </label>
         <textarea
           value={goal}
@@ -105,33 +106,33 @@ function GoalEntry({ onStart, starting, atLimit, onLimit }) {
           placeholder="e.g. Get into a top CS program and build a standout portfolio"
           rows={3}
           style={{
-            width: "100%", fontFamily: SANS, fontSize: "1rem", color: TEXT, lineHeight: 1.55,
-            border: `1.5px solid ${BORDER}`, borderRadius: 12, padding: "12px 14px", resize: "vertical",
-            outline: "none", background: BG, marginBottom: "1.25rem",
+            width: "100%", fontFamily: SANS, fontSize: "1.05rem", color: TEXT, lineHeight: 1.55,
+            border: `1.5px solid ${BORDER}`, borderRadius: 12, padding: "13px 15px", resize: "vertical",
+            outline: "none", background: BG, marginBottom: "1.4rem",
           }}
-          onFocus={(e) => (e.target.style.borderColor = BLUE)}
+          onFocus={(e) => (e.target.style.borderColor = accent)}
           onBlur={(e) => (e.target.style.borderColor = BORDER)}
         />
 
-        <label style={{ fontFamily: SANS, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: BLUE, display: "block", marginBottom: 8 }}>
-          When do you want to reach it?
+        <label style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.02em", color: accent, display: "block", marginBottom: 9 }}>
+          When Do You Want to Reach It?
         </label>
-        <div style={{ display: "flex", gap: 8, marginBottom: "0.6rem", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 9, marginBottom: "0.7rem", flexWrap: "wrap" }}>
           <button onClick={() => setDecide(true)}
-            style={{ fontFamily: SANS, fontSize: "0.86rem", fontWeight: 600, cursor: "pointer", padding: "7px 14px", borderRadius: 99, border: `1.5px solid ${decide ? BLUE : BORDER}`, background: decide ? BLUE : WHITE, color: decide ? WHITE : TEXT_MID, transition: "all 0.15s" }}>
-            Let Mentorable decide
+            style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, cursor: "pointer", padding: "8px 16px", borderRadius: 99, border: `1.5px solid ${decide ? accent : BORDER}`, background: decide ? accent : WHITE, color: decide ? WHITE : TEXT_MID, transition: "all 0.15s" }}>
+            Let Mentorable Decide
           </button>
           <button onClick={() => setDecide(false)}
-            style={{ fontFamily: SANS, fontSize: "0.86rem", fontWeight: 600, cursor: "pointer", padding: "7px 14px", borderRadius: 99, border: `1.5px solid ${!decide ? BLUE : BORDER}`, background: !decide ? BLUE : WHITE, color: !decide ? WHITE : TEXT_MID, transition: "all 0.15s" }}>
-            Pick a target month
+            style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, cursor: "pointer", padding: "8px 16px", borderRadius: 99, border: `1.5px solid ${!decide ? accent : BORDER}`, background: !decide ? accent : WHITE, color: !decide ? WHITE : TEXT_MID, transition: "all 0.15s" }}>
+            Pick a Target Month
           </button>
         </div>
         {!decide && (
           <div style={{ marginBottom: "0.4rem" }}>
             <input type="month" value={endMonth} min={minMonth} max={maxMonth}
               onChange={(e) => setEndMonth(e.target.value)}
-              style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT, background: BG, border: `1.5px solid ${endMonth && !validMonth ? "#dc2626" : BORDER}`, borderRadius: 10, padding: "10px 12px", outline: "none", width: "100%" }} />
-            <p style={{ fontFamily: SANS, fontSize: "0.74rem", color: TEXT_FAINT, marginTop: 6 }}>
+              style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT, background: BG, border: `1.5px solid ${endMonth && !validMonth ? "#dc2626" : BORDER}`, borderRadius: 10, padding: "11px 13px", outline: "none", width: "100%" }} />
+            <p style={{ fontFamily: SANS, fontSize: "0.78rem", color: TEXT_MID, marginTop: 7 }}>
               Anywhere from {prettyMonth(minMonth)} to {prettyMonth(maxMonth)}. Mastery takes time.
             </p>
           </div>
@@ -140,10 +141,10 @@ function GoalEntry({ onStart, starting, atLimit, onLimit }) {
         <button
           onClick={() => { if (atLimit) { onLimit(); return; } if (canGo) onStart(goal.trim(), decide ? null : `${endMonth}-01`); }}
           disabled={!canGo}
-          style={{ width: "100%", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: canGo ? "pointer" : "not-allowed", padding: "14px", borderRadius: 12, border: "none", marginTop: "1rem", background: canGo ? "var(--accent)" : "#c7d2e8", color: WHITE, boxShadow: canGo ? "0 6px 20px rgba(var(--accent-rgb),0.3)" : "none", transition: "all 0.15s" }}>
+          style={{ width: "100%", fontFamily: SANS, fontSize: "1.05rem", fontWeight: 700, cursor: canGo ? "pointer" : "not-allowed", padding: "15px", borderRadius: 12, border: "none", marginTop: "1.1rem", background: canGo ? "var(--accent)" : "#c7d2e8", color: WHITE, boxShadow: canGo ? "0 6px 20px rgba(var(--accent-rgb),0.3)" : "none", transition: "all 0.15s" }}>
           {starting ? "Setting up…" : "Continue"}
         </button>
-        <p style={{ fontFamily: SANS, fontSize: "0.78rem", color: TEXT_FAINT, textAlign: "center", marginTop: 10 }}>
+        <p style={{ fontFamily: SANS, fontSize: "0.84rem", color: TEXT_MID, textAlign: "center", marginTop: 11 }}>
           A couple of quick questions next. The demo includes one roadmap.
         </p>
       </div>
@@ -153,28 +154,29 @@ function GoalEntry({ onStart, starting, atLimit, onLimit }) {
 
 // ─── Intake questionnaire (<=3 gap-only questions, skippable) ──────────────────
 function QuestionnaireStep({ questions, generating, onSubmit, onSkip }) {
+  const { accent } = useTheme();
   const [answers, setAnswers] = useState({});
   const setAns = (id, v) => setAnswers((a) => ({ ...a, [id]: v }));
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}
-      style={{ maxWidth: 560, margin: "0 auto", width: "100%", paddingTop: "2rem" }}
+      style={{ maxWidth: 680, margin: "0 auto", width: "100%", paddingTop: "2rem" }}
     >
-      <div style={{ textAlign: "center", marginBottom: "1.75rem" }}>
-        <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.7rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: "0.5rem" }}>A couple of quick things</h1>
-        <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.6 }}>This helps Mentorable tailor your roadmap. Answer what you like, and skip any you want.</p>
+      <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+        <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2rem", color: accent, letterSpacing: "-0.02em", marginBottom: "0.6rem" }}>A Couple of Quick Things</h1>
+        <p style={{ fontFamily: SANS, fontSize: "1.02rem", color: TEXT_MUTED, lineHeight: 1.6 }}>This helps Mentorable tailor your roadmap. Answer what you like, and skip any you want.</p>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: "1.5rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 18, marginBottom: "1.75rem" }}>
         {questions.map((q) => (
-          <div key={q.id} style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "1.1rem 1.2rem" }}>
-            <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.98rem", color: TEXT, marginBottom: 12, lineHeight: 1.4 }}>{q.prompt}</p>
+          <div key={q.id} style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "1.3rem 1.4rem" }}>
+            <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: TEXT, marginBottom: 14, lineHeight: 1.4 }}>{q.prompt}</p>
             {q.type === "mcq" ? (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 9 }}>
                 {q.options.map((opt) => {
                   const active = answers[q.id] === opt;
                   return (
                     <button key={opt} onClick={() => setAns(q.id, active ? undefined : opt)}
-                      style={{ fontFamily: SANS, fontSize: "0.86rem", fontWeight: 600, cursor: "pointer", padding: "7px 14px", borderRadius: 99, border: `1.5px solid ${active ? BLUE : BORDER}`, background: active ? BLUE : WHITE, color: active ? WHITE : TEXT_MID, transition: "all 0.15s" }}>
+                      style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, cursor: "pointer", padding: "8px 16px", borderRadius: 99, border: `1.5px solid ${active ? accent : BORDER}`, background: active ? accent : WHITE, color: active ? WHITE : TEXT_MID, transition: "all 0.15s" }}>
                       {opt}
                     </button>
                   );
@@ -182,8 +184,8 @@ function QuestionnaireStep({ questions, generating, onSubmit, onSkip }) {
               </div>
             ) : (
               <input type="text" value={answers[q.id] || ""} onChange={(e) => setAns(q.id, e.target.value)} placeholder="Your answer (optional)"
-                style={{ width: "100%", fontFamily: SANS, fontSize: "0.95rem", color: TEXT, background: BG, border: `1.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px", outline: "none" }}
-                onFocus={(e) => (e.target.style.borderColor = BLUE)} onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+                style={{ width: "100%", fontFamily: SANS, fontSize: "1.02rem", color: TEXT, background: BG, border: `1.5px solid ${BORDER}`, borderRadius: 10, padding: "11px 13px", outline: "none" }}
+                onFocus={(e) => (e.target.style.borderColor = accent)} onBlur={(e) => (e.target.style.borderColor = BORDER)} />
             )}
           </div>
         ))}
@@ -198,11 +200,11 @@ function QuestionnaireStep({ questions, generating, onSubmit, onSkip }) {
           onSubmit(clean);
         }}
         disabled={generating}
-        style={{ width: "100%", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: generating ? "default" : "pointer", padding: "14px", borderRadius: 12, border: "none", background: "var(--accent)", color: WHITE, boxShadow: "0 6px 20px rgba(var(--accent-rgb),0.3)", transition: "all 0.15s" }}>
+        style={{ width: "100%", fontFamily: SANS, fontSize: "1.05rem", fontWeight: 700, cursor: generating ? "default" : "pointer", padding: "15px", borderRadius: 12, border: "none", background: "var(--accent)", color: WHITE, boxShadow: "0 6px 20px rgba(var(--accent-rgb),0.3)", transition: "all 0.15s" }}>
         {generating ? "Building your roadmap…" : "Build my roadmap"}
       </button>
       <button onClick={onSkip} disabled={generating}
-        style={{ width: "100%", fontFamily: SANS, fontSize: "0.86rem", fontWeight: 600, cursor: "pointer", color: TEXT_MUTED, background: "none", border: "none", marginTop: 12 }}>
+        style={{ width: "100%", fontFamily: SANS, fontSize: "0.9rem", fontWeight: 600, cursor: "pointer", color: TEXT_MID, background: "none", border: "none", marginTop: 13 }}>
         Skip and build
       </button>
     </motion.div>
@@ -218,29 +220,29 @@ function PlanModal({ roadmap, onClose }) {
       onClick={onClose}>
       <motion.div initial={{ opacity: 0, y: 22, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         onClick={(e) => e.stopPropagation()}
-        style={{ width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto", background: BG, borderRadius: 20, border: `1px solid ${BORDER}`, boxShadow: "0 30px 80px rgba(0,0,0,0.3)", padding: "1.75rem" }}>
-        <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 6 }}>The big picture</p>
-        <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.35rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: 16 }}>{roadmap.display_title || roadmap.goal}</h2>
+        style={{ width: "100%", maxWidth: 640, maxHeight: "85vh", overflowY: "auto", background: BG, borderRadius: 20, border: `1px solid ${BORDER}`, boxShadow: "0 30px 80px rgba(0,0,0,0.3)", padding: "1.9rem" }}>
+        <p style={{ fontFamily: SANS, fontSize: "0.8rem", fontWeight: 700, letterSpacing: "0.02em", color: "var(--accent)", marginBottom: 7 }}>The Big Picture</p>
+        <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.5rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: 18 }}>{roadmap.display_title || roadmap.goal}</h2>
         {phases.map((p, i) => {
           const pal = phasePalette(i);
           return (
-            <div key={i} style={{ background: pal.bg, border: `1.5px solid ${pal.border}`, borderRadius: 14, padding: "14px 16px", marginBottom: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: pal.accent, background: "rgba(255,255,255,0.65)", borderRadius: 6, padding: "2px 8px" }}>{p.month_count} mo</span>
-                <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: 15, color: TEXT }}>{p.title}</span>
+            <div key={i} style={{ background: pal.bg, border: `1.5px solid ${pal.border}`, borderRadius: 15, padding: "16px 18px", marginBottom: 13 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 7 }}>
+                <span style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: pal.accent, background: "rgba(255,255,255,0.65)", borderRadius: 7, padding: "3px 9px" }}>{p.month_count} mo</span>
+                <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: 17, color: TEXT }}>{p.title}</span>
               </div>
-              {p.blurb && <p style={{ fontFamily: SANS, fontSize: 13, color: TEXT_MID, lineHeight: 1.5, margin: "0 0 8px" }}>{p.blurb}</p>}
+              {p.blurb && <p style={{ fontFamily: SANS, fontSize: 14.5, color: TEXT_MID, lineHeight: 1.5, margin: "0 0 9px" }}>{p.blurb}</p>}
               {(p.month_focuses || []).filter(Boolean).length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                   {(p.month_focuses || []).filter(Boolean).map((f, j) => (
-                    <span key={j} style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: pal.accent, background: "rgba(255,255,255,0.55)", borderRadius: 6, padding: "3px 8px" }}>{f}</span>
+                    <span key={j} style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: pal.accent, background: "rgba(255,255,255,0.55)", borderRadius: 7, padding: "4px 9px" }}>{f}</span>
                   ))}
                 </div>
               )}
             </div>
           );
         })}
-        <button onClick={onClose} style={{ width: "100%", fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, cursor: "pointer", padding: "12px", borderRadius: 11, border: "none", background: "var(--accent)", color: WHITE, marginTop: 6 }}>Got it</button>
+        <button onClick={onClose} style={{ width: "100%", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: "pointer", padding: "13px", borderRadius: 11, border: "none", background: "var(--accent)", color: WHITE, marginTop: 7 }}>Got it</button>
       </motion.div>
     </motion.div>
   );
@@ -248,6 +250,7 @@ function PlanModal({ roadmap, onClose }) {
 
 // ─── Reflection modal (required before the next phase) ─────────────────────────
 function ReflectModal({ phase, nodeTitles, submitting, onSubmit, onCancel }) {
+  const { accent } = useTheme();
   const [text, setText] = useState("");
   const names = nodeTitles.length ? nodeTitles.join(", ") : "the activities in this phase";
   return (
@@ -256,17 +259,17 @@ function ReflectModal({ phase, nodeTitles, submitting, onSubmit, onCancel }) {
       onClick={submitting ? undefined : onCancel}>
       <motion.div initial={{ opacity: 0, y: 22, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         onClick={(e) => e.stopPropagation()}
-        style={{ width: "100%", maxWidth: 520, background: BG, borderRadius: 20, border: `1px solid ${BORDER}`, boxShadow: "0 30px 80px rgba(0,0,0,0.3)", padding: "1.75rem" }}>
-        <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: BLUE, marginBottom: 6 }}>Before you go further</p>
-        <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.3rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: 10 }}>How did "{phase.title}" go?</h2>
-        <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MID, lineHeight: 1.6, marginBottom: 16 }}>
+        style={{ width: "100%", maxWidth: 560, background: BG, borderRadius: 20, border: `1px solid ${BORDER}`, boxShadow: "0 30px 80px rgba(0,0,0,0.3)", padding: "1.9rem" }}>
+        <p style={{ fontFamily: SANS, fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.02em", color: accent, marginBottom: 7 }}>Before You Go Further</p>
+        <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.4rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: 11 }}>How did "{phase.title}" go?</h2>
+        <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT_MID, lineHeight: 1.6, marginBottom: 17 }}>
           You worked on {names}. Tell us how it went and how successful you were. This shapes your next phase.
         </p>
         <textarea
           value={text} onChange={(e) => setText(e.target.value)} rows={5} autoFocus
           placeholder="What went well, what was hard, what you actually finished…"
-          style={{ width: "100%", fontFamily: SANS, fontSize: "0.98rem", color: TEXT, lineHeight: 1.55, border: `1.5px solid ${BORDER}`, borderRadius: 12, padding: "12px 14px", resize: "vertical", outline: "none", background: WHITE, marginBottom: 16 }}
-          onFocus={(e) => (e.target.style.borderColor = BLUE)} onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+          style={{ width: "100%", fontFamily: SANS, fontSize: "1.02rem", color: TEXT, lineHeight: 1.55, border: `1.5px solid ${BORDER}`, borderRadius: 12, padding: "13px 15px", resize: "vertical", outline: "none", background: WHITE, marginBottom: 17 }}
+          onFocus={(e) => (e.target.style.borderColor = accent)} onBlur={(e) => (e.target.style.borderColor = BORDER)} />
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onCancel} disabled={submitting}
             style={{ flex: "0 0 auto", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", padding: "12px 18px", borderRadius: 11, border: `1.5px solid ${BORDER}`, background: WHITE, color: TEXT_MID }}>
@@ -285,6 +288,7 @@ function ReflectModal({ phase, nodeTitles, submitting, onSubmit, onCancel }) {
 // ─── RoadmapPage ──────────────────────────────────────────────────────────────
 export default function RoadmapPage({ navigate }) {
   const isMobile = useIsMobile();
+  const { accent } = useTheme();
   const [phase, setPhase] = useState("loading");  // loading | empty | intake | generating | reveal | ready | error
   const [roadmap, setRoadmap] = useState(null);
   const [nodes, setNodes] = useState([]);
@@ -500,17 +504,17 @@ export default function RoadmapPage({ navigate }) {
     else progress = { text: "Open", color: TEXT_FAINT, bg: BG };
     return (
       <motion.button layout whileHover={{ y: -1 }} onClick={() => openNode(node)}
-        style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", cursor: "pointer", background: WHITE, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${ps.dot}`, borderRadius: 12, padding: "12px 14px", marginBottom: 10 }}>
+        style={{ display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left", cursor: "pointer", background: WHITE, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${ps.dot}`, borderRadius: 13, padding: "14px 16px", marginBottom: 11 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", background: ps.bg, color: ps.color, borderRadius: 5, padding: "2px 8px" }}>{node.pillar}</span>
-            <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 600, color: TEXT_FAINT }}>{node.month_label}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 5, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.02em", background: ps.bg, color: ps.color, borderRadius: 6, padding: "3px 9px" }}>{node.pillar}</span>
+            <span style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: TEXT_MID }}>{node.month_label}</span>
             <DepthPips depth={node.technical_depth} />
           </div>
-          <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 15, color: isDone ? TEXT_MUTED : TEXT, lineHeight: 1.3, textDecoration: isDone ? "line-through" : "none" }}>{node.title}</div>
-          {node.blurb && <p style={{ fontFamily: SANS, fontSize: 12.5, color: TEXT_MUTED, lineHeight: 1.45, margin: "4px 0 0" }}>{node.blurb}</p>}
+          <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 16.5, color: isDone ? TEXT_MUTED : TEXT, lineHeight: 1.3, textDecoration: isDone ? "line-through" : "none" }}>{node.title}</div>
+          {node.blurb && <p style={{ fontFamily: SANS, fontSize: 13.5, color: TEXT_MUTED, lineHeight: 1.45, margin: "5px 0 0" }}>{node.blurb}</p>}
         </div>
-        <span style={{ flexShrink: 0, fontFamily: SANS, fontSize: 11.5, fontWeight: 700, color: progress.color, background: progress.bg, borderRadius: 7, padding: "4px 9px" }}>{progress.text}</span>
+        <span style={{ flexShrink: 0, fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: progress.color, background: progress.bg, borderRadius: 8, padding: "5px 10px" }}>{progress.text}</span>
       </motion.button>
     );
   };
@@ -527,43 +531,43 @@ export default function RoadmapPage({ navigate }) {
       )}
 
       {phase === "generating" && (
-        <div style={{ maxWidth: 560, margin: "3rem auto 0", textAlign: "center" }}>
-          <div style={{ width: 30, height: 30, borderRadius: "50%", border: `3px solid ${BLUE_SOFT}`, borderTopColor: BLUE, margin: "0 auto 1.25rem", animation: "rm-spin 0.7s linear infinite" }} />
+        <div style={{ maxWidth: 680, margin: "3rem auto 0", textAlign: "center" }}>
+          <div style={{ width: 34, height: 34, borderRadius: "50%", border: "3px solid rgba(var(--accent-rgb),0.2)", borderTopColor: "var(--accent)", margin: "0 auto 1.4rem", animation: "rm-spin 0.7s linear infinite" }} />
           <style>{`@keyframes rm-spin { to { transform: rotate(360deg) } }`}</style>
-          <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.5rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: 6 }}>Mapping your phases…</h1>
-          <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED }}>Laying out the broad stages of your path. This takes a moment.</p>
+          <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.8rem", color: accent, letterSpacing: "-0.02em", marginBottom: 8 }}>Mapping your phases…</h1>
+          <p style={{ fontFamily: SANS, fontSize: "1.02rem", color: TEXT_MUTED }}>Laying out the broad stages of your path. This takes a moment.</p>
         </div>
       )}
 
       {phase === "error" && (
-        <div style={{ maxWidth: 480, margin: "3rem auto 0", textAlign: "center" }}>
-          <p style={{ fontFamily: SANS, color: "#dc2626", fontWeight: 600, marginBottom: 8 }}>Couldn't build your roadmap.</p>
-          <button onClick={() => setPhase("empty")} style={{ fontFamily: SANS, color: BLUE, background: "none", border: "none", cursor: "pointer", fontWeight: 600, textDecoration: "underline" }}>Try again</button>
+        <div style={{ maxWidth: 520, margin: "3rem auto 0", textAlign: "center" }}>
+          <p style={{ fontFamily: SANS, fontSize: "1.05rem", color: "#dc2626", fontWeight: 600, marginBottom: 9 }}>Couldn't build your roadmap.</p>
+          <button onClick={() => setPhase("empty")} style={{ fontFamily: SANS, fontSize: "1rem", color: accent, background: "none", border: "none", cursor: "pointer", fontWeight: 700, textDecoration: "underline" }}>Try again</button>
         </div>
       )}
 
       {/* One-time broad-plan reveal */}
       {phase === "reveal" && roadmap && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-          style={{ maxWidth: 620, margin: "0 auto", width: "100%" }}>
-          <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: BLUE, marginBottom: 8 }}>Your big picture</p>
-          <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: TEXT, letterSpacing: "-0.025em", lineHeight: 1.15, marginBottom: 10 }}>{roadmap.display_title || roadmap.goal}</h1>
-          <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MID, lineHeight: 1.6, marginBottom: "2rem" }}>
+          style={{ maxWidth: 820, margin: "0 auto", width: "100%" }}>
+          <p style={{ fontFamily: SANS, fontSize: "0.8rem", fontWeight: 700, letterSpacing: "0.02em", color: accent, marginBottom: 9 }}>Your Big Picture</p>
+          <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.3rem", color: accent, letterSpacing: "-0.025em", lineHeight: 1.15, marginBottom: 12 }}>{roadmap.display_title || roadmap.goal}</h1>
+          <p style={{ fontFamily: SANS, fontSize: "1.05rem", color: TEXT_MID, lineHeight: 1.6, marginBottom: "2.25rem" }}>
             Here is the whole path, the phases you'll move through. You'll work one phase at a time, and it adapts as you go. This overview is shown once.
           </p>
           {phases.map((p, i) => {
             const pal = phasePalette(i);
             return (
-              <div key={i} style={{ background: pal.bg, border: `1.5px solid ${pal.border}`, borderRadius: 16, padding: "16px 18px", marginBottom: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: pal.accent, background: "rgba(255,255,255,0.65)", borderRadius: 6, padding: "3px 9px" }}>Phase {i + 1} · {p.month_count} month{p.month_count > 1 ? "s" : ""}</span>
+              <div key={i} style={{ background: pal.bg, border: `1.5px solid ${pal.border}`, borderRadius: 18, padding: "20px 22px", marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 }}>
+                  <span style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: pal.accent, background: "rgba(255,255,255,0.65)", borderRadius: 7, padding: "4px 10px" }}>Phase {i + 1} · {p.month_count} month{p.month_count > 1 ? "s" : ""}</span>
                 </div>
-                <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 18, color: TEXT, letterSpacing: "-0.01em", marginBottom: p.blurb ? 6 : 8 }}>{p.title}</div>
-                {p.blurb && <p style={{ fontFamily: SANS, fontSize: 13.5, color: TEXT_MID, lineHeight: 1.5, margin: "0 0 10px" }}>{p.blurb}</p>}
+                <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 21, color: TEXT, letterSpacing: "-0.01em", marginBottom: p.blurb ? 7 : 9 }}>{p.title}</div>
+                {p.blurb && <p style={{ fontFamily: SANS, fontSize: 15, color: TEXT_MID, lineHeight: 1.55, margin: "0 0 11px" }}>{p.blurb}</p>}
                 {(p.month_focuses || []).filter(Boolean).length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                     {(p.month_focuses || []).filter(Boolean).map((f, j) => (
-                      <span key={j} style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: pal.accent, background: "rgba(255,255,255,0.55)", borderRadius: 6, padding: "3px 9px" }}>{f}</span>
+                      <span key={j} style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: pal.accent, background: "rgba(255,255,255,0.55)", borderRadius: 7, padding: "4px 10px" }}>{f}</span>
                     ))}
                   </div>
                 )}
@@ -571,7 +575,7 @@ export default function RoadmapPage({ navigate }) {
             );
           })}
           <button onClick={() => setPhase("ready")}
-            style={{ width: "100%", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: "pointer", padding: "14px", borderRadius: 12, border: "none", marginTop: "0.5rem", background: "var(--accent)", color: WHITE, boxShadow: "0 6px 20px rgba(var(--accent-rgb),0.3)" }}>
+            style={{ width: "100%", fontFamily: SANS, fontSize: "1.05rem", fontWeight: 700, cursor: "pointer", padding: "15px", borderRadius: 12, border: "none", marginTop: "0.6rem", background: "var(--accent)", color: WHITE, boxShadow: "0 6px 20px rgba(var(--accent-rgb),0.3)" }}>
             {phaseBusy ? "Preparing Phase 1…" : "Start Phase 1"}
           </button>
         </motion.div>
@@ -579,26 +583,26 @@ export default function RoadmapPage({ navigate }) {
 
       {/* Ongoing phase tracker */}
       {phase === "ready" && roadmap && (
-        <div style={{ maxWidth: 680, margin: "0 auto", width: "100%" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", width: "100%" }}>
           {/* Disclaimer note, top-right */}
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
-            <span style={{ fontFamily: SANS, fontSize: "0.76rem", color: TEXT_FAINT, textAlign: "right", maxWidth: 280, lineHeight: 1.4 }}>
+            <span style={{ fontFamily: SANS, fontSize: "0.84rem", color: TEXT_MID, textAlign: "right", maxWidth: 320, lineHeight: 1.4 }}>
               Take the suggested time per phase. Pacing beats rushing.
             </span>
           </div>
 
           {/* Header */}
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ marginBottom: "2.25rem" }}>
-            <p style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 8 }}>
-              Your roadmap · {roadmap.timeframe_months} months
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ marginBottom: "2.5rem" }}>
+            <p style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.02em", color: "var(--accent)", marginBottom: 9 }}>
+              Your Roadmap · {roadmap.timeframe_months} months
             </p>
-            <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: TEXT, letterSpacing: "-0.025em", lineHeight: 1.15 }}>
+            <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.3rem", color: accent, letterSpacing: "-0.025em", lineHeight: 1.15 }}>
               {roadmap.display_title || roadmap.goal}
             </h1>
             <button onClick={() => setPlanModal(true)}
-              style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 600, color: TEXT_FAINT, background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 8, display: "inline-flex", alignItems: "center", gap: 5 }}>
+              style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: TEXT_MID, background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 10, display: "inline-flex", alignItems: "center", gap: 5 }}>
               View full plan
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </motion.div>
 
@@ -621,10 +625,10 @@ export default function RoadmapPage({ navigate }) {
                     display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left",
                     cursor: status === "locked" ? "default" : "pointer",
                     background: isActive ? pal.bg : WHITE, border: `1.5px solid ${isActive ? pal.border : BORDER}`,
-                    borderRadius: 14, padding: "14px 16px", opacity: status === "locked" ? 0.6 : 1,
+                    borderRadius: 16, padding: "17px 20px", opacity: status === "locked" ? 0.6 : 1,
                   }}>
                   {/* status glyph */}
-                  <span style={{ flexShrink: 0, width: 24, height: 24, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  <span style={{ flexShrink: 0, width: 26, height: 26, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center",
                     background: isCompleted ? GREEN : isActive ? pal.accent : "transparent",
                     border: status === "locked" ? `2px solid ${BORDER}` : "none" }}>
                     {isCompleted ? (
@@ -637,39 +641,39 @@ export default function RoadmapPage({ navigate }) {
                   </span>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: isActive ? pal.accent : TEXT_FAINT }}>Phase {i + 1} · {p.month_count} mo</span>
-                      {isActive && <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", background: pal.accent, color: WHITE, borderRadius: 5, padding: "2px 8px" }}>Active</span>}
+                      <span style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.02em", color: isActive ? pal.accent : TEXT_MID }}>Phase {i + 1} · {p.month_count} mo</span>
+                      {isActive && <span style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.02em", background: pal.accent, color: WHITE, borderRadius: 6, padding: "3px 9px" }}>Active</span>}
                       {isCompleted && p.reflection?.readiness_score != null && (
-                        <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: GREEN }}>Readiness {p.reflection.readiness_score}</span>
+                        <span style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: GREEN }}>Readiness {p.reflection.readiness_score}</span>
                       )}
                     </div>
-                    <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 16, color: status === "locked" ? TEXT_MUTED : TEXT, lineHeight: 1.25, marginTop: 2 }}>{p.title}</div>
+                    <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 18, color: status === "locked" ? TEXT_MUTED : TEXT, lineHeight: 1.25, marginTop: 3 }}>{p.title}</div>
                   </div>
                   {status !== "locked" && (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={TEXT_FAINT} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}><polyline points="9 18 15 12 9 6"/></svg>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={TEXT_MID} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}><polyline points="9 18 15 12 9 6"/></svg>
                   )}
                 </button>
 
                 {nextToUnlock && (
-                  <p style={{ fontFamily: SANS, fontSize: "0.8rem", color: TEXT_FAINT, margin: "8px 0 0 12px" }}>Unlocks after you complete the current phase.</p>
+                  <p style={{ fontFamily: SANS, fontSize: "0.88rem", color: TEXT_MID, margin: "9px 0 0 12px" }}>Unlocks after you complete the current phase.</p>
                 )}
 
                 <AnimatePresence initial={false}>
                   {isOpen && status !== "locked" && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25 }}
-                      style={{ overflow: "hidden", paddingLeft: 8, marginTop: 12 }}>
-                      {p.blurb && <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_MID, lineHeight: 1.5, margin: "0 0 12px" }}>{p.blurb}</p>}
+                      style={{ overflow: "hidden", paddingLeft: 8, marginTop: 13 }}>
+                      {p.blurb && <p style={{ fontFamily: SANS, fontSize: "0.98rem", color: TEXT_MID, lineHeight: 1.55, margin: "0 0 13px" }}>{p.blurb}</p>}
                       {isActive && phaseBusy && pn.length === 0 ? (
-                        <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_FAINT, marginBottom: 12 }}>Generating this phase…</p>
+                        <p style={{ fontFamily: SANS, fontSize: "0.98rem", color: TEXT_MID, marginBottom: 13 }}>Generating this phase…</p>
                       ) : (
                         pn.map((node) => <NodeRow key={node.id} node={node} />)
                       )}
                       {isCompleted && p.reflection?.summary && (
-                        <p style={{ fontFamily: SANS, fontSize: "0.86rem", color: TEXT_MUTED, fontStyle: "italic", lineHeight: 1.5, margin: "4px 0 0", paddingLeft: 12, borderLeft: `2px solid ${BORDER}` }}>{p.reflection.summary}</p>
+                        <p style={{ fontFamily: SANS, fontSize: "0.94rem", color: TEXT_MUTED, fontStyle: "italic", lineHeight: 1.5, margin: "4px 0 0", paddingLeft: 12, borderLeft: `2px solid ${BORDER}` }}>{p.reflection.summary}</p>
                       )}
                       {isActive && pn.length > 0 && (
                         <button onClick={() => setReflectFor(i)} disabled={phaseBusy}
-                          style={{ width: "100%", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", padding: "13px", borderRadius: 12, border: "none", marginTop: 6, background: pal.accent, color: WHITE, boxShadow: `0 5px 16px ${pal.accent}40` }}>
+                          style={{ width: "100%", fontFamily: SANS, fontSize: "1.02rem", fontWeight: 700, cursor: "pointer", padding: "14px", borderRadius: 12, border: "none", marginTop: 8, background: pal.accent, color: WHITE, boxShadow: `0 5px 16px ${pal.accent}40` }}>
                           {i + 1 < phases.length ? "Complete phase & continue" : "Complete final phase"}
                         </button>
                       )}
