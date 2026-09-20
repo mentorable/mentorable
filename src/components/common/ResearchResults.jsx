@@ -20,14 +20,8 @@ const IconExternal = ({ size = 11, color = "currentColor" }) => (
     <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
   </svg>
 );
-const IconStar = ({ size = 13, color = "currentColor" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-  </svg>
-);
 
 export function ResultCard({ result, index }) {
-  const { accent } = useTheme();
   const meta = TYPE_META[result.type] || TYPE_META.article;
   const details = result.details || {};
 
@@ -129,7 +123,6 @@ export function ResultCard({ result, index }) {
           borderRadius: "0.75rem", padding: "0.6rem 0.875rem",
           marginBottom: 0,
         }}>
-          <IconStar size={13} color={accent} style={{ flexShrink: 0, marginTop: 2 }} />
           <p style={{ fontFamily: FONT, fontSize: "0.79rem", color: "var(--accent)", fontWeight: 600, lineHeight: 1.55, margin: 0 }}>
             {result.relevance_note}
           </p>
