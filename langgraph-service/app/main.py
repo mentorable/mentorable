@@ -19,6 +19,13 @@ from app.graphs.chat import create_chat_graph
 from app.nodes.chat.extract_signals import extract_signals
 from app.nodes.chat.tools import CHAT_TOOLS, execute_chat_tool
 from app.nodes.onboarding.extract import extract_profile
+from app.nodes.onboarding.intake import (
+    INTERVIEW_SYSTEM,
+    commit_intake,
+    extract_intake,
+    load_student_record,
+    render_record_context,
+)
 from app.nodes.portfolio.extract import extract_file_text, extract_portfolio_items
 from app.nodes.portfolio.resume import PdfEngineUnavailable, build_resume_tex, compile_tex_to_pdf
 from app.nodes.quest.generate import generate_quest_items
@@ -651,3 +658,122 @@ async def onboarding_extract(raw: Request, user_id: str = Depends(verify_jwt)):
     except Exception as exc:
         logger.error(f"[onboarding] Unexpected error for {user_id}: {exc}")
         raise HTTPException(status_code=500, detail="Profile extraction failed")
+
+
+# ── College application intake ────────────────────────────────────────────────
+# The text interview. Deliberately NOT routed through /chat: chat is capped at 8
+# messages per lifetime, so onboarding would burn the student's whole demo budget
+# before they ever reached the chat page. This endpoint is free and uncheckpointed.
+
+INTERVIEW_MAX_TURNS = 12
+INTERVIEW_WRAP_TURN = 9
+
+
+@app.get("/onboarding/context")
+async def onboarding_context(user_id: str = Depends(verify_jwt)):
+    """The rendered form summary. The voice path sends this to the ElevenLabs agent
+    via sendContextualUpdate so both channels see exactly the same facts."""
+    try:
+        record = load_student_record(user_id)
+        return {"context": render_record_context(record),
+                "activity_count": len(record.get("activities") or [])}
+    except Exception as exc:
+        logger.error(f"[intake] context build failed for {user_id}: {exc}")
+        raise HTTPException(status_code=500, detail="Could not build intake context")
+
+
+@app.post("/onboarding/interview")
+async def onboarding_interview(raw: Request, user_id: str = Depends(verify_jwt)):
+    try:
+        body = await raw.json()
+    except Exception:
+        body = {}
+
+    raw_messages = body.get("messages") or []
+    conversation = [
+        {"role": "assistant" if m.get("role") in ("assistant", "ai") else "user",
+         "content": str(m.get("content") or "").strip()}
+        for m in raw_messages
+        if str(m.get("content") or "").strip()
+    ]
+
+    record = load_student_record(user_id)
+    system_prompt = INTERVIEW_SYSTEM.format(
+        max_turns=INTERVIEW_MAX_TURNS,
+        wrap_turn=INTERVIEW_WRAP_TURN,
+        record_context=render_record_context(record),
+    )
+
+    # Opening turn: no user message yet, so prompt the model to start.
+    if not conversation:
+        conversation = [{"role": "user", "content": "(Begin the interview.)"}]
+
+    async def generate():
+        try:
+            async with _anthropic.messages.stream(
+                model="claude-sonnet-4-6",
+                max_tokens=1024,
+                # The system prefix is stable for the whole interview, so later turns
+                # pay ~10% on it instead of full price.
+                system=[{"type": "text", "text": system_prompt,
+                         "cache_control": {"type": "ephemeral"}}],
+                messages=conversation,
+            ) as stream:
+                async for text in stream.text_stream:
+                    yield f"data: {json.dumps({'text': text})}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as exc:
+            logger.error(f"[intake] interview stream failed for {user_id}: {exc}")
+            yield f"data: {json.dumps({'error': 'Interview stream failed'})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive",
+                 "X-Accel-Buffering": "no"},
+    )
+
+
+@app.post("/onboarding/intake/extract")
+async def onboarding_intake_extract(raw: Request, user_id: str = Depends(verify_jwt)):
+    """Turn the interview into a reviewable draft. Does NOT complete onboarding."""
+    try:
+        body = await raw.json()
+    except Exception:
+        body = {}
+
+    transcript = (body.get("transcript") or "").strip()
+    channel = body.get("channel") if body.get("channel") in ("text", "voice") else "text"
+    force = bool(body.get("force"))
+
+    try:
+        return await extract_intake(user_id, transcript, channel=channel, force=force)
+    except Exception as exc:
+        logger.error(f"[intake] Unexpected extract error for {user_id}: {exc}")
+        raise HTTPException(status_code=500, detail="Intake extraction failed")
+
+
+@app.post("/onboarding/intake/commit")
+async def onboarding_intake_commit(raw: Request, user_id: str = Depends(verify_jwt)):
+    """Write the student-confirmed draft into the real tables and finish onboarding."""
+    try:
+        body = await raw.json()
+    except Exception:
+        body = {}
+
+    draft = body.get("draft")
+    if not isinstance(draft, dict):
+        raise HTTPException(status_code=422, detail="Missing draft")
+
+    try:
+        result = await commit_intake(user_id, draft)
+        if result.get("success"):
+            posthog_client.capture(
+                "onboarding_completed",
+                distinct_id=user_id,
+                properties={"channel": body.get("channel") or "unknown"},
+            )
+        return result
+    except Exception as exc:
+        logger.error(f"[intake] Unexpected commit error for {user_id}: {exc}")
+        raise HTTPException(status_code=500, detail="Intake commit failed")
