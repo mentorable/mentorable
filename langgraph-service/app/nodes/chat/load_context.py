@@ -6,7 +6,6 @@ Runs on every request so the state reflects live data.
 import logging
 from app.state import StudentState
 from app.db.supabase import get_supabase
-from app.nodes.memory.synthesize import maybe_refresh_living_profile
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +74,25 @@ async def load_context(state: StudentState) -> StudentState:
         .execute()
     )
 
+    # ── The college application record ───────────────────────────────────────
+    def _record(table, cols, order):
+        try:
+            return (supabase.from_(table).select(cols)
+                    .eq("user_id", user_id).order(order).limit(40).execute().data or [])
+        except Exception as exc:
+            logger.warning(f"[chat] failed to load {table} for {user_id}: {exc}")
+            return []
+
+    activities = _record(
+        "student_activities",
+        "title, category, position, organization, description, hours_per_week, "
+        "weeks_per_year, grade_levels, is_spike",
+        "order_index",
+    )
+    awards  = _record("student_awards", "title, level, year", "order_index")
+    courses = _record("student_courses", "name, level", "order_index")
+    scores  = _record("student_test_scores", "test_type, score, subject, section_scores", "test_type")
+
     profile    = profile_res.data or {}
     all_quests = quests_res.data or []
 
@@ -107,9 +125,6 @@ async def load_context(state: StudentState) -> StudentState:
         {"category": p["category"], "title": p["title"]}
         for p in (portfolio_res.data or [])
     ]
-
-    # Living profile: if enough activity has accrued, refresh it in the background.
-    await maybe_refresh_living_profile(user_id, profile.get("living_events_since_sync"))
 
     # A "chat about this node" conversation gets that node's full content (blurb,
     # overview, checklist) injected on top of the lightweight roadmap summary above.
@@ -147,4 +162,8 @@ async def load_context(state: StudentState) -> StudentState:
         "_roadmap_nodes": roadmap_nodes,
         "_portfolio_summary": portfolio_summary,
         "_node_context": node_context,
+        "_activities": activities,
+        "_awards": awards,
+        "_courses": courses,
+        "_scores": scores,
     }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import FeedbackModal from "./FeedbackModal.jsx";
 import { useTheme } from "../../lib/ThemeContext.jsx";
+import { isEnabled } from "../../lib/features.js";
 
 const FONT = "'Raleway', sans-serif";
 export const SIDEBAR_WIDTH = 220;
@@ -150,7 +151,7 @@ export default function Sidebar({ activePath, navigate }) {
 
       {/* Top nav */}
       <nav style={{ flex: 1, padding: "0.25rem 0.75rem", display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
-        {TOP_NAV.map((item) => <NavBtn key={item.key} item={item} activePath={activePath} navigate={navigate} accent={accent} accentRgb={accentRgb} />)}
+        {TOP_NAV.filter((i) => isEnabled(i.key)).map((item) => <NavBtn key={item.key} item={item} activePath={activePath} navigate={navigate} accent={accent} accentRgb={accentRgb} />)}
       </nav>
 
       {/* Divider */}

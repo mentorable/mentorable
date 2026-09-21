@@ -35,6 +35,10 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
     chat_topics       = data.get("chat_topics", [])
     roadmap_nodes     = data.get("roadmap_nodes", [])
     portfolio_summary = data.get("portfolio_summary", [])
+    activities        = data.get("activities", [])
+    awards            = data.get("awards", [])
+    courses           = data.get("courses", [])
+    scores            = data.get("scores", [])
 
     name      = profile.get("full_name") or "the student"
     edu_raw   = profile.get("education_level")
@@ -52,18 +56,100 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
         profile_lines.append(f"Location: {location}")
     sections.append({"id": "student_profile", "content": "## Student Profile\n" + "\n".join(profile_lines)})
 
-    if profile.get("onboarding_summary") or "":
-        sections.append({"id": "summary", "content": f"About them: {profile['onboarding_summary']}"})
-    if profile.get("strengths"):
-        sections.append({"id": "strengths", "content": f"Strengths: {', '.join(profile['strengths'])}"})
-    if profile.get("weaknesses"):
-        sections.append({"id": "growth_areas", "content": f"Areas for growth: {', '.join(profile['weaknesses'])}"})
-    if profile.get("interests"):
-        sections.append({"id": "interests", "content": f"Interests: {', '.join(profile['interests'])}"})
-    if profile.get("work_style") or "":
-        sections.append({"id": "work_style", "content": f"Work style: {profile['work_style']}"})
-    if profile.get("career_matches"):
-        sections.append({"id": "career_matches", "content": f"Top career matches: {', '.join(profile['career_matches'])}"})
+    # ── College application record ────────────────────────────────────────────
+    if profile.get("graduation_year"):
+        sections.append({"id": "graduation",
+                         "content": f"Graduates high school: {profile['graduation_year']}"})
+
+    gpa_u, gpa_w = profile.get("gpa_unweighted"), profile.get("gpa_weighted")
+    if gpa_u or gpa_w:
+        bits = []
+        if gpa_u:
+            bits.append(f"{gpa_u} unweighted")
+        if gpa_w:
+            bits.append(f"{gpa_w} weighted")
+        scale = profile.get("gpa_scale")
+        suffix = f" (on a {scale} scale)" if scale and scale not in ("not_used", "other") else ""
+        sections.append({"id": "gpa", "content": "GPA: " + ", ".join(bits) + suffix})
+
+    if profile.get("candidate_majors"):
+        sections.append({"id": "majors",
+                         "content": f"Majors they're considering: {', '.join(profile['candidate_majors'])}"})
+    if profile.get("target_colleges"):
+        sections.append({"id": "target_colleges",
+                         "content": f"Colleges they're targeting: {', '.join(profile['target_colleges'])}"})
+
+    narrative = profile.get("narrative") or {}
+    if narrative.get("summary"):
+        sections.append({"id": "summary", "content": f"About them: {narrative['summary']}"})
+    if narrative.get("theme"):
+        sections.append({"id": "theme",
+                         "content": f"The through-line in their record: {narrative['theme']}"})
+    if narrative.get("major_reasoning"):
+        sections.append({"id": "major_reasoning",
+                         "content": f"Why those majors, in their words: {narrative['major_reasoning']}"})
+    if narrative.get("gaps"):
+        sections.append({"id": "gaps",
+                         "content": "Gaps in their application we already identified:\n"
+                                    + "\n".join(f"- {g}" for g in narrative["gaps"])})
+    if narrative.get("concerns"):
+        sections.append({"id": "concerns",
+                         "content": "What they're worried about:\n"
+                                    + "\n".join(f"- {c}" for c in narrative["concerns"])})
+
+    if scores:
+        rendered = []
+        for sc in scores:
+            t = (sc.get("test_type") or "").upper()
+            if t == "AP":
+                rendered.append(f"AP {sc.get('subject') or '?'}: {sc.get('score')}")
+            else:
+                sub = sc.get("section_scores") or {}
+                detail = ", ".join(f"{k.replace('_', ' ')} {v}" for k, v in sub.items())
+                rendered.append(f"{t}: {sc.get('score')}" + (f" ({detail})" if detail else ""))
+        sections.append({"id": "test_scores", "content": "Test scores: " + "; ".join(rendered)})
+
+    if courses:
+        rendered = []
+        for c in courses:
+            lvl = (c.get("level") or "").replace("_", " ")
+            rendered.append(f"{c.get('name')} ({lvl})" if lvl else str(c.get("name")))
+        sections.append({"id": "courses", "content": "## Coursework\n" + ", ".join(rendered)})
+
+    if activities:
+        lines = []
+        for a in activities:
+            head = f"- {a.get('title')}"
+            if a.get("is_spike"):
+                head += " [core to their narrative]"
+            bits = []
+            if a.get("position"):
+                bits.append(str(a["position"]))
+            if a.get("organization"):
+                bits.append(str(a["organization"]))
+            if a.get("category"):
+                bits.append(str(a["category"]))
+            if a.get("hours_per_week") and a.get("weeks_per_year"):
+                bits.append(f"{a['hours_per_week']} hrs/wk, {a['weeks_per_year']} wks/yr")
+            grades = a.get("grade_levels") or []
+            if grades:
+                bits.append("grades " + ", ".join(str(g) for g in grades))
+            if bits:
+                head += " (" + "; ".join(bits) + ")"
+            if a.get("description"):
+                head += f"\n    {a['description']}"
+            lines.append(head)
+        sections.append({"id": "activities",
+                         "content": "## Their Activities\nWhat the student actually does. Activities without detail "
+                                    "have not been fleshed out yet, so ask rather than assume:\n" + "\n".join(lines)})
+
+    if awards:
+        lines = []
+        for a in awards:
+            bits = [b for b in [(a.get("level") or "").capitalize() or None,
+                                str(a.get("year")) if a.get("year") else None] if b]
+            lines.append(f"- {a.get('title')}" + (f" ({', '.join(bits)})" if bits else ""))
+        sections.append({"id": "awards", "content": "## Awards and Honors\n" + "\n".join(lines)})
 
     if completed_quests:
         from datetime import datetime
@@ -124,8 +210,10 @@ def build_system_prompt(profile: dict, data: dict) -> str:
     style_guide   = STYLE_GUIDE.get(response_style, "")
 
     prompt = (
-        f"You are the Mentorable Agent, an expert AI career guide. "
-        f"You give specific, actionable advice tailored to this student's unique situation — not generic platitudes.\n\n"
+        f"You are the Mentorable Agent, an expert college application guide. "
+        f"You help this student build and present the strongest possible application. You give specific, "
+        f"actionable advice grounded in their actual record, not generic platitudes, and you are honest with "
+        f"them about where they stand.\n\n"
         f"You know this student deeply from their onboarding. Always address them by their first name ({first_name}).\n\n"
         f"Response style: {style_guide}"
     )
@@ -137,8 +225,8 @@ def build_system_prompt(profile: dict, data: dict) -> str:
         "\n\n## How to respond\n"
         "- Use markdown formatting — it renders in the UI. Use **bold** for key points, ## for section headings, - for bullet lists, and 1. for numbered steps.\n"
         "- Keep responses concise and scannable. Prefer short paragraphs and bullets over walls of text.\n"
-        "- Reference their specific strengths, interests, and goals when relevant — never give generic advice when personal advice is possible.\n"
-        "- If they ask about next steps, anchor your answer in their completed quests and what they've shared about their goals.\n"
+        "- Ground every answer in their actual record: their activities, courses, scores and target colleges. Never give generic advice when specific advice is possible.\n"
+        "- If they ask about next steps, anchor your answer in the gaps already identified and how far they are from their target colleges.\n"
         "- Be honest about challenges while staying encouraging.\n"
         "- Never use em dashes (—) anywhere in your responses. Use commas, periods, parentheses, or colons instead.\n"
         "- Do not mention that you have a \"system prompt\" or that you were \"given\" this information. You simply know them."
@@ -174,20 +262,6 @@ def _inject_research_findings(findings: list, prompt: str) -> str:
     return prompt + f"\n\n## Research the Student Has Done\nOpportunities and resources they've looked into — reference these when relevant:\n{lines}"
 
 
-def _effective_profile(profile: dict) -> dict:
-    """Prefer the evolving living_profile over the frozen baseline for prompts."""
-    living = profile.get("living_profile") or {}
-    if not living:
-        return profile
-    eff = dict(profile)
-    if living.get("current_summary"):  eff["onboarding_summary"] = living["current_summary"]
-    if living.get("strengths"):        eff["strengths"] = living["strengths"]
-    if living.get("interests"):        eff["interests"] = living["interests"]
-    if living.get("growth_areas"):     eff["weaknesses"] = living["growth_areas"]
-    if living.get("career_direction"): eff["career_matches"] = [living["career_direction"]]
-    return eff
-
-
 def _inject_node_context(node: Optional[dict], prompt: str) -> str:
     """Scope the conversation to one roadmap node — appended last (top priority),
     same placement as the student's custom instructions section below."""
@@ -206,17 +280,8 @@ def _inject_node_context(node: Optional[dict], prompt: str) -> str:
     return prompt + f"\n\n## Currently Discussing: {node.get('title', 'this roadmap item')}\n" + "\n\n".join(lines)
 
 
-def _inject_living(living: dict, prompt: str) -> str:
-    extras = []
-    if (living or {}).get("current_focus"): extras.append(f"Current focus: {living['current_focus']}")
-    if (living or {}).get("momentum"):      extras.append(f"Recent trajectory: {living['momentum']}")
-    if not extras:
-        return prompt
-    return prompt + "\n\n## Where they are right now\n" + "\n".join(extras)
-
-
 async def build_prompt(state: StudentState) -> StudentState:
-    profile = _effective_profile(state.get("profile") or {})
+    profile = state.get("profile") or {}
     data = {
         "completed_quests": state.get("_completed_quests", []),
         "active_quests":    state.get("_active_quests", state.get("active_quests", [])),
@@ -225,10 +290,13 @@ async def build_prompt(state: StudentState) -> StudentState:
         "chat_topics":       state.get("_chat_topics", []),
         "roadmap_nodes":     state.get("_roadmap_nodes", []),
         "portfolio_summary": state.get("_portfolio_summary", []),
+        "activities":        state.get("_activities", []),
+        "awards":            state.get("_awards", []),
+        "courses":           state.get("_courses", []),
+        "scores":            state.get("_scores", []),
     }
     system_prompt = build_system_prompt(profile, data)
     system_prompt = _inject_research_findings(state.get("research_findings", []), system_prompt)
-    system_prompt = _inject_living(profile.get("living_profile") or {}, system_prompt)
     system_prompt += QUEST_BOARD_CAPABILITY
     system_prompt += PORTFOLIO_CAPABILITY
     # Appended last (highest priority) — scopes the whole conversation to one node.

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import FeedbackModal from "./FeedbackModal.jsx";
 import { useTheme } from "../../lib/ThemeContext.jsx";
+import { isEnabled } from "../../lib/features.js";
 
 const FONT = "'Raleway', sans-serif";
 
@@ -109,7 +110,7 @@ export default function MobileNav({ activePath, navigate }) {
       boxShadow: "0 -2px 16px rgba(15,23,42,0.06)",
       paddingBottom: "env(safe-area-inset-bottom, 0px)",
     }}>
-      {NAV_ITEMS.map((item) => {
+      {NAV_ITEMS.filter((i) => isEnabled(i.key)).map((item) => {
         const isActive = activePath === item.path || activePath?.startsWith(item.path + "/");
         return (
           <motion.button

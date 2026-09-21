@@ -214,10 +214,8 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
             transcript = normalized + [{"role": "assistant", "content": final_text}]
             asyncio.create_task(extract_signals(user_id, transcript))
 
-            # Scorecard: a substantive message builds Communication (background).
-            last_user = next((m["content"] for m in reversed(normalized) if m["role"] == "user"), "")
-            if len(last_user.strip()) >= 60:
-                asyncio.create_task(award_axis(user_id, "communication", 2, "Engaged in chat", "chat"))
+            # (The scorecard's Communication award used to fire here. The 5 career
+            # axes were dropped in the college pivot, so there is nothing to award.)
 
         except Exception as exc:
             logger.error(f"[chat] stream error for {user_id}: {exc}")

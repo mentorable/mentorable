@@ -18,6 +18,7 @@ import Sidebar from "./components/common/Sidebar.jsx";
 import MobileNav from "./components/common/MobileNav.jsx";
 import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
+import { HOME_PATH } from "./lib/features.js";
 
 // Routes that show the persistent sidebar
 const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/quest", "/roadmap", "/portfolio"];
@@ -36,7 +37,7 @@ async function routeAfterAuth(userId, navigate) {
     .select("onboarding_completed")
     .eq("id", userId)
     .single();
-  navigate(profile?.onboarding_completed ? "/scorecard" : "/onboarding", { replace: true });
+  navigate(profile?.onboarding_completed ? HOME_PATH : "/onboarding", { replace: true });
 }
 
 function AppShell({ children }) {
