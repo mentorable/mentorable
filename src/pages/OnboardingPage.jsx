@@ -2,10 +2,15 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useConversation } from "@elevenlabs/react";
 import { supabase } from "../lib/supabase.js";
-import { extractProfile } from "../lib/mentora.js";
 import Spinner from "../components/common/Spinner.jsx";
 import { VoicePoweredOrb } from "../components/common/VoicePoweredOrb.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
+import IntakeForm, { EMPTY_INTAKE } from "../components/onboarding/IntakeForm.jsx";
+import TextInterview from "../components/onboarding/TextInterview.jsx";
+import IntakeReview from "../components/onboarding/IntakeReview.jsx";
+import {
+  saveIntakeForm, fetchIntakeContext, extractIntake, commitIntake, fetchActivities,
+} from "../lib/intake.js";
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
 const MAX_CALL_SECONDS = 180; // ~3 min cap — keeps ElevenLabs credit cost down; the agent is prompted to wrap up by ~2.5 min
@@ -200,270 +205,60 @@ function ElegantShape({ shapeStyle, delay = 0, width = 400, height = 100, rotate
   );
 }
 
-// ─── Phase 0: Demographics ────────────────────────────────────────────────────
-const US_STATES = [
-  "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
-  "Delaware","District of Columbia","Florida","Georgia","Hawaii","Idaho","Illinois",
-  "Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts",
-  "Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada",
-  "New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota",
-  "Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina",
-  "South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington",
-  "West Virginia","Wisconsin","Wyoming",
-];
-
-const HS_GRADES = [
-  { value:"9",  label:"9th Grade"  },
-  { value:"10", label:"10th Grade" },
-  { value:"11", label:"11th Grade" },
-  { value:"12", label:"12th Grade" },
-];
-
-const COLLEGE_YEARS = [
-  { value:"1", label:"Freshman"  },
-  { value:"2", label:"Sophomore" },
-  { value:"3", label:"Junior"    },
-  { value:"4", label:"Senior"    },
-];
-
-const EDU_OPTIONS = [
-  { value:"high_school", label:"High School"         },
-  { value:"college",     label:"College / University" },
-  { value:"other",       label:"Other"                },
-];
-
-function DemographicsPhase({ onContinue, submitting }) {
-  const isMobile = useIsMobile();
-  const [fullName,        setFullName]        = useState("");
-  const [educationLevel,  setEducationLevel]  = useState("");
-  const [gradeYear,       setGradeYear]       = useState("");
-  const [usState,         setUsState]         = useState("");
-
-  const showGrade         = educationLevel === "high_school";
-  const showYear          = educationLevel === "college";
-  const gradeYearRequired = showGrade || showYear;
-
-  const isValid = (
-    fullName.trim().length > 0 &&
-    educationLevel !== "" &&
-    (!gradeYearRequired || gradeYear !== "")
+// ─── Channel picker: talk it through by text or by voice ─────────────────────
+function ChannelPhase({ onPick, retryNotice }) {
+  const Option = ({ id, title, blurb, meta, icon }) => (
+    <button type="button" onClick={() => onPick(id)}
+      style={{
+        display: "flex", alignItems: "flex-start", gap: 15, width: "100%", textAlign: "left",
+        cursor: "pointer", background: "#fff", border: `1.5px solid ${BORDER}`,
+        borderRadius: 16, padding: "1.2rem 1.3rem", transition: "all 0.15s",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.transform = "translateY(-2px)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.transform = "none"; }}>
+      <span style={{
+        flexShrink: 0, width: 42, height: 42, borderRadius: 12,
+        background: "rgba(59,91,252,0.08)", color: ACCENT,
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+      }}>{icon}</span>
+      <span style={{ minWidth: 0 }}>
+        <span style={{ display: "block", fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: TEXT, marginBottom: 4 }}>{title}</span>
+        <span style={{ display: "block", fontFamily: SANS, fontSize: "0.92rem", color: TEXT2, lineHeight: 1.55 }}>{blurb}</span>
+        <span style={{ display: "block", fontFamily: SANS, fontSize: "0.8rem", fontWeight: 600, color: TEXT3, marginTop: 7 }}>{meta}</span>
+      </span>
+    </button>
   );
 
-  const handleContinue = () => {
-    if (!isValid || submitting) return;
-    onContinue({
-      fullName:       fullName.trim(),
-      educationLevel,
-      gradeYear:      gradeYearRequired ? gradeYear : null,
-      state:          usState,
-    });
-  };
-
-  const inputStyle = {
-    width:"100%", padding:"1rem 1.25rem",
-    border:`1.5px solid ${BORDER}`, borderRadius:12,
-    background:SURFACE, color:TEXT,
-    fontFamily:SANS, fontSize:"1.0625rem", fontWeight:500,
-    outline:"none", transition:"border-color 0.15s", boxSizing:"border-box",
-  };
-
-  const labelStyle = {
-    display:"block", fontFamily:SANS, fontSize:"0.8rem", fontWeight:700,
-    color:TEXT2, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:"0.5rem",
-  };
-
   return (
-    <motion.div
-      key="demographics"
-      initial={{ opacity:0 }}
-      animate={{ opacity:1 }}
-      exit={{ opacity:0, y:-16 }}
-      transition={{ duration:0.35 }}
-      style={{
-        display:"flex", flexDirection:"column",
-        minHeight:"100vh", alignItems:"center", justifyContent:"center",
-        padding:"2rem", position:"relative", zIndex:1, background:BG,
-      }}
-    >
-      {/* Background */}
-      <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom right, rgba(37,99,235,0.07), transparent, rgba(59,130,246,0.05))", filter:"blur(80px)", zIndex:0 }}/>
-      <div style={{ position:"absolute", inset:0, overflow:"hidden", zIndex:0 }}>
-        <ElegantShape delay={0.3} width={500} height={120} rotate={12}  color="rgba(37,99,235,0.08)"  borderColor="rgba(37,99,235,0.18)"  glowColor="rgba(37,99,235,0.05)"  shapeStyle={{ left:"-8%", top:"10%" }}/>
-        <ElegantShape delay={0.5} width={400} height={100} rotate={-15} color="rgba(59,130,246,0.07)"  borderColor="rgba(59,130,246,0.15)"  glowColor="rgba(59,130,246,0.04)"  shapeStyle={{ right:"-4%", bottom:"15%" }}/>
-      </div>
+    <motion.div key="channel"
+      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
+      transition={{ duration: 0.4 }}
+      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "2.5rem 1.25rem" }}>
+      <div style={{ width: "100%", maxWidth: 560 }}>
+        <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: "0.5rem", textAlign: "center" }}>
+          Now let's talk it through
+        </h1>
+        <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT2, lineHeight: 1.6, marginBottom: "1.9rem", textAlign: "center" }}>
+          We have your list. Next we find what connects it, and where the gaps are. Pick whichever you'd rather do.
+        </p>
 
-      {/* Logo */}
-      <div style={{ position:"absolute", top:"1.5rem", left:isMobile ? "1.25rem" : "3rem", zIndex:2 }}>
-        <Logo />
-      </div>
-
-      {/* Step indicator */}
-      <div style={{ position:"absolute", top:"1.6rem", right:isMobile ? "1.25rem" : "3rem", zIndex:2, display:"flex", alignItems:"center", gap:8 }}>
-        <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"5px 14px", borderRadius:100, border:`1.5px solid ${BORDER}`, background:CARD, boxShadow:"0 2px 12px rgba(59,91,252,0.08)" }}>
-          <div style={{ display:"flex", gap:5 }}>
-            {[0,1].map(i => (
-              <div key={i} style={{ width:i===0?18:6, height:6, borderRadius:3, background:i===0?ACCENT:`rgba(59,91,252,0.2)`, transition:"all 0.3s" }}/>
-            ))}
+        {retryNotice && (
+          <div style={{ background: "rgba(217,119,6,0.08)", border: "1.5px solid rgba(217,119,6,0.3)", borderRadius: 12, padding: "0.9rem 1.1rem", marginBottom: "1.4rem" }}>
+            <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: "#7c4a03", lineHeight: 1.55, margin: 0 }}>{retryNotice}</p>
           </div>
-          <span style={{ fontFamily:SANS, fontSize:"0.78rem", fontWeight:600, color:ACCENT }}>Step 1 of 2</span>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+          <Option id="text" title="Type it out"
+            blurb="A short back and forth. Take as long as you like on each answer."
+            meta="About 5 minutes"
+            icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>} />
+          <Option id="voice" title="Talk out loud"
+            blurb="A quick call with Mentorable. Easiest way to get your thinking out."
+            meta="About 3 minutes, needs a microphone"
+            icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>} />
         </div>
       </div>
-
-      {/* Card */}
-      <motion.div
-        initial={{ opacity:0, y:28 }}
-        animate={{ opacity:1, y:0 }}
-        transition={{ duration:0.65, ease:[0.16,1,0.3,1], delay:0.1 }}
-        style={{
-          position:"relative", zIndex:1,
-          background:CARD, border:`1.5px solid ${BORDER}`, borderRadius:20,
-          padding:isMobile ? "2rem 1.5rem" : "3rem", maxWidth:500, width:"100%",
-          boxShadow:"0 4px 40px rgba(59,91,252,0.1), 0 1px 8px rgba(0,0,0,0.06)",
-        }}
-      >
-        {/* Header */}
-        <motion.div {...fadeUp(0.15)} style={{ marginBottom:"1.75rem" }}>
-          <h2 style={{ fontFamily:SERIF, fontWeight:700, fontSize:"2.2rem", color:TEXT, letterSpacing:"-0.025em", lineHeight:1.15, marginBottom:"0.5rem" }}>
-            A bit about you
-          </h2>
-          <p style={{ fontFamily:SANS, fontSize:"1rem", color:TEXT2, lineHeight:1.65, margin:0 }}>
-            This helps us personalize your experience and gives your AI guide the right context before your conversation.
-          </p>
-        </motion.div>
-
-        {/* Fields */}
-        <div style={{ display:"flex", flexDirection:"column", gap:"1.35rem" }}>
-
-          {/* Name */}
-          <motion.div {...fadeUp(0.22)}>
-            <label style={labelStyle}>Your name</label>
-            <input
-              type="text"
-              placeholder="First name is fine"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              onFocus={(e) => { e.target.style.borderColor = ACCENT; }}
-              onBlur={(e)  => { e.target.style.borderColor = BORDER; }}
-              onKeyDown={(e) => e.key === "Enter" && handleContinue()}
-              style={inputStyle}
-              autoFocus
-            />
-          </motion.div>
-
-          {/* Education level */}
-          <motion.div {...fadeUp(0.29)}>
-            <label style={labelStyle}>Education level</label>
-            <div style={{ display:"flex", gap:"0.5rem" }}>
-              {EDU_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => { setEducationLevel(opt.value); setGradeYear(""); }}
-                  style={{
-                    flex:1, padding:"0.625rem 0.4rem", borderRadius:10,
-                    border:`1.5px solid ${educationLevel === opt.value ? ACCENT : BORDER}`,
-                    background:educationLevel === opt.value ? `rgba(59,91,252,0.07)` : "transparent",
-                    color:educationLevel === opt.value ? ACCENT : TEXT2,
-                    fontFamily:SANS, fontWeight:600, fontSize:"0.78rem",
-                    cursor:"pointer", transition:"all 0.15s",
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Grade / Year (animated, conditional) */}
-          <AnimatePresence>
-            {(showGrade || showYear) && (
-              <motion.div
-                key="grade-year-field"
-                initial={{ opacity:0, height:0 }}
-                animate={{ opacity:1, height:"auto" }}
-                exit={{ opacity:0, height:0 }}
-                transition={{ duration:0.28, ease:[0.16,1,0.3,1] }}
-                style={{ overflow:"hidden" }}
-              >
-                <label style={labelStyle}>{showGrade ? "Grade" : "Year in school"}</label>
-                <div style={{ display:"flex", gap:"0.45rem", flexWrap:"wrap" }}>
-                  {(showGrade ? HS_GRADES : COLLEGE_YEARS).map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setGradeYear(opt.value)}
-                      style={{
-                        padding:"0.55rem 1rem", borderRadius:8,
-                        border:`1.5px solid ${gradeYear === opt.value ? ACCENT : BORDER}`,
-                        background:gradeYear === opt.value ? `rgba(59,91,252,0.07)` : "transparent",
-                        color:gradeYear === opt.value ? ACCENT : TEXT2,
-                        fontFamily:SANS, fontWeight:600, fontSize:"0.82rem",
-                        cursor:"pointer", transition:"all 0.15s",
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* State (optional) */}
-          <motion.div {...fadeUp(0.36)}>
-            <label style={labelStyle}>
-              State{" "}
-              <span style={{ fontWeight:500, opacity:0.55, textTransform:"none", letterSpacing:0, fontSize:"0.68rem" }}>
-                (optional)
-              </span>
-            </label>
-            <div style={{ position:"relative" }}>
-              <select
-                value={usState}
-                onChange={(e) => setUsState(e.target.value)}
-                onFocus={(e) => { e.target.style.borderColor = ACCENT; }}
-                onBlur={(e)  => { e.target.style.borderColor = BORDER; }}
-                style={{ ...inputStyle, cursor:"pointer", paddingRight:"2.25rem", appearance:"none", WebkitAppearance:"none" }}
-              >
-                <option value="">Select your state…</option>
-                {US_STATES.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-              {/* Chevron icon */}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={TEXT3} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                style={{ position:"absolute", right:"0.85rem", top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }}>
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </div>
-          </motion.div>
-
-          {/* Continue button */}
-          <motion.div {...fadeUp(0.42)}>
-            <motion.button
-              onClick={handleContinue}
-              disabled={!isValid || submitting}
-              whileHover={isValid && !submitting ? { scale:1.02 } : {}}
-              whileTap={isValid && !submitting ? { scale:0.97 } : {}}
-              style={{
-                width:"100%", padding:"1.1rem 1.5rem",
-                borderRadius:12, border:"none",
-                background:isValid ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})` : `rgba(59,91,252,0.12)`,
-                color:isValid ? "white" : TEXT3,
-                fontFamily:SANS, fontWeight:700, fontSize:"1.0625rem",
-                cursor:isValid && !submitting ? "pointer" : "not-allowed",
-                transition:"all 0.2s",
-                display:"flex", alignItems:"center", justifyContent:"center", gap:"0.5rem",
-                boxShadow:isValid ? "0 4px 20px rgba(59,91,252,0.3)" : "none",
-              }}
-            >
-              {submitting
-                ? <><Spinner size={16} color="white"/> Saving…</>
-                : <>Continue to voice interview →</>
-              }
-            </motion.button>
-          </motion.div>
-
-        </div>
-      </motion.div>
     </motion.div>
   );
 }
@@ -973,23 +768,18 @@ function MicDeniedPhase({ onRetry }) {
 }
 
 // ─── RecoveryPhase ────────────────────────────────────────────────────────────
-function RecoveryPhase({ userId, onSuccess, onRetry }) {
+function RecoveryPhase({ onRetryExtraction, onRetry }) {
   const [retrying, setRetrying] = useState(false);
   const [error, setError]       = useState(null);
 
+  // The parent still holds the transcript in memory, so a retry just re-runs
+  // extraction on it rather than re-reading a saved copy from the database.
   const handleRetry = async () => {
-    if (retrying || !userId) return;
+    if (retrying) return;
     setRetrying(true);
     setError(null);
     try {
-      // Fetch the saved transcript and re-run extraction
-      const { data: profile } = await supabase.from("profiles").select("raw_voice_transcript").eq("id", userId).single();
-      const saved = profile?.raw_voice_transcript;
-      if (!saved) throw new Error("No saved transcript found. Please record a new conversation.");
-
-      const result = await extractProfile({ transcript: saved, userId });
-      if (!result?.success) throw new Error(result?.error || "Could not process your conversation.");
-      onSuccess();
+      await onRetryExtraction();
     } catch (err) {
       console.error("[Recovery] retry error:", err);
       setError(err?.message || "Something went wrong. Please try again.");
@@ -1038,8 +828,16 @@ export default function OnboardingPage() {
   const [retryNotice, setRetryNotice]   = useState(null); // shown on intro screen after insufficient convo
   const [user, setUser]                 = useState(null);
   const [startingConv, setStartingConv] = useState(false);
-  const [demographics, setDemographics] = useState({ fullName:"", educationLevel:"", gradeYear:null, state:"" });
-  const [savingDemo, setSavingDemo]     = useState(false);
+
+  // ── College intake ──────────────────────────────────────────────────────────
+  const [intake, setIntake]         = useState(EMPTY_INTAKE);
+  const [savingForm, setSavingForm] = useState(false);
+  const [draft, setDraft]           = useState(null);
+  const [activities, setActivities] = useState([]);
+  const [committing, setCommitting] = useState(false);
+  const [reviewError, setReviewError] = useState(null);
+  const [channel, setChannel]       = useState(null);   // "text" | "voice"
+  const intakeContextRef            = useRef("");
 
   const transcriptEndRef = useRef(null);
   const timerRef         = useRef(null);
@@ -1052,32 +850,82 @@ export default function OnboardingPage() {
       if (!user) { window.location.href = "/auth"; return; }
       const { data: profile } = await supabase
         .from("profiles").select("onboarding_completed").eq("id", user.id).single();
-      if (profile?.onboarding_completed) { window.location.href = "/quest"; return; }
+      if (profile?.onboarding_completed) { window.location.href = "/chat"; return; }
       setUser(user);
-      setPhase("demographics");
+      setPhase("form");
     };
     checkAuth();
   }, []);
 
-  const handleDemographicsContinue = async (data) => {
-    setSavingDemo(true);
-    setDemographics(data);
+  // ── Form → channel picker ───────────────────────────────────────────────────
+  const handleFormComplete = async (values) => {
+    setSavingForm(true);
+    setIntake(values);
     try {
-      await supabase.from("profiles").upsert({
-        id:              user.id,
-        full_name:       data.fullName,
-        education_level: data.educationLevel,
-        grade_level:     data.gradeYear ? parseInt(data.gradeYear) : null,
-        location_general: data.state || null,
-        updated_at:      new Date().toISOString(),
-      }, { onConflict: "id" });
+      await saveIntakeForm(user.id, values);
+      // Build the context once, here: both channels use the same rendered summary,
+      // so the text interviewer and the voice agent see identical facts.
+      try {
+        const { context } = await fetchIntakeContext();
+        intakeContextRef.current = context || "";
+      } catch (err) {
+        console.warn("[Onboarding] context fetch failed, continuing:", err);
+      }
+      setPhase("channel");
     } catch (err) {
-      console.error("[Onboarding] demographics save error:", err);
-      // Non-blocking — proceed even if save fails; will retry in final upsert
+      console.error("[Onboarding] form save error:", err);
+      setError(err?.message || "We couldn't save that. Please try again.");
+      setPhase("error");
+    } finally {
+      setSavingForm(false);
     }
-    setSavingDemo(false);
-    setPhase("intro");
   };
+
+  // ── Shared: transcript → draft → review ─────────────────────────────────────
+  const lastAttemptRef = useRef({ transcript: "", via: "text", force: true });
+
+  const runExtraction = useCallback(async (transcriptText, via, force) => {
+    lastAttemptRef.current = { transcript: transcriptText, via, force };
+    setPhase("processing");
+    try {
+      const result = await extractIntake(transcriptText, via, force);
+
+      if (!result?.sufficient) {
+        setRetryNotice("We didn't get quite enough to work with. Give it another go and tell us a bit more about what you've been up to.");
+        setPhase("channel");
+        return;
+      }
+      if (!result?.success) {
+        console.error("[Onboarding] extraction failed:", result?.error);
+        setPhase("recovery");
+        return;
+      }
+
+      setDraft(result.draft);
+      setActivities(await fetchActivities(user.id));
+      setPhase("review");
+    } catch (err) {
+      console.error("[Onboarding] extraction error:", err);
+      setError(err?.message || "Something went wrong reading the conversation. Please try again.");
+      setPhase("error");
+    }
+  }, [user]);
+
+  // ── Review → commit ─────────────────────────────────────────────────────────
+  const handleConfirm = async (edited) => {
+    setCommitting(true);
+    setReviewError(null);
+    try {
+      const result = await commitIntake(edited, channel);
+      if (!result?.success) throw new Error(result?.error || "Save failed");
+      window.location.href = "/chat";
+    } catch (err) {
+      console.error("[Onboarding] commit error:", err);
+      setReviewError(err?.message || "We couldn't save that. Please try again.");
+      setCommitting(false);
+    }
+  };
+
 
   const conversation = useConversation({
     onMessage: (msg) => {
@@ -1177,20 +1025,17 @@ export default function OnboardingPage() {
     try {
       await conversation.startSession({ agentId: AGENT_ID });
       setPhase("active");
-      if (demographics.fullName || demographics.educationLevel || demographics.state) {
-        const parts = [];
-        if (demographics.fullName) {
-          parts.push(`The student's name is ${demographics.fullName}. Please address them by name throughout the conversation.`);
-        }
-        if (demographics.educationLevel) {
-          const levelLabel = { high_school: "High School", college: "College / University", other: "Other" }[demographics.educationLevel] ?? demographics.educationLevel;
-          const gradeLabel = { "9": "9th grade", "10": "10th grade", "11": "11th grade", "12": "12th grade", "1": "1st year (Freshman)", "2": "2nd year (Sophomore)", "3": "3rd year (Junior)", "4": "4th year (Senior)" }[demographics.gradeYear ?? ""] ?? null;
-          parts.push(`They are a ${levelLabel} student${gradeLabel ? `, ${gradeLabel}` : ""}.`);
-        }
-        if (demographics.state) {
-          parts.push(`They are based in ${demographics.state}.`);
-        }
-        try { conversation.sendContextualUpdate(parts.join(" ")); } catch (_) { /* best-effort */ }
+      // Seed the agent with the form data so it can ask about specific activities
+      // by name instead of starting from scratch. Contextual updates need no
+      // dashboard override permissions, unlike dynamic variables.
+      if (intakeContextRef.current) {
+        try {
+          conversation.sendContextualUpdate(
+            "Here is the student's application record, which they just filled in. " +
+            "Do not ask them to repeat any of it. Use it to ask about specific " +
+            "activities and awards by name.\n\n" + intakeContextRef.current
+          );
+        } catch (_) { /* best-effort */ }
       }
     } catch (err) {
       console.error("[ElevenLabs] startSession error:", err);
@@ -1204,58 +1049,16 @@ export default function OnboardingPage() {
   const endConversation = async (manual = false) => {
     clearInterval(timerRef.current);
     try { await conversation.endSession(); } catch { /* already closed */ }
-    setPhase("processing");
-    try {
-      const { data: { user: freshUser } } = await supabase.auth.getUser();
-      if (!freshUser) throw new Error("Session expired. Please log in again.");
 
-      const messages = transcriptRef.current;
-      const transcriptText = messages.length > 0
-        ? messages.map((m) => `${m.role === "agent" ? "Mentorable" : "Student"}: ${m.message}`).join("\n")
-        : "";
+    const messages = transcriptRef.current;
+    const transcriptText = messages.length > 0
+      ? messages.map((m) => `${m.role === "agent" ? "Interviewer" : "Student"}: ${m.message}`).join("\n")
+      : "";
 
-      // Delegate sufficiency check + extraction + DB save to the server.
-      // Routes to LangGraph FastAPI when the flag is set, else the edge function.
-      // Either way the Anthropic key stays off the client.
-      // `force` skips the sufficiency gate when the student deliberately ended the call —
-      // that's their call to make, so we build the best profile we can instead of making
-      // them start over. Auto-ends (silence timeout, max call time) still go through the gate.
-      const result = await extractProfile({ transcript: transcriptText, userId: freshUser.id, force: manual });
-
-      if (!result?.sufficient) {
-        // Not enough info at all (e.g. call ended with no real conversation) — clear the
-        // saved partial transcript and offer a retry.
-        supabase.from("profiles").update({ raw_voice_transcript: null }).eq("id", freshUser.id).then(() => {});
-        setTranscript([]);
-        transcriptRef.current = [];
-        setElapsed(0);
-        setRetryNotice("It looks like the conversation ended before we got to know you. No worries, just start it again and share a bit about yourself when you're ready.");
-        setPhase("intro");
-        return;
-      }
-
-      if (!result?.success) {
-        // Extraction failed but we have the saved transcript — show recovery UI
-        console.error("[Onboarding] extraction failed:", result?.error);
-        setPhase("recovery");
-        return;
-      }
-
-      // Also save demographic fields collected before the voice call
-      await supabase.from("profiles").update({
-        full_name:        demographics.fullName || null,
-        education_level:  demographics.educationLevel || null,
-        grade_level:      demographics.gradeYear ? parseInt(demographics.gradeYear) : null,
-        location_general: demographics.state || null,
-      }).eq("id", freshUser.id);
-
-      // First-time completion → show the scorecard first.
-      window.location.href = "/scorecard";
-    } catch (err) {
-      console.error("[Onboarding] endConversation error:", err);
-      setError(err?.message || "Something went wrong processing your profile. Please try again.");
-      setPhase("error");
-    }
+    // `force` skips the sufficiency gate when the student deliberately ended the call.
+    // That's their call to make, so we take our best shot instead of making them start
+    // over. Auto-ends (silence timeout, max call time) still go through the gate.
+    await runExtraction(transcriptText, "voice", manual);
   };
 
   if (phase === "loading") {
@@ -1318,12 +1121,37 @@ export default function OnboardingPage() {
       `}</style>
 
       <AnimatePresence mode="wait">
-        {phase === "demographics" && <DemographicsPhase key="demographics" onContinue={handleDemographicsContinue} submitting={savingDemo}/>}
+        {phase === "form" && (
+          <div key="form" style={{ flex: 1, overflowY: "auto", padding: "2.5rem 0 3rem" }}>
+            <IntakeForm initial={intake} onComplete={handleFormComplete} submitting={savingForm} />
+          </div>
+        )}
+        {phase === "channel" && (
+          <ChannelPhase key="channel" retryNotice={retryNotice}
+            onPick={(c) => {
+              setChannel(c); setRetryNotice(null);
+              if (c === "voice") { setPhase("intro"); } else { setPhase("text-interview"); }
+            }} />
+        )}
+        {phase === "text-interview" && (
+          <div key="text-interview" style={{ flex: 1, minHeight: 0, display: "flex", padding: "2rem 0 1.5rem" }}>
+            <TextInterview
+              onFinish={(transcriptText) => runExtraction(transcriptText, "text", true)}
+              onError={(msg) => { setError(msg); setPhase("error"); }}
+            />
+          </div>
+        )}
+        {phase === "review" && (
+          <div key="review" style={{ flex: 1, overflowY: "auto", padding: "2.5rem 0 3rem" }}>
+            <IntakeReview draft={draft} activities={activities} onConfirm={handleConfirm}
+              committing={committing} error={reviewError} />
+          </div>
+        )}
         {phase === "intro"      && <IntroPhase      key="intro"      onStart={startConversation} loading={startingConv} retryNotice={retryNotice}/>}
         {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} transcriptEndRef={transcriptEndRef}/>}
         {phase === "processing" && <ProcessingPhase key="processing"/>}
-        {phase === "recovery"   && <RecoveryPhase   key="recovery"   userId={user?.id} onSuccess={() => { window.location.href = "/scorecard"; }} onRetry={() => { setPhase("intro"); }}/>}
-        {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("demographics"); }}/>}
+        {phase === "recovery"   && <RecoveryPhase   key="recovery"   onRetryExtraction={() => { const a = lastAttemptRef.current; return runExtraction(a.transcript, a.via, a.force); }} onRetry={() => { setPhase("channel"); }}/>}
+        {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("channel"); }}/>}
         {phase === "mic-denied" && <MicDeniedPhase  key="mic-denied" onRetry={() => setPhase("intro")}/>}
       </AnimatePresence>
     </div>
