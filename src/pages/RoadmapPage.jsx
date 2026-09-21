@@ -15,6 +15,7 @@ const SANS        = "'Raleway', sans-serif";
 const BG          = "#F5F5F5";
 const WHITE       = "#ffffff";
 const BLUE        = "#1d4ed8";
+const BLUE_MID    = "#3b82f6";
 const BLUE_TINT   = "#f0f5ff";
 const GREEN       = "#059669";
 const GREEN_SOFT  = "#d1fae5";
@@ -57,115 +58,15 @@ function prettyMonth(val) {
   return `${MONTH_NAMES[(m - 1) % 12]} ${y}`;
 }
 
-// ─── Node tree (the nodes inside an expanded phase) ───────────────────────────
-const TREE_CSS = `
-  .rm-node { transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s ease; }
-  .rm-node-btn:hover .rm-node { transform: scale(1.06); }
-  .rm-node-btn:hover .rm-node-title { color: var(--accent); }
-  .rm-node-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 14px; }
-`;
-
-// Pillar hex + alpha → rgba, for the glow layers.
-function glowRgba(hex, a) {
-  const h = hex.replace("#", "");
-  const n = parseInt(h, 16);
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
-}
-
-// One node: the outline itself is the progress bar, filling clockwise in the
-// pillar color. Done goes solid green with a check. Nothing distinguishes an
-// opened node from an untouched one.
-function NodeCircle({ node, pct, size }) {
-  const ps = pillarStyle(node.pillar);
-  const isDone = node.state === "done";
-  const c = isDone ? GREEN : ps.dot;
-  const stroke = Math.max(3.5, size * 0.055);
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-
+// Subtle technical-depth hint.
+function DepthPips({ depth }) {
+  if (!depth) return null;
   return (
-    <span className="rm-node" style={{
-      position: "relative", width: size, height: size, borderRadius: "50%", flexShrink: 0,
-      display: "inline-flex", alignItems: "center", justifyContent: "center",
-      background: isDone ? "linear-gradient(145deg, #10b981, #047857)" : WHITE,
-      boxShadow: isDone
-        ? `0 2px 10px ${glowRgba(GREEN, 0.22)}`
-        : "0 2px 8px rgba(20,20,19,0.05)",
-    }}>
-      {isDone ? (
-        <svg width={size * 0.44} height={size * 0.44} viewBox="0 0 24 24" fill="none" stroke={WHITE} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      ) : (
-        <svg width={size} height={size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={c} strokeOpacity={0.17} strokeWidth={stroke} />
-          {pct > 0 && (
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={c} strokeWidth={stroke}
-              strokeLinecap="round" strokeDasharray={`${circ * pct} ${circ}`} />
-          )}
-        </svg>
-      )}
+    <span title={`Difficulty ${depth}/5`} style={{ display: "inline-flex", gap: 3, alignItems: "center" }}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: i <= depth ? BLUE_MID : BORDER }} />
+      ))}
     </span>
-  );
-}
-
-function NodeTree({ nodes, taskCounts, isMobile, onOpen }) {
-  if (!nodes.length) return null;
-  const size = isMobile ? 58 : 78;
-  const rowH = isMobile ? 112 : 142;
-  const total = nodes.length * rowH;
-  // A single vertical spine: centred on desktop, left-hand on mobile.
-  const spine = isMobile ? `${size / 2 + 2}px` : "50%";
-  const cy = (i) => i * rowH + rowH / 2;
-  const gapFromSpine = size / 2 + 26;
-  const segInset = size / 2 + 9;
-
-  return (
-    <div style={{ position: "relative", height: total, marginBottom: 12 }}>
-      {/* Spine segments, behind the discs; each disc's halo trims them to its edge. */}
-      {nodes.slice(0, -1).map((n, i) => {
-        const linked = n.state === "done" && nodes[i + 1].state === "done";
-        return (
-          <span key={`seg-${n.id}`} style={{
-            position: "absolute", left: spine, transform: "translateX(-50%)",
-            top: cy(i) + segInset, height: rowH - segInset * 2, width: linked ? 3 : 2.5, borderRadius: 2,
-            background: linked
-              ? GREEN
-              : "linear-gradient(180deg, rgba(20,20,19,0.06), rgba(20,20,19,0.13), rgba(20,20,19,0.06))",
-            opacity: linked ? 0.5 : 1,
-          }} />
-        );
-      })}
-
-      {nodes.map((node, i) => {
-        const ps = pillarStyle(node.pillar);
-        const tc = taskCounts[node.id];
-        const isDone = node.state === "done";
-        const pct = tc && tc.total ? Math.min(1, tc.done / tc.total) : 0;
-        // Text alternates sides of the spine; on mobile it always sits right.
-        const textPos = isMobile
-          ? { left: size + 22, right: 2, textAlign: "left" }
-          : i % 2 === 0
-            ? { left: `calc(50% + ${gapFromSpine}px)`, right: "3%", textAlign: "left" }
-            : { left: "3%", right: `calc(50% + ${gapFromSpine}px)`, textAlign: "right" };
-        return (
-          <button key={node.id} className="rm-node-btn" onClick={() => onOpen(node)}
-            style={{ position: "absolute", top: i * rowH, left: 0, right: 0, height: rowH, width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
-            <span style={{ position: "absolute", top: "50%", left: spine, transform: "translate(-50%,-50%)", zIndex: 1, display: "inline-flex" }}>
-              <NodeCircle node={node} pct={pct} size={size} />
-            </span>
-            <span style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", ...textPos }}>
-              <span style={{ display: "block", fontFamily: SANS, fontSize: isMobile ? 11.5 : 12.5, fontWeight: 700, letterSpacing: "0.01em", color: isDone ? TEXT_FAINT : ps.color, marginBottom: 5 }}>
-                {node.pillar}
-              </span>
-              <span className="rm-node-title" style={{ display: "block", fontFamily: SANS, fontWeight: 700, fontSize: isMobile ? 16 : 18.5, lineHeight: 1.3, letterSpacing: "-0.01em", color: isDone ? TEXT_MUTED : TEXT, transition: "color 0.18s ease" }}>
-                {node.title}
-              </span>
-            </span>
-          </button>
-        );
-      })}
-    </div>
   );
 }
 
@@ -751,9 +652,34 @@ export default function RoadmapPage({ navigate }) {
     </div>;
   }
 
+  // Node row inside an expanded phase.
+  const NodeRow = ({ node }) => {
+    const ps = pillarStyle(node.pillar);
+    const tc = taskCounts[node.id];
+    const isDone = node.state === "done";
+    let progress;
+    if (isDone) progress = { text: "Done", color: GREEN, bg: GREEN_SOFT };
+    else if (tc && tc.total) progress = { text: `${tc.done}/${tc.total}`, color: "var(--accent)", bg: "rgba(var(--accent-rgb),0.14)" };
+    else progress = { text: "Open", color: TEXT_FAINT, bg: BG };
+    return (
+      <motion.button layout whileHover={{ y: -1 }} onClick={() => openNode(node)}
+        style={{ display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left", cursor: "pointer", background: WHITE, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${ps.dot}`, borderRadius: 13, padding: "14px 16px", marginBottom: 11 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 5, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.02em", background: ps.bg, color: ps.color, borderRadius: 6, padding: "3px 9px" }}>{node.pillar}</span>
+            <span style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: TEXT_MID }}>{node.month_label}</span>
+            <DepthPips depth={node.technical_depth} />
+          </div>
+          <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 16.5, color: isDone ? TEXT_MUTED : TEXT, lineHeight: 1.3, textDecoration: isDone ? "line-through" : "none" }}>{node.title}</div>
+          {node.blurb && <p style={{ fontFamily: SANS, fontSize: 13.5, color: TEXT_MUTED, lineHeight: 1.45, margin: "5px 0 0" }}>{node.blurb}</p>}
+        </div>
+        <span style={{ flexShrink: 0, fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: progress.color, background: progress.bg, borderRadius: 8, padding: "5px 10px" }}>{progress.text}</span>
+      </motion.button>
+    );
+  };
+
   return (
     <div data-sidebar-offset style={pagePad}>
-      <style>{TREE_CSS}</style>
 
       {phase === "empty" && !starting && (
         <GoalEntry onStart={handleStart} starting={starting} atLimit={roadmapUsed >= LIMITS.roadmap_gen} onLimit={() => showLimit("roadmap_gen")} />
@@ -921,7 +847,7 @@ export default function RoadmapPage({ navigate }) {
                       {isActive && phaseBusy && pn.length === 0 ? (
                         <p style={{ fontFamily: SANS, fontSize: "0.98rem", color: TEXT_MID, marginBottom: 13 }}>Generating this phase…</p>
                       ) : (
-                        <NodeTree nodes={pn} taskCounts={taskCounts} isMobile={isMobile} onOpen={openNode} />
+                        pn.map((node) => <NodeRow key={node.id} node={node} />)
                       )}
                       {isCompleted && p.reflection?.summary && (
                         <p style={{ fontFamily: SANS, fontSize: "0.94rem", color: TEXT_MUTED, fontStyle: "italic", lineHeight: 1.5, margin: "4px 0 0", paddingLeft: 12, borderLeft: `2px solid ${BORDER}` }}>{p.reflection.summary}</p>
