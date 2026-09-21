@@ -25,10 +25,13 @@ const AXES = [
 const DEFAULT = 40;
 const clamp = (n) => Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
 
-// Red (critical) → yellow → green (strength), smoothly across the score range.
-function scoreColor(score) {
-  const hue = Math.max(0, Math.min(120, (clamp(score) / 100) * 120));
-  return `hsl(${hue}, 72%, 42%)`;
+// Light accent (weak) → dark accent (strong), smoothly across the score range,
+// so the fill always tracks the user's chosen accent instead of a fixed hue.
+function scoreColor(score, accent) {
+  const pct = clamp(score);
+  const light = `color-mix(in srgb, ${accent} 28%, white 72%)`;
+  const dark = `color-mix(in srgb, ${accent} 100%, black 38%)`;
+  return `color-mix(in srgb, ${dark} ${pct}%, ${light})`;
 }
 
 // ─── Count-up hook ────────────────────────────────────────────────────────────
@@ -164,7 +167,7 @@ function AxisRow({ axis, score, isWeak, accent, onClick, delay }) {
       <div style={{ height: 7, borderRadius: 99, background: "#efe9e2", overflow: "hidden" }}>
         <motion.div
           initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ delay: delay + 0.15, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-          style={{ height: "100%", borderRadius: 99, background: scoreColor(score) }}
+          style={{ height: "100%", borderRadius: 99, background: scoreColor(score, accent) }}
         />
       </div>
       <p style={{ fontFamily: SANS, fontWeight: 500, fontSize: "0.74rem", color: "#000", marginTop: 7, lineHeight: 1.4, minHeight: "2.1em" }}>{axis.blurb}</p>
