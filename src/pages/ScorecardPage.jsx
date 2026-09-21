@@ -25,6 +25,12 @@ const AXES = [
 const DEFAULT = 40;
 const clamp = (n) => Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
 
+// Red (critical) → yellow → green (strength), smoothly across the score range.
+function scoreColor(score) {
+  const hue = Math.max(0, Math.min(120, (clamp(score) / 100) * 120));
+  return `hsl(${hue}, 72%, 42%)`;
+}
+
 // ─── Count-up hook ────────────────────────────────────────────────────────────
 function useCountUp(target, duration = 1100, start = true) {
   const [val, setVal] = useState(0);
@@ -139,9 +145,9 @@ function AxisRow({ axis, score, isWeak, accent, onClick, delay }) {
       whileHover={{ x: 3 }} whileTap={{ scale: 0.99 }}
       style={{
         display: "block", width: "100%", textAlign: "left", cursor: "pointer",
-        background: "#ffffff", border: "2px solid #141413",
+        background: "#ffffff", border: "none",
         borderRadius: 14, padding: "13px 16px",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.04)",
+        boxShadow: "0 1px 4px rgba(15,23,42,0.07)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
@@ -158,7 +164,7 @@ function AxisRow({ axis, score, isWeak, accent, onClick, delay }) {
       <div style={{ height: 7, borderRadius: 99, background: "#efe9e2", overflow: "hidden" }}>
         <motion.div
           initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ delay: delay + 0.15, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-          style={{ height: "100%", borderRadius: 99, background: isWeak ? accent : `${accent}99` }}
+          style={{ height: "100%", borderRadius: 99, background: scoreColor(score) }}
         />
       </div>
       <p style={{ fontFamily: SANS, fontWeight: 500, fontSize: "0.74rem", color: "#000", marginTop: 7, lineHeight: 1.4, minHeight: "2.1em" }}>{axis.blurb}</p>
