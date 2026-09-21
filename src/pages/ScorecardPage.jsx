@@ -159,7 +159,7 @@ function AxisRow({ axis, score, isWeak, accent, onClick, delay }) {
             </span>
           )}
         </div>
-        <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: isWeak ? accent : "#141413" }}>{score}</span>
+        <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: "#141413" }}>{score}</span>
       </div>
       <div style={{ height: 7, borderRadius: 99, background: "#efe9e2", overflow: "hidden" }}>
         <motion.div
