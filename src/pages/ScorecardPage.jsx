@@ -575,8 +575,8 @@ export default function ScorecardPage({ navigate }) {
               {/* Radar card (shareable) */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.08 }}>
                 <div id="scorecard-card" style={{
-                  background: "#fff", borderRadius: "1.5rem", border: "2px solid #141413",
-                  boxShadow: "0 3px 14px rgba(15,23,42,0.06)", padding: "1.75rem", position: "relative", overflow: "hidden",
+                  background: "#fff", borderRadius: "1.5rem", border: "none",
+                  boxShadow: "0 3px 14px rgba(15,23,42,0.08)", padding: "1.75rem", position: "relative", overflow: "hidden",
                 }}>
                   <div style={{ position: "relative", zIndex: 1 }}>
                     <div style={{ textAlign: "center", paddingBottom: "0.9rem", borderBottom: "1.5px solid rgba(20,20,19,0.16)", marginBottom: "1rem" }}>
