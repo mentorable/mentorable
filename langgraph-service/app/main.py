@@ -570,39 +570,73 @@ async def portfolio_extract(file: UploadFile = File(...), user_id: str = Depends
 @app.post("/portfolio/resume/pdf")
 async def portfolio_resume_pdf(raw: Request, user_id: str = Depends(verify_jwt)):
     """
-    Build a one-page LaTeX resume from the student's selected portfolio items and
-    compile it to PDF. Rate-limited to 1/lifetime in the demo; the compile is the
-    only cost (no AI call).
+    Build a one-page LaTeX resume from the student's selected record (academics,
+    activities, awards) and compile it to PDF. Rate-limited to 1/lifetime in the
+    demo; the compile is the only cost (no AI call).
     """
     try:
         body = await raw.json()
     except Exception:
         body = {}
-    item_ids = [str(i) for i in (body.get("item_ids") or []) if i]
+    def ids(key):
+        return [str(i) for i in (body.get(key) or []) if i]
+
+    activity_ids = ids("activity_ids")
+    award_ids    = ids("award_ids")
+    course_ids   = ids("course_ids")
+    score_ids    = ids("score_ids")
+    include_gpa  = bool(body.get("include_gpa"))
     contact = body.get("contact") if isinstance(body.get("contact"), dict) else {}
-    if not item_ids:
-        raise HTTPException(status_code=422, detail="Select at least one portfolio item to export.")
+
+    if not any([activity_ids, award_ids, course_ids, score_ids, include_gpa]):
+        raise HTTPException(status_code=422, detail="Select at least one thing to include in your resume.")
 
     supabase = get_supabase()
-    profile_res = supabase.from_("profiles").select("full_name").eq("id", user_id).maybe_single().execute()
-    name = ((profile_res.data or {}).get("full_name") or "").strip()
-
-    # Never trust titles/descriptions from the client; re-read the rows scoped to this user.
-    items_res = (
-        supabase.from_("portfolio_items")
-        .select("id, category, title, description, order_index")
-        .eq("user_id", user_id)
-        .in_("id", item_ids)
-        .order("order_index")
-        .execute()
+    profile_res = (
+        supabase.from_("profiles")
+        .select("full_name, gpa_unweighted, gpa_weighted, gpa_scale")
+        .eq("id", user_id).maybe_single().execute()
     )
-    items = items_res.data or []
-    if not items:
-        raise HTTPException(status_code=422, detail="None of the selected items belong to your portfolio.")
+    profile = profile_res.data or {}
+    name = (profile.get("full_name") or "").strip()
+
+    # Never trust what the client sends; re-read every row scoped to this user.
+    def rows(table, cols, id_list, order):
+        if not id_list:
+            return []
+        res = (
+            supabase.from_(table).select(cols)
+            .eq("user_id", user_id).in_("id", id_list).order(order).execute()
+        )
+        return res.data or []
+
+    selection = {
+        "academics": {
+            "gpa_unweighted": profile.get("gpa_unweighted"),
+            "gpa_weighted":   profile.get("gpa_weighted"),
+            "gpa_scale":      profile.get("gpa_scale"),
+        } if include_gpa else {},
+        "activities": rows(
+            "student_activities",
+            "id, title, position, organization, description, hours_per_week, "
+            "weeks_per_year, grade_levels, order_index",
+            activity_ids, "order_index",
+        ),
+        "awards":  rows("student_awards", "id, title, level, year, description, order_index",
+                        award_ids, "order_index"),
+        "courses": rows("student_courses", "id, name, level, order_index",
+                        course_ids, "order_index"),
+        "scores":  rows("student_test_scores", "id, test_type, score, subject, section_scores",
+                        score_ids, "test_type"),
+    }
+
+    if not any([selection["academics"], selection["activities"],
+                selection["awards"], selection["courses"], selection["scores"]]):
+        raise HTTPException(status_code=422, detail="None of the selected items belong to you.")
 
     # Build (cheap, pure) BEFORE the rate limit so a validation problem never burns the export.
     try:
-        tex = build_resume_tex(name, contact, items)
+        tex = build_resume_tex(name, contact, selection)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 

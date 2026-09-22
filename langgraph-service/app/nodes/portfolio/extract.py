@@ -20,7 +20,11 @@ logger = logging.getLogger(__name__)
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 HAIKU = "claude-haiku-4-5-20251001"
 
-CATEGORIES = ["experience", "project", "volunteering", "award", "course", "certification", "club", "skill", "other"]
+# Upload only feeds the ECs/Awards tab, so every extracted row is one of these
+# two kinds. Academics (GPA, scores, courses) is typed in, not parsed.
+KINDS = ["activity", "award"]
+
+AWARD_LEVELS = ["school", "regional", "state", "national", "international"]
 
 MAX_FILE_BYTES = 5 * 1024 * 1024   # 5MB — resumes are tiny; anything bigger is wrong
 MAX_TEXT_CHARS = 20_000            # bounds the Haiku input for cost
@@ -80,20 +84,29 @@ def _parse_items(text: str):
     return None
 
 
-EXTRACTION_PROMPT = """You extract structured portfolio pieces from a student's resume, activity list, brag sheet, or course list.
+EXTRACTION_PROMPT = """You extract a student's extracurriculars and awards from their resume, activity list, or brag sheet.
 
-Pull out every distinct item: jobs, internships, volunteer work, awards, honors, courses (AP/IB/dual enrollment/online), certifications, clubs, leadership roles, notable skills, and projects.
+Pull out every distinct activity (clubs, sports, jobs, internships, volunteering, research, projects, leadership roles) and every distinct award or honor.
 
 Rules:
-- category must be exactly one of: experience, project, volunteering, award, course, certification, club, skill, other
-- title: short and specific, max 80 characters (e.g. "Software Engineering Intern at Acme", "AP Computer Science A", "DECA State Finalist")
-- description: 1-2 sentences capturing the concrete details present in the document (dates, role, scope, results). Use only what the document says, do not invent details. Empty string if the document gives nothing beyond the title.
-- Skip contact info, objective/summary paragraphs, and references.
+- "kind" must be exactly "activity" or "award".
+- "title" is short and specific, max 80 characters (e.g. "Science Olympiad", "Software Engineering Intern at Acme", "DECA State Finalist").
+- For an activity, also fill what the document actually states, and leave anything it does not state as null:
+    - "position": their role or leadership title, max 50 chars (e.g. "Anatomy Captain", "Treasurer")
+    - "organization": the club, company or school, max 100 chars
+    - "hours_per_week" and "weeks_per_year": numbers only if the document says so
+    - "grade_levels": any of 9, 10, 11, 12 that the document indicates
+- For an award, also fill:
+    - "level": one of school, regional, state, national, international, if the document makes it clear
+    - "year": a four digit year if stated
+- "description": 1-2 sentences of the concrete details the document gives (scope, results, numbers). Use ONLY what the document says, never invent. Empty string if there is nothing beyond the title.
+- Skip contact info, objective/summary paragraphs, references, GPA, test scores and coursework. Those are entered separately.
 - Never use em dashes anywhere. Use commas or periods instead.
 - Return at most {max_items} items, the most substantive ones.
 
 Return ONLY a valid JSON array, no other text, no markdown, no backticks:
-[{{"category": "...", "title": "...", "description": "..."}}]
+[{{"kind": "activity", "title": "...", "position": null, "organization": null, "hours_per_week": null, "weeks_per_year": null, "grade_levels": [], "description": "..."}},
+ {{"kind": "award", "title": "...", "level": null, "year": null, "description": "..."}}]
 
 DOCUMENT:
 {document}"""
@@ -101,7 +114,7 @@ DOCUMENT:
 
 async def extract_portfolio_items(document: str) -> list[dict]:
     """
-    Extracted document text -> list of {category, title, description}.
+    Extracted document text -> list of activity/award rows for the ECs/Awards tab.
     Raises ValueError with a user-facing message on expected failures.
     (File reading/validation lives in extract_file_text so the endpoint can
     reject bad files BEFORE burning a rate-limited upload.)
@@ -122,6 +135,13 @@ async def extract_portfolio_items(document: str) -> list[dict]:
         logger.warning(f"[portfolio] extraction parse failed: {raw[:200]!r}")
         raise ValueError("Could not extract items from that file. Try again or add pieces manually.")
 
+    def num(v, lo, hi):
+        try:
+            f = float(v)
+        except (TypeError, ValueError):
+            return None
+        return max(lo, min(hi, f))
+
     items = []
     for entry in parsed[:MAX_ITEMS]:
         if not isinstance(entry, dict):
@@ -129,14 +149,35 @@ async def extract_portfolio_items(document: str) -> list[dict]:
         title = str(entry.get("title") or "").strip()[:120]
         if not title:
             continue
-        category = str(entry.get("category") or "").strip().lower()
-        if category not in CATEGORIES:
-            category = "other"
+
+        kind = str(entry.get("kind") or "").strip().lower()
+        if kind not in KINDS:
+            kind = "activity"
         description = str(entry.get("description") or "").strip()[:500]
-        items.append({"category": category, "title": title, "description": description})
+
+        if kind == "award":
+            level = str(entry.get("level") or "").strip().lower()
+            year = num(entry.get("year"), 1900, 2100)
+            items.append({
+                "kind": "award", "title": title, "description": description,
+                "level": level if level in AWARD_LEVELS else None,
+                "year": int(year) if year else None,
+            })
+        else:
+            grades = sorted({g for g in (entry.get("grade_levels") or []) if g in (9, 10, 11, 12)})
+            hrs = num(entry.get("hours_per_week"), 0, 168)
+            wks = num(entry.get("weeks_per_year"), 0, 52)
+            items.append({
+                "kind": "activity", "title": title, "description": description,
+                "position": (str(entry.get("position") or "").strip() or None) and str(entry.get("position")).strip()[:50],
+                "organization": (str(entry.get("organization") or "").strip() or None) and str(entry.get("organization")).strip()[:100],
+                "hours_per_week": hrs,
+                "weeks_per_year": int(wks) if wks else None,
+                "grade_levels": grades,
+            })
 
     if not items:
-        raise ValueError("No portfolio items were found in that file. Try adding pieces manually.")
+        raise ValueError("No activities or awards were found in that file. Try adding them manually.")
 
     logger.info(f"[portfolio] extracted {len(items)} items")
     return items
