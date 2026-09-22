@@ -865,11 +865,25 @@ export default function OnboardingPage() {
       setPhase("mic-denied"); setStartingConv(false); return;
     }
     try {
-      await conversation.startSession({ agentId: AGENT_ID });
+      // The agent's opening line is a static template on the ElevenLabs dashboard,
+      // spoken before the contextual update below can land. So the first item is
+      // passed as a dynamic variable: otherwise the agent says "let's start with
+      // the first one on your list", which asks the student to recall their own
+      // list back to the agent that is holding it.
+      const firstName = (intake.fullName || "").trim().split(/\s+/)[0];
+      const firstItem = (intake.activities || [])[0] || (intake.awards || [])[0];
+
+      await conversation.startSession({
+        agentId: AGENT_ID,
+        dynamicVariables: {
+          student_name: firstName || "there",
+          first_item: firstItem || "the first thing you've been involved in",
+        },
+      });
       setPhase("active");
-      // Seed the agent with the form data so it can ask about specific activities
-      // by name instead of starting from scratch. Contextual updates need no
-      // dashboard override permissions, unlike dynamic variables.
+      // Seed the agent with the full form data so it can keep naming specific
+      // activities as it works down the list. Contextual updates need no
+      // dashboard override permissions.
       if (intakeContextRef.current) {
         try {
           conversation.sendContextualUpdate(
