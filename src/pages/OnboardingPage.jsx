@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useConversation } from "@elevenlabs/react";
 import { supabase } from "../lib/supabase.js";
+import { requireUser } from "../lib/auth.js";
 import Spinner from "../components/common/Spinner.jsx";
 import { VoicePoweredOrb } from "../components/common/VoicePoweredOrb.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
@@ -747,8 +748,8 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { window.location.href = "/auth"; return; }
+      const user = await requireUser();
+      if (!user) return;
       const { data: profile } = await supabase
         .from("profiles").select("onboarding_completed").eq("id", user.id).single();
       if (profile?.onboarding_completed) { window.location.href = HOME_PATH; return; }

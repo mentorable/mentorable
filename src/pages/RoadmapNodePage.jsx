@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
+import { requireUser } from "../lib/auth.js";
 import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
@@ -96,8 +97,8 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
 
   useEffect(() => {
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { window.location.href = "/auth"; return; }
+      const user = await requireUser();
+      if (!user) return;
       const [{ data }, , { data: existingTasks }] = await Promise.all([
         supabase.from("roadmap_nodes").select("*").eq("id", nodeId).single(),
         fetchUsage(supabase),

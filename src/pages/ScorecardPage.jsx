@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
+import { requireUser } from "../lib/auth.js";
 import { getCache, setCache, getKnownUserId, setKnownUserId, invalidateCache } from "../lib/cache.js";
 import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
@@ -386,8 +387,8 @@ export default function ScorecardPage({ navigate }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { window.location.href = "/auth"; return; }
+        const user = await requireUser();
+        if (!user) return;
         setKnownUserId(user.id);
         const { data: p } = await supabase.from("profiles").select("*").eq("id", user.id).single();
         if (!p?.onboarding_completed) { window.location.href = "/onboarding"; return; }

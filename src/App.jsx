@@ -19,6 +19,7 @@ import MobileNav from "./components/common/MobileNav.jsx";
 import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 import { HOME_PATH } from "./lib/features.js";
+import { getValidUser } from "./lib/auth.js";
 
 // Routes that show the persistent sidebar
 const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/quest", "/roadmap", "/portfolio"];
@@ -49,10 +50,14 @@ function AppShell({ children }) {
   // "/") and any sign-in that happens while the app is open. Only acts from the
   // entry points so it never hijacks a logged-in user browsing the landing page.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) return;
+    // Validated against the server, not just read from localStorage. Trusting
+    // getSession() here meant a dead token still routed the student into the app,
+    // where the page's own getUser() guard bounced them straight back to /auth,
+    // and round and round.
+    getValidUser().then((user) => {
+      if (!user) return;
       const path = window.location.pathname;
-      if (CAME_FROM_AUTH || path === "/auth") routeAfterAuth(session.user.id, navigate);
+      if (CAME_FROM_AUTH || path === "/auth") routeAfterAuth(user.id, navigate);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {

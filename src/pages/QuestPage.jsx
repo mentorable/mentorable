@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
+import { requireUser } from "../lib/auth.js";
 import { getCache, setCache, getKnownUserId, setKnownUserId } from "../lib/cache.js";
 import { getQuestGenerating, setQuestGenerating } from "../lib/liveState.js";
 import { fetchUsage, LIMITS } from "../lib/usage.js";
@@ -582,8 +583,8 @@ export default function QuestPage({ navigate }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { window.location.href = "/auth"; return; }
+      const user = await requireUser();
+      if (!user) return;
       if (cancelled) return;
       setUserId(user.id);
       setKnownUserId(user.id);

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
+import { requireUser } from "../lib/auth.js";
 import { setKnownUserId } from "../lib/cache.js";
 import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
@@ -466,8 +467,8 @@ export default function RoadmapPage({ navigate }) {
   // Initial load.
   useEffect(() => {
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { window.location.href = "/auth"; return; }
+      const user = await requireUser();
+      if (!user) return;
       userIdRef.current = user.id;
       setKnownUserId(user.id);
 
