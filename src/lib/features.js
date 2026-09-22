@@ -22,5 +22,14 @@ export const FEATURES = {
 
 export const isEnabled = (key) => FEATURES[key] !== false;
 
-/** Where a student lands after login and after finishing onboarding. */
+/** Where a returning student lands after login. */
 export const HOME_PATH = "/chat";
+
+/**
+ * Where a student lands the moment onboarding finishes.
+ *
+ * The portfolio, not chat: it is the record everything else reasons from, so
+ * the first thing a student should see is their own profile taking shape, and
+ * anything the interview left thin is visible and fixable right there.
+ */
+export const POST_ONBOARDING_PATH = "/portfolio";

@@ -397,9 +397,11 @@ export default function ScorecardPage({ navigate }) {
         setPhase("loaded");
         if (p.scorecard_intro_seen === false) setShowWelcome(true);
         fetchUsage(supabase).then((u) => setBoostsUsed(u.axis_boosts_used ?? 0));
-        supabase.from("portfolio_items").select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .then(({ count }) => setPortfolioCount(count ?? 0));
+        // Portfolio is the activities/awards record now, not portfolio_items.
+        Promise.all([
+          supabase.from("student_activities").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+          supabase.from("student_awards").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        ]).then(([acts, awards]) => setPortfolioCount((acts.count ?? 0) + (awards.count ?? 0)));
       } catch { setPhase("error"); }
     };
     load();

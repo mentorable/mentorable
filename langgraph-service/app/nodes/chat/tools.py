@@ -25,7 +25,7 @@ COLUMN_TO_STATUS = {
 
 _AXES = {"communication", "leadership", "technicality", "resourcefulness", "execution"}
 
-PORTFOLIO_CATEGORIES = ["experience", "project", "volunteering", "award", "course", "certification", "club", "skill", "other"]
+AWARD_LEVELS = ["school", "regional", "state", "national", "international"]
 
 
 def _coerce_axis(value) -> str:
@@ -90,19 +90,18 @@ CHAT_TOOLS = [
     {
         "name": "view_portfolio",
         "description": (
-            "Look up the student's portfolio: their recorded experiences, projects, volunteering, "
-            "awards, courses, certifications, clubs, and skills. Call this when the student "
-            "asks about their portfolio, or when you need their concrete background (e.g. to "
-            "advise on what's missing or how to reword a piece). Returns full titles and "
-            "descriptions."
+            "Look up the full detail of the student's activities and awards: their role, the "
+            "organization, hours per week, weeks per year, grade levels, and what they actually "
+            "did. Call this when you need their concrete background beyond the titles you "
+            "already have, for example to advise on what is missing or to help reword an entry."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "category": {
+                "kind": {
                     "type": "string",
-                    "enum": PORTFOLIO_CATEGORIES,
-                    "description": "Optional: only return pieces in this category. Omit to get everything.",
+                    "enum": ["activity", "award", "all"],
+                    "description": "Optional: narrow to activities or awards. Omit for everything.",
                 },
             },
             "required": [],
@@ -111,29 +110,42 @@ CHAT_TOOLS = [
     {
         "name": "add_portfolio_piece",
         "description": (
-            "Add one piece to the student's portfolio (an experience, project, award, course, "
-            "certification, club, volunteering role, or skill). Call this when the student "
-            "asks you to add something to their portfolio, or explicitly agrees when you "
-            "offer. Do NOT call it speculatively."
+            "Add one activity or award to the student's portfolio. Call this when the student "
+            "asks you to add something, or explicitly agrees when you offer. Do NOT call it "
+            "speculatively. Academics (GPA, test scores, coursework) are entered by the student "
+            "on the Academics tab, so never use this for those."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "category": {
+                "kind": {
                     "type": "string",
-                    "enum": PORTFOLIO_CATEGORIES,
-                    "description": "The kind of portfolio piece.",
+                    "enum": ["activity", "award"],
+                    "description": "Whether this is an activity or an award/honor.",
                 },
                 "title": {
                     "type": "string",
-                    "description": "Short, specific title (max 80 chars), e.g. 'AP Computer Science A' or 'DECA State Finalist'.",
+                    "description": "Short, specific name (max 80 chars), e.g. 'Science Olympiad' or 'DECA State Finalist'.",
+                },
+                "position": {
+                    "type": "string",
+                    "description": "Activities only: their role or leadership title, max 50 chars.",
+                },
+                "organization": {
+                    "type": "string",
+                    "description": "Activities only: the club, company or school, max 100 chars.",
+                },
+                "level": {
+                    "type": "string",
+                    "enum": ["school", "regional", "state", "national", "international"],
+                    "description": "Awards only: how far the recognition reached.",
                 },
                 "description": {
                     "type": "string",
-                    "description": "1-2 sentences of concrete detail (dates, role, scope, results). Never use em dashes.",
+                    "description": "Up to 150 chars of concrete detail (role, scale, result). Never use em dashes.",
                 },
             },
-            "required": ["category", "title"],
+            "required": ["kind", "title"],
         },
     },
 ]
@@ -196,24 +208,42 @@ async def _add_quest_to_board(user_id: str, args: dict) -> dict:
 
 
 async def _view_portfolio(user_id: str, args: dict) -> dict:
+    """Full detail for the student's activities and awards.
+
+    The chat prompt already carries the titles, so this exists for the depth:
+    role, organization, commitment and what they actually did.
+    """
     supabase = get_supabase()
-    query = (
-        supabase.from_("portfolio_items")
-        .select("category, title, description")
-        .eq("user_id", user_id)
-        .order("category")
-        .order("order_index")
-        .limit(60)
-    )
-    category = (args.get("category") or "").strip().lower()
-    if category in PORTFOLIO_CATEGORIES:
-        query = query.eq("category", category)
-    items = query.execute().data or []
-    # Bound the tool-result tokens; descriptions can be long.
-    for item in items:
-        if item.get("description"):
-            item["description"] = item["description"][:300]
-    return {"success": True, "count": len(items), "items": items}
+    kind = (args.get("kind") or "all").strip().lower()
+    out = {"success": True}
+
+    if kind in ("activity", "all"):
+        res = (
+            supabase.from_("student_activities")
+            .select("title, category, position, organization, description, hours_per_week, "
+                    "weeks_per_year, grade_levels, timing, detail_level")
+            .eq("user_id", user_id).order("order_index").limit(40).execute()
+        )
+        activities = res.data or []
+        for a in activities:
+            if a.get("description"):
+                a["description"] = a["description"][:300]
+        out["activities"] = activities
+
+    if kind in ("award", "all"):
+        res = (
+            supabase.from_("student_awards")
+            .select("title, level, year, description")
+            .eq("user_id", user_id).order("order_index").limit(40).execute()
+        )
+        awards = res.data or []
+        for w in awards:
+            if w.get("description"):
+                w["description"] = w["description"][:300]
+        out["awards"] = awards
+
+    out["count"] = len(out.get("activities", [])) + len(out.get("awards", []))
+    return out
 
 
 async def _add_portfolio_piece(user_id: str, args: dict) -> dict:
@@ -221,47 +251,48 @@ async def _add_portfolio_piece(user_id: str, args: dict) -> dict:
 
     title = (args.get("title") or "").strip()
     if not title:
-        return {"success": False, "error": "Portfolio piece needs a title."}
-    category = (args.get("category") or "").strip().lower()
-    if category not in PORTFOLIO_CATEGORIES:
-        category = "other"
+        return {"success": False, "error": "Needs a title."}
 
-    # Place the new piece at the end of its category.
+    kind = (args.get("kind") or "activity").strip().lower()
+    if kind not in ("activity", "award"):
+        kind = "activity"
+    table = "student_awards" if kind == "award" else "student_activities"
+
+    # Append to the end of that list.
     order_res = (
-        supabase.from_("portfolio_items")
-        .select("order_index")
-        .eq("user_id", user_id)
-        .eq("category", category)
-        .order("order_index", desc=True)
-        .limit(1)
-        .execute()
+        supabase.from_(table).select("order_index")
+        .eq("user_id", user_id).order("order_index", desc=True).limit(1).execute()
     )
     existing = order_res.data or []
     next_index = (existing[0]["order_index"] + 1) if existing and existing[0].get("order_index") is not None else 0
 
     now = datetime.now(timezone.utc).isoformat()
-    insert_res = supabase.from_("portfolio_items").insert({
-        "user_id":     user_id,
-        "category":    category,
-        "title":       title[:120],
-        "description": (args.get("description") or "").strip()[:500] or None,
-        "source":      "ai",
-        "order_index": next_index,
-        "created_at":  now,
-        "updated_at":  now,
-    }).execute()
+    description = (args.get("description") or "").strip()[:150] or None
+
+    if kind == "award":
+        level = (args.get("level") or "").strip().lower()
+        row = {
+            "user_id": user_id, "title": title[:120], "description": description,
+            "level": level if level in AWARD_LEVELS else None,
+            "order_index": next_index, "created_at": now, "updated_at": now,
+        }
+    else:
+        position = (args.get("position") or "").strip()[:50] or None
+        row = {
+            "user_id": user_id, "title": title[:120], "description": description,
+            "position": position,
+            "organization": (args.get("organization") or "").strip()[:100] or None,
+            "detail_level": "enriched" if (description or position) else "name_only",
+            "order_index": next_index, "created_at": now, "updated_at": now,
+        }
+
+    insert_res = supabase.from_(table).insert(row).execute()
     inserted = (insert_res.data or [None])[0]
-
     if not inserted:
-        return {"success": False, "error": "Could not save the portfolio piece. Try again."}
+        return {"success": False, "error": "Could not save that. Try again."}
 
-    logger.info(f"[add_portfolio_piece] {user_id} added {title!r} to {category}")
-    return {
-        "success": True,
-        "id": inserted.get("id"),
-        "title": inserted.get("title"),
-        "category": category,
-    }
+    logger.info(f"[add_portfolio_piece] {user_id} added {kind} {title!r}")
+    return {"success": True, "id": inserted.get("id"), "title": inserted.get("title"), "kind": kind}
 
 
 # Dispatch table — tool name → coroutine(user_id, args) -> result dict.

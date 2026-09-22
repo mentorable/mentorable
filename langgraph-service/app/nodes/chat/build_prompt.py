@@ -34,7 +34,6 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
     recent_research   = data.get("recent_research", [])
     chat_topics       = data.get("chat_topics", [])
     roadmap_nodes     = data.get("roadmap_nodes", [])
-    portfolio_summary = data.get("portfolio_summary", [])
     activities        = data.get("activities", [])
     awards            = data.get("awards", [])
     courses           = data.get("courses", [])
@@ -179,10 +178,6 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
         lines = [f"- [{n['pillar']}] {n['title']} ({n['month_label']}) — {n['state'].replace('_', ' ')}" for n in roadmap_nodes]
         sections.append({"id": "roadmap", "content": "## Current Roadmap\nNodes on the student's roadmap right now:\n" + "\n".join(lines)})
 
-    if portfolio_summary:
-        lines = [f"- [{p['category'].capitalize()}] {p['title']}" for p in portfolio_summary]
-        sections.append({"id": "portfolio", "content": "## Portfolio\nPieces in the student's portfolio (titles only; use the view_portfolio tool for full details):\n" + "\n".join(lines)})
-
     return sections
 
 
@@ -284,7 +279,6 @@ async def build_prompt(state: StudentState) -> StudentState:
         "recent_research":  state.get("_recent_research", []),
         "chat_topics":       state.get("_chat_topics", []),
         "roadmap_nodes":     state.get("_roadmap_nodes", []),
-        "portfolio_summary": state.get("_portfolio_summary", []),
         "activities":        state.get("_activities", []),
         "awards":            state.get("_awards", []),
         "courses":           state.get("_courses", []),

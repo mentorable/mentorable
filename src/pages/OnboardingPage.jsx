@@ -11,7 +11,7 @@ import TextInterview from "../components/onboarding/TextInterview.jsx";
 import IntakeReview from "../components/onboarding/IntakeReview.jsx";
 import RecordPanel, { sectionsFromRecord } from "../components/onboarding/RecordPanel.jsx";
 import { eyebrowStyle, titleStyle, primaryButton } from "../components/onboarding/intakeTheme.js";
-import { HOME_PATH } from "../lib/features.js";
+import { HOME_PATH, POST_ONBOARDING_PATH } from "../lib/features.js";
 import {
   saveIntakeForm, fetchIntakeContext, extractIntake, commitIntake, fetchActivities,
   fetchStudentRecord, skipIntake,
@@ -825,7 +825,7 @@ export default function OnboardingPage() {
     try {
       const result = await skipIntake();
       if (!result?.success) throw new Error(result?.error || "Could not finish setting up");
-      window.location.href = HOME_PATH;
+      window.location.href = POST_ONBOARDING_PATH;
     } catch (err) {
       console.error("[Onboarding] skip error:", err);
       setError(err?.message || "We couldn't finish setting up. Please try again.");
@@ -841,7 +841,7 @@ export default function OnboardingPage() {
     try {
       const result = await commitIntake(edited, channel);
       if (!result?.success) throw new Error(result?.error || "Save failed");
-      window.location.href = HOME_PATH;
+      window.location.href = POST_ONBOARDING_PATH;
     } catch (err) {
       console.error("[Onboarding] commit error:", err);
       setReviewError(err?.message || "We couldn't save that. Please try again.");

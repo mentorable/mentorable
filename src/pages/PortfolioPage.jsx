@@ -1,137 +1,199 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
+import { requireUser } from "../lib/auth.js";
 import { fetchUsage, LIMITS } from "../lib/usage.js";
 import LimitModal from "../components/common/LimitModal.jsx";
+import Spinner from "../components/common/Spinner.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { useTheme } from "../lib/ThemeContext.jsx";
+import {
+  fetchRecord, addRow, updateRow, deleteRow, saveGpa, saveContact,
+  addExtracted, generateResume,
+} from "../lib/portfolio.js";
 
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
-const SANS = "'Raleway', sans-serif";
-const BG = "#F5F5F5", WHITE = "#fff";
-const TEXT = "#141413", TEXT_MID = "#3d3d3a", TEXT_MUTED = "#494742", TEXT_FAINT = "#6a6760", BORDER = "#e6dfd8";
 
-// 8 categories, each a progressively lighter tint of the accent color
-// (backgrounds only, dark text). "Other" stays a neutral gray catch-all.
-const CATEGORIES = [
-  { key: "experience",    label: "Experience",    bg: "color-mix(in srgb, var(--accent) 42%, white)" },
-  { key: "project",       label: "Project",       bg: "color-mix(in srgb, var(--accent) 36%, white)" },
-  { key: "volunteering",  label: "Volunteering",  bg: "color-mix(in srgb, var(--accent) 30%, white)" },
-  { key: "award",         label: "Award",         bg: "color-mix(in srgb, var(--accent) 25%, white)" },
-  { key: "course",        label: "Course",        bg: "color-mix(in srgb, var(--accent) 20%, white)" },
-  { key: "certification", label: "Certification", bg: "color-mix(in srgb, var(--accent) 16%, white)" },
-  { key: "club",          label: "Club",          bg: "color-mix(in srgb, var(--accent) 12%, white)" },
-  { key: "skill",         label: "Skill",         bg: "color-mix(in srgb, var(--accent) 8%, white)" },
-  { key: "other",         label: "Other",         bg: "#eceff4" },
+const SANS       = "'Raleway', sans-serif";
+const BG         = "#F5F5F5";
+const WHITE      = "#ffffff";
+const TEXT       = "#141413";
+const TEXT_MID   = "#3d3d3a";
+const TEXT_MUTED = "#494742";
+const TEXT_FAINT = "#6a6760";
+const BORDER     = "#e6dfd8";
+const DANGER     = "#dc2626";
+
+const COURSE_LEVELS = [
+  { value: "ap",              label: "AP" },
+  { value: "ib",              label: "IB" },
+  { value: "honors",          label: "Honors" },
+  { value: "dual_enrollment", label: "Dual enrollment" },
+  { value: "regular",         label: "Regular" },
 ];
-const CAT_BY_KEY = Object.fromEntries(CATEGORIES.map((c) => [c.key, c]));
 
-// Per-category placeholder examples so the add/edit form doesn't feel generic.
-const PLACEHOLDER_EXAMPLES = {
-  experience:    { title: "Title (e.g. Marketing Intern, Acme Co.)",            description: "Description: dates, role, scope, results (optional) — e.g. Summer 2025, ran social campaigns, grew followers 30%" },
-  project:       { title: "Title (e.g. Personal Budgeting App)",                description: "Description: what it does, tools used, outcome (optional) — e.g. Built with React and Supabase, used by 20 classmates" },
-  volunteering:  { title: "Title (e.g. Weekend Tutor, City Library)",            description: "Description: dates, cause, hours, impact (optional) — e.g. 2024–2025, tutored 5 students weekly in math" },
-  award:         { title: "Title (e.g. Dean's List, Fall 2025)",                description: "Description: awarding body, date, why you earned it (optional) — e.g. Top 10% of class, awarded by the university" },
-  course:        { title: "Title (e.g. AP Computer Science A)",                 description: "Description: institution, grade, key topics (optional) — e.g. Completed Spring 2025, grade A, built a Java app" },
-  certification: { title: "Title (e.g. Google Data Analytics Certificate)",     description: "Description: issuer, date earned, skills covered (optional) — e.g. Issued 2025 by Google, covers SQL and Tableau" },
-  club:          { title: "Title (e.g. Vice President, Robotics Club)",         description: "Description: dates, responsibilities, achievements (optional) — e.g. 2024–present, led a team of 12 to states" },
-  skill:         { title: "Title (e.g. Python)",                                description: "Description: proficiency, how you use it, projects (optional) — e.g. Intermediate, used in 3 personal projects" },
-  other:         { title: "Title (e.g. Published Blog Post)",                   description: "Description: dates, context, why it matters (optional)" },
+const AWARD_LEVELS = [
+  { value: "school",        label: "School" },
+  { value: "regional",      label: "Regional" },
+  { value: "state",         label: "State" },
+  { value: "national",      label: "National" },
+  { value: "international", label: "International" },
+];
+
+const GPA_SCALES = [
+  { value: "4.0",      label: "4.0" },
+  { value: "5.0",      label: "5.0" },
+  { value: "100",      label: "100 point" },
+  { value: "other",    label: "Other" },
+  { value: "not_used", label: "Not used" },
+];
+
+const TIMINGS = [
+  { value: "school_year", label: "School year" },
+  { value: "summer",      label: "Summer" },
+  { value: "all_year",    label: "All year" },
+];
+
+const EMPTY_CONTACT = { email: "", phone: "", location: "", links: [] };
+
+const labelFor = (opts, v) => opts.find((o) => o.value === v)?.label || null;
+
+// ─── Small shared UI ──────────────────────────────────────────────────────────
+
+const inputStyle = {
+  width: "100%", fontFamily: SANS, fontSize: "0.98rem", color: TEXT,
+  border: `1.5px solid ${BORDER}`, borderRadius: 10, padding: "11px 13px",
+  outline: "none", background: WHITE, boxSizing: "border-box",
 };
 
-function CategoryBadge({ category }) {
-  const cat = CAT_BY_KEY[category] || CAT_BY_KEY.other;
+const miniLabel = {
+  fontFamily: SANS, fontSize: "0.74rem", fontWeight: 700,
+  color: TEXT_FAINT, display: "block", marginBottom: 5,
+};
+
+function Input({ value, onChange, ...rest }) {
+  const { accent } = useTheme();
   return (
-    <span style={{
-      fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em",
-      background: cat.bg, color: TEXT_MID,
-      borderRadius: 5, padding: "2px 7px", flexShrink: 0,
-    }}>
-      {cat.label}
-    </span>
+    <input value={value ?? ""} onChange={(e) => onChange(e.target.value)} style={inputStyle}
+      onFocus={(e) => (e.target.style.borderColor = accent)}
+      onBlur={(e) => (e.target.style.borderColor = BORDER)} {...rest} />
   );
 }
 
-// ─── Piece card (Name, Type, Description) ─────────────────────────────────────
-function PieceCard({ item, onEdit, onDelete }) {
-  const [hover, setHover] = useState(false);
+function Select({ value, onChange, options, placeholder = "Not set" }) {
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
-      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{
-        background: WHITE, borderRadius: 14, border: `1px solid ${BORDER}`,
-        padding: "13px 14px", boxShadow: "0 1px 3px rgba(15,23,42,0.04)", position: "relative",
-      }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: item.description ? 6 : 0 }}>
-        <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: 13.5, color: TEXT, lineHeight: 1.38 }}>
-          {item.title}
-        </span>
-        <CategoryBadge category={item.category} />
-        <span style={{ marginLeft: "auto", display: "flex", gap: 4, opacity: hover ? 1 : 0, transition: "opacity 0.15s" }}>
-          <button onClick={onEdit} title="Edit"
-            style={{ border: "none", background: "transparent", cursor: "pointer", color: TEXT_FAINT, padding: 3, borderRadius: 6, display: "inline-flex" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
-          </button>
-          <button onClick={onDelete} title="Remove"
-            style={{ border: "none", background: "transparent", cursor: "pointer", color: TEXT_FAINT, padding: 3, borderRadius: 6, display: "inline-flex" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </span>
-      </div>
-      {item.description && (
-        <p style={{ fontFamily: SANS, fontSize: 12.5, color: TEXT_MUTED, lineHeight: 1.5, margin: 0 }}>
-          {item.description}
-        </p>
-      )}
-    </motion.div>
+    <select value={value || ""} onChange={(e) => onChange(e.target.value || null)}
+      style={{ ...inputStyle, cursor: "pointer" }}>
+      <option value="">{placeholder}</option>
+      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
   );
 }
 
-// ─── Inline add/edit form ──────────────────────────────────────────────────────
-function PieceForm({ initial, category, onSave, onCancel, onDelete, saving }) {
-  const [title, setTitle] = useState(initial?.title || "");
-  const [description, setDescription] = useState(initial?.description || "");
-  const examples = PLACEHOLDER_EXAMPLES[category || initial?.category] || PLACEHOLDER_EXAMPLES.other;
-  const inputStyle = {
-    fontFamily: SANS, fontSize: 13, color: TEXT, background: "#fafafa",
-    border: `1.5px solid ${BORDER}`, borderRadius: 10, padding: "9px 12px",
-    outline: "none", width: "100%",
+function Chips({ options, value, onChange, multi = false }) {
+  const { accent } = useTheme();
+  const arr = multi ? (value || []) : [];
+  const isOn = (v) => (multi ? arr.includes(v) : value === v);
+  const toggle = (v) => {
+    if (!multi) return onChange(value === v ? null : v);
+    onChange(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v].sort((a, b) => a - b));
   };
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-      style={{ background: WHITE, borderRadius: 14, border: `1.5px solid rgba(var(--accent-rgb),0.35)`, padding: "13px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-      <input autoFocus value={title} maxLength={120} placeholder={examples.title}
-        onChange={(e) => setTitle(e.target.value)} style={inputStyle}
-        onFocus={(e) => (e.target.style.borderColor = "var(--accent)")} onBlur={(e) => (e.target.style.borderColor = BORDER)} />
-      <textarea value={description} maxLength={500} rows={2} placeholder={examples.description}
-        onChange={(e) => setDescription(e.target.value)} style={{ ...inputStyle, resize: "vertical" }}
-        onFocus={(e) => (e.target.style.borderColor = "var(--accent)")} onBlur={(e) => (e.target.style.borderColor = BORDER)} />
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <button onClick={() => title.trim() && onSave(title.trim(), description.trim())} disabled={!title.trim() || saving}
-          style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 700, color: WHITE, background: "var(--accent)", border: "none",
-            borderRadius: 8, padding: "7px 16px", cursor: title.trim() && !saving ? "pointer" : "not-allowed", opacity: title.trim() && !saving ? 1 : 0.55 }}>
-          {saving ? "Saving…" : "Save"}
-        </button>
-        <button onClick={onCancel}
-          style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: TEXT_MUTED, background: "transparent", border: "none", cursor: "pointer", padding: "7px 8px" }}>
-          Cancel
-        </button>
-        {onDelete && (
-          <button onClick={onDelete}
-            style={{ marginLeft: "auto", fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: "#dc2626", background: "transparent", border: "none", cursor: "pointer", padding: "7px 8px" }}>
-            Delete
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+      {options.map((o) => {
+        const on = isOn(o.value);
+        return (
+          <button key={o.value} type="button" onClick={() => toggle(o.value)}
+            style={{
+              fontFamily: SANS, fontSize: "0.88rem", fontWeight: 600, cursor: "pointer",
+              padding: "7px 14px", borderRadius: 99,
+              border: `1.5px solid ${on ? accent : BORDER}`,
+              background: on ? accent : WHITE, color: on ? WHITE : TEXT_MID,
+              transition: "all 0.15s",
+            }}>
+            {o.label}
           </button>
-        )}
-      </div>
-    </motion.div>
+        );
+      })}
+    </div>
   );
 }
 
-// ─── Learn-more "?" popover (also used by the Scorecard banner) ────────────────
+function IconBtn({ onClick, label, danger, children }) {
+  return (
+    <button type="button" onClick={onClick} aria-label={label}
+      style={{
+        flexShrink: 0, border: "none", background: "none", cursor: "pointer",
+        color: TEXT_FAINT, display: "inline-flex", alignItems: "center",
+        padding: 6, borderRadius: 8, transition: "color 0.15s, background 0.15s",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = danger ? DANGER : TEXT;
+        e.currentTarget.style.background = danger ? "rgba(220,38,38,0.08)" : "rgba(20,20,19,0.05)";
+      }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = TEXT_FAINT; e.currentTarget.style.background = "none"; }}>
+      {children}
+    </button>
+  );
+}
+
+const XIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+const PencilIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+  </svg>
+);
+
+function SectionCard({ title, hint, count, action, children }) {
+  return (
+    <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: "1.5rem", marginBottom: "1.25rem" }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: hint ? 5 : 14 }}>
+        <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", color: TEXT, margin: 0 }}>
+          {title}
+          {count != null && count > 0 && (
+            <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.9rem", color: TEXT_FAINT, marginLeft: 8 }}>{count}</span>
+          )}
+        </h2>
+        {action}
+      </div>
+      {hint && <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_FAINT, lineHeight: 1.55, margin: "0 0 14px" }}>{hint}</p>}
+      {children}
+    </div>
+  );
+}
+
+function AddButton({ onClick, children }) {
+  const { accent } = useTheme();
+  return (
+    <button type="button" onClick={onClick}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 7,
+        fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, color: accent,
+        background: "rgba(var(--accent-rgb),0.08)", border: "none",
+        borderRadius: 10, padding: "9px 14px", cursor: "pointer",
+      }}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+      </svg>
+      {children}
+    </button>
+  );
+}
+
+function EmptyNote({ children }) {
+  return (
+    <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_FAINT, lineHeight: 1.6, margin: 0 }}>
+      {children}
+    </p>
+  );
+}
+
+// ─── Kept for ScorecardPage, which renders this beside its portfolio banner ───
 export function LearnMore() {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -156,7 +218,7 @@ export function LearnMore() {
               background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "12px 14px",
               boxShadow: "0 12px 32px rgba(0,0,0,0.12)" }}>
             <p style={{ fontFamily: SANS, fontSize: 12.5, color: TEXT_MID, lineHeight: 1.55, margin: 0 }}>
-              Your portfolio gives Mentorable real context about your background. It sharpens many aspects of Mentorable, such as the roadmap, chat, and research, and it keeps your profile current as you grow.
+              Your portfolio is the record Mentorable reasons from: your grades, scores, classes, activities and awards. The more of it is filled in, the more specific its advice can be.
             </p>
           </motion.div>
         )}
@@ -165,297 +227,535 @@ export function LearnMore() {
   );
 }
 
-// ─── Extraction review modal ───────────────────────────────────────────────────
-function ReviewModal({ items, onConfirm, onClose, saving }) {
-  // Each row: {category, title, description, checked}
-  const [rows, setRows] = useState(() => items.map((it) => ({ ...it, checked: true })));
-  const update = (i, patch) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
-  const selected = rows.filter((r) => r.checked && r.title.trim());
+// ─── Academics ────────────────────────────────────────────────────────────────
 
-  const inputStyle = {
-    fontFamily: SANS, fontSize: 12.5, color: TEXT, background: "#fafafa",
-    border: `1px solid ${BORDER}`, borderRadius: 8, padding: "6px 9px", outline: "none",
+function GpaBlock({ profile, onSave }) {
+  const [gpaUnweighted, setU] = useState(profile.gpa_unweighted ?? "");
+  const [gpaWeighted, setW]   = useState(profile.gpa_weighted ?? "");
+  const [gpaScale, setScale]  = useState(profile.gpa_scale || null);
+  const [saving, setSaving]   = useState(false);
+  const [saved, setSaved]     = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await onSave({ gpaUnweighted, gpaWeighted, gpaScale });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1800);
+    } catch (e) {
+      console.error("[portfolio] GPA save failed:", e);
+    } finally { setSaving(false); }
   };
 
+  const notUsed = gpaScale === "not_used";
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center",
-      background: "rgba(20,20,19,0.45)", backdropFilter: "blur(6px)", padding: 16 }}
-      onClick={(e) => { if (e.target === e.currentTarget && !saving) onClose(); }}>
-      <motion.div
-        initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        style={{ background: "#faf9f5", borderRadius: 22, border: "1px solid rgba(var(--accent-rgb),0.19)",
-          boxShadow: "0 30px 80px rgba(0,0,0,0.3)", width: "100%", maxWidth: 620,
-          maxHeight: "85vh", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "1.4rem 1.5rem 0.9rem" }}>
-          <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", color: TEXT, margin: 0, letterSpacing: "-0.02em" }}>
-            Here's what we found
-          </h2>
-          <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: TEXT_MUTED, lineHeight: 1.55, margin: "0.35rem 0 0" }}>
-            Review each piece before it goes into your portfolio. Edit anything, uncheck what you don't want.
-          </p>
+    <SectionCard title="GPA" hint="Admissions reads unweighted GPA first, alongside how hard your classes are.">
+      <div style={{ marginBottom: 14 }}>
+        <label style={miniLabel}>Scale</label>
+        <Chips options={GPA_SCALES} value={gpaScale} onChange={setScale} />
+      </div>
+      {!notUsed && (
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+          <div style={{ flex: 1, minWidth: 130 }}>
+            <label style={miniLabel}>Unweighted</label>
+            <Input value={gpaUnweighted} onChange={setU} inputMode="decimal" placeholder="3.87" />
+          </div>
+          <div style={{ flex: 1, minWidth: 130 }}>
+            <label style={miniLabel}>Weighted</label>
+            <Input value={gpaWeighted} onChange={setW} inputMode="decimal" placeholder="Optional" />
+          </div>
         </div>
+      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <button type="button" onClick={save} disabled={saving}
+          style={{
+            fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, cursor: saving ? "default" : "pointer",
+            padding: "10px 18px", borderRadius: 10, border: "none",
+            background: "var(--accent)", color: WHITE,
+          }}>
+          {saving ? "Saving…" : "Save GPA"}
+        </button>
+        <AnimatePresence>
+          {saved && (
+            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ fontFamily: SANS, fontSize: "0.88rem", fontWeight: 600, color: "#059669" }}>
+              Saved
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </div>
+    </SectionCard>
+  );
+}
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "0.25rem 1.5rem", display: "flex", flexDirection: "column", gap: 10 }}>
-          {rows.map((row, i) => (
-            <div key={i} style={{ background: WHITE, border: `1px solid ${row.checked ? BORDER : "#efece8"}`, borderRadius: 12,
-              padding: "10px 12px", display: "flex", gap: 10, opacity: row.checked ? 1 : 0.55, transition: "opacity 0.15s" }}>
-              <input type="checkbox" checked={row.checked} onChange={(e) => update(i, { checked: e.target.checked })}
-                style={{ width: 16, height: 16, marginTop: 4, accentColor: "var(--accent)", cursor: "pointer", flexShrink: 0 }} />
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <select value={row.category} onChange={(e) => update(i, { category: e.target.value })}
-                    style={{ ...inputStyle, fontWeight: 700, fontSize: 11, letterSpacing: "0.04em",
-                      background: (CAT_BY_KEY[row.category] || CAT_BY_KEY.other).bg, color: TEXT_MID, border: "none", cursor: "pointer" }}>
-                    {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-                  </select>
-                  <input value={row.title} maxLength={120} onChange={(e) => update(i, { title: e.target.value })}
-                    style={{ ...inputStyle, flex: 1, minWidth: 160, fontWeight: 700 }} placeholder="Title" />
+function ScoreRow({ score, onPatch, onDelete }) {
+  const isAp = (score.test_type || "").toLowerCase() === "ap";
+  const sub = score.section_scores || {};
+  return (
+    <div style={{ border: `1px solid ${BORDER}`, borderRadius: 12, padding: "12px 14px", marginBottom: 9 }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+        <div style={{ width: 120 }}>
+          <label style={miniLabel}>Test</label>
+          <Select value={(score.test_type || "").toLowerCase()} placeholder="Type"
+            onChange={(v) => onPatch({ test_type: v })}
+            options={[{ value: "sat", label: "SAT" }, { value: "act", label: "ACT" },
+                      { value: "psat", label: "PSAT" }, { value: "ap", label: "AP" }]} />
+        </div>
+        {isAp && (
+          <div style={{ flex: 1, minWidth: 140 }}>
+            <label style={miniLabel}>Subject</label>
+            <Input value={score.subject} onChange={(v) => onPatch({ subject: v })} placeholder="Chemistry" />
+          </div>
+        )}
+        <div style={{ width: 110 }}>
+          <label style={miniLabel}>{isAp ? "Score (1-5)" : "Total"}</label>
+          <Input value={score.score} onChange={(v) => onPatch({ score: v === "" ? null : Number(v) })}
+            inputMode="numeric" placeholder={isAp ? "5" : "1520"} />
+        </div>
+        {!isAp && (
+          <>
+            <div style={{ width: 130 }}>
+              <label style={miniLabel}>Reading/Writing</label>
+              <Input value={sub.reading_writing} inputMode="numeric" placeholder="760"
+                onChange={(v) => onPatch({ section_scores: { ...sub, reading_writing: v === "" ? undefined : Number(v) } })} />
+            </div>
+            <div style={{ width: 100 }}>
+              <label style={miniLabel}>Math</label>
+              <Input value={sub.math} inputMode="numeric" placeholder="760"
+                onChange={(v) => onPatch({ section_scores: { ...sub, math: v === "" ? undefined : Number(v) } })} />
+            </div>
+          </>
+        )}
+        <IconBtn onClick={onDelete} label={`Remove ${score.test_type || "score"}`} danger><XIcon /></IconBtn>
+      </div>
+    </div>
+  );
+}
+
+function CourseRow({ course, onPatch, onDelete }) {
+  return (
+    <div style={{ display: "flex", gap: 10, alignItems: "center", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "10px 12px", marginBottom: 9 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Input value={course.name} onChange={(v) => onPatch({ name: v })} placeholder="Course name" />
+      </div>
+      <div style={{ width: 160, flexShrink: 0 }}>
+        <Select value={course.level} onChange={(v) => onPatch({ level: v })} options={COURSE_LEVELS} placeholder="Level" />
+      </div>
+      <IconBtn onClick={onDelete} label={`Remove ${course.name || "course"}`} danger><XIcon /></IconBtn>
+    </div>
+  );
+}
+
+// ─── ECs / Awards ─────────────────────────────────────────────────────────────
+
+function ActivityCard({ activity, onPatch, onDelete }) {
+  const { accent } = useTheme();
+  const [open, setOpen] = useState(false);
+  const a = activity;
+  const meta = [
+    a.position, a.organization,
+    a.hours_per_week && a.weeks_per_year ? `${a.hours_per_week} hrs/wk, ${a.weeks_per_year} wks/yr` : null,
+    (a.grade_levels || []).length ? `Grades ${(a.grade_levels || []).join(", ")}` : null,
+  ].filter(Boolean);
+
+  return (
+    <div style={{ border: `1px solid ${BORDER}`, borderRadius: 13, marginBottom: 10, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "13px 14px" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.02rem", color: TEXT, marginBottom: meta.length ? 4 : 0 }}>
+            {a.title || "Untitled activity"}
+          </div>
+          {meta.length > 0 && (
+            <div style={{ fontFamily: SANS, fontSize: "0.86rem", color: TEXT_FAINT, lineHeight: 1.5 }}>
+              {meta.join(" · ")}
+            </div>
+          )}
+          {a.description && (
+            <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_MUTED, lineHeight: 1.55, margin: "7px 0 0" }}>
+              {a.description}
+            </p>
+          )}
+          {!a.description && !a.position && (
+            <span style={{ display: "inline-block", fontFamily: SANS, fontSize: "0.78rem", fontWeight: 700, color: accent,
+              background: "rgba(var(--accent-rgb),0.09)", borderRadius: 7, padding: "3px 8px", marginTop: 7 }}>
+              Needs detail
+            </span>
+          )}
+        </div>
+        <IconBtn onClick={() => setOpen((o) => !o)} label="Edit activity"><PencilIcon /></IconBtn>
+        <IconBtn onClick={onDelete} label={`Remove ${a.title || "activity"}`} danger><XIcon /></IconBtn>
+      </div>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22 }} style={{ overflow: "hidden", background: BG }}>
+            <div style={{ padding: "14px", borderTop: `1px solid ${BORDER}` }}>
+              <div style={{ marginBottom: 12 }}>
+                <label style={miniLabel}>Name</label>
+                <Input value={a.title} onChange={(v) => onPatch({ title: v })} placeholder="e.g. Science Olympiad" />
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+                <div style={{ flex: 1, minWidth: 150 }}>
+                  <label style={miniLabel}>Your role</label>
+                  <Input value={a.position} maxLength={50} onChange={(v) => onPatch({ position: v })} placeholder="e.g. Captain" />
                 </div>
-                <textarea value={row.description} maxLength={500} rows={2} onChange={(e) => update(i, { description: e.target.value })}
-                  style={{ ...inputStyle, resize: "vertical", width: "100%" }} placeholder="Description (optional)" />
+                <div style={{ flex: 1, minWidth: 150 }}>
+                  <label style={miniLabel}>Organization</label>
+                  <Input value={a.organization} maxLength={100} onChange={(v) => onPatch({ organization: v })} />
+                </div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <label style={miniLabel}>What you did</label>
+                  <span style={{ fontFamily: SANS, fontSize: "0.74rem", fontWeight: 600, color: TEXT_FAINT }}>
+                    {(a.description || "").length}/150
+                  </span>
+                </div>
+                <textarea value={a.description || ""} maxLength={150} rows={2}
+                  onChange={(e) => onPatch({ description: e.target.value })}
+                  style={{ ...inputStyle, resize: "vertical" }} />
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+                <div style={{ width: 130 }}>
+                  <label style={miniLabel}>Hours / week</label>
+                  <Input value={a.hours_per_week} inputMode="decimal"
+                    onChange={(v) => onPatch({ hours_per_week: v === "" ? null : Number(v) })} />
+                </div>
+                <div style={{ width: 130 }}>
+                  <label style={miniLabel}>Weeks / year</label>
+                  <Input value={a.weeks_per_year} inputMode="numeric"
+                    onChange={(v) => onPatch({ weeks_per_year: v === "" ? null : Number(v) })} />
+                </div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <label style={miniLabel}>Grades involved</label>
+                <Chips multi options={[9, 10, 11, 12].map((g) => ({ value: g, label: String(g) }))}
+                  value={a.grade_levels || []} onChange={(v) => onPatch({ grade_levels: v })} />
+              </div>
+              <div>
+                <label style={miniLabel}>When</label>
+                <Chips options={TIMINGS} value={a.timing} onChange={(v) => onPatch({ timing: v })} />
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function AwardRow({ award, onPatch, onDelete }) {
+  return (
+    <div style={{ border: `1px solid ${BORDER}`, borderRadius: 12, padding: "12px 14px", marginBottom: 9 }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <label style={miniLabel}>Award</label>
+          <Input value={award.title} onChange={(v) => onPatch({ title: v })} placeholder="e.g. State finalist" />
+        </div>
+        <div style={{ width: 150 }}>
+          <label style={miniLabel}>Level</label>
+          <Select value={award.level} onChange={(v) => onPatch({ level: v })} options={AWARD_LEVELS} placeholder="Level" />
+        </div>
+        <div style={{ width: 100 }}>
+          <label style={miniLabel}>Year</label>
+          <Input value={award.year} inputMode="numeric" placeholder="2025"
+            onChange={(v) => onPatch({ year: v === "" ? null : Number(v) })} />
+        </div>
+        <IconBtn onClick={onDelete} label={`Remove ${award.title || "award"}`} danger><XIcon /></IconBtn>
+      </div>
+    </div>
+  );
+}
+
+// ─── Upload review ────────────────────────────────────────────────────────────
+
+function ReviewModal({ rows: initial, onConfirm, onClose, saving }) {
+  const { accent } = useTheme();
+  const [rows, setRows] = useState(() => initial.map((r) => ({ ...r, checked: true })));
+  const chosen = rows.filter((r) => r.checked);
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(20,20,19,0.45)", backdropFilter: "blur(6px)",
+        display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}
+      onClick={saving ? undefined : onClose}>
+      <motion.div initial={{ opacity: 0, y: 22, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }} onClick={(e) => e.stopPropagation()}
+        style={{ width: "100%", maxWidth: 640, maxHeight: "86vh", overflowY: "auto", background: BG,
+          borderRadius: 20, border: `1px solid ${BORDER}`, boxShadow: "0 30px 80px rgba(0,0,0,0.3)", padding: "1.9rem" }}>
+        <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.45rem", color: TEXT, marginBottom: 7 }}>
+          We found {initial.length} {initial.length === 1 ? "item" : "items"}
+        </h2>
+        <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT_MID, lineHeight: 1.6, marginBottom: 18 }}>
+          Untick anything you don't want. You can edit the details after adding them.
+        </p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+          {rows.map((r, i) => (
+            <label key={i} style={{
+              display: "flex", alignItems: "flex-start", gap: 11, cursor: "pointer",
+              background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "12px 14px",
+            }}>
+              <input type="checkbox" checked={r.checked}
+                onChange={() => setRows((prev) => prev.map((x, j) => (j === i ? { ...x, checked: !x.checked } : x)))}
+                style={{ marginTop: 3, width: 17, height: 17, accentColor: accent, cursor: "pointer", flexShrink: 0 }} />
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "inline-block", fontFamily: SANS, fontSize: "0.74rem", fontWeight: 700,
+                  color: accent, background: "rgba(var(--accent-rgb),0.09)", borderRadius: 6, padding: "2px 7px", marginBottom: 5 }}>
+                  {r.kind === "award" ? "Award" : "Activity"}
+                </span>
+                <span style={{ display: "block", fontFamily: SANS, fontWeight: 700, fontSize: "0.98rem", color: TEXT }}>
+                  {r.title}
+                </span>
+                {r.description && (
+                  <span style={{ display: "block", fontFamily: SANS, fontSize: "0.88rem", color: TEXT_MUTED, lineHeight: 1.5, marginTop: 3 }}>
+                    {r.description}
+                  </span>
+                )}
+              </span>
+            </label>
           ))}
         </div>
 
-        <div style={{ padding: "0.9rem 1.5rem 1.3rem", display: "flex", gap: 10, alignItems: "center", borderTop: `1px solid ${BORDER}` }}>
-          <button onClick={() => onConfirm(selected)} disabled={!selected.length || saving}
-            style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: WHITE, background: "var(--accent)", border: "none",
-              borderRadius: 10, padding: "10px 20px", cursor: selected.length && !saving ? "pointer" : "not-allowed",
-              opacity: selected.length && !saving ? 1 : 0.55 }}>
-            {saving ? "Adding…" : `Add ${selected.length} to portfolio`}
-          </button>
-          <button onClick={onClose} disabled={saving}
-            style={{ fontFamily: SANS, fontSize: 13, fontWeight: 600, color: TEXT_MUTED, background: "transparent", border: "none", cursor: "pointer" }}>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button type="button" onClick={onClose} disabled={saving}
+            style={{ flex: "0 0 auto", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: "pointer",
+              padding: "13px 20px", borderRadius: 11, border: `1.5px solid ${BORDER}`, background: WHITE, color: TEXT_MID }}>
             Cancel
+          </button>
+          <button type="button" onClick={() => onConfirm(chosen)} disabled={saving || chosen.length === 0}
+            style={{ flex: 1, fontFamily: SANS, fontSize: "0.98rem", fontWeight: 700,
+              cursor: saving || !chosen.length ? "not-allowed" : "pointer", padding: "13px", borderRadius: 11, border: "none",
+              background: chosen.length ? "var(--accent)" : "#c7d2e8", color: WHITE }}>
+            {saving ? "Adding…" : `Add ${chosen.length || ""}`.trim()}
           </button>
         </div>
       </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+
+function PickGroup({ title, items, selected, onToggle, render }) {
+  const { accent } = useTheme();
+  if (!items.length) return null;
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <p style={{ fontFamily: SANS, fontSize: "0.78rem", fontWeight: 700, color: TEXT_FAINT, marginBottom: 8 }}>{title}</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {items.map((it) => (
+          <label key={it.id} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
+            background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
+            <input type="checkbox" checked={selected.has(it.id)} onChange={() => onToggle(it.id)}
+              style={{ width: 16, height: 16, accentColor: accent, cursor: "pointer", flexShrink: 0 }} />
+            <span style={{ fontFamily: SANS, fontSize: "0.94rem", fontWeight: 600, color: TEXT, minWidth: 0 }}>
+              {render(it)}
+            </span>
+          </label>
+        ))}
+      </div>
     </div>
   );
 }
 
-// ─── Export-as-resume modal ────────────────────────────────────────────────────
-const EMPTY_CONTACT = { email: "", phone: "", location: "", links: [] };
-const SPARSE_THRESHOLD = 3; // below this, warn that the resume will look thin
-
-function ExportResumeModal({ items, fullName, contact: initialContact, exportsLeft, generating, error, onGenerate, onClose }) {
-  const [contact, setContact] = useState(() => ({
-    ...EMPTY_CONTACT, ...(initialContact || {}),
-    links: Array.isArray(initialContact?.links) ? initialContact.links : [],
+function ExportModal({ record, contact: initialContact, exportsLeft, generating, error, onGenerate, onClose }) {
+  const { accent } = useTheme();
+  const [contact, setContact] = useState(() => ({ ...EMPTY_CONTACT, ...(initialContact || {}) }));
+  const hasGpa = Boolean(record.profile.gpa_unweighted || record.profile.gpa_weighted);
+  const [includeGpa, setIncludeGpa] = useState(hasGpa);
+  const [sel, setSel] = useState(() => ({
+    activity_ids: new Set(record.activities.map((r) => r.id)),
+    award_ids:    new Set(record.awards.map((r) => r.id)),
+    course_ids:   new Set(record.courses.map((r) => r.id)),
+    score_ids:    new Set(record.scores.map((r) => r.id)),
   }));
-  const [checked, setChecked] = useState(() => new Set(items.map((i) => i.id)));
-  const selectedCount = checked.size;
-  const sparse = selectedCount > 0 && selectedCount < SPARSE_THRESHOLD;
 
-  const setField = (k, v) => setContact((c) => ({ ...c, [k]: v }));
-  const setLink = (i, patch) => setContact((c) => ({ ...c, links: c.links.map((l, j) => (j === i ? { ...l, ...patch } : l)) }));
-  const addLink = () => setContact((c) => ({ ...c, links: [...c.links, { label: "", url: "" }] }));
-  const removeLink = (i) => setContact((c) => ({ ...c, links: c.links.filter((_, j) => j !== i) }));
-  const toggle = (id) => setChecked((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-  const cleanContact = () => ({ ...contact, links: contact.links.filter((l) => (l.url || "").trim()) });
+  const toggle = (key) => (id) => setSel((prev) => {
+    const next = new Set(prev[key]);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return { ...prev, [key]: next };
+  });
 
-  const inputStyle = {
-    fontFamily: SANS, fontSize: 12.5, color: TEXT, background: "#fafafa",
-    border: `1px solid ${BORDER}`, borderRadius: 8, padding: "7px 10px", outline: "none", minWidth: 0,
-  };
-  const sectionLabel = { fontFamily: SANS, fontSize: 11.5, fontWeight: 700, color: TEXT, letterSpacing: "0.04em", margin: "0 0 8px" };
-  const canGenerate = selectedCount > 0 && !generating;
+  const total = Object.values(sel).reduce((n, s) => n + s.size, 0) + (includeGpa ? 1 : 0);
+  const blocked = generating || total === 0 || exportsLeft === 0;
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center",
-      background: "rgba(20,20,19,0.45)", backdropFilter: "blur(6px)", padding: 16 }}
-      onClick={(e) => { if (e.target === e.currentTarget && !generating) onClose(cleanContact()); }}>
-      <motion.div
-        initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        style={{ background: "#faf9f5", borderRadius: 22, border: "1px solid rgba(var(--accent-rgb),0.19)",
-          boxShadow: "0 30px 80px rgba(0,0,0,0.3)", width: "100%", maxWidth: 620,
-          maxHeight: "88vh", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "1.4rem 1.5rem 0.9rem" }}>
-          <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", color: TEXT, margin: 0, letterSpacing: "-0.02em" }}>
-            Export as a PDF resume
-          </h2>
-          <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: TEXT_MUTED, lineHeight: 1.55, margin: "0.35rem 0 0" }}>
-            Add contact details for the header, then pick which pieces to include. Everything is optional except at least one piece.
-          </p>
-        </div>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(20,20,19,0.45)", backdropFilter: "blur(6px)",
+        display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}
+      onClick={generating ? undefined : onClose}>
+      <motion.div initial={{ opacity: 0, y: 22, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }} onClick={(e) => e.stopPropagation()}
+        style={{ width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", background: BG,
+          borderRadius: 20, border: `1px solid ${BORDER}`, boxShadow: "0 30px 80px rgba(0,0,0,0.3)", padding: "1.9rem" }}>
+        <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.5rem", color: TEXT, marginBottom: 7 }}>
+          Export as a resume
+        </h2>
+        <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT_MID, lineHeight: 1.6, marginBottom: 18 }}>
+          A one-page PDF built from whatever you pick, across both tabs.
+        </p>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "0.25rem 1.5rem 0.5rem", display: "flex", flexDirection: "column", gap: 18 }}>
-          {/* Contact header */}
-          <div>
-            <p style={sectionLabel}>Contact header</p>
-            <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "12px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-              <p style={{ fontFamily: SANS, fontSize: 12.5, color: TEXT_MUTED, margin: 0 }}>
-                Name: <strong style={{ color: TEXT }}>{fullName || "Set your name in Profile"}</strong>
-              </p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
-                <input value={contact.email} onChange={(e) => setField("email", e.target.value)} placeholder="Email" maxLength={120} style={inputStyle} />
-                <input value={contact.phone} onChange={(e) => setField("phone", e.target.value)} placeholder="Phone" maxLength={40} style={inputStyle} />
-                <input value={contact.location} onChange={(e) => setField("location", e.target.value)} placeholder="City, State" maxLength={80} style={inputStyle} />
+        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "1.2rem", marginBottom: 18 }}>
+          <p style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, color: TEXT_FAINT, marginBottom: 12 }}>Contact header</p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {[["email", "Email", "you@example.com"], ["phone", "Phone", "(555) 123-4567"], ["location", "Location", "City, State"]].map(([k, label, ph]) => (
+              <div key={k} style={{ flex: 1, minWidth: 150 }}>
+                <label style={miniLabel}>{label}</label>
+                <Input value={contact[k]} onChange={(v) => setContact((c) => ({ ...c, [k]: v }))} placeholder={ph} />
               </div>
-              {contact.links.map((l, i) => (
-                <div key={i} style={{ display: "flex", gap: 6 }}>
-                  <input value={l.label} onChange={(e) => setLink(i, { label: e.target.value })} placeholder="Label (e.g. LinkedIn)" maxLength={40} style={{ ...inputStyle, flex: "0 0 38%" }} />
-                  <input value={l.url} onChange={(e) => setLink(i, { url: e.target.value })} placeholder="https://" maxLength={200} style={{ ...inputStyle, flex: 1 }} />
-                  <button onClick={() => removeLink(i)} aria-label="Remove link"
-                    style={{ border: "none", background: "transparent", color: TEXT_FAINT, cursor: "pointer", padding: "0 4px", display: "inline-flex", alignItems: "center" }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
+            ))}
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <label style={miniLabel}>Links</label>
+            {(contact.links || []).map((link, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 7 }}>
+                <div style={{ width: 130 }}>
+                  <Input value={link.label} placeholder="GitHub"
+                    onChange={(v) => setContact((c) => ({ ...c, links: c.links.map((l, j) => j === i ? { ...l, label: v } : l) }))} />
                 </div>
-              ))}
-              <button onClick={addLink}
-                style={{ alignSelf: "flex-start", fontFamily: SANS, fontSize: 12, fontWeight: 700, color: "var(--accent)", background: "transparent", border: "none", cursor: "pointer", padding: "2px 0" }}>
-                + Add a link (LinkedIn, GitHub, portfolio site)
-              </button>
-            </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Input value={link.url} placeholder="https://…"
+                    onChange={(v) => setContact((c) => ({ ...c, links: c.links.map((l, j) => j === i ? { ...l, url: v } : l) }))} />
+                </div>
+                <IconBtn danger label="Remove link"
+                  onClick={() => setContact((c) => ({ ...c, links: c.links.filter((_, j) => j !== i) }))}><XIcon /></IconBtn>
+              </div>
+            ))}
+            <AddButton onClick={() => setContact((c) => ({ ...c, links: [...(c.links || []), { label: "", url: "" }] }))}>
+              Add link
+            </AddButton>
           </div>
-
-          {/* Item picker */}
-          <div>
-            <p style={sectionLabel}>Pieces to include ({selectedCount} of {items.length})</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {CATEGORIES.map((cat) => {
-                const catItems = items.filter((i) => i.category === cat.key);
-                if (!catItems.length) return null;
-                return (
-                  <div key={cat.key}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "4px 0 6px" }}>
-                      <CategoryBadge category={cat.key} />
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      {catItems.map((item) => {
-                        const on = checked.has(item.id);
-                        return (
-                          <label key={item.id} style={{ background: WHITE, border: `1px solid ${on ? BORDER : "#efece8"}`, borderRadius: 10,
-                            padding: "8px 10px", display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer",
-                            opacity: on ? 1 : 0.55, transition: "opacity 0.15s" }}>
-                            <input type="checkbox" checked={on} onChange={() => toggle(item.id)}
-                              style={{ width: 16, height: 16, marginTop: 2, accentColor: "var(--accent)", cursor: "pointer", flexShrink: 0 }} />
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontFamily: SANS, fontSize: 13, fontWeight: 700, color: TEXT, lineHeight: 1.3 }}>{item.title}</div>
-                              {item.description && (
-                                <div style={{ fontFamily: SANS, fontSize: 12, color: TEXT_MUTED, lineHeight: 1.4, marginTop: 2,
-                                  display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                                  {item.description}
-                                </div>
-                              )}
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {selectedCount === 0 && (
-            <p style={{ fontFamily: SANS, fontSize: 12.5, color: "#991b1b", background: "#fee2e2", border: "1px solid #fecaca", borderRadius: 10, padding: "9px 12px", margin: 0, lineHeight: 1.5 }}>
-              Select at least one piece to export a resume.
-            </p>
-          )}
-          {sparse && (
-            <p style={{ fontFamily: SANS, fontSize: 12.5, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: "9px 12px", margin: 0, lineHeight: 1.5 }}>
-              Heads up: with fewer than {SPARSE_THRESHOLD} pieces your resume will look sparse. Consider adding a few more before you export, since the demo includes only one export.
-            </p>
-          )}
         </div>
 
-        <div style={{ padding: "0.9rem 1.5rem 1.3rem", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", borderTop: `1px solid ${BORDER}` }}>
-          <button onClick={() => onGenerate([...checked], cleanContact())} disabled={!canGenerate}
-            style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: WHITE, background: "var(--accent)", border: "none",
-              borderRadius: 10, padding: "10px 20px", cursor: canGenerate ? "pointer" : "not-allowed", opacity: canGenerate ? 1 : 0.55 }}>
-            {generating ? "Building your PDF…" : "Download PDF"}
-          </button>
-          <button onClick={() => onClose(cleanContact())} disabled={generating}
-            style={{ fontFamily: SANS, fontSize: 13, fontWeight: 600, color: TEXT_MUTED, background: "transparent", border: "none", cursor: "pointer" }}>
+        <p style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, color: TEXT, marginBottom: 12 }}>
+          What to include
+        </p>
+
+        {hasGpa && (
+          <div style={{ marginBottom: 18 }}>
+            <p style={{ fontFamily: SANS, fontSize: "0.78rem", fontWeight: 700, color: TEXT_FAINT, marginBottom: 8 }}>GPA</p>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
+              background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
+              <input type="checkbox" checked={includeGpa} onChange={() => setIncludeGpa((v) => !v)}
+                style={{ width: 16, height: 16, accentColor: accent, cursor: "pointer" }} />
+              <span style={{ fontFamily: SANS, fontSize: "0.94rem", fontWeight: 600, color: TEXT }}>
+                {[record.profile.gpa_unweighted && `${record.profile.gpa_unweighted} unweighted`,
+                  record.profile.gpa_weighted && `${record.profile.gpa_weighted} weighted`].filter(Boolean).join(", ")}
+              </span>
+            </label>
+          </div>
+        )}
+
+        <PickGroup title="Test scores" items={record.scores} selected={sel.score_ids} onToggle={toggle("score_ids")}
+          render={(s) => (s.test_type || "").toUpperCase() === "AP"
+            ? `AP ${s.subject || ""}: ${s.score ?? ""}` : `${(s.test_type || "").toUpperCase()}: ${s.score ?? ""}`} />
+        <PickGroup title="Coursework" items={record.courses} selected={sel.course_ids} onToggle={toggle("course_ids")}
+          render={(c) => `${c.name}${c.level ? ` (${labelFor(COURSE_LEVELS, c.level) || c.level})` : ""}`} />
+        <PickGroup title="Activities" items={record.activities} selected={sel.activity_ids} onToggle={toggle("activity_ids")}
+          render={(a) => a.title || "Untitled activity"} />
+        <PickGroup title="Awards" items={record.awards} selected={sel.award_ids} onToggle={toggle("award_ids")}
+          render={(w) => w.title || "Untitled award"} />
+
+        {error && (
+          <p style={{ fontFamily: SANS, fontSize: "0.92rem", color: DANGER, fontWeight: 600, marginBottom: 12 }}>{error}</p>
+        )}
+
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <button type="button" onClick={onClose} disabled={generating}
+            style={{ flex: "0 0 auto", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: "pointer",
+              padding: "13px 20px", borderRadius: 11, border: `1.5px solid ${BORDER}`, background: WHITE, color: TEXT_MID }}>
             Cancel
           </button>
-          <span style={{ marginLeft: "auto", fontFamily: SANS, fontSize: 12, fontWeight: 600, color: exportsLeft === 0 ? "#dc2626" : TEXT }}>
-            {exportsLeft} of {LIMITS.resume_export} export{LIMITS.resume_export === 1 ? "" : "s"} remaining
-          </span>
-          {error && (
-            <p style={{ width: "100%", fontFamily: SANS, fontSize: 12.5, color: "#dc2626", margin: 0 }}>{error}</p>
-          )}
+          <button type="button" disabled={blocked}
+            onClick={() => onGenerate({
+              activity_ids: [...sel.activity_ids], award_ids: [...sel.award_ids],
+              course_ids: [...sel.course_ids], score_ids: [...sel.score_ids],
+              include_gpa: includeGpa,
+            }, contact)}
+            style={{ flex: 1, minWidth: 180, fontFamily: SANS, fontSize: "0.98rem", fontWeight: 700,
+              cursor: blocked ? "not-allowed" : "pointer",
+              padding: "13px", borderRadius: 11, border: "none",
+              background: blocked ? "#c7d2e8" : "var(--accent)", color: WHITE }}>
+            {generating ? "Building your PDF…" : `Download PDF (${total})`}
+          </button>
         </div>
+        <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: TEXT_FAINT, textAlign: "center", marginTop: 12 }}>
+          {exportsLeft > 0
+            ? `${exportsLeft} export${exportsLeft === 1 ? "" : "s"} left in the demo`
+            : "No exports left in the demo"}
+        </p>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+const TABS = [
+  { key: "academics", label: "Academics" },
+  { key: "ecs",       label: "ECs / Awards" },
+];
+
 export default function PortfolioPage({ navigate }) {
-  const { accent } = useTheme();
-  const [items, setItems] = useState([]);
-  const [phase, setPhase] = useState("loading"); // loading | ready
-  const [userId, setUserId] = useState(null);
-  const [formFor, setFormFor] = useState(null);   // category key with the add form open
-  const [editing, setEditing] = useState(null);   // item id being edited
-  const [saving, setSaving] = useState(false);
-  const [uploadsUsed, setUploadsUsed] = useState(0);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState(null);
-  const [extracted, setExtracted] = useState(null); // items awaiting review
-  const [limitModal, setLimitModal] = useState(null); // feature key of the limit that was hit
-  const [fullName, setFullName] = useState("");
-  const [contact, setContact] = useState(EMPTY_CONTACT);
-  const [exportsUsed, setExportsUsed] = useState(0);
-  const [exportOpen, setExportOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [exportError, setExportError] = useState(null);
-  const fileRef = useRef(null);
   const isMobile = useIsMobile();
+  const { accent } = useTheme();
+  const [phase, setPhase]   = useState("loading");
+  const [tab, setTab]       = useState("academics");
+  const [userId, setUserId] = useState(null);
+  const [record, setRecord] = useState({ profile: {}, activities: [], awards: [], courses: [], scores: [] });
+
+  const [uploadsUsed, setUploadsUsed] = useState(0);
+  const [uploading, setUploading]     = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [extracted, setExtracted]     = useState(null);
+  const [addingExtracted, setAdding]  = useState(false);
+
+  const [exportsUsed, setExportsUsed] = useState(0);
+  const [exportOpen, setExportOpen]   = useState(false);
+  const [exporting, setExporting]     = useState(false);
+  const [exportError, setExportError] = useState(null);
+
+  const [limitModal, setLimitModal] = useState(null);
+  const fileRef = useRef(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data?.user) { navigate("/auth"); return; }
-      setUserId(data.user.id);
-      const [itemsRes, usage, profileRes] = await Promise.all([
-        supabase.from("portfolio_items").select("*").eq("user_id", data.user.id)
-          .order("category").order("order_index"),
-        fetchUsage(supabase),
-        supabase.from("profiles").select("full_name, resume_contact").eq("id", data.user.id).maybeSingle(),
-      ]);
-      setItems(itemsRes.data || []);
-      setUploadsUsed(usage.portfolio_uploads_used || 0);
-      setExportsUsed(usage.resume_exports_used || 0);
-      setFullName(profileRes.data?.full_name || "");
-      setContact({ ...EMPTY_CONTACT, ...(profileRes.data?.resume_contact || {}) });
+    (async () => {
+      const user = await requireUser();
+      if (!user) return;
+      setUserId(user.id);
+      const [rec, usage] = await Promise.all([fetchRecord(user.id), fetchUsage(supabase)]);
+      setRecord(rec);
+      setUploadsUsed(usage.portfolio_uploads_used ?? 0);
+      setExportsUsed(usage.resume_exports_used ?? 0);
       setPhase("ready");
-    });
+    })();
   }, []);
 
-  const nextIndex = useCallback((category, current) =>
-    current.filter((i) => i.category === category)
-      .reduce((max, i) => Math.max(max, (i.order_index ?? 0) + 1), 0), []);
+  // Local-first edits: patch state immediately and persist in the background.
+  // These rows are tiny and a failed write is recoverable by editing again, so
+  // this keeps typing smooth instead of awaiting every keystroke.
+  const patch = useCallback((table, listKey, id, values) => {
+    setRecord((prev) => ({
+      ...prev,
+      [listKey]: prev[listKey].map((r) => (r.id === id ? { ...r, ...values } : r)),
+    }));
+    updateRow(table, id, values).catch((e) => console.error(`[portfolio] ${table} update failed:`, e));
+  }, []);
 
-  const addPiece = async (category, title, description) => {
-    setSaving(true);
-    const row = {
-      user_id: userId, category, title, description: description || null,
-      source: "manual", order_index: nextIndex(category, items),
-    };
-    const { data, error } = await supabase.from("portfolio_items").insert(row).select().single();
-    setSaving(false);
-    if (!error && data) { setItems((prev) => [...prev, data]); setFormFor(null); }
-  };
+  const remove = useCallback(async (table, listKey, id) => {
+    setRecord((prev) => ({ ...prev, [listKey]: prev[listKey].filter((r) => r.id !== id) }));
+    try { await deleteRow(table, id); }
+    catch (e) { console.error(`[portfolio] ${table} delete failed:`, e); }
+  }, []);
 
-  const updatePiece = async (id, title, description) => {
-    setSaving(true);
-    const patch = { title, description: description || null, updated_at: new Date().toISOString() };
-    const { error } = await supabase.from("portfolio_items").update(patch).eq("id", id);
-    setSaving(false);
-    if (!error) { setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i))); setEditing(null); }
-  };
-
-  const deletePiece = async (id) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-    setEditing(null);
-    await supabase.from("portfolio_items").delete().eq("id", id);
-  };
+  const add = useCallback(async (table, listKey, values) => {
+    try {
+      const row = await addRow(table, userId, values, record[listKey]);
+      setRecord((prev) => ({ ...prev, [listKey]: [...prev[listKey], row] }));
+    } catch (e) { console.error(`[portfolio] ${table} insert failed:`, e); }
+  }, [userId, record]);
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -470,7 +770,7 @@ export default function PortfolioPage({ navigate }) {
         headers: { Authorization: `Bearer ${session?.access_token}` },
         body: fd,
       });
-      if (res.status === 429) { setLimitModal(true); setUploadsUsed(LIMITS.portfolio_upload); return; }
+      if (res.status === 429) { setLimitModal("portfolio_upload"); setUploadsUsed(LIMITS.portfolio_upload); return; }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setUploadError(data.detail || "Upload failed. Please try again."); return; }
       setUploadsUsed((u) => u + 1);
@@ -483,211 +783,232 @@ export default function PortfolioPage({ navigate }) {
     }
   };
 
-  const confirmExtracted = async (selected) => {
-    setSaving(true);
-    const counters = {};
-    const rows = selected.map((r) => {
-      const cat = CAT_BY_KEY[r.category] ? r.category : "other";
-      counters[cat] = (counters[cat] ?? nextIndex(cat, items)) ;
-      const row = {
-        user_id: userId, category: cat, title: r.title.trim().slice(0, 120),
-        description: r.description.trim().slice(0, 500) || null,
-        source: "upload", order_index: counters[cat],
-      };
-      counters[cat] += 1;
-      return row;
-    });
-    const { data, error } = await supabase.from("portfolio_items").insert(rows).select();
-    setSaving(false);
-    if (!error && data) { setItems((prev) => [...prev, ...data]); setExtracted(null); }
-  };
-
-  const saveContact = async (next) => {
-    setContact(next);
-    if (userId) await supabase.from("profiles").update({ resume_contact: next }).eq("id", userId);
-  };
-
-  const generateResume = async (selectedIds, nextContact) => {
-    setExportError(null);
-    setExporting(true);
+  const confirmExtracted = async (rows) => {
+    setAdding(true);
     try {
-      await saveContact(nextContact);
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`${LANGGRAPH_URL}/portfolio/resume/pdf`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ item_ids: selectedIds, contact: nextContact }),
-      });
-      if (res.status === 429) { setExportOpen(false); setExportsUsed(LIMITS.resume_export); setLimitModal("resume_export"); return; }
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setExportError(typeof data.detail === "string" ? data.detail : "Export failed. Please try again.");
-        return;
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = "resume.pdf"; a.click();
-      URL.revokeObjectURL(url);
-      setExportsUsed((u) => u + 1);
-      setExportOpen(false);
-    } catch {
-      setExportError("Export failed. Please try again.");
-    } finally {
-      setExporting(false);
-    }
+      const added = await addExtracted(userId, rows, record);
+      setRecord((prev) => ({
+        ...prev,
+        activities: [...prev.activities, ...added.activities],
+        awards:     [...prev.awards, ...added.awards],
+      }));
+      setExtracted(null);
+    } catch (e) {
+      console.error("[portfolio] adding extracted rows failed:", e);
+      setUploadError("Could not add those. Please try again.");
+    } finally { setAdding(false); }
   };
 
-  const uploadsLeft = Math.max(0, LIMITS.portfolio_upload - uploadsUsed);
-  const exportsLeft = Math.max(0, LIMITS.resume_export - exportsUsed);
-  const canExport = items.length > 0;
-  const pad = {
+  const handleExport = async (selection, contact) => {
+    setExporting(true);
+    setExportError(null);
+    try {
+      await saveContact(userId, contact);
+      setRecord((prev) => ({ ...prev, profile: { ...prev.profile, resume_contact: contact } }));
+      const blob = await generateResume(selection, contact);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "resume.pdf";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      setExportsUsed((n) => n + 1);
+      setExportOpen(false);
+    } catch (e) {
+      if (e.limit) { setExportOpen(false); setLimitModal("resume_export"); setExportsUsed(LIMITS.resume_export); }
+      else setExportError(e.message || "Could not build the PDF. Please try again.");
+    } finally { setExporting(false); }
+  };
+
+  const pagePad = {
     minHeight: "100vh", background: BG, fontFamily: SANS,
-    padding: isMobile ? "1.5rem 1rem 6rem" : "2.5rem 2rem 4rem",
+    padding: isMobile ? "1.5rem 1rem 5rem" : "2.5rem 2rem 4rem",
     paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH}px + 2rem)`,
   };
 
+  if (phase === "loading") {
+    return <div data-sidebar-offset style={{ ...pagePad, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Spinner size={26} color={accent} />
+    </div>;
+  }
+
+  const ecCount = record.activities.length + record.awards.length;
+  const acCount = record.courses.length + record.scores.length;
+  const exportsLeft = Math.max(0, LIMITS.resume_export - exportsUsed);
+  const uploadsLeft = Math.max(0, LIMITS.portfolio_upload - uploadsUsed);
+
   return (
-    <div data-sidebar-offset style={pad}>
-      <div style={{ maxWidth: 760, margin: "0 auto", width: "100%" }}>
+    <div data-sidebar-offset style={pagePad}>
+      <div style={{ maxWidth: 900, margin: "0 auto", width: "100%" }}>
 
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ marginBottom: "1.8rem" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: accent, letterSpacing: "-0.03em", lineHeight: 1.1, margin: 0 }}>
-              Portfolio
-            </h1>
-            {phase === "ready" && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                <button
-                  onClick={() => { if (!canExport) return; if (exportsLeft <= 0) { setLimitModal("resume_export"); return; } setExportError(null); setExportOpen(true); }}
-                  disabled={!canExport}
-                  title={canExport ? "Export your portfolio as a PDF resume" : "Add at least one portfolio piece first"}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: SANS, fontSize: 13, fontWeight: 700,
-                    color: "#000", background: "transparent", border: "2px solid #000", borderRadius: 10, padding: "8px 14px",
-                    cursor: canExport ? "pointer" : "not-allowed", opacity: canExport ? 1 : 0.45 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                  Export resume
-                </button>
-                {!canExport && (
-                  <span style={{ fontFamily: SANS, fontSize: 11.5, color: TEXT_MUTED }}>Add at least one piece to export</span>
-                )}
-              </div>
-            )}
-          </div>
-          <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: TEXT, lineHeight: 1.55, marginTop: "0.5rem", display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-            Complete your portfolio <LearnMore /> Add your experiences, awards, courses, and more.
-          </p>
-          <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: TEXT, lineHeight: 1.55, marginTop: "0.35rem" }}>
-            You can also reference your portfolio directly in the{" "}
-            <button onClick={() => navigate("/chat")}
-              style={{ fontFamily: SANS, fontSize: "0.96rem", color: "var(--accent)", fontWeight: 700, background: "none",
-                border: "none", padding: 0, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>
-              chat page
-            </button>.
-          </p>
-        </motion.div>
+        <p style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.02em", color: TEXT, marginBottom: 9 }}>
+          Your record
+        </p>
+        <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.4rem", color: accent, letterSpacing: "-0.03em", marginBottom: "0.6rem" }}>
+          Portfolio
+        </h1>
+        <p style={{ fontFamily: SANS, fontSize: "1.05rem", color: TEXT_MUTED, lineHeight: 1.6, marginBottom: "0.4rem", maxWidth: 660 }}>
+          Your grades, scores, classes, activities and awards, all in one place. <LearnMore />
+        </p>
+        <p style={{ fontFamily: SANS, fontSize: "1.05rem", color: TEXT_MUTED, lineHeight: 1.6, marginBottom: "1.75rem", maxWidth: 660 }}>
+          You can reference all of this directly in the{" "}
+          <button onClick={() => navigate("/chat")}
+            style={{ fontFamily: SANS, fontSize: "1.05rem", color: accent, fontWeight: 700, background: "none",
+              border: "none", padding: 0, cursor: "pointer", textDecoration: "underline" }}>
+            chat page
+          </button>.
+        </p>
 
-        {phase === "loading" && <p style={{ fontFamily: SANS, color: TEXT_FAINT }}>Loading…</p>}
-
-        {phase === "ready" && (
-          <>
-            {/* Category sections */}
-            {CATEGORIES.map((cat, ci) => {
-              const catItems = items.filter((i) => i.category === cat.key);
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap", marginBottom: "1.5rem" }}>
+          <div style={{ display: "flex", gap: 6, background: "rgba(20,20,19,0.04)", borderRadius: 12, padding: 5 }}>
+            {TABS.map((t) => {
+              const on = tab === t.key;
+              const n = t.key === "academics" ? acCount : ecCount;
               return (
-                <motion.section key={cat.key}
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 * ci }}
-                  style={{ marginBottom: "1.6rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                    <span style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em",
-                      background: cat.bg, color: TEXT, borderRadius: 6, padding: "3px 10px" }}>
-                      {cat.label}
-                    </span>
-                    {catItems.length > 0 && (
-                      <span style={{ fontFamily: SANS, fontSize: 12, fontWeight: 600, color: TEXT_FAINT }}>{catItems.length}</span>
-                    )}
-                    <button onClick={() => { setFormFor(formFor === cat.key ? null : cat.key); setEditing(null); }}
-                      title={`Add ${cat.label.toLowerCase()}`}
-                      style={{ width: 22, height: 22, borderRadius: 7, border: `1.5px solid ${BORDER}`, background: WHITE,
-                        color: TEXT_MUTED, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    </button>
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {formFor === cat.key && (
-                      <PieceForm saving={saving} category={cat.key}
-                        onSave={(t, d) => addPiece(cat.key, t, d)}
-                        onCancel={() => setFormFor(null)} />
-                    )}
-                    <AnimatePresence>
-                      {catItems.map((item) =>
-                        editing === item.id ? (
-                          <PieceForm key={item.id} initial={item} saving={saving}
-                            onSave={(t, d) => updatePiece(item.id, t, d)}
-                            onCancel={() => setEditing(null)}
-                            onDelete={() => deletePiece(item.id)} />
-                        ) : (
-                          <PieceCard key={item.id} item={item}
-                            onEdit={() => { setEditing(item.id); setFormFor(null); }}
-                            onDelete={() => deletePiece(item.id)} />
-                        )
-                      )}
-                    </AnimatePresence>
-                    {catItems.length === 0 && formFor !== cat.key && (
-                      <p style={{ fontFamily: SANS, fontSize: 12.5, color: TEXT_FAINT, margin: "2px 0 0 2px" }}>
-                        Nothing here yet. Click + to add one.
-                      </p>
-                    )}
-                  </div>
-                </motion.section>
+                <button key={t.key} onClick={() => setTab(t.key)}
+                  style={{
+                    fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: "pointer",
+                    padding: "10px 18px", borderRadius: 9, border: "none",
+                    background: on ? WHITE : "transparent", color: on ? accent : TEXT_MID,
+                    boxShadow: on ? "0 1px 4px rgba(15,23,42,0.08)" : "none",
+                    transition: "all 0.15s",
+                  }}>
+                  {t.label}
+                  {n > 0 && <span style={{ color: on ? accent : TEXT_FAINT, marginLeft: 7, fontSize: "0.88rem" }}>{n}</span>}
+                </button>
               );
             })}
+          </div>
 
-            {/* Upload */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.45 }}
-              style={{ marginTop: "2.2rem", background: WHITE, border: `1.5px solid rgba(var(--accent-rgb),0.35)`, borderRadius: 16, padding: "1.4rem 1.5rem", textAlign: "center" }}>
-              <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: TEXT, margin: 0 }}>
-                Have a resume or brag sheet?
-              </p>
-              <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: TEXT_MUTED, lineHeight: 1.55, margin: "0.4rem auto 0.9rem", maxWidth: 420 }}>
-                Upload a PDF or DOCX and Mentorable will pull out your experiences, awards, and courses for you to review before they're added.
-              </p>
-              <input ref={fileRef} type="file" accept=".pdf,.docx" style={{ display: "none" }}
-                onChange={(e) => handleFile(e.target.files?.[0])} />
-              <button onClick={() => uploadsLeft > 0 ? fileRef.current?.click() : setLimitModal("portfolio_upload")} disabled={uploading}
-                style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: WHITE, background: uploading ? "#93b4f8" : "var(--accent)",
-                  border: "none", borderRadius: 10, padding: "10px 22px", cursor: uploading ? "wait" : "pointer" }}>
-                {uploading ? "Reading your file…" : "Upload resume"}
-              </button>
-              <p style={{ fontFamily: SANS, fontSize: 12, color: TEXT_FAINT, margin: "0.7rem 0 0" }}>
-                {uploadsLeft} of {LIMITS.portfolio_upload} uploads remaining
-              </p>
+          <button onClick={() => { setExportError(null); setExportOpen(true); }}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: "pointer",
+              padding: "11px 18px", borderRadius: 11, border: `2px solid ${TEXT}`,
+              background: WHITE, color: TEXT,
+            }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export resume
+          </button>
+        </div>
+
+        {tab === "academics" && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+            <GpaBlock profile={record.profile}
+              onSave={async (v) => {
+                await saveGpa(userId, v);
+                setRecord((prev) => ({
+                  ...prev,
+                  profile: {
+                    ...prev.profile,
+                    gpa_unweighted: v.gpaScale === "not_used" ? null : v.gpaUnweighted,
+                    gpa_weighted:   v.gpaScale === "not_used" ? null : v.gpaWeighted,
+                    gpa_scale:      v.gpaScale,
+                  },
+                }));
+              }} />
+
+            <SectionCard title="Test scores" count={record.scores.length}
+              hint="SAT, ACT, PSAT and AP exam results."
+              action={<AddButton onClick={() => add("student_test_scores", "scores", { test_type: "sat", section_scores: {} })}>Add score</AddButton>}>
+              {record.scores.length === 0
+                ? <EmptyNote>Nothing here yet. Add a score when you have one, or leave it empty if you're going test-optional.</EmptyNote>
+                : record.scores.map((s) => (
+                    <ScoreRow key={s.id} score={s}
+                      onPatch={(v) => patch("student_test_scores", "scores", s.id, v)}
+                      onDelete={() => remove("student_test_scores", "scores", s.id)} />
+                  ))}
+            </SectionCard>
+
+            <SectionCard title="Coursework" count={record.courses.length}
+              hint="Course rigor is one of the first things admissions looks at, so tag the level."
+              action={<AddButton onClick={() => add("student_courses", "courses", { name: "" })}>Add course</AddButton>}>
+              {record.courses.length === 0
+                ? <EmptyNote>No classes listed yet.</EmptyNote>
+                : record.courses.map((c) => (
+                    <CourseRow key={c.id} course={c}
+                      onPatch={(v) => patch("student_courses", "courses", c.id, v)}
+                      onDelete={() => remove("student_courses", "courses", c.id)} />
+                  ))}
+            </SectionCard>
+          </motion.div>
+        )}
+
+        {tab === "ecs" && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+            {/* Upload lives on this tab only: it parses activities and awards, not academics. */}
+            <div style={{ background: WHITE, border: `1.5px solid ${BORDER}`, borderRadius: 16, padding: "1.3rem 1.5rem", marginBottom: "1.25rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 220 }}>
+                  <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: TEXT, marginBottom: 4 }}>
+                    Have a resume or brag sheet?
+                  </p>
+                  <p style={{ fontFamily: SANS, fontSize: "0.92rem", color: TEXT_MUTED, lineHeight: 1.55, margin: 0 }}>
+                    Upload it and we'll pull out your activities and awards. You review everything before it's added.
+                  </p>
+                </div>
+                <div style={{ flexShrink: 0 }}>
+                  <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md" style={{ display: "none" }}
+                    onChange={(e) => handleFile(e.target.files?.[0])} />
+                  <button onClick={() => (uploadsLeft > 0 ? fileRef.current?.click() : setLimitModal("portfolio_upload"))}
+                    disabled={uploading}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 8,
+                      fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700,
+                      cursor: uploading ? "default" : "pointer",
+                      padding: "11px 18px", borderRadius: 11, border: "none",
+                      background: "var(--accent)", color: WHITE,
+                    }}>
+                    {uploading && <Spinner size={15} color="#fff" />}
+                    {uploading ? "Reading it…" : "Upload"}
+                  </button>
+                  <p style={{ fontFamily: SANS, fontSize: "0.82rem", color: TEXT_FAINT, textAlign: "center", marginTop: 7 }}>
+                    {uploadsLeft} left
+                  </p>
+                </div>
+              </div>
               {uploadError && (
-                <p style={{ fontFamily: SANS, fontSize: 12.5, color: "#dc2626", margin: "0.6rem 0 0" }}>{uploadError}</p>
+                <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: DANGER, fontWeight: 600, margin: "12px 0 0" }}>{uploadError}</p>
               )}
-            </motion.div>
-          </>
+            </div>
+
+            <SectionCard title="Activities" count={record.activities.length}
+              hint="Clubs, sports, jobs, projects, volunteering, research. Open one to fill in your role, hours and what you actually did."
+              action={<AddButton onClick={() => add("student_activities", "activities", { title: "", detail_level: "name_only", grade_levels: [] })}>Add activity</AddButton>}>
+              {record.activities.length === 0
+                ? <EmptyNote>Nothing here yet. Add an activity, or upload a resume above.</EmptyNote>
+                : record.activities.map((a) => (
+                    <ActivityCard key={a.id} activity={a}
+                      onPatch={(v) => patch("student_activities", "activities", a.id, v)}
+                      onDelete={() => remove("student_activities", "activities", a.id)} />
+                  ))}
+            </SectionCard>
+
+            <SectionCard title="Awards and honors" count={record.awards.length}
+              hint="Anything you were recognised for, at any level."
+              action={<AddButton onClick={() => add("student_awards", "awards", { title: "" })}>Add award</AddButton>}>
+              {record.awards.length === 0
+                ? <EmptyNote>No awards listed yet.</EmptyNote>
+                : record.awards.map((w) => (
+                    <AwardRow key={w.id} award={w}
+                      onPatch={(v) => patch("student_awards", "awards", w.id, v)}
+                      onDelete={() => remove("student_awards", "awards", w.id)} />
+                  ))}
+            </SectionCard>
+          </motion.div>
         )}
       </div>
 
       <AnimatePresence>
         {extracted && (
-          <ReviewModal items={extracted} saving={saving}
-            onConfirm={confirmExtracted}
-            onClose={() => setExtracted(null)} />
+          <ReviewModal rows={extracted} saving={addingExtracted}
+            onConfirm={confirmExtracted} onClose={() => setExtracted(null)} />
         )}
-      </AnimatePresence>
-
-      <AnimatePresence>
         {exportOpen && (
-          <ExportResumeModal items={items} fullName={fullName} contact={contact}
+          <ExportModal record={record} contact={record.profile.resume_contact}
             exportsLeft={exportsLeft} generating={exporting} error={exportError}
-            onGenerate={generateResume}
-            onClose={(next) => { saveContact(next); setExportOpen(false); }} />
+            onGenerate={handleExport} onClose={() => setExportOpen(false)} />
         )}
       </AnimatePresence>
 
