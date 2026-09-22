@@ -105,11 +105,11 @@ export async function fetchIntakeContext() {
 }
 
 /** Turn a transcript into a reviewable draft. Does not complete onboarding. */
-export async function extractIntake(transcript, channel, force = false) {
+export async function extractIntake(transcript, channel) {
   const res = await fetch(`${LANGGRAPH_URL}/onboarding/intake/extract`, {
     method: "POST",
     headers: await authHeaders(),
-    body: JSON.stringify({ transcript, channel, force }),
+    body: JSON.stringify({ transcript, channel }),
   });
   if (!res.ok) throw new Error(`Extraction failed (${res.status})`);
   return res.json();

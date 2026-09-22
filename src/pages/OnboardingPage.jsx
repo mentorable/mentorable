@@ -124,7 +124,7 @@ function ElegantShape({ shapeStyle, delay = 0, width = 400, height = 100, rotate
 }
 
 // ─── Channel picker: talk it through by text or by voice ─────────────────────
-function ChannelPhase({ onPick, retryNotice, skipping }) {
+function ChannelPhase({ onPick, skipping }) {
   const Option = ({ id, title, blurb, meta, icon }) => (
     <button type="button" onClick={() => onPick(id)}
       style={{
@@ -166,12 +166,6 @@ function ChannelPhase({ onPick, retryNotice, skipping }) {
         <p style={{ fontFamily: SANS, fontSize: "1.15rem", color: TEXT2, lineHeight: 1.6, marginBottom: "2.4rem", textAlign: "center", maxWidth: 540, marginLeft: "auto", marginRight: "auto" }}>
           We have your list. Now we just need a bit more detail on what you actually did. Pick whichever is easier for you.
         </p>
-
-        {retryNotice && (
-          <div style={{ background: "rgba(217,119,6,0.08)", border: "1.5px solid rgba(217,119,6,0.3)", borderRadius: 14, padding: "1.1rem 1.3rem", marginBottom: "1.6rem" }}>
-            <p style={{ fontFamily: SANS, fontSize: "1rem", color: "#7c4a03", lineHeight: 1.55, margin: 0 }}>{retryNotice}</p>
-          </div>
-        )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Option id="text" title="Type it out"
@@ -726,7 +720,6 @@ export default function OnboardingPage() {
   const [transcript, setTranscript]     = useState([]);
   const [elapsed, setElapsed]           = useState(0);
   const [error, setError]               = useState(null);
-  const [retryNotice, setRetryNotice]   = useState(null); // shown on intro screen after insufficient convo
   const [user, setUser]                 = useState(null);
   const [startingConv, setStartingConv] = useState(false);
 
@@ -790,19 +783,17 @@ export default function OnboardingPage() {
   };
 
   // ── Shared: transcript → draft → review ─────────────────────────────────────
-  const lastAttemptRef = useRef({ transcript: "", via: "text", force: true });
+  const lastAttemptRef = useRef({ transcript: "", via: "text" });
 
-  const runExtraction = useCallback(async (transcriptText, via, force) => {
-    lastAttemptRef.current = { transcript: transcriptText, via, force };
+  const runExtraction = useCallback(async (transcriptText, via) => {
+    lastAttemptRef.current = { transcript: transcriptText, via };
     setPhase("processing");
     try {
-      const result = await extractIntake(transcriptText, via, force);
+      // No "not enough" path: an interview that happened always goes to review,
+      // even if it produced little. Being sent back to start over after using
+      // the whole call is worse than confirming a thin draft.
+      const result = await extractIntake(transcriptText, via);
 
-      if (!result?.sufficient) {
-        setRetryNotice("We didn't get quite enough to work with. Give it another go and tell us a bit more about what you've been up to.");
-        setPhase("channel");
-        return;
-      }
       if (!result?.success) {
         console.error("[Onboarding] extraction failed:", result?.error);
         setPhase("recovery");
@@ -940,7 +931,6 @@ export default function OnboardingPage() {
   }, [conversation]);
 
   const startConversation = async () => {
-    setRetryNotice(null);
     setStartingConv(true);
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -997,7 +987,7 @@ export default function OnboardingPage() {
     // `force` skips the sufficiency gate when the student deliberately ended the call.
     // That's their call to make, so we take our best shot instead of making them start
     // over. Auto-ends (silence timeout, max call time) still go through the gate.
-    await runExtraction(transcriptText, "voice", manual);
+    await runExtraction(transcriptText, "voice");
   };
 
   if (phase === "loading") {
@@ -1066,9 +1056,9 @@ export default function OnboardingPage() {
           </div>
         )}
         {phase === "channel" && (
-          <ChannelPhase key="channel" retryNotice={retryNotice} skipping={skipping}
+          <ChannelPhase key="channel" skipping={skipping}
             onPick={(c) => {
-              setChannel(c); setRetryNotice(null);
+              setChannel(c);
               if (c === "skip") { handleSkip(); return; }
               setPhase(c === "voice" ? "voice-confirm" : "text-interview");
             }} />
@@ -1077,7 +1067,7 @@ export default function OnboardingPage() {
           <div key="text-interview" style={{ flex: 1, minHeight: 0, display: "flex", padding: "2rem 0 1.5rem" }}>
             <TextInterview
               record={savedRecord} isMobile={isMobile}
-              onFinish={(transcriptText) => runExtraction(transcriptText, "text", true)}
+              onFinish={(transcriptText) => runExtraction(transcriptText, "text")}
               onError={(msg) => { setError(msg); setPhase("error"); }}
             />
           </div>
@@ -1094,7 +1084,7 @@ export default function OnboardingPage() {
         )}
         {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} getInputLevel={getInputLevel} record={savedRecord} isMobile={isMobile}/>}
         {phase === "processing" && <ProcessingPhase key="processing"/>}
-        {phase === "recovery"   && <RecoveryPhase   key="recovery"   onRetryExtraction={() => { const a = lastAttemptRef.current; return runExtraction(a.transcript, a.via, a.force); }} onRetry={() => { setPhase("channel"); }}/>}
+        {phase === "recovery"   && <RecoveryPhase   key="recovery"   onRetryExtraction={() => { const a = lastAttemptRef.current; return runExtraction(a.transcript, a.via); }} onRetry={() => { setPhase("channel"); }}/>}
         {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("channel"); }}/>}
         {phase === "mic-denied" && <MicDeniedPhase  key="mic-denied" onRetry={() => setPhase("voice-confirm")}/>}
       </AnimatePresence>

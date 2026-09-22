@@ -776,10 +776,9 @@ async def onboarding_intake_extract(raw: Request, user_id: str = Depends(verify_
 
     transcript = (body.get("transcript") or "").strip()
     channel = body.get("channel") if body.get("channel") in ("text", "voice") else "text"
-    force = bool(body.get("force"))
 
     try:
-        return await extract_intake(user_id, transcript, channel=channel, force=force)
+        return await extract_intake(user_id, transcript, channel=channel)
     except Exception as exc:
         logger.error(f"[intake] Unexpected extract error for {user_id}: {exc}")
         raise HTTPException(status_code=500, detail="Intake extraction failed")

@@ -32,7 +32,6 @@ from app.db.supabase import get_supabase
 logger = logging.getLogger(__name__)
 
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-HAIKU = "claude-haiku-4-5-20251001"
 SONNET = "claude-sonnet-4-6"
 
 # Common App activity categories, plus a catch-all.
@@ -326,18 +325,44 @@ def _str_list(raw) -> list:
     return [str(x).strip() for x in (raw if isinstance(raw, list) else []) if str(x).strip()]
 
 
-async def extract_intake(user_id: str, transcript: str, channel: str = "text",
-                         force: bool = False) -> dict:
+# An empty draft: what a student gets when there was nothing to extract. They
+# still reach the review screen and can fill it in there or just continue.
+EMPTY_DRAFT = {
+    "theme": "", "theme_evidence": [], "concerns": [], "gaps": [],
+    "student_voice": [], "summary": "", "enriched_activities": [],
+}
+
+
+async def extract_intake(user_id: str, transcript: str, channel: str = "text") -> dict:
     """Turn the interview into a reviewable draft. Never raises.
 
-    Returns {sufficient, success, draft?, error?}. The draft is stored on
+    Returns {success, draft?, error?}. The draft is stored on
     profiles.intake_draft and is NOT committed until the student confirms it.
+
+    There is deliberately no sufficiency gate. One used to ask Haiku whether the
+    student had said enough and bounced them back to start over if it said no.
+    That fired precisely on the most complete conversations: the voice call
+    auto-ends at the 3 minute cap, which did not count as a deliberate end, so a
+    student who used the whole call could be told they had not said enough. An
+    interview that happened is always worth extracting, and a thin result is
+    better shown on the review screen than thrown away.
     """
     supabase = get_supabase()
     transcript = (transcript or "").strip()
 
-    if not transcript or (len(transcript) < 40 and not force):
-        return {"sufficient": False}
+    if len(transcript) < 40:
+        # Nothing worth an extraction call, but never send them backwards.
+        logger.info(f"[intake] transcript too short to extract for {user_id}; empty draft")
+        draft = {**EMPTY_DRAFT, "channel": channel,
+                 "extracted_at": datetime.now(timezone.utc).isoformat()}
+        try:
+            supabase.from_("profiles").update({
+                "intake_draft": draft, "intake_channel": channel,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }).eq("id", user_id).execute()
+        except Exception as exc:
+            logger.warning(f"[intake] short-draft save failed for {user_id}: {exc}")
+        return {"success": True, "draft": draft}
 
     record = load_student_record(user_id)
     activities = record.get("activities") or []
@@ -345,29 +370,6 @@ async def extract_intake(user_id: str, transcript: str, channel: str = "text",
         f"{a.get('id')} -> {a.get('title')}" for a in activities
     ) or "(none listed)"
     valid_ids = {str(a.get("id")) for a in activities}
-
-    # Sufficiency gate. Skipped on a forced end: the student chose to stop, so we take
-    # our best shot rather than making them start over.
-    if not force:
-        try:
-            check = await _create_with_retry(
-                model=HAIKU,
-                max_tokens=64,
-                messages=[{
-                    "role": "user",
-                    "content": (
-                        "A student just finished a college application interview. Did they share enough "
-                        "about what they've actually done and why it matters to them to build a profile? "
-                        'Reply with only "yes" or "no".\n\n'
-                        f"Transcript:\n{transcript}"
-                    ),
-                }],
-            )
-            text = (check.content[0].text if check.content else "").strip().lower()
-            if not text.startswith("yes"):
-                return {"sufficient": False}
-        except Exception as exc:
-            logger.warning(f"[intake] sufficiency check failed for {user_id}, proceeding: {exc}")
 
     prompt = EXTRACTION_PROMPT.format(
         categories=", ".join(ACTIVITY_CATEGORIES),
@@ -383,13 +385,13 @@ async def extract_intake(user_id: str, transcript: str, channel: str = "text",
         )
     except Exception as exc:
         logger.error(f"[intake] extraction call failed for {user_id}: {exc}")
-        return {"sufficient": True, "success": False,
+        return {"success": False,
                 "error": "AI service is temporarily unavailable. Please try again in a moment."}
 
     parsed = _parse_json(message.content[0].text if message.content else "")
     if parsed is None:
         logger.error(f"[intake] JSON parse failed for {user_id}")
-        return {"sufficient": True, "success": False, "error": "Failed to parse the interview result"}
+        return {"success": False, "error": "Failed to parse the interview result"}
 
     draft = {
         "theme":            str(parsed.get("theme") or "").strip(),
@@ -411,10 +413,10 @@ async def extract_intake(user_id: str, transcript: str, channel: str = "text",
         }).eq("id", user_id).execute()
     except Exception as exc:
         logger.error(f"[intake] draft save failed for {user_id}: {exc}")
-        return {"sufficient": True, "success": False, "error": str(exc)}
+        return {"success": False, "error": str(exc)}
 
     logger.info(f"[intake] draft ready for {user_id} ({len(draft['enriched_activities'])} enriched)")
-    return {"sufficient": True, "success": True, "draft": draft}
+    return {"success": True, "draft": draft}
 
 
 async def commit_intake(user_id: str, draft: dict, channel: str | None = None) -> dict:
