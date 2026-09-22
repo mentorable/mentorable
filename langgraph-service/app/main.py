@@ -659,7 +659,12 @@ async def portfolio_resume_pdf(raw: Request, user_id: str = Depends(verify_jwt))
     posthog_client.capture(
         "resume_exported",
         distinct_id=user_id,
-        properties={"item_count": len(items)},
+        properties={
+            "item_count": sum(
+                len(selection[k]) for k in ("activities", "awards", "courses", "scores")
+            ),
+            "include_gpa": bool(selection["academics"]),
+        },
     )
     return Response(
         content=pdf,
