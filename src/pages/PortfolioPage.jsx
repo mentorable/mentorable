@@ -537,6 +537,43 @@ function ReviewModal({ rows: initial, onConfirm, onClose, saving }) {
   );
 }
 
+function ConfirmDeleteModal({ label, onConfirm, onClose }) {
+  const [deleting, setDeleting] = useState(false);
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 320, background: "rgba(20,20,19,0.45)", backdropFilter: "blur(6px)",
+        display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}
+      onClick={deleting ? undefined : onClose}>
+      <motion.div initial={{ opacity: 0, y: 22, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }} onClick={(e) => e.stopPropagation()}
+        style={{ width: "100%", maxWidth: 400, background: BG, borderRadius: 20, border: `1px solid ${BORDER}`,
+          boxShadow: "0 30px 80px rgba(0,0,0,0.3)", padding: "1.9rem" }}>
+        <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.25rem", color: TEXT, marginBottom: 7 }}>
+          Remove this?
+        </h2>
+        <p style={{ fontFamily: SANS, fontSize: "0.96rem", color: TEXT_MID, lineHeight: 1.6, marginBottom: 22 }}>
+          {label ? `"${label}" will be removed from your portfolio.` : "This will be removed from your portfolio."} This can't be undone.
+        </p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button type="button" onClick={onClose} disabled={deleting}
+            style={{ flex: 1, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: "pointer",
+              padding: "13px", borderRadius: 11, border: `1.5px solid ${BORDER}`, background: WHITE, color: TEXT_MID }}>
+            Cancel
+          </button>
+          <button type="button"
+            onClick={async () => { setDeleting(true); await onConfirm(); }}
+            disabled={deleting}
+            style={{ flex: 1, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700,
+              cursor: deleting ? "default" : "pointer", padding: "13px", borderRadius: 11, border: "none",
+              background: DANGER, color: WHITE }}>
+            {deleting ? "Removing…" : "Remove"}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 function PickGroup({ title, items, selected, onToggle, render }) {
@@ -719,6 +756,7 @@ export default function PortfolioPage({ navigate }) {
   const [exportError, setExportError] = useState(null);
 
   const [limitModal, setLimitModal] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -757,6 +795,10 @@ export default function PortfolioPage({ navigate }) {
     setRecord((prev) => ({ ...prev, [listKey]: prev[listKey].filter((r) => r.id !== id) }));
     try { await deleteRow(table, id); }
     catch (e) { console.error(`[portfolio] ${table} delete failed:`, e); }
+  }, []);
+
+  const requestDelete = useCallback((table, listKey, id, label) => {
+    setConfirmDelete({ table, listKey, id, label });
   }, []);
 
   const add = useCallback(async (table, listKey, values) => {
@@ -944,7 +986,7 @@ export default function PortfolioPage({ navigate }) {
                 : record.scores.map((s) => (
                     <ScoreRow key={s.id} score={s}
                       onPatch={(v) => patch("student_test_scores", "scores", s.id, v)}
-                      onDelete={() => remove("student_test_scores", "scores", s.id)} />
+                      onDelete={() => requestDelete("student_test_scores", "scores", s.id, s.test_type || "score")} />
                   ))}
             </SectionCard>
 
@@ -956,7 +998,7 @@ export default function PortfolioPage({ navigate }) {
                 : record.courses.map((c) => (
                     <CourseRow key={c.id} course={c}
                       onPatch={(v) => patch("student_courses", "courses", c.id, v)}
-                      onDelete={() => remove("student_courses", "courses", c.id)} />
+                      onDelete={() => requestDelete("student_courses", "courses", c.id, c.name || "course")} />
                   ))}
             </SectionCard>
           </motion.div>
@@ -1008,7 +1050,7 @@ export default function PortfolioPage({ navigate }) {
                 : record.activities.map((a) => (
                     <ActivityCard key={a.id} activity={a}
                       onPatch={(v) => patch("student_activities", "activities", a.id, v)}
-                      onDelete={() => remove("student_activities", "activities", a.id)} />
+                      onDelete={() => requestDelete("student_activities", "activities", a.id, a.title || "activity")} />
                   ))}
             </SectionCard>
 
@@ -1020,7 +1062,7 @@ export default function PortfolioPage({ navigate }) {
                 : record.awards.map((w) => (
                     <AwardRow key={w.id} award={w}
                       onPatch={(v) => patch("student_awards", "awards", w.id, v)}
-                      onDelete={() => remove("student_awards", "awards", w.id)} />
+                      onDelete={() => requestDelete("student_awards", "awards", w.id, w.title || "award")} />
                   ))}
             </SectionCard>
           </motion.div>
@@ -1036,6 +1078,14 @@ export default function PortfolioPage({ navigate }) {
           <ExportModal record={record} contact={record.profile.resume_contact}
             exportsLeft={exportsLeft} generating={exporting} error={exportError}
             onGenerate={handleExport} onClose={() => setExportOpen(false)} />
+        )}
+        {confirmDelete && (
+          <ConfirmDeleteModal label={confirmDelete.label}
+            onConfirm={async () => {
+              await remove(confirmDelete.table, confirmDelete.listKey, confirmDelete.id);
+              setConfirmDelete(null);
+            }}
+            onClose={() => setConfirmDelete(null)} />
         )}
       </AnimatePresence>
 
