@@ -417,11 +417,16 @@ async def extract_intake(user_id: str, transcript: str, channel: str = "text",
     return {"sufficient": True, "success": True, "draft": draft}
 
 
-async def commit_intake(user_id: str, draft: dict) -> dict:
+async def commit_intake(user_id: str, draft: dict, channel: str | None = None) -> dict:
     """Write the student-confirmed draft into the real tables and finish onboarding.
 
     `draft` is what came back from the review screen, so it may differ from what the
     model produced. It is re-validated here rather than trusted.
+
+    An empty draft is a legitimate case: the student skipped the interview. Their
+    activities stay name-only and the narrative stays genuinely empty rather than
+    a shape full of blank strings, so nothing downstream mistakes it for a real
+    (but uninformative) read on them.
     """
     supabase = get_supabase()
     now = datetime.now(timezone.utc).isoformat()
@@ -444,7 +449,7 @@ async def commit_intake(user_id: str, draft: dict) -> dict:
         except Exception as exc:
             logger.warning(f"[intake] failed to enrich activity {aid} for {user_id}: {exc}")
 
-    narrative = {
+    narrative_fields = {
         "theme":              str(draft.get("theme") or "").strip(),
         "theme_evidence":     _str_list(draft.get("theme_evidence")),
         # Activities the conversation actually covered. Not a curated "spike"
@@ -455,17 +460,26 @@ async def commit_intake(user_id: str, draft: dict) -> dict:
         "student_voice":      _str_list(draft.get("student_voice")),
         "summary":            str(draft.get("summary") or "").strip(),
     }
+    # Nothing of substance means the interview was skipped: store {} rather than
+    # a hollow shape.
+    has_content = any(v for k, v in narrative_fields.items() if k != "detailed_activity_ids")
+    narrative = narrative_fields if has_content else {}
+
+    updates = {
+        "narrative":            narrative,
+        "onboarding_completed": True,
+        "intake_draft":         None,   # consumed
+        "updated_at":           now,
+    }
+    if channel:
+        updates["intake_channel"] = channel
 
     try:
-        supabase.from_("profiles").update({
-            "narrative":            narrative,
-            "onboarding_completed": True,
-            "intake_draft":         None,   # consumed
-            "updated_at":           now,
-        }).eq("id", user_id).execute()
+        supabase.from_("profiles").update(updates).eq("id", user_id).execute()
     except Exception as exc:
         logger.error(f"[intake] commit failed for {user_id}: {exc}")
         return {"success": False, "error": str(exc)}
 
-    logger.info(f"[intake] committed for {user_id} ({len(enriched)} activities enriched)")
+    logger.info(f"[intake] committed for {user_id} via {channel or 'unknown'} "
+                f"({len(enriched)} activities enriched)")
     return {"success": True, "narrative": narrative}

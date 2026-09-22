@@ -10,9 +10,10 @@ import TextInterview from "../components/onboarding/TextInterview.jsx";
 import IntakeReview from "../components/onboarding/IntakeReview.jsx";
 import RecordPanel, { sectionsFromRecord } from "../components/onboarding/RecordPanel.jsx";
 import { eyebrowStyle, titleStyle, primaryButton } from "../components/onboarding/intakeTheme.js";
+import { HOME_PATH } from "../lib/features.js";
 import {
   saveIntakeForm, fetchIntakeContext, extractIntake, commitIntake, fetchActivities,
-  fetchStudentRecord,
+  fetchStudentRecord, skipIntake,
 } from "../lib/intake.js";
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
@@ -122,7 +123,7 @@ function ElegantShape({ shapeStyle, delay = 0, width = 400, height = 100, rotate
 }
 
 // ─── Channel picker: talk it through by text or by voice ─────────────────────
-function ChannelPhase({ onPick, retryNotice }) {
+function ChannelPhase({ onPick, retryNotice, skipping }) {
   const Option = ({ id, title, blurb, meta, icon }) => (
     <button type="button" onClick={() => onPick(id)}
       style={{
@@ -180,6 +181,25 @@ function ChannelPhase({ onPick, retryNotice }) {
             blurb="A quick call with Mentorable. Usually the fastest way to get through it."
             meta="About 3 minutes, needs a microphone"
             icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>} />
+        </div>
+
+        {/* Deliberately a quiet third option, not a third card: skipping is
+            supported but it genuinely costs the student advice quality, so it
+            shouldn't look like an equal choice. */}
+        <div style={{ textAlign: "center", marginTop: "2rem" }}>
+          <button type="button" onClick={() => onPick("skip")} disabled={skipping}
+            style={{
+              fontFamily: SANS, fontSize: "1rem", fontWeight: 600,
+              color: skipping ? TEXT3 : TEXT2, background: "none", border: "none",
+              cursor: skipping ? "default" : "pointer", padding: "8px 4px",
+              textDecoration: "underline", textUnderlineOffset: 3,
+            }}>
+            {skipping ? "Setting up your account…" : "Skip for now"}
+          </button>
+          <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT3, lineHeight: 1.55, marginTop: 8, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>
+            We'll only know the names of your activities, so early advice will be
+            more general. You can add the detail any time.
+          </p>
         </div>
       </div>
     </motion.div>
@@ -719,6 +739,7 @@ export default function OnboardingPage() {
   const [channel, setChannel]       = useState(null);   // "text" | "voice"
   const intakeContextRef            = useRef("");
   const [savedRecord, setSavedRecord] = useState(null);
+  const [skipping, setSkipping] = useState(false);
 
   const timerRef         = useRef(null);
   const transcriptRef    = useRef([]);
@@ -730,7 +751,7 @@ export default function OnboardingPage() {
       if (!user) { window.location.href = "/auth"; return; }
       const { data: profile } = await supabase
         .from("profiles").select("onboarding_completed").eq("id", user.id).single();
-      if (profile?.onboarding_completed) { window.location.href = "/chat"; return; }
+      if (profile?.onboarding_completed) { window.location.href = HOME_PATH; return; }
       setUser(user);
       setPhase("form");
     };
@@ -797,6 +818,21 @@ export default function OnboardingPage() {
     }
   }, [user]);
 
+  // ── Skip the interview entirely ─────────────────────────────────────────────
+  const handleSkip = async () => {
+    setSkipping(true);
+    try {
+      const result = await skipIntake();
+      if (!result?.success) throw new Error(result?.error || "Could not finish setting up");
+      window.location.href = HOME_PATH;
+    } catch (err) {
+      console.error("[Onboarding] skip error:", err);
+      setError(err?.message || "We couldn't finish setting up. Please try again.");
+      setPhase("error");
+      setSkipping(false);
+    }
+  };
+
   // ── Review → commit ─────────────────────────────────────────────────────────
   const handleConfirm = async (edited) => {
     setCommitting(true);
@@ -804,7 +840,7 @@ export default function OnboardingPage() {
     try {
       const result = await commitIntake(edited, channel);
       if (!result?.success) throw new Error(result?.error || "Save failed");
-      window.location.href = "/chat";
+      window.location.href = HOME_PATH;
     } catch (err) {
       console.error("[Onboarding] commit error:", err);
       setReviewError(err?.message || "We couldn't save that. Please try again.");
@@ -1029,9 +1065,10 @@ export default function OnboardingPage() {
           </div>
         )}
         {phase === "channel" && (
-          <ChannelPhase key="channel" retryNotice={retryNotice}
+          <ChannelPhase key="channel" retryNotice={retryNotice} skipping={skipping}
             onPick={(c) => {
               setChannel(c); setRetryNotice(null);
+              if (c === "skip") { handleSkip(); return; }
               setPhase(c === "voice" ? "voice-confirm" : "text-interview");
             }} />
         )}
@@ -1063,3 +1100,4 @@ export default function OnboardingPage() {
     </div>
   );
 }
+

@@ -115,6 +115,18 @@ export async function extractIntake(transcript, channel, force = false) {
   return res.json();
 }
 
+/**
+ * Finish onboarding without doing the interview.
+ *
+ * Commits an empty draft: activities stay name-only and the narrative stays
+ * empty, which the chat prompt already handles (every narrative section is
+ * conditional, and unenriched activities are flagged so the agent asks rather
+ * than assumes).
+ */
+export async function skipIntake() {
+  return commitIntake({}, "skipped");
+}
+
 /** Commit the student-confirmed draft and finish onboarding. */
 export async function commitIntake(draft, channel) {
   const res = await fetch(`${LANGGRAPH_URL}/onboarding/intake/commit`, {

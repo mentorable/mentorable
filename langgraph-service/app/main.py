@@ -763,13 +763,15 @@ async def onboarding_intake_commit(raw: Request, user_id: str = Depends(verify_j
     if not isinstance(draft, dict):
         raise HTTPException(status_code=422, detail="Missing draft")
 
+    channel = body.get("channel") if body.get("channel") in ("text", "voice", "skipped") else None
+
     try:
-        result = await commit_intake(user_id, draft)
+        result = await commit_intake(user_id, draft, channel=channel)
         if result.get("success"):
             posthog_client.capture(
                 "onboarding_completed",
                 distinct_id=user_id,
-                properties={"channel": body.get("channel") or "unknown"},
+                properties={"channel": channel or "unknown", "skipped": channel == "skipped"},
             )
         return result
     except Exception as exc:
