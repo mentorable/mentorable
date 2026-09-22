@@ -534,7 +534,7 @@ function ProcessingPhase() {
         transition={{ delay:0.35, duration:0.6 }}
         style={{ fontFamily:SANS, color:TEXT2, fontSize:"1.12rem", lineHeight:1.7, maxWidth:420, marginBottom:"2rem" }}
       >
-        This takes about 10 seconds. We're writing up what you told us about each activity.
+        This takes about 30 seconds. We're writing up what you told us about each activity.
       </motion.p>
 
       {/* Pulsing dots */}
