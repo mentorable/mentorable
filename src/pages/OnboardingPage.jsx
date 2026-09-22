@@ -6,7 +6,7 @@ import { requireUser } from "../lib/auth.js";
 import Spinner from "../components/common/Spinner.jsx";
 import { VoicePoweredOrb } from "../components/common/VoicePoweredOrb.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
-import IntakeForm, { EMPTY_INTAKE } from "../components/onboarding/IntakeForm.jsx";
+import IntakeForm, { EMPTY_INTAKE, clearDraft } from "../components/onboarding/IntakeForm.jsx";
 import TextInterview from "../components/onboarding/TextInterview.jsx";
 import IntakeReview from "../components/onboarding/IntakeReview.jsx";
 import RecordPanel, { sectionsFromRecord } from "../components/onboarding/RecordPanel.jsx";
@@ -743,9 +743,21 @@ export default function OnboardingPage() {
       const user = await requireUser();
       if (!user) return;
       const { data: profile } = await supabase
-        .from("profiles").select("onboarding_completed").eq("id", user.id).single();
+        .from("profiles").select("onboarding_completed, intake_draft, intake_channel")
+        .eq("id", user.id).single();
       if (profile?.onboarding_completed) { window.location.href = HOME_PATH; return; }
       setUser(user);
+
+      // A saved draft means extraction already ran, so a refresh shouldn't make
+      // them redo the interview. Pick the review screen back up instead.
+      const saved = profile?.intake_draft;
+      if (saved && typeof saved === "object" && Object.keys(saved).length) {
+        setDraft(saved);
+        setChannel(profile.intake_channel === "voice" ? "voice" : "text");
+        setActivities(await fetchActivities(user.id));
+        setPhase("review");
+        return;
+      }
       setPhase("form");
     };
     checkAuth();
@@ -757,6 +769,7 @@ export default function OnboardingPage() {
     setIntake(values);
     try {
       await saveIntakeForm(user.id, values);
+      clearDraft(user.id);   // it's in the database now
       // Build the context once, here: both channels use the same rendered summary,
       // so the text interviewer and the voice agent see identical facts.
       try {
@@ -1051,7 +1064,7 @@ export default function OnboardingPage() {
       <AnimatePresence mode="wait">
         {phase === "form" && (
           <div key="form" style={{ flex: 1, overflowY: "auto", padding: "2.5rem 0 3rem" }}>
-            <IntakeForm initial={intake} onComplete={handleFormComplete} submitting={savingForm} isMobile={isMobile} />
+            <IntakeForm initial={intake} onComplete={handleFormComplete} submitting={savingForm} isMobile={isMobile} userId={user?.id} />
           </div>
         )}
         {phase === "channel" && (

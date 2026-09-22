@@ -275,6 +275,35 @@ function ApList({ items, onChange }) {
 
 // ─── The form ─────────────────────────────────────────────────────────────────
 
+/**
+ * Autosave to localStorage so an accidental refresh mid-form doesn't wipe
+ * everything the student has typed.
+ *
+ * Deliberately local rather than a per-keystroke DB write: this is a draft,
+ * not a record, and the real save happens once on submit. Keyed by user id so
+ * a shared browser never restores someone else's answers.
+ */
+const DRAFT_PREFIX = "mentorable_intake_form:";
+
+export function draftKey(userId) {
+  return `${DRAFT_PREFIX}${userId || "anon"}`;
+}
+
+function loadDraft(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;   // private mode, cleared storage, or corrupt JSON
+  }
+}
+
+export function clearDraft(userId) {
+  try { localStorage.removeItem(draftKey(userId)); } catch { /* nothing to do */ }
+}
+
 export const EMPTY_INTAKE = {
   fullName: "", graduationYear: null, gradeLevel: null, state: "",
   gpaUnweighted: "", gpaWeighted: "", gpaScale: null,
@@ -290,10 +319,23 @@ const STEPS = [
   { id: "direction", eyebrow: "Direction",       title: "Where you're headed",          blurb: "Rough guesses are genuinely useful here." },
 ];
 
-export default function IntakeForm({ initial, onComplete, submitting, isMobile }) {
-  const [step, setStep] = useState(0);
-  const [v, setV] = useState({ ...EMPTY_INTAKE, ...(initial || {}) });
+export default function IntakeForm({ initial, onComplete, submitting, isMobile, userId }) {
+  const key = draftKey(userId);
+  // Restored values win over `initial`: they're the newer edit.
+  const restored = loadDraft(key);
+  const [step, setStep] = useState(() => {
+    const n = restored?.step;
+    return Number.isInteger(n) && n >= 0 && n < STEPS.length ? n : 0;
+  });
+  const [v, setV] = useState(() => ({ ...EMPTY_INTAKE, ...(initial || {}), ...(restored?.values || {}) }));
   const set = (patch) => setV((prev) => ({ ...prev, ...patch }));
+
+  // Persist on every change. The payload is a few hundred bytes, so there's no
+  // need to debounce.
+  useEffect(() => {
+    try { localStorage.setItem(key, JSON.stringify({ values: v, step })); }
+    catch { /* storage full or blocked: the form still works, just won't restore */ }
+  }, [key, v, step]);
 
   // Steps vary a lot in height, so without this you land mid-page (or below the
   // content entirely) after advancing from a tall step to a short one.
