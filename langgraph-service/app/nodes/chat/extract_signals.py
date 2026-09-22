@@ -13,18 +13,22 @@ logger = logging.getLogger(__name__)
 
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
-EXTRACTION_PROMPT = """You are analyzing a conversation between a student and an AI career mentor.
+EXTRACTION_PROMPT = """You are analyzing a conversation between a high school student and their college application advisor.
 
-Extract anything the student mentioned about themselves — interests, goals, concerns, experiences, achievements, or career thoughts. Even small details are useful.
+Extract what the student revealed about themselves and their application that is NOT already a structured record field. Their activities, awards, courses, GPA and test scores are stored separately, so do not restate those. What matters here is the softer context an advisor would want to remember next time.
+
+Pay particular attention to context that should change how they are advised: constraints on their time (a job, caring for siblings), what their school actually offers, money worries, family pressure, and how they talk about themselves.
 
 Return JSON with this exact shape. Every key is required. Use empty arrays if nothing found for that category:
 {{
-  "new_interests": ["list any interests, hobbies, or subjects mentioned"],
-  "career_thoughts": ["list any career goals, fields, or job types mentioned"],
-  "achievements": ["list any accomplishments or completed things mentioned"],
-  "concerns": ["list any worries or challenges mentioned"],
-  "summary": "one sentence summarizing what the student shared, or null if they shared nothing personal"
+  "college_thoughts": ["schools, majors or paths they mentioned considering, and how they felt about them"],
+  "constraints": ["money, time, family, school resources, anything limiting their options"],
+  "essay_material": ["moments, experiences or turns of phrase that could matter for an essay later"],
+  "concerns": ["worries or pressure they expressed"],
+  "summary": "one sentence an advisor would want to read before their next conversation, or null if they shared nothing personal"
 }}
+
+Never use em dashes.
 
 Conversation:
 {conversation}"""

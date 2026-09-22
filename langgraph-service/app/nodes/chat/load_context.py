@@ -1,9 +1,19 @@
 """
 load_context — first node in the Chat graph.
-Fetches all context needed to build the system prompt from Supabase.
-Runs on every request so the state reflects live data.
+
+Fetches the student's college application record from Supabase on every request,
+so the prompt always reflects what the Portfolio page currently shows. Nothing
+here is cached: the student can edit their record mid-conversation (from the
+Portfolio page or through a chat tool) and the next turn must see it.
+
+Quest, roadmap and research context used to be loaded here too. Those features
+are parked behind FEATURES flags pending a college-domain redesign (see
+src/lib/features.js), so loading them meant four dead queries per request and
+four prompt sections about a product the student cannot reach. They come back
+with the features, rebuilt for admissions rather than careers.
 """
 import logging
+
 from app.state import StudentState
 from app.db.supabase import get_supabase
 
@@ -14,119 +24,36 @@ async def load_context(state: StudentState) -> StudentState:
     user_id = state["user_id"]
     supabase = get_supabase()
 
-    # Run all queries (supabase-py is sync; wrap in thread if needed at scale)
-    profile_res = (
-        supabase.from_("profiles")
-        .select("*")
-        .eq("id", user_id)
-        .maybe_single()
-        .execute()
-    )
-
-    quests_res = (
-        supabase.from_("quest_items")
-        .select("title, category, status, completed_at, why_it_matters")
-        .eq("user_id", user_id)
-        .neq("status", "deleted")
-        .order("created_at", desc=False)
-        .execute()
-    )
-
-    research_res = (
-        supabase.from_("research_sessions")
-        .select("query")
-        .eq("user_id", user_id)
-        .eq("status", "completed")
-        .order("created_at", desc=True)
-        .limit(10)
-        .execute()
-    )
-
-    chat_res = (
-        supabase.from_("chat_sessions")
-        .select("title")
-        .eq("user_id", user_id)
-        .not_.is_("title", "null")
-        .order("updated_at", desc=True)
-        .limit(8)
-        .execute()
-    )
-
-    roadmap_res = (
-        supabase.from_("roadmap_nodes")
-        .select("title, pillar, month_label, state, roadmaps!inner(status)")
-        .eq("user_id", user_id)
-        .eq("roadmaps.status", "active")
-        .order("month_index")
-        .order("order_index")
-        .execute()
-    )
-
-    profile    = profile_res.data or {}
-    all_quests = quests_res.data or []
-
-    # Pull research_findings from profile for cross-feature memory
-    research_findings = profile.get("research_findings") or []
-
-    completed_quests = [q for q in all_quests if q["status"] == "completed"]
-    active_quests    = [q for q in all_quests if q["status"] in ("in_progress", "considered")]
-    deleted_titles   = []  # deleted are excluded by the query filter
-
-    # Fetch deleted titles separately for the dismissed section
-    deleted_res = (
-        supabase.from_("quest_items")
-        .select("title")
-        .eq("user_id", user_id)
-        .eq("status", "deleted")
-        .order("updated_at", desc=True)
-        .limit(20)
-        .execute()
-    )
-    deleted_titles = [q["title"] for q in (deleted_res.data or [])]
-
-    recent_research = [r["query"] for r in (research_res.data or []) if r.get("query")]
-    chat_topics     = [s["title"] for s in (chat_res.data or []) if s.get("title")]
-    roadmap_nodes   = [
-        {"title": n["title"], "pillar": n["pillar"], "month_label": n["month_label"], "state": n["state"]}
-        for n in (roadmap_res.data or [])
-    ]
-    # A "chat about this node" conversation gets that node's full content (blurb,
-    # overview, checklist) injected on top of the lightweight roadmap summary above.
-    node_context = None
-    node_id = state.get("node_id")
-    if node_id:
-        node_res = (
-            supabase.from_("roadmap_nodes")
-            .select("title, blurb, pillar, overview")
-            .eq("id", node_id)
-            .eq("user_id", user_id)
-            .maybe_single()
-            .execute()
+    def rows(table, cols, order):
+        return (
+            supabase.from_(table).select(cols)
+            .eq("user_id", user_id).order(order).execute()
         )
-        node = node_res.data
-        if node:
-            tasks_res = (
-                supabase.from_("roadmap_tasks")
-                .select("text, done")
-                .eq("node_id", node_id)
-                .order("order_index")
-                .execute()
-            )
-            node_context = {**node, "tasks": tasks_res.data or []}
+
+    profile_res = (
+        supabase.from_("profiles").select("*")
+        .eq("id", user_id).maybe_single().execute()
+    )
+
+    # ids come along because the edit/delete tools address rows by id.
+    activities_res = rows(
+        "student_activities",
+        "id, title, category, position, organization, description, grade_levels, "
+        "timing, hours_per_week, weeks_per_year, continue_in_college, detail_level",
+        "order_index",
+    )
+    awards_res  = rows("student_awards", "id, title, level, year, description", "order_index")
+    courses_res = rows("student_courses", "id, name, level, grade_level, planned", "order_index")
+    scores_res  = rows("student_test_scores",
+                       "id, test_type, score, subject, section_scores, test_date", "test_type")
+
+    profile = profile_res.data or {}
 
     return {
         **state,
-        "profile": profile,
-        "active_quests": active_quests,
-        "research_findings": research_findings,
-        "_completed_quests": completed_quests,
-        "_deleted_titles": deleted_titles,
-        "_recent_research": recent_research,
-        "_chat_topics": chat_topics,
-        "_roadmap_nodes": roadmap_nodes,
-        "_node_context": node_context,
-        "_activities": activities,
-        "_awards": awards,
-        "_courses": courses,
-        "_scores": scores,
+        "profile":     profile,
+        "_activities": activities_res.data or [],
+        "_awards":     awards_res.data or [],
+        "_courses":    courses_res.data or [],
+        "_scores":     scores_res.data or [],
     }

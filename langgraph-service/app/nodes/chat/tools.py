@@ -1,9 +1,25 @@
 """
-Chat tools — lets Mentorable Chat actually act on the student's quest board instead of
-just claiming it did. Currently exposes one tool: add_quest_to_board.
+Chat tools — lets the advisor actually work on the student's record instead of
+telling them to go do it themselves.
 
-The model chooses the column via the `status` param, so the student can say
-"add it to In Progress" / "put it in Considered" and have it land there.
+The whole surface is CRUD over the four college-record tables plus GPA on
+profiles, which is the same data the Portfolio page edits. There is no separate
+copy: a change made here shows up on the Portfolio page and vice versa.
+
+Two rules hold everywhere in this module:
+
+  * Every write is scoped by user_id as well as row id. RLS already enforces
+    ownership, but the service role bypasses RLS, so the .eq("user_id", ...) is
+    what actually stops one student's id from touching another's row.
+
+  * Model input is never trusted as-is. Each kind has a _clean_* that whitelists
+    fields, clamps numbers to what the column can hold, and truncates strings to
+    the real Common App limits, so a hallucinated 400-character "description"
+    cannot land in a 150-character field.
+
+The add_quest_to_board tool was removed with the college pivot: the quest board
+is parked behind a FEATURES flag, so the model would have been writing rows to a
+board the student has no way to open, then telling them it had.
 """
 import logging
 from datetime import datetime, timezone
@@ -12,294 +28,419 @@ from app.db.supabase import get_supabase
 
 logger = logging.getLogger(__name__)
 
-# Maps the user-facing column names to quest_items.status values.
-COLUMN_TO_STATUS = {
-    "suggestions": "suggested",
-    "suggested":   "suggested",
-    "considered":  "considered",
-    "considering": "considered",
-    "in_progress": "in_progress",
-    "in progress": "in_progress",
-    "inprogress":  "in_progress",
+# ── Vocabulary, mirroring the schema and the Portfolio page's selects ─────────
+
+ACTIVITY_CATEGORIES = [
+    "Academic", "Art", "Athletics: Club", "Athletics: JV/Varsity", "Career Oriented",
+    "Community Service (Volunteer)", "Computer/Technology", "Cultural", "Dance", "Debate/Speech",
+    "Environmental", "Family Responsibilities", "Foreign Exchange", "Foreign Language",
+    "Internship", "Journalism/Publication", "Junior R.O.T.C.", "LGBT", "Music: Instrumental",
+    "Music: Vocal", "Religious", "Research", "Robotics", "School Spirit",
+    "Science/Math", "Student Govt./Politics", "Theater/Drama", "Work (Paid)", "Other",
+]
+AWARD_LEVELS  = ["school", "regional", "state", "national", "international"]
+COURSE_LEVELS = ["ap", "ib", "honors", "dual_enrollment", "regular"]
+TEST_TYPES    = ["sat", "act", "ap", "psat"]
+TIMINGS       = ["school_year", "summer", "all_year"]
+GPA_SCALES    = ["4.0", "5.0", "100", "other", "not_used"]
+
+KIND_TABLE = {
+    "activity": "student_activities",
+    "award":    "student_awards",
+    "course":   "student_courses",
+    "score":    "student_test_scores",
 }
 
-_AXES = {"communication", "leadership", "technicality", "resourcefulness", "execution"}
+# Labels for the confirmation the UI toasts.
+KIND_LABEL = {"activity": "activity", "award": "award", "course": "course", "score": "test score"}
 
-AWARD_LEVELS = ["school", "regional", "state", "national", "international"]
+
+# ── Coercion helpers ─────────────────────────────────────────────────────────
+
+def _text(value, limit: int):
+    if value is None:
+        return None
+    s = str(value).strip()
+    return s[:limit] if s else None
 
 
-def _coerce_axis(value) -> str:
-    v = (value or "").strip().lower()
-    return v if v in _AXES else "execution"
+def _num(value, lo, hi, as_int=False):
+    if value is None or value == "":
+        return None
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return None
+    v = max(lo, min(hi, v))
+    return int(round(v)) if as_int else v
+
+
+def _enum(value, allowed):
+    v = (str(value).strip().lower() if value is not None else "")
+    return v if v in allowed else None
+
+
+def _grades(value):
+    """Accepts [9, 10] or ["9","10"]; drops anything outside 9-12."""
+    if not isinstance(value, list):
+        return None
+    out = {int(g) for g in value if str(g).strip().isdigit() and 9 <= int(str(g).strip()) <= 12}
+    return sorted(out)
+
+
+def _clean_activity(args: dict, partial: bool) -> dict:
+    """partial=True for updates: only keys the model actually sent are returned,
+    so an update of one field never blanks the others."""
+    raw = {
+        "title":        _text(args.get("title"), 120),
+        "category":     args.get("category") if args.get("category") in ACTIVITY_CATEGORIES else None,
+        "position":     _text(args.get("position"), 50),
+        "organization": _text(args.get("organization"), 100),
+        "description":  _text(args.get("description"), 150),
+        "grade_levels": _grades(args.get("grade_levels")),
+        "timing":       _enum(args.get("timing"), TIMINGS),
+        # NUMERIC(5,2) and a week can only hold so many hours.
+        "hours_per_week": _num(args.get("hours_per_week"), 0, 168),
+        "weeks_per_year": _num(args.get("weeks_per_year"), 0, 52, as_int=True),
+        "continue_in_college": bool(args["continue_in_college"]) if "continue_in_college" in args else None,
+    }
+    return {k: v for k, v in raw.items() if v is not None or (not partial and k == "title")}
+
+
+def _clean_award(args: dict, partial: bool) -> dict:
+    raw = {
+        "title":       _text(args.get("title"), 120),
+        "level":       _enum(args.get("level"), AWARD_LEVELS),
+        "year":        _num(args.get("year"), 1900, 2100, as_int=True),
+        "description": _text(args.get("description"), 300),
+    }
+    return {k: v for k, v in raw.items() if v is not None or (not partial and k == "title")}
+
+
+def _clean_course(args: dict, partial: bool) -> dict:
+    raw = {
+        "name":        _text(args.get("name") or args.get("title"), 120),
+        "level":       _enum(args.get("level"), COURSE_LEVELS),
+        "grade_level": _num(args.get("grade_level"), 9, 12, as_int=True),
+        "planned":     bool(args["planned"]) if "planned" in args else None,
+    }
+    return {k: v for k, v in raw.items() if v is not None or (not partial and k == "name")}
+
+
+def _clean_score(args: dict, partial: bool) -> dict:
+    test_type = _enum(args.get("test_type"), TEST_TYPES)
+    # An AP score is 1-5; SAT/PSAT/ACT composites live on very different scales.
+    hi = 5 if test_type == "ap" else 1600
+    sections = args.get("section_scores")
+    raw = {
+        "test_type":      test_type,
+        "score":          _num(args.get("score"), 0, hi, as_int=True),
+        "subject":        _text(args.get("subject"), 100),
+        "section_scores": sections if isinstance(sections, dict) else None,
+    }
+    return {k: v for k, v in raw.items() if v is not None or (not partial and k == "test_type")}
+
+
+_CLEANERS = {
+    "activity": _clean_activity,
+    "award":    _clean_award,
+    "course":   _clean_course,
+    "score":    _clean_score,
+}
+
+
+# ── Tool schemas ─────────────────────────────────────────────────────────────
+
+_ACTIVITY_FIELDS = {
+    "title":        {"type": "string", "description": "The activity's name, e.g. 'Science Olympiad'."},
+    "category":     {"type": "string", "enum": ACTIVITY_CATEGORIES,
+                     "description": "The Common App activity category."},
+    "position":     {"type": "string", "description": "Their role or leadership title. Common App allows 50 characters."},
+    "organization": {"type": "string", "description": "The club, company or school. Common App allows 100 characters."},
+    "description":  {"type": "string",
+                     "description": "What they actually did and what came of it. Common App allows 150 characters, "
+                                    "so write in that compressed, impact-first style. Never use em dashes."},
+    "grade_levels": {"type": "array", "items": {"type": "integer"},
+                     "description": "Which of grades 9, 10, 11, 12 they did this in."},
+    "timing":       {"type": "string", "enum": TIMINGS, "description": "When during the year."},
+    "hours_per_week": {"type": "number", "description": "Typical hours per week."},
+    "weeks_per_year": {"type": "integer", "description": "Typical weeks per year."},
+    "continue_in_college": {"type": "boolean", "description": "Whether they intend to continue this in college."},
+}
+
+_AWARD_FIELDS = {
+    "title":       {"type": "string", "description": "The award's name, e.g. 'National Merit Semifinalist'."},
+    "level":       {"type": "string", "enum": AWARD_LEVELS, "description": "How far the recognition reached."},
+    "year":        {"type": "integer", "description": "Calendar year received."},
+    "description": {"type": "string", "description": "Short context: the field, the pool size, what it took."},
+}
+
+_COURSE_FIELDS = {
+    "name":        {"type": "string", "description": "Course name, e.g. 'AP Biology'."},
+    "level":       {"type": "string", "enum": COURSE_LEVELS, "description": "Rigor level."},
+    "grade_level": {"type": "integer", "description": "Which grade they take or took it in (9-12)."},
+    "planned":     {"type": "boolean", "description": "True if they intend to take it but have not yet."},
+}
+
+_SCORE_FIELDS = {
+    "test_type":      {"type": "string", "enum": TEST_TYPES, "description": "Which test."},
+    "score":          {"type": "integer", "description": "Composite score, or the 1-5 score for an AP exam."},
+    "subject":        {"type": "string", "description": "AP exams only: the subject."},
+    "section_scores": {"type": "object",
+                       "description": 'Per-section breakdown, e.g. {"reading_writing": 730, "math": 760}.'},
+}
 
 CHAT_TOOLS = [
     {
-        "name": "add_quest_to_board",
-        "description": (
-            "Add a quest (a concrete project, application, skill to practice, or "
-            "opportunity to pursue) to the student's quest board. Call this when the "
-            "student asks you to add something, or explicitly agrees to a suggestion "
-            "you made. Do NOT call it speculatively or without the student's intent."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "title": {
-                    "type": "string",
-                    "description": "Concise, specific quest title (max 60 chars).",
-                },
-                "description": {
-                    "type": "string",
-                    "description": "1-2 sentences with concrete next steps.",
-                },
-                "column": {
-                    "type": "string",
-                    "enum": ["Suggestions", "Considered", "In Progress"],
-                    "description": (
-                        "Which board column to place the quest in. Honor what the "
-                        "student asked for. If they didn't specify, use 'Suggestions'."
-                    ),
-                },
-                "category": {
-                    "type": "string",
-                    "enum": ["Project", "Research", "Application", "Learning", "Other"],
-                    "description": "Quest category.",
-                },
-                "estimated_time": {
-                    "type": "string",
-                    "description": 'Realistic estimate like "3-4 days", "1-2 weeks".',
-                },
-                "difficulty": {
-                    "type": "string",
-                    "enum": ["Easy", "Medium", "Hard"],
-                    "description": "Effort level.",
-                },
-                "target_axis": {
-                    "type": "string",
-                    "enum": ["communication", "leadership", "technicality", "resourcefulness", "execution"],
-                    "description": "The ONE scorecard skill this quest most builds. Completing it raises that axis.",
-                },
-                "why_it_matters": {
-                    "type": "string",
-                    "description": "One short sentence (max 80 chars) tying it to their goals.",
-                },
-            },
-            "required": ["title", "description", "column"],
-        },
-    },
-    {
         "name": "view_portfolio",
         "description": (
-            "Look up the full detail of the student's activities and awards: their role, the "
-            "organization, hours per week, weeks per year, grade levels, and what they actually "
-            "did. Call this when you need their concrete background beyond the titles you "
-            "already have, for example to advise on what is missing or to help reword an entry."
+            "Read the student's full record: activities, awards, coursework and test scores, "
+            "each with the id you need in order to change it. A summary is already in your "
+            "context, so call this when you need the full detail behind an entry (the exact "
+            "description wording, hours, grade levels) or when you are about to update or "
+            "delete something and need its id. Never guess an id."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "kind": {
+                "section": {
                     "type": "string",
-                    "enum": ["activity", "award", "all"],
-                    "description": "Optional: narrow to activities or awards. Omit for everything.",
+                    "enum": ["activities", "awards", "courses", "scores", "all"],
+                    "description": "Which part of the record to read. Omit for everything.",
                 },
             },
             "required": [],
         },
     },
     {
-        "name": "add_portfolio_piece",
+        "name": "add_portfolio_item",
         "description": (
-            "Add one activity or award to the student's portfolio. Call this when the student "
-            "asks you to add something, or explicitly agrees when you offer. Do NOT call it "
-            "speculatively. Academics (GPA, test scores, coursework) are entered by the student "
-            "on the Academics tab, so never use this for those."
+            "Add one entry to the student's record. Call this only when the student asks you "
+            "to add something, or clearly says yes to an addition you offered. Never add "
+            "speculatively, and never invent detail they did not tell you: leave a field out "
+            "rather than guessing at it."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "kind": {
-                    "type": "string",
-                    "enum": ["activity", "award"],
-                    "description": "Whether this is an activity or an award/honor.",
-                },
-                "title": {
-                    "type": "string",
-                    "description": "Short, specific name (max 80 chars), e.g. 'Science Olympiad' or 'DECA State Finalist'.",
-                },
-                "position": {
-                    "type": "string",
-                    "description": "Activities only: their role or leadership title, max 50 chars.",
-                },
-                "organization": {
-                    "type": "string",
-                    "description": "Activities only: the club, company or school, max 100 chars.",
-                },
-                "level": {
-                    "type": "string",
-                    "enum": ["school", "regional", "state", "national", "international"],
-                    "description": "Awards only: how far the recognition reached.",
-                },
-                "description": {
-                    "type": "string",
-                    "description": "Up to 150 chars of concrete detail (role, scale, result). Never use em dashes.",
-                },
+                "kind": {"type": "string", "enum": ["activity", "award", "course", "score"],
+                         "description": "What sort of entry this is."},
+                **_ACTIVITY_FIELDS, **_AWARD_FIELDS, **_COURSE_FIELDS, **_SCORE_FIELDS,
             },
-            "required": ["kind", "title"],
+            "required": ["kind"],
+        },
+    },
+    {
+        "name": "update_portfolio_item",
+        "description": (
+            "Change fields on one existing entry. Use this to reword a description, fix hours, "
+            "correct a score, or set a category. Pass ONLY the fields you are changing; "
+            "anything you leave out keeps its current value. You must pass the id from "
+            "view_portfolio. Only make a change the student asked for or agreed to, and when "
+            "you are rewriting their words, show them the new wording in your reply."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "kind": {"type": "string", "enum": ["activity", "award", "course", "score"],
+                         "description": "Which sort of entry this id belongs to."},
+                "id":   {"type": "string", "description": "The entry's id, from view_portfolio."},
+                **_ACTIVITY_FIELDS, **_AWARD_FIELDS, **_COURSE_FIELDS, **_SCORE_FIELDS,
+            },
+            "required": ["kind", "id"],
+        },
+    },
+    {
+        "name": "delete_portfolio_item",
+        "description": (
+            "Permanently remove one entry from the student's record. This cannot be undone. "
+            "Call it ONLY when the student has explicitly asked for that specific thing to be "
+            "deleted. Never delete as part of a rewrite (update it instead), never delete "
+            "something you merely think is weak, and if you are at all unsure which entry they "
+            "mean, name the candidates and ask first."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "kind": {"type": "string", "enum": ["activity", "award", "course", "score"],
+                         "description": "Which sort of entry this id belongs to."},
+                "id":   {"type": "string", "description": "The entry's id, from view_portfolio."},
+            },
+            "required": ["kind", "id"],
+        },
+    },
+    {
+        "name": "update_gpa",
+        "description": (
+            "Set the student's GPA, which lives on their profile rather than as a record entry. "
+            "Only call this with a number the student has actually told you. Pass the scale "
+            "whenever you know it, since a 3.8 means different things on a 4.0 and a 100 scale."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "gpa_unweighted": {"type": "number", "description": "Unweighted GPA."},
+                "gpa_weighted":   {"type": "number", "description": "Weighted GPA."},
+                "gpa_scale":      {"type": "string", "enum": GPA_SCALES,
+                                   "description": "The scale the numbers are on."},
+            },
+            "required": [],
         },
     },
 ]
 
 
-async def _add_quest_to_board(user_id: str, args: dict) -> dict:
-    supabase = get_supabase()
+# ── Handlers ─────────────────────────────────────────────────────────────────
 
-    title = (args.get("title") or "").strip()
-    if not title:
-        return {"success": False, "error": "Quest needs a title."}
-
-    column = (args.get("column") or "Suggestions").strip().lower()
-    status = COLUMN_TO_STATUS.get(column, "suggested")
-
-    # Place the new quest at the end of its column.
-    order_res = (
-        supabase.from_("quest_items")
-        .select("order_index")
-        .eq("user_id", user_id)
-        .eq("status", status)
-        .order("order_index", desc=True)
-        .limit(1)
-        .execute()
-    )
-    existing = order_res.data or []
-    next_index = (existing[0]["order_index"] + 1) if existing and existing[0].get("order_index") is not None else 0
-
-    now = datetime.now(timezone.utc).isoformat()
-    row = {
-        "user_id":        user_id,
-        "title":          title[:120],
-        "description":    args.get("description"),
-        "category":       args.get("category") or "Other",
-        "estimated_time": args.get("estimated_time"),
-        "difficulty":     args.get("difficulty"),
-        "target_axis":    _coerce_axis(args.get("target_axis")),
-        "why_it_matters": args.get("why_it_matters"),
-        "status":         status,
-        "order_index":    next_index,
-        "created_at":     now,
-        "updated_at":     now,
-    }
-
-    insert_res = supabase.from_("quest_items").insert(row).execute()
-    inserted = (insert_res.data or [None])[0]
-
-    if not inserted:
-        return {"success": False, "error": "Could not save the quest. Try again."}
-
-    column_label = {"suggested": "Suggestions", "considered": "Considered", "in_progress": "In Progress"}[status]
-    logger.info(f"[add_quest_to_board] {user_id} added {title!r} to {status}")
-    return {
-        "success": True,
-        "id": inserted.get("id"),
-        "title": inserted.get("title"),
-        "column": column_label,
-        "status": status,
-    }
+def _now():
+    return datetime.now(timezone.utc).isoformat()
 
 
 async def _view_portfolio(user_id: str, args: dict) -> dict:
-    """Full detail for the student's activities and awards.
-
-    The chat prompt already carries the titles, so this exists for the depth:
-    role, organization, commitment and what they actually did.
-    """
     supabase = get_supabase()
-    kind = (args.get("kind") or "all").strip().lower()
+    section = (args.get("section") or "all").strip().lower()
     out = {"success": True}
 
-    if kind in ("activity", "all"):
-        res = (
-            supabase.from_("student_activities")
-            .select("title, category, position, organization, description, hours_per_week, "
-                    "weeks_per_year, grade_levels, timing, detail_level")
-            .eq("user_id", user_id).order("order_index").limit(40).execute()
-        )
-        activities = res.data or []
-        for a in activities:
-            if a.get("description"):
-                a["description"] = a["description"][:300]
-        out["activities"] = activities
+    def rows(table, cols, order):
+        return (supabase.from_(table).select(cols)
+                .eq("user_id", user_id).order(order).limit(60).execute()).data or []
 
-    if kind in ("award", "all"):
-        res = (
-            supabase.from_("student_awards")
-            .select("title, level, year, description")
-            .eq("user_id", user_id).order("order_index").limit(40).execute()
-        )
-        awards = res.data or []
-        for w in awards:
-            if w.get("description"):
-                w["description"] = w["description"][:300]
-        out["awards"] = awards
+    if section in ("activities", "all"):
+        out["activities"] = rows(
+            "student_activities",
+            "id, title, category, position, organization, description, grade_levels, "
+            "timing, hours_per_week, weeks_per_year, continue_in_college, detail_level",
+            "order_index")
+    if section in ("awards", "all"):
+        out["awards"] = rows("student_awards", "id, title, level, year, description", "order_index")
+    if section in ("courses", "all"):
+        out["courses"] = rows("student_courses", "id, name, level, grade_level, planned", "order_index")
+    if section in ("scores", "all"):
+        out["scores"] = rows("student_test_scores",
+                             "id, test_type, score, subject, section_scores", "test_type")
 
-    out["count"] = len(out.get("activities", [])) + len(out.get("awards", []))
+    out["count"] = sum(len(v) for k, v in out.items() if isinstance(v, list))
     return out
 
 
-async def _add_portfolio_piece(user_id: str, args: dict) -> dict:
+async def _add_portfolio_item(user_id: str, args: dict) -> dict:
+    kind = _enum(args.get("kind"), list(KIND_TABLE))
+    if not kind:
+        return {"success": False, "error": "Unknown kind."}
+    table = KIND_TABLE[kind]
+
+    values = _CLEANERS[kind](args, partial=False)
+    label_field = "name" if kind == "course" else ("test_type" if kind == "score" else "title")
+    if not values.get(label_field):
+        return {"success": False, "error": f"A {KIND_LABEL[kind]} needs a {label_field}."}
+
     supabase = get_supabase()
+    row = {"user_id": user_id, **values, "created_at": _now(), "updated_at": _now()}
 
-    title = (args.get("title") or "").strip()
-    if not title:
-        return {"success": False, "error": "Needs a title."}
+    # Test scores are ordered by test_type and have no order_index column.
+    if kind != "score":
+        last = (supabase.from_(table).select("order_index")
+                .eq("user_id", user_id).order("order_index", desc=True).limit(1).execute()).data or []
+        row["order_index"] = (last[0]["order_index"] + 1) if last and last[0].get("order_index") is not None else 0
 
-    kind = (args.get("kind") or "activity").strip().lower()
-    if kind not in ("activity", "award"):
-        kind = "activity"
-    table = "student_awards" if kind == "award" else "student_activities"
+    if kind == "activity":
+        row["detail_level"] = "enriched" if (values.get("description") or values.get("position")) else "name_only"
 
-    # Append to the end of that list.
-    order_res = (
-        supabase.from_(table).select("order_index")
-        .eq("user_id", user_id).order("order_index", desc=True).limit(1).execute()
-    )
-    existing = order_res.data or []
-    next_index = (existing[0]["order_index"] + 1) if existing and existing[0].get("order_index") is not None else 0
-
-    now = datetime.now(timezone.utc).isoformat()
-    description = (args.get("description") or "").strip()[:150] or None
-
-    if kind == "award":
-        level = (args.get("level") or "").strip().lower()
-        row = {
-            "user_id": user_id, "title": title[:120], "description": description,
-            "level": level if level in AWARD_LEVELS else None,
-            "order_index": next_index, "created_at": now, "updated_at": now,
-        }
-    else:
-        position = (args.get("position") or "").strip()[:50] or None
-        row = {
-            "user_id": user_id, "title": title[:120], "description": description,
-            "position": position,
-            "organization": (args.get("organization") or "").strip()[:100] or None,
-            "detail_level": "enriched" if (description or position) else "name_only",
-            "order_index": next_index, "created_at": now, "updated_at": now,
-        }
-
-    insert_res = supabase.from_(table).insert(row).execute()
-    inserted = (insert_res.data or [None])[0]
+    inserted = (supabase.from_(table).insert(row).execute().data or [None])[0]
     if not inserted:
         return {"success": False, "error": "Could not save that. Try again."}
 
-    logger.info(f"[add_portfolio_piece] {user_id} added {kind} {title!r}")
-    return {"success": True, "id": inserted.get("id"), "title": inserted.get("title"), "kind": kind}
+    logger.info(f"[add_portfolio_item] {user_id} added {kind} {inserted.get('id')}")
+    return {"success": True, "kind": kind, "id": inserted.get("id"),
+            "title": inserted.get("title") or inserted.get("name") or (inserted.get("test_type") or "").upper()}
 
 
-# Dispatch table — tool name → coroutine(user_id, args) -> result dict.
+async def _update_portfolio_item(user_id: str, args: dict) -> dict:
+    kind = _enum(args.get("kind"), list(KIND_TABLE))
+    item_id = (args.get("id") or "").strip()
+    if not kind or not item_id:
+        return {"success": False, "error": "Need both kind and id."}
+
+    values = _CLEANERS[kind](args, partial=True)
+    values.pop("id", None)
+    if not values:
+        return {"success": False, "error": "No recognised fields to change."}
+
+    supabase = get_supabase()
+    # .eq("user_id") as well as id: the service role bypasses RLS, so this is the
+    # only thing standing between a wrong id and another student's row.
+    res = (supabase.from_(KIND_TABLE[kind])
+           .update({**values, "updated_at": _now()})
+           .eq("id", item_id).eq("user_id", user_id).execute())
+
+    updated = (res.data or [None])[0]
+    if not updated:
+        return {"success": False, "error": "No entry with that id. Call view_portfolio for current ids."}
+
+    logger.info(f"[update_portfolio_item] {user_id} updated {kind} {item_id}: {sorted(values)}")
+    return {"success": True, "kind": kind, "id": item_id,
+            "title": updated.get("title") or updated.get("name") or (updated.get("test_type") or "").upper(),
+            "changed": sorted(values)}
+
+
+async def _delete_portfolio_item(user_id: str, args: dict) -> dict:
+    kind = _enum(args.get("kind"), list(KIND_TABLE))
+    item_id = (args.get("id") or "").strip()
+    if not kind or not item_id:
+        return {"success": False, "error": "Need both kind and id."}
+
+    supabase = get_supabase()
+    res = (supabase.from_(KIND_TABLE[kind])
+           .delete().eq("id", item_id).eq("user_id", user_id).execute())
+
+    deleted = (res.data or [None])[0]
+    if not deleted:
+        return {"success": False, "error": "No entry with that id. Call view_portfolio for current ids."}
+
+    logger.info(f"[delete_portfolio_item] {user_id} deleted {kind} {item_id}")
+    return {"success": True, "kind": kind, "id": item_id,
+            "title": deleted.get("title") or deleted.get("name") or (deleted.get("test_type") or "").upper()}
+
+
+async def _update_gpa(user_id: str, args: dict) -> dict:
+    scale = _enum(args.get("gpa_scale"), GPA_SCALES)
+    # NUMERIC(6,3) holds up to 999.999, which covers 4.0, 5.0 and 100-point scales.
+    values = {}
+    if args.get("gpa_unweighted") is not None:
+        values["gpa_unweighted"] = _num(args.get("gpa_unweighted"), 0, 999)
+    if args.get("gpa_weighted") is not None:
+        values["gpa_weighted"] = _num(args.get("gpa_weighted"), 0, 999)
+    if scale:
+        values["gpa_scale"] = scale
+    if not values:
+        return {"success": False, "error": "Nothing to set."}
+
+    supabase = get_supabase()
+    res = (supabase.from_("profiles").update({**values, "updated_at": _now()})
+           .eq("id", user_id).execute())
+    if not (res.data or []):
+        return {"success": False, "error": "Could not save the GPA."}
+
+    logger.info(f"[update_gpa] {user_id} set {sorted(values)}")
+    return {"success": True, "kind": "gpa", "title": "GPA", "changed": sorted(values)}
+
+
 _HANDLERS = {
-    "add_quest_to_board": _add_quest_to_board,
-    "view_portfolio": _view_portfolio,
-    "add_portfolio_piece": _add_portfolio_piece,
+    "view_portfolio":        _view_portfolio,
+    "add_portfolio_item":    _add_portfolio_item,
+    "update_portfolio_item": _update_portfolio_item,
+    "delete_portfolio_item": _delete_portfolio_item,
+    "update_gpa":            _update_gpa,
+}
+
+# Which tools changed something the student should see a confirmation for.
+WRITE_TOOLS = {"add_portfolio_item", "update_portfolio_item", "delete_portfolio_item", "update_gpa"}
+
+TOOL_VERB = {
+    "add_portfolio_item":    "Added",
+    "update_portfolio_item": "Updated",
+    "delete_portfolio_item": "Removed",
+    "update_gpa":            "Updated",
 }
 
 

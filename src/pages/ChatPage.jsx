@@ -1136,13 +1136,10 @@ export default function ChatPage({ navigate, seedNode }) {
           });
         },
         onEvent: (evt) => {
-          if (evt.event === "quest_added" && evt.quest?.title) {
-            setQuestToast({ title: evt.quest.title, column: evt.quest.column });
-            if (questToastTimer.current) clearTimeout(questToastTimer.current);
-            questToastTimer.current = setTimeout(() => setQuestToast(null), 5000);
-          }
-          if (evt.event === "portfolio_added" && evt.piece?.title) {
-            setQuestToast({ title: evt.piece.title, column: "your Portfolio" });
+          // The agent edits the same record the Portfolio page shows, so every
+          // write it makes is confirmed here rather than only in its own prose.
+          if (evt.event === "portfolio_changed" && evt.item?.title) {
+            setQuestToast({ verb: evt.verb || "Updated", title: evt.item.title });
             if (questToastTimer.current) clearTimeout(questToastTimer.current);
             questToastTimer.current = setTimeout(() => setQuestToast(null), 5000);
           }
@@ -1295,8 +1292,7 @@ export default function ChatPage({ navigate, seedNode }) {
         >
           <span style={{ fontSize: 16 }}>✓</span>
           <span>
-            Added <strong>{questToast.title}</strong>
-            {questToast.column ? ` to ${questToast.column}` : ""}
+            {questToast.verb} <strong>{questToast.title}</strong> in your Portfolio
           </span>
         </div>
       )}

@@ -17,7 +17,7 @@ from app.db.checkpointer import get_checkpointer, lifespan_checkpointer, checkpo
 from app.db.supabase import get_supabase
 from app.graphs.chat import create_chat_graph
 from app.nodes.chat.extract_signals import extract_signals
-from app.nodes.chat.tools import CHAT_TOOLS, execute_chat_tool
+from app.nodes.chat.tools import CHAT_TOOLS, execute_chat_tool, WRITE_TOOLS, TOOL_VERB
 from app.nodes.onboarding.extract import extract_profile
 from app.nodes.onboarding.intake import (
     INTERVIEW_SYSTEM,
@@ -193,13 +193,17 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
                     if getattr(block, "type", None) != "tool_use":
                         continue
                     result = await execute_chat_tool(user_id, block.name, dict(block.input))
-                    if result.get("success"):
-                        # Only board/portfolio writes surface as UI events; reads (view_portfolio) stay silent.
-                        if block.name == "add_quest_to_board":
-                            yield f"data: {json.dumps({'event': 'quest_added', 'quest': result})}\n\n"
-                            posthog_client.capture("quest_added_via_chat", distinct_id=user_id)
-                        elif block.name == "add_portfolio_piece":
-                            yield f"data: {json.dumps({'event': 'portfolio_added', 'piece': result})}\n\n"
+                    if result.get("success") and block.name in WRITE_TOOLS:
+                        # Writes surface as a UI toast; reads (view_portfolio) stay silent.
+                        yield "data: " + json.dumps({
+                            "event": "portfolio_changed",
+                            "verb":  TOOL_VERB.get(block.name, "Updated"),
+                            "item":  result,
+                        }) + "\n\n"
+                        posthog_client.capture(
+                            "portfolio_changed_via_chat", distinct_id=user_id,
+                            properties={"tool": block.name, "kind": result.get("kind")},
+                        )
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
