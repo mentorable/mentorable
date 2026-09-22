@@ -23,6 +23,10 @@ const COURSE_LEVELS = [
   { value: "regular",         label: "Regular" },
 ];
 
+// Column widths for the three-column layout.
+const FORM_W  = 640;
+const PANEL_W = 340;
+
 const currentYear = new Date().getFullYear();
 const GRAD_YEARS = Array.from({ length: 6 }, (_, i) => currentYear + i);
 
@@ -303,13 +307,21 @@ export default function IntakeForm({ initial, onComplete, submitting, isMobile }
   const next = () => (isLast ? onComplete(v) : setStep((s) => s + 1));
 
   return (
+    // Three columns: an empty spacer, the form, then the record panel. The spacer
+    // matches the panel's width so the form sits genuinely centred in the
+    // viewport rather than being shoved left by the panel. The spacer collapses
+    // first on narrower screens, so the form drifts instead of overflowing.
     <div style={{
-      display: "flex", gap: "2.5rem", alignItems: "flex-start",
-      width: "100%", maxWidth: 1240, margin: "0 auto", padding: "0 1.5rem",
-      flexDirection: isMobile ? "column" : "row",
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : `minmax(0, ${PANEL_W}px) minmax(0, ${FORM_W}px) ${PANEL_W}px`,
+      gap: isMobile ? "2rem" : "2rem",
+      alignItems: "start", justifyContent: "center",
+      width: "100%", margin: "0 auto", padding: "0 1.5rem",
     }}>
-      {/* ── Left: the step ── */}
-      <div style={{ flex: "1 1 0", minWidth: 0, width: "100%" }}>
+      {!isMobile && <div aria-hidden="true" />}
+
+      {/* ── Centre: the step ── */}
+      <div style={{ minWidth: 0, width: "100%" }}>
         <div style={{ display: "flex", gap: 7, marginBottom: "2rem" }}>
           {STEPS.map((s, i) => (
             <div key={s.id} style={{
@@ -484,7 +496,7 @@ export default function IntakeForm({ initial, onComplete, submitting, isMobile }
       </div>
 
       {/* ── Right: the record building up ── */}
-      <div style={{ flex: isMobile ? "1 1 auto" : "0 0 340px", width: "100%", maxWidth: isMobile ? "none" : 340 }}>
+      <div style={{ minWidth: 0, width: "100%" }}>
         <RecordPanel sections={sectionsFromForm(v)} sticky={!isMobile} />
       </div>
     </div>

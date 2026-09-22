@@ -82,27 +82,6 @@ function Logo({ textColor = TEXT }) {
   );
 }
 
-// ─── Waveform ─────────────────────────────────────────────────────────────────
-function Waveform({ active, color }) {
-  const heights = [8, 16, 24, 28, 24, 16, 8];
-  const delays  = [0, 0.1, 0.2, 0.3, 0.2, 0.1, 0];
-  return (
-    <div style={{ display:"flex", alignItems:"center", gap:3, height:32 }}>
-      {heights.map((h, i) => (
-        <div key={i} style={{
-          width:3, height:h, borderRadius:2,
-          background:color,
-          transformOrigin:"center",
-          transform:active ? undefined : "scaleY(0.25)",
-          animation:active ? "ob-wave 0.9s ease-in-out infinite" : "none",
-          animationDelay:`${delays[i]}s`,
-          transition:"transform 0.3s ease, background 0.3s ease",
-        }}/>
-      ))}
-    </div>
-  );
-}
-
 // ─── MicIcon ──────────────────────────────────────────────────────────────────
 function MicIcon({ color = "white", size = 22 }) {
   return (
@@ -254,7 +233,73 @@ function VoiceConfirmPhase({ onStart, onBack, loading }) {
 }
 
 // ─── Phase 2: Active Conversation ─────────────────────────────────────────────
-function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef, record, isMobile }) {
+// ─── Live speaking meter ──────────────────────────────────────────────────────
+// Samples the real mic level so the student can see the call is hearing them.
+// Keeps its own state so the 12Hz sampling never re-renders the transcript.
+function SpeakingMeter({ getInputLevel, agentSpeaking }) {
+  const [level, setLevel] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      try {
+        const v = getInputLevel?.();
+        // Ease toward the new reading so the bars glide instead of flickering.
+        setLevel((prev) => (typeof v === "number" ? prev + (v - prev) * 0.5 : 0));
+      } catch { setLevel(0); }
+    }, 80);
+    return () => clearInterval(id);
+  }, [getInputLevel]);
+
+  const userTalking = !agentSpeaking && level > SPEAKING_VOLUME_THRESHOLD;
+  const label = agentSpeaking ? "Mentorable is speaking" : userTalking ? "Listening to you" : "Your turn, go ahead";
+  const tint  = agentSpeaking ? ACCENT : userTalking ? "#16a34a" : "rgba(59,91,252,0.25)";
+
+  // 5 bars; the middle ones react hardest, which reads as a voice level.
+  const weights = [0.55, 0.85, 1, 0.85, 0.55];
+  const norm = Math.min(1, level / 0.35);   // mic levels sit low, so amplify
+
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:"0.9rem" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:3, height:30 }}>
+        {weights.map((w, i) => {
+          // While the agent talks we animate a steady idle pulse instead of the
+          // mic level, since the mic level is the student's own voice.
+          const h = agentSpeaking ? undefined : Math.max(4, 4 + norm * w * 26);
+          return agentSpeaking ? (
+            <span key={i} style={{
+              width:3.5, height:22 * w + 6, borderRadius:2, background:tint,
+              transformOrigin:"center",
+              animation:"ob-wave 0.9s ease-in-out infinite",
+              animationDelay:`${[0, 0.1, 0.2, 0.1, 0][i]}s`,
+            }}/>
+          ) : (
+            <span key={i} style={{
+              width:3.5, height:h, borderRadius:2, background:tint,
+              transition:"height 0.08s linear, background 0.3s",
+            }}/>
+          );
+        })}
+      </div>
+      <motion.span
+        animate={{ color: agentSpeaking ? ACCENT : userTalking ? "#16a34a" : TEXT2 }}
+        transition={{ duration:0.3 }}
+        style={{ fontFamily:SANS, fontWeight:600, fontSize:"0.95rem", minWidth:200 }}
+      >
+        {label}
+      </motion.span>
+    </div>
+  );
+}
+
+function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel, record, isMobile }) {
+  const scrollerRef = useRef(null);
+
+  // Keep the newest message in view by scrolling only this container.
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [transcript]);
+
   const formatTime = (s) => {
     const m = Math.floor(s / 60).toString().padStart(2, "0");
     return `${m}:${(s % 60).toString().padStart(2, "0")}`;
@@ -303,49 +348,57 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef,
         width:"100%", maxWidth:1240, margin:"0 auto", padding:"1.75rem 1.5rem",
         flexDirection: isMobile ? "column" : "row", alignItems:"stretch",
       }}>
-      <div style={{
-        flex:"1 1 0", minWidth:0, overflowY:"auto",
-        display:"flex", flexDirection:"column", gap:"0.875rem",
-      }}>
-        {transcript.length === 0 && (
-          <motion.p
-            initial={{ opacity:0 }}
-            animate={{ opacity:1 }}
-            transition={{ delay:0.8 }}
-            style={{ textAlign:"center", color:TEXT3, fontFamily:SANS, fontSize:"0.9rem", marginTop:"5rem", lineHeight:1.7 }}
-          >
-            Your conversation will appear here...
-          </motion.p>
-        )}
-        <AnimatePresence initial={false}>
-          {transcript.map((msg) => (
-            <motion.div
-              key={msg.id}
-              initial={{ opacity:0, y:12, scale:0.97 }}
-              animate={{ opacity:1, y:0, scale:1 }}
-              transition={{ duration:0.35, ease:[0.22,1,0.36,1] }}
-              style={{ display:"flex", justifyContent:msg.role === "agent" ? "flex-start" : "flex-end" }}
-            >
-              <div style={{
-                maxWidth:"76%", padding:"0.875rem 1.125rem",
-                borderRadius:msg.role === "agent" ? "4px 16px 16px 16px" : "16px 4px 16px 16px",
-                background:msg.role === "agent"
-                  ? CARD
-                  : `linear-gradient(135deg, ${ACCENT} 0%, ${ACCENT2} 100%)`,
-                border:msg.role === "agent" ? `1.5px solid ${BORDER}` : "none",
-                color:msg.role === "agent" ? TEXT : "white",
-                fontFamily:SANS, fontSize:"0.95rem", lineHeight:1.68, fontWeight:400,
-                boxShadow:msg.role !== "agent"
-                  ? "0 4px 20px rgba(59,91,252,0.35)"
-                  : "0 1px 6px rgba(0,0,0,0.06)",
-              }}>
-                {msg.message}
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        <div ref={transcriptEndRef}/>
-      </div>
+        {/* The scroller owns its own scrolling. scrollIntoView on a sentinel
+            scrolled every ancestor including the window, which yanked the whole
+            page down and left the newest message off screen. */}
+        <div ref={scrollerRef} style={{
+          flex:"1 1 0", minWidth:0, minHeight:0, overflowY:"auto",
+          display:"flex", flexDirection:"column",
+        }}>
+          {/* marginTop:auto keeps the conversation sitting just above the
+              controls and growing upward, instead of stranding one message at
+              the top of a tall empty column. It collapses once content
+              overflows, so scrolling still behaves normally. */}
+          <div style={{ marginTop:"auto", display:"flex", flexDirection:"column", gap:"0.875rem" }}>
+            {transcript.length === 0 && (
+              <motion.p
+                initial={{ opacity:0 }}
+                animate={{ opacity:1 }}
+                transition={{ delay:0.8 }}
+                style={{ textAlign:"center", color:TEXT3, fontFamily:SANS, fontSize:"0.95rem", lineHeight:1.7, margin:0 }}
+              >
+                Your conversation will appear here.
+              </motion.p>
+            )}
+            <AnimatePresence initial={false}>
+              {transcript.map((msg) => (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity:0, y:12, scale:0.97 }}
+                  animate={{ opacity:1, y:0, scale:1 }}
+                  transition={{ duration:0.35, ease:[0.22,1,0.36,1] }}
+                  style={{ display:"flex", justifyContent:msg.role === "agent" ? "flex-start" : "flex-end" }}
+                >
+                  <div style={{
+                    maxWidth:"76%", padding:"0.95rem 1.2rem",
+                    borderRadius:msg.role === "agent" ? "4px 18px 18px 18px" : "18px 4px 18px 18px",
+                    background:msg.role === "agent"
+                      ? CARD
+                      : `linear-gradient(135deg, ${ACCENT} 0%, ${ACCENT2} 100%)`,
+                    border:msg.role === "agent" ? `1.5px solid ${BORDER}` : "none",
+                    color:msg.role === "agent" ? TEXT : "white",
+                    fontFamily:SANS, fontSize:"1.02rem", lineHeight:1.65, fontWeight:400,
+                    boxShadow:msg.role !== "agent"
+                      ? "0 4px 20px rgba(59,91,252,0.3)"
+                      : "0 1px 6px rgba(0,0,0,0.06)",
+                  }}>
+                    {msg.message}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </div>
 
         {/* Their list, so they know what we'll be asking about */}
         <div style={{ flex: isMobile ? "1 1 auto" : "0 0 320px", width:"100%", maxWidth: isMobile ? "none" : 320, overflowY:"auto" }}>
@@ -400,18 +453,9 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef,
           )}
         </AnimatePresence>
 
-        {/* Waveform + status */}
-        {elapsed < 355 && (
-          <div style={{ display:"flex", alignItems:"center", gap:"1rem" }}>
-            <Waveform active={true} color={isSpeaking ? ACCENT : "rgba(59,91,252,0.2)"}/>
-            <motion.span
-              animate={{ color: isSpeaking ? ACCENT : TEXT2 }}
-              transition={{ duration:0.4 }}
-              style={{ fontFamily:SANS, fontWeight:500, fontSize:"0.875rem", minWidth:220 }}
-            >
-              {isSpeaking ? "Mentorable is speaking..." : "Your turn..."}
-            </motion.span>
-          </div>
+        {/* Live speaking indicator */}
+        {elapsed < MAX_CALL_SECONDS && (
+          <SpeakingMeter getInputLevel={getInputLevel} agentSpeaking={isSpeaking} />
         )}
 
         <motion.button
@@ -676,7 +720,6 @@ export default function OnboardingPage() {
   const intakeContextRef            = useRef("");
   const [savedRecord, setSavedRecord] = useState(null);
 
-  const transcriptEndRef = useRef(null);
   const timerRef         = useRef(null);
   const transcriptRef    = useRef([]);
   const lastActivityRef  = useRef(Date.now()); // last agent speech / message — drives silence auto-end
@@ -807,10 +850,6 @@ export default function OnboardingPage() {
   });
 
   useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior:"smooth" });
-  }, [transcript]);
-
-  useEffect(() => {
     if (phase !== "active") {
       clearInterval(timerRef.current);
       return;
@@ -856,6 +895,12 @@ export default function OnboardingPage() {
     return () => { conversation.endSession().catch(() => {}); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Handed to the speaking meter. useCallback keeps the identity stable so the
+  // meter's sampling interval isn't torn down and rebuilt on every render.
+  const getInputLevel = useCallback(() => {
+    try { return conversation.getInputVolume?.() ?? 0; } catch { return 0; }
+  }, [conversation]);
 
   const startConversation = async () => {
     setRetryNotice(null);
@@ -1009,7 +1054,7 @@ export default function OnboardingPage() {
           <VoiceConfirmPhase key="voice-confirm" onStart={startConversation} loading={startingConv}
             onBack={() => { setChannel("text"); setPhase("text-interview"); }} />
         )}
-        {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} transcriptEndRef={transcriptEndRef} record={savedRecord} isMobile={isMobile}/>}
+        {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} getInputLevel={getInputLevel} record={savedRecord} isMobile={isMobile}/>}
         {phase === "processing" && <ProcessingPhase key="processing"/>}
         {phase === "recovery"   && <RecoveryPhase   key="recovery"   onRetryExtraction={() => { const a = lastAttemptRef.current; return runExtraction(a.transcript, a.via, a.force); }} onRetry={() => { setPhase("channel"); }}/>}
         {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("channel"); }}/>}
