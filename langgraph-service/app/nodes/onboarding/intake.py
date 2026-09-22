@@ -2,10 +2,13 @@
 College application intake — extraction and commit.
 
 The student fills a minimal form (numbers and names), then talks to either a text
-or a voice interviewer. This module turns that conversation into:
+or a voice interviewer. The interview is deliberately concrete: it walks their
+listed activities and awards asking what they actually did, and never asks them
+to reflect on a theme or justify their majors. This module turns that into:
 
-  * a narrative (theme, major reasoning, concerns, gaps, their own phrasing)
-  * structured Common App detail for the 2-4 activities that form their spike
+  * structured Common App detail for every activity that came up
+  * a narrative (theme inferred silently from the record, concerns they raised,
+    gaps, and their own phrasing for later essay work)
 
 Extraction writes to `profiles.intake_draft` rather than committing. The student
 reviews and edits the draft; `commit_intake` then writes it into the real tables.
@@ -44,10 +47,9 @@ ACTIVITY_CATEGORIES = [
 
 AWARD_LEVELS = ["school", "regional", "state", "national", "international"]
 
-# How many activities the conversation deep-dives. Onboarding's job is to find the
-# story and the gaps, not to complete the Common App: a 10-activity structured walk
-# is tedious and quality degrades badly as the student tires.
-MAX_SPIKE_ACTIVITIES = 4
+# No cap on how many activities get enriched: the interview now works through the
+# student's whole list rather than curating a narrative "spike", so extraction
+# enriches whatever was actually discussed. The turn budget bounds this naturally.
 
 
 async def _create_with_retry(**kwargs):
@@ -188,25 +190,28 @@ def render_record_context(record: dict) -> str:
 
 # ── The interviewer's system prompt (text channel) ────────────────────────────
 
-INTERVIEW_SYSTEM = """You are Mentorable's college application interviewer, talking with a high school student who is preparing to apply to college.
+INTERVIEW_SYSTEM = """You are Mentorable's college application interviewer, talking with a high school student who just filled in a short form listing their activities, awards, and majors.
 
-You already have their form data below. NEVER ask them to repeat anything you already know from it. Instead, use it: ask about specific activities and awards by name.
+Your ONLY job is to clarify and add detail to what they already listed. This is not a reflective interview and you are not trying to figure out who they are as a person. You are a fast, friendly fact-gatherer.
 
-WHAT YOU ARE TRYING TO LEARN, in priority order:
-1. The through-line. What actually connects the things they've done? What are they genuinely drawn to? This is the single most important thing.
-2. Depth on the 2-4 activities that matter most. For those, find out: what their actual role was, what they personally did versus what the group did, concrete scale or results, roughly how many hours a week and weeks a year, and which grades they did it in.
-3. Why the majors they listed. In their own words.
-4. What they're worried about, and what they think is missing from their application.
+You already have their form data below. NEVER ask them to repeat anything you already know from it. Go through their listed activities and awards, one at a time, in the order they listed them:
+- For each activity, ask 1-2 concrete questions: what they actually did (their specific role, not the group's), roughly how many hours a week and weeks a year, and one real result or outcome.
+- For each award, a quick line on what it was for and at what level (school, regional, state, national).
+- If they clearly have nothing more to add on something, move on immediately, don't dig.
+- Near the end, ask one simple question: what are they most worried about with their application (test scores, not enough leadership, too few activities, anything).
+
+DO NOT ASK:
+- Do not ask what connects their activities, what their "story" or "theme" is, or anything like "in your own words, what ties this together". That is not your job.
+- Do not ask why they chose the majors they listed. Just accept the list as given.
+- Do not ask about feelings, identity, or self-reflection. Stick to concrete facts: what they did, how much, what happened.
 
 HOW TO TALK:
 - One question at a time. Never stack questions.
-- Warm, direct and specific. You are a sharp mentor, not a form.
-- Follow up when an answer is vague. "We raised money for charity" should become "how much, and what did you personally do?"
-- Do not flatter. Do not tell them their profile is amazing.
-- Keep your turns short, two or three sentences at most.
+- Plain and direct, like a friend helping you fill out a form. Not a mentor, not a coach, not a therapist.
+- Keep your turns very short: one question, maybe one sentence of context. No preamble, no "great question" filler.
 - Never use em dashes. Use commas or periods.
 
-You have roughly {max_turns} exchanges. Around turn {wrap_turn}, start wrapping up: tell them you have what you need and thank them.
+You have roughly {max_turns} exchanges. Around turn {wrap_turn}, start wrapping up: tell them that's everything you need and thank them.
 
 THE STUDENT'S FORM DATA:
 {record_context}"""
@@ -222,15 +227,14 @@ You are given the student's form data (facts they typed, which are TRUE and must
 
 RULES:
 - Only enrich activities that already exist in the form data. Match them by title. Never invent an activity the student did not list. Use the EXACT `id` given for each activity.
-- Enrich at most {max_spike} activities: the ones that form the student's narrative through-line. Leave the rest alone.
+- Enrich every activity that was actually discussed in the transcript, no matter how many. Leave anything not discussed alone rather than guessing at it.
 - "description" must be at most 150 characters, written in the compressed, impact-first style the Common App activities section uses. Lead with what they did and the concrete result. No filler, no first person pronouns where they can be dropped.
 - "position" is at most 50 characters. "organization" is at most 100 characters.
 - "hours_per_week" and "weeks_per_year" must be realistic numbers grounded in what the student actually said. If they did not say and you cannot reasonably infer, use null. Do NOT guess wildly, these numbers are shown back to the student for confirmation.
 - "grade_levels" is a list drawn from 9, 10, 11, 12.
 - "timing" is one of: school_year, summer, all_year.
-- "theme" is one sentence naming the actual through-line. Be specific and honest. If their record is genuinely scattered, say so plainly rather than inventing a theme.
+- "theme" is your own read of the actual through-line across their record, based purely on the pattern in what they've done. The student was NOT asked about this directly, so infer it honestly from the activities and awards themselves. One sentence. If their record is genuinely scattered, say so plainly rather than inventing a theme.
 - "theme_evidence" lists the concrete things from their record that support the theme.
-- "major_reasoning" is why they are drawn to the majors they listed, in their own framing, 2-3 sentences.
 - "concerns" are worries they actually expressed (money, scores, being behind, family pressure). Empty list if none.
 - "gaps" are honest, specific things missing from their application given what they are aiming at. This is the most useful field, do not soften it.
 - "student_voice" is short phrases the student actually said, pulled verbatim, that capture how they talk about themselves. These get used later for essay work, so pick distinctive phrasing, not generic statements.
@@ -239,7 +243,6 @@ RULES:
 {{
   "theme": "one sentence",
   "theme_evidence": ["..."],
-  "major_reasoning": "2-3 sentences",
   "concerns": ["..."],
   "gaps": ["..."],
   "student_voice": ["verbatim phrases"],
@@ -280,14 +283,17 @@ def _truncate(value, limit: int):
 
 
 def _clean_enriched(raw, valid_ids: set) -> list:
-    """Keep only well-formed enrichments for activities that actually exist."""
+    """Keep only well-formed enrichments for activities that actually exist. No cap:
+    the interview covers the student's whole list now, not a curated few."""
     out = []
+    seen = set()
     for item in (raw if isinstance(raw, list) else []):
         if not isinstance(item, dict):
             continue
         aid = str(item.get("id") or "")
-        if aid not in valid_ids:
-            continue  # never let the model invent activities
+        if aid not in valid_ids or aid in seen:
+            continue  # never let the model invent activities, or double-enrich one
+        seen.add(aid)
 
         grades = [g for g in (item.get("grade_levels") or []) if g in (9, 10, 11, 12)]
 
@@ -311,8 +317,6 @@ def _clean_enriched(raw, valid_ids: set) -> list:
             "weeks_per_year": num("weeks_per_year", 0, 52),
             "continue_in_college": bool(item.get("continue_in_college")),
         })
-        if len(out) >= MAX_SPIKE_ACTIVITIES:
-            break
     return out
 
 
@@ -364,7 +368,6 @@ async def extract_intake(user_id: str, transcript: str, channel: str = "text",
             logger.warning(f"[intake] sufficiency check failed for {user_id}, proceeding: {exc}")
 
     prompt = EXTRACTION_PROMPT.format(
-        max_spike=MAX_SPIKE_ACTIVITIES,
         categories=", ".join(ACTIVITY_CATEGORIES),
         record_context=render_record_context(record),
         activity_index=activity_index,
@@ -389,7 +392,6 @@ async def extract_intake(user_id: str, transcript: str, channel: str = "text",
     draft = {
         "theme":            str(parsed.get("theme") or "").strip(),
         "theme_evidence":   _str_list(parsed.get("theme_evidence")),
-        "major_reasoning":  str(parsed.get("major_reasoning") or "").strip(),
         "concerns":         _str_list(parsed.get("concerns")),
         "gaps":             _str_list(parsed.get("gaps")),
         "student_voice":    _str_list(parsed.get("student_voice")),
@@ -427,12 +429,13 @@ async def commit_intake(user_id: str, draft: dict) -> dict:
     valid_ids = {str(a.get("id")) for a in (record.get("activities") or [])}
     enriched = _clean_enriched(draft.get("enriched_activities"), valid_ids)
 
+    enriched_ids = [item["id"] for item in enriched]
+
     for item in enriched:
         aid = item.pop("id")
         try:
             supabase.from_("student_activities").update({
                 **item,
-                "is_spike": True,
                 "detail_level": "enriched",
                 "updated_at": now,
             }).eq("id", aid).eq("user_id", user_id).execute()
@@ -442,9 +445,9 @@ async def commit_intake(user_id: str, draft: dict) -> dict:
     narrative = {
         "theme":              str(draft.get("theme") or "").strip(),
         "theme_evidence":     _str_list(draft.get("theme_evidence")),
-        "major_reasoning":    str(draft.get("major_reasoning") or "").strip(),
-        "spike_activity_ids": [i["id"] for i in _clean_enriched(
-            draft.get("enriched_activities"), valid_ids)],
+        # Activities the conversation actually covered. Not a curated "spike"
+        # any more, just the ones we have real detail on.
+        "detailed_activity_ids": enriched_ids,
         "concerns":           _str_list(draft.get("concerns")),
         "gaps":               _str_list(draft.get("gaps")),
         "student_voice":      _str_list(draft.get("student_voice")),

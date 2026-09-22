@@ -85,9 +85,6 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
     if narrative.get("theme"):
         sections.append({"id": "theme",
                          "content": f"The through-line in their record: {narrative['theme']}"})
-    if narrative.get("major_reasoning"):
-        sections.append({"id": "major_reasoning",
-                         "content": f"Why those majors, in their words: {narrative['major_reasoning']}"})
     if narrative.get("gaps"):
         sections.append({"id": "gaps",
                          "content": "Gaps in their application we already identified:\n"
@@ -120,8 +117,6 @@ def _build_sections(profile: dict, data: dict) -> list[dict]:
         lines = []
         for a in activities:
             head = f"- {a.get('title')}"
-            if a.get("is_spike"):
-                head += " [core to their narrative]"
             bits = []
             if a.get("position"):
                 bits.append(str(a["position"]))
