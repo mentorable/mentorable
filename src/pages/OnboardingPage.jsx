@@ -9,7 +9,6 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 import IntakeForm, { EMPTY_INTAKE, clearDraft } from "../components/onboarding/IntakeForm.jsx";
 import TextInterview from "../components/onboarding/TextInterview.jsx";
 import IntakeReview from "../components/onboarding/IntakeReview.jsx";
-import RecordPanel, { sectionsFromRecord } from "../components/onboarding/RecordPanel.jsx";
 import { eyebrowStyle, titleStyle, primaryButton } from "../components/onboarding/intakeTheme.js";
 import { HOME_PATH, POST_ONBOARDING_PATH } from "../lib/features.js";
 import {
@@ -306,7 +305,7 @@ function SpeakingMeter({ getInputLevel, agentSpeaking }) {
   );
 }
 
-function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel, record, isMobile }) {
+function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel }) {
   const scrollerRef = useRef(null);
 
   // Keep the newest message in view by scrolling only this container.
@@ -327,7 +326,11 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel, re
       animate={{ opacity:1 }}
       exit={{ opacity:0 }}
       transition={{ duration:0.4 }}
-      style={{ display:"flex", flexDirection:"column", minHeight:"100vh", position:"relative", zIndex:1, background:BG }}
+      // Exactly the viewport, not "at least": the three bands (header,
+      // transcript, controls) always fit, and only the transcript scrolls. The
+      // record panel used to have no height cap here, so its content grew the
+      // column past 100vh and pushed the controls off screen.
+      style={{ display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", position:"relative", zIndex:1, background:BG }}
     >
       {/* Top bar */}
       <motion.div
@@ -359,9 +362,8 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel, re
 
       {/* Transcript */}
       <div style={{
-        flex:1, minHeight:0, display:"flex", gap:"2rem",
-        width:"100%", maxWidth:1240, margin:"0 auto", padding:"1.75rem 1.5rem",
-        flexDirection: isMobile ? "column" : "row", alignItems:"stretch",
+        flex:1, minHeight:0, display:"flex",
+        width:"100%", maxWidth:820, margin:"0 auto", padding:"1.75rem 1.5rem",
       }}>
         {/* The scroller owns its own scrolling. scrollIntoView on a sentinel
             scrolled every ancestor including the window, which yanked the whole
@@ -412,11 +414,6 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel, re
               ))}
             </AnimatePresence>
           </div>
-        </div>
-
-        {/* Their list, so they know what we'll be asking about */}
-        <div style={{ flex: isMobile ? "1 1 auto" : "0 0 320px", width:"100%", maxWidth: isMobile ? "none" : 320, overflowY:"auto" }}>
-          <RecordPanel sections={sectionsFromRecord(record)} sticky={false} />
         </div>
       </div>
 
@@ -1094,7 +1091,7 @@ export default function OnboardingPage() {
           <VoiceConfirmPhase key="voice-confirm" onStart={startConversation} loading={startingConv}
             onBack={() => { setChannel("text"); setPhase("text-interview"); }} />
         )}
-        {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} getInputLevel={getInputLevel} record={savedRecord} isMobile={isMobile}/>}
+        {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} getInputLevel={getInputLevel}/>}
         {phase === "processing" && <ProcessingPhase key="processing"/>}
         {phase === "recovery"   && <RecoveryPhase   key="recovery"   onRetryExtraction={() => { const a = lastAttemptRef.current; return runExtraction(a.transcript, a.via); }} onRetry={() => { setPhase("channel"); }}/>}
         {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("channel"); }}/>}
@@ -1103,5 +1100,6 @@ export default function OnboardingPage() {
     </div>
   );
 }
+
 
 

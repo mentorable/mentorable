@@ -10,9 +10,10 @@ import { SANS, TEXT, TEXT2, TEXT3, ACCENT, BORDER, PANEL } from "./intakeTheme.j
  * single most confusing thing about the first version of the form.
  *
  * Callers pass already-shaped sections so this stays dumb: the form feeds it
- * in-progress local state, the interview screens feed it saved rows.
+ * in-progress local state, the text interview feeds it saved rows. The voice
+ * call deliberately has no panel, so its controls stay pinned to the viewport.
  */
-export default function RecordPanel({ sections, sticky = true }) {
+export default function RecordPanel({ sections, sticky = true, title = "Your responses" }) {
   const live = (sections || []).filter((s) => (s.items || []).length > 0);
   const total = live.reduce((n, s) => n + s.items.length, 0);
 
@@ -26,7 +27,7 @@ export default function RecordPanel({ sections, sticky = true }) {
     }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: "1.4rem" }}>
         <span style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.02em", color: TEXT }}>
-          Your record
+          {title}
         </span>
         {total > 0 && (
           <span style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, color: ACCENT }}>
