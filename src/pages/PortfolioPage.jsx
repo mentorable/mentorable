@@ -149,7 +149,7 @@ const PencilIcon = () => (
   </svg>
 );
 
-function SectionCard({ title, hint, count, action, children }) {
+function SectionCard({ title, hint, hintColor = TEXT_FAINT, count, action, children }) {
   return (
     <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: "1.5rem", marginBottom: "1.25rem" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: hint ? 5 : 14 }}>
@@ -161,7 +161,7 @@ function SectionCard({ title, hint, count, action, children }) {
         </h2>
         {action}
       </div>
-      {hint && <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_FAINT, lineHeight: 1.55, margin: "0 0 14px" }}>{hint}</p>}
+      {hint && <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: hintColor, lineHeight: 1.55, margin: "0 0 14px" }}>{hint}</p>}
       {children}
     </div>
   );
@@ -230,6 +230,7 @@ export function LearnMore() {
 // ─── Academics ────────────────────────────────────────────────────────────────
 
 function GpaBlock({ profile, onSave }) {
+  const { accent } = useTheme();
   const [gpaUnweighted, setU] = useState(profile.gpa_unweighted ?? "");
   const [gpaWeighted, setW]   = useState(profile.gpa_weighted ?? "");
   const [gpaScale, setScale]  = useState(profile.gpa_scale || null);
@@ -249,7 +250,7 @@ function GpaBlock({ profile, onSave }) {
 
   const notUsed = gpaScale === "not_used";
   return (
-    <SectionCard title="GPA" hint="Admissions reads unweighted GPA first, alongside how hard your classes are.">
+    <SectionCard title="GPA" hint="Admissions reads unweighted GPA first, alongside how hard your classes are." hintColor={accent}>
       <div style={{ marginBottom: 14 }}>
         <label style={miniLabel}>Scale</label>
         <Chips options={GPA_SCALES} value={gpaScale} onChange={setScale} />
@@ -366,7 +367,7 @@ function ActivityCard({ activity, onPatch, onDelete }) {
             {a.title || "Untitled activity"}
           </div>
           {meta.length > 0 && (
-            <div style={{ fontFamily: SANS, fontSize: "0.86rem", color: TEXT_FAINT, lineHeight: 1.5 }}>
+            <div style={{ fontFamily: SANS, fontSize: "0.86rem", color: accent, lineHeight: 1.5 }}>
               {meta.join(" · ")}
             </div>
           )}
@@ -936,7 +937,7 @@ export default function PortfolioPage({ navigate }) {
               }} />
 
             <SectionCard title="Test scores" count={record.scores.length}
-              hint="SAT, ACT, PSAT and AP exam results."
+              hint="SAT, ACT, PSAT and AP exam results." hintColor={accent}
               action={<AddButton onClick={() => add("student_test_scores", "scores", { test_type: "sat", section_scores: {} })}>Add score</AddButton>}>
               {record.scores.length === 0
                 ? <EmptyNote>Nothing here yet. Add a score when you have one, or leave it empty if you're going test-optional.</EmptyNote>
@@ -948,7 +949,7 @@ export default function PortfolioPage({ navigate }) {
             </SectionCard>
 
             <SectionCard title="Coursework" count={record.courses.length}
-              hint="Course rigor is one of the first things admissions looks at, so tag the level."
+              hint="Course rigor is one of the first things admissions looks at, so tag the level." hintColor={accent}
               action={<AddButton onClick={() => add("student_courses", "courses", { name: "" })}>Add course</AddButton>}>
               {record.courses.length === 0
                 ? <EmptyNote>No classes listed yet.</EmptyNote>

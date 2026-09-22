@@ -232,7 +232,7 @@ RULES:
 - "description" must be at most 150 characters, written in the compressed, impact-first style the Common App activities section uses. Lead with what they did and the concrete result. No filler, no first person pronouns where they can be dropped.
 - "position" is at most 50 characters. "organization" is at most 100 characters.
 - "hours_per_week" and "weeks_per_year" must be realistic numbers grounded in what the student actually said. If they did not say and you cannot reasonably infer, use null. Do NOT guess wildly, these numbers are shown back to the student for confirmation.
-- "grade_levels" is a list drawn from 9, 10, 11, 12.
+- "grade_levels" is a list drawn from 9, 10, 11, 12. Only include a grade if the student actually said or clearly implied they did this in that grade. Do NOT assume it spans every grade they've been in, and do NOT default to their current grade level. If grade level never came up for this activity, return an empty list, it is shown back to them to fill in themselves.
 - "timing" is one of: school_year, summer, all_year.
 - "theme" is your own read of the actual through-line across their record, based purely on the pattern in what they've done. The student was NOT asked about this directly, so infer it honestly from the activities and awards themselves. One sentence. If their record is genuinely scattered, say so plainly rather than inventing a theme.
 - "theme_evidence" lists the concrete things from their record that support the theme.

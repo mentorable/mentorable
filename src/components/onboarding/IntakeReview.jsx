@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useLayoutEffect } from "react";
 import { motion } from "framer-motion";
 
-import { SANS, TEXT, TEXT2, TEXT3, ACCENT, BORDER, eyebrowStyle, titleStyle } from "./intakeTheme.js";
+import { SANS, TEXT, TEXT2, TEXT3, ACCENT, BORDER, titleStyle } from "./intakeTheme.js";
 
 const TIMINGS = [
   { value: "school_year", label: "School year" },
@@ -20,6 +20,23 @@ const miniLabel = {
   color: TEXT3, display: "block", marginBottom: 5,
 };
 
+/** A textarea that grows to fit its content instead of scrolling internally. */
+function AutoTextarea({ value, onChange, style, ...rest }) {
+  const ref = useRef(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea ref={ref} value={value} onChange={onChange}
+      style={{ ...style, overflow: "hidden", resize: "none" }} {...rest} />
+  );
+}
+
 function CharCount({ value, max }) {
   const n = (value || "").length;
   const over = n > max;
@@ -36,7 +53,7 @@ function Section({ title, hint, children }) {
       <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.2rem", color: TEXT, marginBottom: hint ? 5 : 12 }}>
         {title}
       </h2>
-      {hint && <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT3, lineHeight: 1.55, marginBottom: 12 }}>{hint}</p>}
+      {hint && <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: ACCENT, lineHeight: 1.55, marginBottom: 12 }}>{hint}</p>}
       {children}
     </div>
   );
@@ -92,7 +109,6 @@ export default function IntakeReview({ draft, activities, onConfirm, committing,
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}
       style={{ width: "100%", maxWidth: 820, margin: "0 auto", padding: "0 1.5rem" }}
     >
-      <p style={eyebrowStyle}>Almost done</p>
       <h1 style={titleStyle}>Here's what we heard</h1>
       <p style={{ fontFamily: SANS, fontSize: "1.12rem", color: TEXT2, lineHeight: 1.6, marginBottom: "2rem" }}>
         We filled some of this in from the conversation, so check it before we save. Anything here can be edited now or later.
@@ -101,8 +117,8 @@ export default function IntakeReview({ draft, activities, onConfirm, committing,
       <div style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 22, padding: "2rem", boxShadow: "0 2px 16px rgba(15,23,42,0.06)" }}>
 
         <Section title="Your through-line" hint="What we think connects your activities. Reword it if we read it wrong.">
-          <textarea value={d.theme} onChange={(e) => set({ theme: e.target.value })} rows={2}
-            style={{ ...inputStyle, resize: "vertical" }}
+          <AutoTextarea value={d.theme} onChange={(e) => set({ theme: e.target.value })} rows={2}
+            style={inputStyle}
             onFocus={(e) => (e.target.style.borderColor = ACCENT)} />
         </Section>
 
