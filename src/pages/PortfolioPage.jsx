@@ -722,14 +722,22 @@ export default function PortfolioPage({ navigate }) {
 
   useEffect(() => {
     (async () => {
-      const user = await requireUser();
-      if (!user) return;
-      setUserId(user.id);
-      const [rec, usage] = await Promise.all([fetchRecord(user.id), fetchUsage(supabase)]);
-      setRecord(rec);
-      setUploadsUsed(usage.portfolio_uploads_used ?? 0);
-      setExportsUsed(usage.resume_exports_used ?? 0);
-      setPhase("ready");
+      try {
+        const user = await requireUser();
+        if (!user) return;
+        setUserId(user.id);
+        const [rec, usage] = await Promise.all([fetchRecord(user.id), fetchUsage(supabase)]);
+        setRecord(rec);
+        setUploadsUsed(usage.portfolio_uploads_used ?? 0);
+        setExportsUsed(usage.resume_exports_used ?? 0);
+        setPhase("ready");
+      } catch (e) {
+        // Without this the page sits on the spinner forever and the only trace
+        // is an unhandled rejection in the console, which is how a one-word
+        // typo in fetchRecord read as "the portfolio never loads".
+        console.error("[portfolio] load failed:", e);
+        setPhase("error");
+      }
     })();
   }, []);
 
@@ -828,6 +836,27 @@ export default function PortfolioPage({ navigate }) {
   if (phase === "loading") {
     return <div data-sidebar-offset style={{ ...pagePad, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <Spinner size={26} color={accent} />
+    </div>;
+  }
+
+  if (phase === "error") {
+    return <div data-sidebar-offset style={{ ...pagePad, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ textAlign: "center", maxWidth: 420 }}>
+        <p style={{ fontFamily: SANS, fontSize: "1.05rem", fontWeight: 700, color: TEXT, marginBottom: 8 }}>
+          We couldn't load your portfolio
+        </p>
+        <p style={{ fontFamily: SANS, fontSize: "0.98rem", color: TEXT_MUTED, lineHeight: 1.6, marginBottom: "1.4rem" }}>
+          Nothing has been lost. Give it another go in a moment.
+        </p>
+        <button onClick={() => window.location.reload()}
+          style={{
+            fontFamily: SANS, fontSize: "0.98rem", fontWeight: 700, cursor: "pointer",
+            padding: "11px 22px", borderRadius: 10, border: "none",
+            background: accent, color: WHITE,
+          }}>
+          Try again
+        </button>
+      </div>
     </div>;
   }
 

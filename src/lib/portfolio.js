@@ -16,7 +16,7 @@ export async function fetchRecord(userId) {
   const [profile, activities, awards, courses, scores] = await Promise.all([
     supabase.from("profiles")
       .select("full_name, gpa_unweighted, gpa_weighted, gpa_scale, resume_contact")
-      .eq("id", userId).maybe_single(),
+      .eq("id", userId).maybeSingle(),
     rows("student_activities",
       "id, title, category, position, organization, description, grade_levels, timing, " +
       "hours_per_week, weeks_per_year, continue_in_college, detail_level, order_index",
