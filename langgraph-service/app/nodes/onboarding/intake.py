@@ -438,7 +438,11 @@ async def commit_intake(user_id: str, draft: dict, channel: str | None = None) -
     valid_ids = {str(a.get("id")) for a in (record.get("activities") or [])}
     enriched = _clean_enriched(draft.get("enriched_activities"), valid_ids)
 
-    enriched_ids = [item["id"] for item in enriched]
+    # Only rows that actually landed. A failed update leaves the activity
+    # name-only, and listing it here would tell the chat prompt we have detail
+    # we never wrote, so it would stop flagging the activity as thin and the
+    # agent would assume specifics it cannot see.
+    enriched_ids = []
 
     for item in enriched:
         aid = item.pop("id")
@@ -448,6 +452,7 @@ async def commit_intake(user_id: str, draft: dict, channel: str | None = None) -
                 "detail_level": "enriched",
                 "updated_at": now,
             }).eq("id", aid).eq("user_id", user_id).execute()
+            enriched_ids.append(aid)
         except Exception as exc:
             logger.warning(f"[intake] failed to enrich activity {aid} for {user_id}: {exc}")
 
@@ -483,5 +488,5 @@ async def commit_intake(user_id: str, draft: dict, channel: str | None = None) -
         return {"success": False, "error": str(exc)}
 
     logger.info(f"[intake] committed for {user_id} via {channel or 'unknown'} "
-                f"({len(enriched)} activities enriched)")
+                f"({len(enriched_ids)}/{len(enriched)} activities enriched)")
     return {"success": True, "narrative": narrative}

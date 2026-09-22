@@ -766,7 +766,10 @@ export default function OnboardingPage() {
     setIntake(values);
     try {
       await saveIntakeForm(user.id, values);
-      clearDraft(user.id);   // it's in the database now
+      // The draft deliberately survives until onboarding actually completes.
+      // Clearing it here meant a refresh at the channel picker came back to an
+      // empty form, and since saving replaces rather than appends, resubmitting
+      // it half-filled wiped the complete record they had already saved.
       // Build the context once, here: both channels use the same rendered summary,
       // so the text interviewer and the voice agent see identical facts.
       try {
@@ -825,6 +828,7 @@ export default function OnboardingPage() {
     try {
       const result = await skipIntake();
       if (!result?.success) throw new Error(result?.error || "Could not finish setting up");
+      clearDraft(user.id);   // onboarding is done, the record is the source of truth
       window.location.href = POST_ONBOARDING_PATH;
     } catch (err) {
       console.error("[Onboarding] skip error:", err);
@@ -841,6 +845,7 @@ export default function OnboardingPage() {
     try {
       const result = await commitIntake(edited, channel);
       if (!result?.success) throw new Error(result?.error || "Save failed");
+      clearDraft(user.id);   // onboarding is done, the record is the source of truth
       window.location.href = POST_ONBOARDING_PATH;
     } catch (err) {
       console.error("[Onboarding] commit error:", err);
@@ -1077,7 +1082,6 @@ export default function OnboardingPage() {
             <TextInterview
               record={savedRecord} isMobile={isMobile}
               onFinish={(transcriptText) => runExtraction(transcriptText, "text")}
-              onError={(msg) => { setError(msg); setPhase("error"); }}
             />
           </div>
         )}

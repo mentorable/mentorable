@@ -9,6 +9,20 @@ const num = (v) => {
 };
 
 /**
+ * Supabase never throws on a database error, it returns one. Awaiting a query
+ * without reading `.error` therefore looks exactly like success, which is how a
+ * failed save could advance the student to the next screen with nothing written.
+ */
+async function must(query, what) {
+  const { error } = await query;
+  if (error) {
+    const err = new Error(`Could not save your ${what}: ${error.message}`);
+    err.cause = error;
+    throw err;
+  }
+}
+
+/**
  * Persist the intake form. Writes the scalar record onto `profiles` and replaces
  * the student's list rows.
  *
@@ -18,7 +32,7 @@ const num = (v) => {
 export async function saveIntakeForm(userId, v) {
   const now = new Date().toISOString();
 
-  await supabase.from("profiles").upsert({
+  await must(supabase.from("profiles").upsert({
     id:               userId,
     full_name:        v.fullName?.trim() || null,
     graduation_year:  v.graduationYear || null,
@@ -31,36 +45,38 @@ export async function saveIntakeForm(userId, v) {
     candidate_majors: v.majors || [],
     target_colleges:  v.colleges || [],
     updated_at:       now,
-  }, { onConflict: "id" });
+  }, { onConflict: "id" }), "grades and basics");
 
   const wipe = (table) => supabase.from(table).delete().eq("user_id", userId);
   await Promise.all([
-    wipe("student_activities"), wipe("student_awards"),
-    wipe("student_courses"), wipe("student_test_scores"),
+    must(wipe("student_activities"),  "activities"),
+    must(wipe("student_awards"),      "awards"),
+    must(wipe("student_courses"),     "courses"),
+    must(wipe("student_test_scores"), "test scores"),
   ]);
 
   const inserts = [];
 
   if (v.activities?.length) {
-    inserts.push(supabase.from("student_activities").insert(
+    inserts.push(must(supabase.from("student_activities").insert(
       v.activities.map((title, i) => ({
         user_id: userId, title, order_index: i, detail_level: "name_only",
       }))
-    ));
+    ), "activities"));
   }
 
   if (v.awards?.length) {
-    inserts.push(supabase.from("student_awards").insert(
+    inserts.push(must(supabase.from("student_awards").insert(
       v.awards.map((title, i) => ({ user_id: userId, title, order_index: i }))
-    ));
+    ), "awards"));
   }
 
   if (v.courses?.length) {
-    inserts.push(supabase.from("student_courses").insert(
+    inserts.push(must(supabase.from("student_courses").insert(
       v.courses.map((c, i) => ({
         user_id: userId, name: c.name, level: c.level || null, order_index: i,
       }))
-    ));
+    ), "courses"));
   }
 
   const scores = [];
@@ -84,7 +100,7 @@ export async function saveIntakeForm(userId, v) {
       });
     }
   }
-  if (scores.length) inserts.push(supabase.from("student_test_scores").insert(scores));
+  if (scores.length) inserts.push(must(supabase.from("student_test_scores").insert(scores), "test scores"));
 
   await Promise.all(inserts);
 }

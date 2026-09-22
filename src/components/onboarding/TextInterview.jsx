@@ -32,13 +32,15 @@ function Logo() {
   );
 }
 
-export default function TextInterview({ onFinish, onError, record, isMobile }) {
+export default function TextInterview({ onFinish, record, isMobile }) {
   const [messages, setMessages] = useState([]);   // {role, content}
   const [draft, setDraft] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [started, setStarted] = useState(false);
+  const [sendError, setSendError] = useState(null);
   const endRef = useRef(null);
   const messagesRef = useRef([]);
+  const lastHistoryRef = useRef([]);   // what to resend if a request drops
 
   const exchanges = messages.filter((m) => m.role === "user").length;
   const atLimit = exchanges >= MAX_EXCHANGES;
@@ -47,6 +49,8 @@ export default function TextInterview({ onFinish, onError, record, isMobile }) {
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, streaming]);
 
   const send = useCallback(async (history) => {
+    lastHistoryRef.current = history;
+    setSendError(null);
     setStreaming(true);
     setMessages((m) => [...m, { role: "assistant", content: "" }]);
     try {
@@ -94,11 +98,15 @@ export default function TextInterview({ onFinish, onError, record, isMobile }) {
     } catch (err) {
       console.error("[TextInterview]", err);
       setMessages((m) => m.slice(0, -1));
-      onError?.(err.message || "The interview hit a snag. Please try again.");
+      // Kept in this component rather than raised to the parent: sending the
+      // error up swapped this screen for the generic error phase, which
+      // unmounted the conversation, so one dropped request cost the student
+      // every exchange so far. A retry here resends the same history.
+      setSendError(err.message || "That didn't go through.");
     } finally {
       setStreaming(false);
     }
-  }, [onError]);
+  }, []);
 
   useEffect(() => {
     if (started) return;
@@ -173,6 +181,26 @@ export default function TextInterview({ onFinish, onError, record, isMobile }) {
         </div>
 
         <div style={{ paddingTop: 14 }}>
+          {sendError && (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+              background: "#fff", border: `1.5px solid ${BORDER}`, borderRadius: 12,
+              padding: "11px 14px", marginBottom: 12,
+            }}>
+              <span style={{ fontFamily: SANS, fontSize: "0.92rem", color: TEXT2, lineHeight: 1.5 }}>
+                {sendError} Your answers are still here.
+              </span>
+              <button type="button" onClick={() => send(lastHistoryRef.current)} disabled={streaming}
+                style={{
+                  fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, flexShrink: 0,
+                  cursor: streaming ? "default" : "pointer", padding: "8px 16px",
+                  borderRadius: 9, border: "none", background: ACCENT, color: "#fff",
+                  opacity: streaming ? 0.6 : 1,
+                }}>
+                Try again
+              </button>
+            </div>
+          )}
           {atLimit ? (
             <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT2, textAlign: "center", marginBottom: 13 }}>
               That's everything we need.
