@@ -7,6 +7,10 @@ SUPABASE_URL: str = os.environ["SUPABASE_URL"]
 SUPABASE_ANON_KEY: str = os.environ["SUPABASE_ANON_KEY"]
 SUPABASE_SERVICE_ROLE_KEY: str = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 ANTHROPIC_API_KEY: str = os.environ["ANTHROPIC_API_KEY"]
+# Optional on purpose: the service must still boot before these are set, and each
+# is only needed once something is actually routed to that provider.
+GEMINI_API_KEY: str = os.environ.get("GEMINI_API_KEY", "")
+OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
 BRAVE_API_KEY: str = os.environ.get("BRAVE_API_KEY", "")
 DATABASE_URL: str = os.environ["DATABASE_URL"]  # direct Postgres connection for checkpointer
 CORS_ORIGIN: str = os.environ.get("CORS_ORIGIN", "*")
