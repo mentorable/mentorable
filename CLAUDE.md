@@ -124,6 +124,20 @@ A tool call splits a reply into multiple model turns; `TURN_SEPARATOR` in `main.
 
 **`app/llm.py` → `json_completion()` is the one path for structured-output calls.** It prefers OpenAI's `json_schema` strict mode (which makes non-conforming JSON impossible to emit) and falls back to Anthropic plus a permissive parse when `OPENAI_API_KEY` is absent or the call fails. The service therefore behaves identically with or without an OpenAI key. Schemas must satisfy strict mode: top-level object, every property in `required`, `additionalProperties: false`, and a list wrapped in an object rather than returned bare.
 
+To check the OpenAI routing against the real API (does the model accept
+`reasoning_effort`, how many reasoning tokens each job burns, whether it is
+actually cheaper than the Anthropic call it replaced):
+
+```bash
+cd langgraph-service
+OPENAI_API_KEY=sk-... python3 scripts/check_openai.py
+```
+
+It uses the app's real prompts and schemas, writes nothing, and touches no rate
+limit. **Reasoning tokens are billed as output but invisible in the reply**, so
+a reasoning model is not automatically cheaper: on the resume upload, gpt-5-mini
+beats Haiku below roughly 1800 reasoning tokens per call and loses above it.
+
 Cost note: Claude 4.7 and later tokenize to ~30% more tokens for the same text, so Sonnet 5's lower list price is worth about 13% in practice, not 33%.
 
 ### Backend endpoints (`langgraph-service/`)
