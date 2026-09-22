@@ -370,11 +370,10 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel, re
           flex:"1 1 0", minWidth:0, minHeight:0, overflowY:"auto",
           display:"flex", flexDirection:"column",
         }}>
-          {/* marginTop:auto keeps the conversation sitting just above the
-              controls and growing upward, instead of stranding one message at
-              the top of a tall empty column. It collapses once content
-              overflows, so scrolling still behaves normally. */}
-          <div style={{ marginTop:"auto", display:"flex", flexDirection:"column", gap:"0.875rem" }}>
+          {/* Top-aligned and growing downward. An earlier version anchored this
+              to the bottom, which shoved the first message to the floor of the
+              screen with a wall of empty space above it. */}
+          <div style={{ display:"flex", flexDirection:"column", gap:"0.875rem" }}>
             {transcript.length === 0 && (
               <motion.p
                 initial={{ opacity:0 }}
@@ -1091,4 +1090,5 @@ export default function OnboardingPage() {
     </div>
   );
 }
+
 
