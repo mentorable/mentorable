@@ -1,14 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-// Design tokens mirror OnboardingPage's palette.
-const SANS    = "'Raleway', sans-serif";
-const TEXT    = "#0e1019";
-const TEXT2   = "#4b5470";
-const TEXT3   = "#5b6188";
-const ACCENT  = "#1d4ed8";
-const BORDER  = "rgba(59,91,252,0.18)";
-const CARD    = "#ffffff";
+import RecordPanel, { sectionsFromForm } from "./RecordPanel.jsx";
+import {
+  SANS, TEXT, TEXT2, TEXT3, ACCENT, BORDER, CARD,
+  eyebrowStyle, titleStyle, subtitleStyle, labelStyle, inputStyle,
+  cardStyle, primaryButton,
+} from "./intakeTheme.js";
 
 const GPA_SCALES = [
   { value: "4.0",      label: "4.0 scale" },
@@ -29,26 +26,29 @@ const COURSE_LEVELS = [
 const currentYear = new Date().getFullYear();
 const GRAD_YEARS = Array.from({ length: 6 }, (_, i) => currentYear + i);
 
-// ─── Small shared inputs ──────────────────────────────────────────────────────
+/**
+ * Split whatever the student typed or pasted into separate items.
+ *
+ * This is the fix for the most confusing thing about the first version: with an
+ * Enter-only input, typing "debate, robotics, track" produced one nonsense entry.
+ * Now commas and newlines split, so the natural mistake just works.
+ */
+function splitEntries(raw) {
+  return String(raw || "")
+    .split(/[\n,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
-const labelStyle = {
-  fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700,
-  color: ACCENT, display: "block", marginBottom: 8,
-};
-
-const inputStyle = {
-  width: "100%", fontFamily: SANS, fontSize: "1rem", color: TEXT,
-  border: `1.5px solid ${BORDER}`, borderRadius: 11, padding: "12px 14px",
-  outline: "none", background: "#fff", boxSizing: "border-box",
-};
+// ─── Shared bits ──────────────────────────────────────────────────────────────
 
 function Field({ label, hint, children }) {
   return (
-    <div style={{ marginBottom: "1.4rem" }}>
+    <div style={{ marginBottom: "1.9rem" }}>
       <label style={labelStyle}>{label}</label>
       {children}
       {hint && (
-        <p style={{ fontFamily: SANS, fontSize: "0.8rem", color: TEXT3, marginTop: 7, lineHeight: 1.45 }}>
+        <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT3, marginTop: 9, lineHeight: 1.5 }}>
           {hint}
         </p>
       )}
@@ -56,17 +56,17 @@ function Field({ label, hint, children }) {
   );
 }
 
-function Pills({ options, value, onChange, allowClear = true }) {
+function Pills({ options, value, onChange }) {
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
       {options.map((o) => {
         const active = value === o.value;
         return (
           <button key={o.value} type="button"
-            onClick={() => onChange(active && allowClear ? null : o.value)}
+            onClick={() => onChange(active ? null : o.value)}
             style={{
-              fontFamily: SANS, fontSize: "0.9rem", fontWeight: 600, cursor: "pointer",
-              padding: "8px 15px", borderRadius: 99,
+              fontFamily: SANS, fontSize: "1rem", fontWeight: 600, cursor: "pointer",
+              padding: "11px 20px", borderRadius: 99,
               border: `1.5px solid ${active ? ACCENT : BORDER}`,
               background: active ? ACCENT : "#fff",
               color: active ? "#fff" : TEXT2, transition: "all 0.15s",
@@ -79,165 +79,190 @@ function Pills({ options, value, onChange, allowClear = true }) {
   );
 }
 
-/**
- * Name-only list input. Type and press Enter (or comma) to add.
- * Deliberately has no description field: depth is the conversation's job.
- */
-function ChipList({ items, onChange, placeholder, max }) {
+function RemoveButton({ onClick, label }) {
+  return (
+    <button type="button" onClick={onClick} aria-label={`Remove ${label}`}
+      style={{
+        flexShrink: 0, border: "none", background: "none", cursor: "pointer",
+        color: TEXT3, display: "inline-flex", alignItems: "center",
+        padding: 6, borderRadius: 8, transition: "color 0.15s, background 0.15s",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = "#dc2626"; e.currentTarget.style.background = "rgba(220,38,38,0.08)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = TEXT3; e.currentTarget.style.background = "none"; }}>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    </button>
+  );
+}
+
+/** Input with a visible + button. Enter also works, but nothing depends on knowing that. */
+function AddRow({ value, onChange, onAdd, placeholder, disabled }) {
+  const canAdd = !disabled && value.trim().length > 0;
+  return (
+    <div style={{ position: "relative" }}>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }}
+        placeholder={placeholder}
+        disabled={disabled}
+        style={{ ...inputStyle, paddingRight: 58, opacity: disabled ? 0.6 : 1 }}
+        onFocus={(e) => (e.target.style.borderColor = ACCENT)}
+        onBlur={(e) => (e.target.style.borderColor = BORDER)}
+      />
+      <button type="button" onClick={onAdd} disabled={!canAdd} aria-label="Add"
+        style={{
+          position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+          width: 38, height: 38, borderRadius: 10, border: "none",
+          background: canAdd ? ACCENT : "rgba(59,91,252,0.12)",
+          color: canAdd ? "#fff" : TEXT3,
+          cursor: canAdd ? "pointer" : "not-allowed",
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          transition: "all 0.15s",
+        }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function ItemRow({ children, onRemove, label }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.2 }}
+      style={{
+        display: "flex", alignItems: "center", gap: 12,
+        background: "#fff", border: `1px solid ${BORDER}`,
+        borderRadius: 12, padding: "12px 12px 12px 16px",
+      }}>
+      {children}
+      <RemoveButton onClick={onRemove} label={label} />
+    </motion.div>
+  );
+}
+
+/** Name-only list: type, hit +, item appears as its own removable row. */
+function ItemList({ items, onChange, placeholder, max }) {
   const [draft, setDraft] = useState("");
   const atMax = max != null && items.length >= max;
 
-  const add = (raw) => {
-    const value = (raw ?? draft).trim().replace(/,$/, "");
-    if (!value || atMax) return;
-    if (items.some((i) => i.toLowerCase() === value.toLowerCase())) { setDraft(""); return; }
-    onChange([...items, value]);
+  const add = () => {
+    const entries = splitEntries(draft);
+    if (!entries.length || atMax) return;
+    const merged = [...items];
+    for (const e of entries) {
+      if (max != null && merged.length >= max) break;
+      if (!merged.some((i) => i.toLowerCase() === e.toLowerCase())) merged.push(e);
+    }
+    onChange(merged);
     setDraft("");
   };
 
   return (
     <div>
-      <input
-        value={draft}
-        onChange={(e) => {
-          const v = e.target.value;
-          if (v.endsWith(",")) add(v.slice(0, -1));
-          else setDraft(v);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") { e.preventDefault(); add(); }
-          if (e.key === "Backspace" && !draft && items.length) onChange(items.slice(0, -1));
-        }}
-        onBlur={() => add()}
-        placeholder={atMax ? "Limit reached" : placeholder}
-        disabled={atMax}
-        style={{ ...inputStyle, opacity: atMax ? 0.6 : 1 }}
-        onFocus={(e) => (e.target.style.borderColor = ACCENT)}
-      />
+      <AddRow value={draft} onChange={setDraft} onAdd={add} disabled={atMax}
+        placeholder={atMax ? "Limit reached" : placeholder} />
       {items.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 11 }}>
-          {items.map((item, i) => (
-            <motion.span key={`${item}-${i}`}
-              initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 7,
-                fontFamily: SANS, fontSize: "0.88rem", fontWeight: 600, color: TEXT,
-                background: "rgba(59,91,252,0.07)", border: `1px solid ${BORDER}`,
-                borderRadius: 9, padding: "6px 10px",
-              }}>
-              {item}
-              <button type="button" onClick={() => onChange(items.filter((_, j) => j !== i))}
-                aria-label={`Remove ${item}`}
-                style={{ border: "none", background: "none", cursor: "pointer", color: TEXT3, padding: 0, display: "inline-flex" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </motion.span>
-          ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+          <AnimatePresence initial={false}>
+            {items.map((item, i) => (
+              <ItemRow key={`${item}-${i}`} label={item}
+                onRemove={() => onChange(items.filter((_, j) => j !== i))}>
+                <span style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT, flex: 1, minWidth: 0 }}>
+                  {item}
+                </span>
+              </ItemRow>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>
   );
 }
 
-/** Courses carry a level because course rigor is a primary academic signal. */
+/** Courses carry a level, because course rigor is a primary academic signal. */
 function CourseList({ items, onChange }) {
   const [draft, setDraft] = useState("");
   const add = () => {
-    const name = draft.trim();
-    if (!name) return;
-    onChange([...items, { name, level: null }]);
+    const entries = splitEntries(draft);
+    if (!entries.length) return;
+    onChange([...items, ...entries.map((name) => ({ name, level: null }))]);
     setDraft("");
   };
   return (
     <div>
-      <input
-        value={draft} onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
-        onBlur={add}
-        placeholder="e.g. AP Calculus BC, then press Enter"
-        style={inputStyle}
-        onFocus={(e) => (e.target.style.borderColor = ACCENT)}
-      />
+      <AddRow value={draft} onChange={setDraft} onAdd={add}
+        placeholder="e.g. AP Calculus BC" />
       {items.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 12 }}>
-          {items.map((c, i) => (
-            <div key={i} style={{
-              display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-              background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 11, padding: "10px 12px",
-            }}>
-              <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.92rem", color: TEXT, flex: 1, minWidth: 120 }}>
-                {c.name}
-              </span>
-              <select
-                value={c.level || ""}
-                onChange={(e) => onChange(items.map((x, j) => j === i ? { ...x, level: e.target.value || null } : x))}
-                style={{ fontFamily: SANS, fontSize: "0.84rem", color: TEXT2, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "6px 9px", background: "#fff", cursor: "pointer" }}>
-                <option value="">Level</option>
-                {COURSE_LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
-              </select>
-              <button type="button" onClick={() => onChange(items.filter((_, j) => j !== i))}
-                aria-label={`Remove ${c.name}`}
-                style={{ border: "none", background: "none", cursor: "pointer", color: TEXT3, display: "inline-flex" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-          ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+          <AnimatePresence initial={false}>
+            {items.map((c, i) => (
+              <ItemRow key={`${c.name}-${i}`} label={c.name}
+                onRemove={() => onChange(items.filter((_, j) => j !== i))}>
+                <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: "1rem", color: TEXT, flex: 1, minWidth: 90 }}>
+                  {c.name}
+                </span>
+                <select
+                  value={c.level || ""}
+                  onChange={(e) => onChange(items.map((x, j) => j === i ? { ...x, level: e.target.value || null } : x))}
+                  style={{
+                    fontFamily: SANS, fontSize: "0.9rem", fontWeight: 600, color: c.level ? ACCENT : TEXT3,
+                    border: `1.5px solid ${BORDER}`, borderRadius: 9, padding: "8px 11px",
+                    background: "#fff", cursor: "pointer", flexShrink: 0,
+                  }}>
+                  <option value="">Level</option>
+                  {COURSE_LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+                </select>
+              </ItemRow>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>
   );
 }
 
-/** AP exams as subject + score pairs. */
+/** AP exams as subject + score. */
 function ApList({ items, onChange }) {
-  const [subject, setSubject] = useState("");
+  const [draft, setDraft] = useState("");
   const add = () => {
-    const s = subject.trim();
-    if (!s) return;
-    onChange([...items, { subject: s, score: null }]);
-    setSubject("");
+    const entries = splitEntries(draft);
+    if (!entries.length) return;
+    onChange([...items, ...entries.map((subject) => ({ subject, score: null }))]);
+    setDraft("");
   };
   return (
     <div>
-      <input
-        value={subject} onChange={(e) => setSubject(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
-        onBlur={add}
-        placeholder="AP subject, then press Enter"
-        style={inputStyle}
-        onFocus={(e) => (e.target.style.borderColor = ACCENT)}
-      />
+      <AddRow value={draft} onChange={setDraft} onAdd={add} placeholder="AP subject" />
       {items.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 12 }}>
-          {items.map((ap, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 11, padding: "10px 12px" }}>
-              <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.92rem", color: TEXT, flex: 1 }}>{ap.subject}</span>
-              <div style={{ display: "flex", gap: 5 }}>
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button key={n} type="button"
-                    onClick={() => onChange(items.map((x, j) => j === i ? { ...x, score: x.score === n ? null : n } : x))}
-                    style={{
-                      width: 30, height: 30, borderRadius: 8, cursor: "pointer",
-                      fontFamily: SANS, fontWeight: 700, fontSize: "0.85rem",
-                      border: `1.5px solid ${ap.score === n ? ACCENT : BORDER}`,
-                      background: ap.score === n ? ACCENT : "#fff",
-                      color: ap.score === n ? "#fff" : TEXT2,
-                    }}>{n}</button>
-                ))}
-              </div>
-              <button type="button" onClick={() => onChange(items.filter((_, j) => j !== i))}
-                aria-label={`Remove ${ap.subject}`}
-                style={{ border: "none", background: "none", cursor: "pointer", color: TEXT3, display: "inline-flex" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-          ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+          <AnimatePresence initial={false}>
+            {items.map((ap, i) => (
+              <ItemRow key={`${ap.subject}-${i}`} label={ap.subject}
+                onRemove={() => onChange(items.filter((_, j) => j !== i))}>
+                <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: "1rem", color: TEXT, flex: 1, minWidth: 80 }}>
+                  {ap.subject}
+                </span>
+                <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button key={n} type="button"
+                      onClick={() => onChange(items.map((x, j) => j === i ? { ...x, score: x.score === n ? null : n } : x))}
+                      style={{
+                        width: 34, height: 34, borderRadius: 9, cursor: "pointer",
+                        fontFamily: SANS, fontWeight: 700, fontSize: "0.92rem",
+                        border: `1.5px solid ${ap.score === n ? ACCENT : BORDER}`,
+                        background: ap.score === n ? ACCENT : "#fff",
+                        color: ap.score === n ? "#fff" : TEXT2,
+                      }}>{n}</button>
+                  ))}
+                </div>
+              </ItemRow>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>
@@ -254,212 +279,214 @@ export const EMPTY_INTAKE = {
 };
 
 const STEPS = [
-  { id: "identity",  title: "Let's start with the basics",   blurb: "Just enough to know where you are in the process." },
-  { id: "academics", title: "Your academics",                blurb: "Skip anything that doesn't apply to you yet." },
-  { id: "testing",   title: "Testing",                       blurb: "Plenty of students don't have scores yet. That's fine." },
-  { id: "record",    title: "What you've been doing",        blurb: "Just the names. We'll talk through the details next." },
-  { id: "direction", title: "Where you're headed",           blurb: "Rough guesses are genuinely useful here." },
+  { id: "identity",  eyebrow: "Getting started", title: "Let's start with the basics",  blurb: "Just enough to know where you are in the process." },
+  { id: "academics", eyebrow: "Academics",       title: "Your grades and classes",      blurb: "Skip anything that doesn't apply to you yet." },
+  { id: "testing",   eyebrow: "Testing",         title: "Any test scores?",             blurb: "Plenty of students don't have these yet. That's completely fine." },
+  { id: "record",    eyebrow: "Your record",     title: "What you've been doing",       blurb: "Just the names for now. We'll talk through the details right after." },
+  { id: "direction", eyebrow: "Direction",       title: "Where you're headed",          blurb: "Rough guesses are genuinely useful here." },
 ];
 
-export default function IntakeForm({ initial, onComplete, submitting }) {
+export default function IntakeForm({ initial, onComplete, submitting, isMobile }) {
   const [step, setStep] = useState(0);
   const [v, setV] = useState({ ...EMPTY_INTAKE, ...(initial || {}) });
   const set = (patch) => setV((prev) => ({ ...prev, ...patch }));
 
+  // Steps vary a lot in height, so without this you land mid-page (or below the
+  // content entirely) after advancing from a tall step to a short one.
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [step]);
+
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
-  // Only the first step gates progress: everything after it is legitimately skippable.
+  // Only the first step gates progress; everything after it is legitimately skippable.
   const canAdvance = step > 0 || (v.fullName.trim() && v.graduationYear);
 
   const next = () => (isLast ? onComplete(v) : setStep((s) => s + 1));
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}
-      style={{ width: "100%", maxWidth: 620, margin: "0 auto", padding: "0 1.25rem" }}
-    >
-      {/* Progress */}
-      <div style={{ display: "flex", gap: 6, marginBottom: "1.75rem" }}>
-        {STEPS.map((s, i) => (
-          <div key={s.id} style={{
-            flex: 1, height: 4, borderRadius: 99,
-            background: i <= step ? ACCENT : "rgba(59,91,252,0.15)",
-            transition: "background 0.3s",
-          }} />
-        ))}
+    <div style={{
+      display: "flex", gap: "2.5rem", alignItems: "flex-start",
+      width: "100%", maxWidth: 1240, margin: "0 auto", padding: "0 1.5rem",
+      flexDirection: isMobile ? "column" : "row",
+    }}>
+      {/* ── Left: the step ── */}
+      <div style={{ flex: "1 1 0", minWidth: 0, width: "100%" }}>
+        <div style={{ display: "flex", gap: 7, marginBottom: "2rem" }}>
+          {STEPS.map((s, i) => (
+            <div key={s.id} style={{
+              flex: 1, height: 5, borderRadius: 99,
+              background: i <= step ? ACCENT : "rgba(59,91,252,0.15)",
+              transition: "background 0.3s",
+            }} />
+          ))}
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div key={current.id}
+            initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }}
+            transition={{ duration: 0.28 }}>
+
+            <p style={eyebrowStyle}>{current.eyebrow}</p>
+            <h1 style={titleStyle}>{current.title}</h1>
+            <p style={subtitleStyle}>{current.blurb}</p>
+
+            <div style={cardStyle}>
+              {current.id === "identity" && (
+                <>
+                  <Field label="Your name">
+                    <input value={v.fullName} onChange={(e) => set({ fullName: e.target.value })}
+                      placeholder="First and last" style={inputStyle}
+                      onFocus={(e) => (e.target.style.borderColor = ACCENT)}
+                      onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+                  </Field>
+                  <Field label="When do you graduate high school?">
+                    <Pills options={GRAD_YEARS.map((y) => ({ value: y, label: String(y) }))}
+                      value={v.graduationYear} onChange={(y) => set({ graduationYear: y })} />
+                  </Field>
+                  <Field label="What grade are you in?">
+                    <Pills options={[9, 10, 11, 12].map((g) => ({ value: g, label: `${g}th` }))}
+                      value={v.gradeLevel} onChange={(g) => set({ gradeLevel: g })} />
+                  </Field>
+                  <Field label="Where are you based?" hint="Optional. It affects in-state options and some opportunities.">
+                    <input value={v.state} onChange={(e) => set({ state: e.target.value })}
+                      placeholder="State or country" style={inputStyle}
+                      onFocus={(e) => (e.target.style.borderColor = ACCENT)}
+                      onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+                  </Field>
+                </>
+              )}
+
+              {current.id === "academics" && (
+                <>
+                  <Field label="What scale is your GPA on?">
+                    <Pills options={GPA_SCALES} value={v.gpaScale} onChange={(s) => set({ gpaScale: s })} />
+                  </Field>
+                  {v.gpaScale !== "not_used" && (
+                    <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                      <div style={{ flex: 1, minWidth: 160 }}>
+                        <Field label="Unweighted GPA">
+                          <input value={v.gpaUnweighted} onChange={(e) => set({ gpaUnweighted: e.target.value })}
+                            inputMode="decimal" placeholder="3.87" style={inputStyle}
+                            onFocus={(e) => (e.target.style.borderColor = ACCENT)}
+                            onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+                        </Field>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 160 }}>
+                        <Field label="Weighted GPA">
+                          <input value={v.gpaWeighted} onChange={(e) => set({ gpaWeighted: e.target.value })}
+                            inputMode="decimal" placeholder="Optional" style={inputStyle}
+                            onFocus={(e) => (e.target.style.borderColor = ACCENT)}
+                            onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+                        </Field>
+                      </div>
+                    </div>
+                  )}
+                  <Field label="Courses you're taking or plan to take"
+                    hint="Add them one at a time, or paste a comma separated list and we'll split it for you.">
+                    <CourseList items={v.courses} onChange={(courses) => set({ courses })} />
+                  </Field>
+                </>
+              )}
+
+              {current.id === "testing" && (
+                <>
+                  <Field label="Have you taken the SAT or ACT?">
+                    <Pills
+                      options={[
+                        { value: "sat",  label: "SAT" },
+                        { value: "act",  label: "ACT" },
+                        { value: "none", label: "Not yet" },
+                      ]}
+                      value={v.testType} onChange={(t) => set({ testType: t })} />
+                  </Field>
+                  {v.testType === "sat" && (
+                    <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                      {[
+                        ["Total", "total", "1520"],
+                        ["Reading & Writing", "rw", "760"],
+                        ["Math", "math", "760"],
+                      ].map(([label, key, ph]) => (
+                        <div key={key} style={{ flex: 1, minWidth: 130 }}>
+                          <Field label={label}>
+                            <input value={v.sat[key]} onChange={(e) => set({ sat: { ...v.sat, [key]: e.target.value } })}
+                              inputMode="numeric" placeholder={ph} style={inputStyle}
+                              onFocus={(e) => (e.target.style.borderColor = ACCENT)}
+                              onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+                          </Field>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {v.testType === "act" && (
+                    <Field label="Composite score">
+                      <input value={v.act.composite} onChange={(e) => set({ act: { composite: e.target.value } })}
+                        inputMode="numeric" placeholder="34" style={inputStyle}
+                        onFocus={(e) => (e.target.style.borderColor = ACCENT)}
+                        onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+                    </Field>
+                  )}
+                  <Field label="AP exams you've taken" hint="Optional. Add the subject, then tap the score you got.">
+                    <ApList items={v.aps} onChange={(aps) => set({ aps })} />
+                  </Field>
+                </>
+              )}
+
+              {current.id === "record" && (
+                <>
+                  <Field label="Activities"
+                    hint="Clubs, sports, jobs, projects, volunteering, research. One per entry, or paste a list and we'll split it.">
+                    <ItemList items={v.activities} onChange={(activities) => set({ activities })}
+                      placeholder="e.g. Science Olympiad" max={15} />
+                  </Field>
+                  <Field label="Awards and honors" hint="Anything you were recognised for, at any level.">
+                    <ItemList items={v.awards} onChange={(awards) => set({ awards })}
+                      placeholder="e.g. State finalist" max={15} />
+                  </Field>
+                </>
+              )}
+
+              {current.id === "direction" && (
+                <>
+                  <Field label="Majors you're considering" hint="Even if you're not sure. Two or three guesses is plenty.">
+                    <ItemList items={v.majors} onChange={(majors) => set({ majors })}
+                      placeholder="e.g. Computer Science" max={6} />
+                  </Field>
+                  <Field label="Colleges you're thinking about"
+                    hint="Skip it if you have no idea yet. We'll help you build a real list later.">
+                    <ItemList items={v.colleges} onChange={(colleges) => set({ colleges })}
+                      placeholder="e.g. Georgia Tech" max={20} />
+                  </Field>
+                </>
+              )}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: "1.75rem" }}>
+              {step > 0 && (
+                <button type="button" onClick={() => setStep((s) => s - 1)} disabled={submitting}
+                  style={{
+                    fontFamily: SANS, fontSize: "1.05rem", fontWeight: 700, cursor: "pointer",
+                    padding: "16px 26px", borderRadius: 14,
+                    border: `1.5px solid ${BORDER}`, background: "#fff", color: TEXT2,
+                  }}>
+                  Back
+                </button>
+              )}
+              <button type="button" onClick={next} disabled={!canAdvance || submitting}
+                style={primaryButton(canAdvance && !submitting)}>
+                {submitting ? "Saving…" : isLast ? "Continue" : "Next"}
+              </button>
+            </div>
+
+            <p style={{ fontFamily: SANS, fontSize: "0.92rem", color: TEXT3, textAlign: "center", marginTop: 15 }}>
+              Step {step + 1} of {STEPS.length}
+            </p>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div key={current.id}
-          initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }}
-          transition={{ duration: 0.28 }}>
-
-          <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: "0.5rem" }}>
-            {current.title}
-          </h1>
-          <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT2, lineHeight: 1.6, marginBottom: "2rem" }}>
-            {current.blurb}
-          </p>
-
-          <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 18, padding: "1.6rem", boxShadow: "0 2px 12px rgba(15,23,42,0.05)" }}>
-
-            {current.id === "identity" && (
-              <>
-                <Field label="Your name">
-                  <input value={v.fullName} onChange={(e) => set({ fullName: e.target.value })}
-                    placeholder="First and last" style={inputStyle}
-                    onFocus={(e) => (e.target.style.borderColor = ACCENT)} />
-                </Field>
-                <Field label="When do you graduate high school?">
-                  <Pills options={GRAD_YEARS.map((y) => ({ value: y, label: String(y) }))}
-                    value={v.graduationYear} onChange={(y) => set({ graduationYear: y })} />
-                </Field>
-                <Field label="What grade are you in?">
-                  <Pills options={[9, 10, 11, 12].map((g) => ({ value: g, label: `${g}th` }))}
-                    value={v.gradeLevel} onChange={(g) => set({ gradeLevel: g })} />
-                </Field>
-                <Field label="Where are you based?" hint="Optional. It affects in-state options and some opportunities.">
-                  <input value={v.state} onChange={(e) => set({ state: e.target.value })}
-                    placeholder="State or country" style={inputStyle}
-                    onFocus={(e) => (e.target.style.borderColor = ACCENT)} />
-                </Field>
-              </>
-            )}
-
-            {current.id === "academics" && (
-              <>
-                <Field label="What scale is your GPA on?">
-                  <Pills options={GPA_SCALES} value={v.gpaScale} onChange={(s) => set({ gpaScale: s })} />
-                </Field>
-                {v.gpaScale !== "not_used" && (
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <div style={{ flex: 1, minWidth: 150 }}>
-                      <Field label="Unweighted GPA">
-                        <input value={v.gpaUnweighted} onChange={(e) => set({ gpaUnweighted: e.target.value })}
-                          inputMode="decimal" placeholder="3.87" style={inputStyle}
-                          onFocus={(e) => (e.target.style.borderColor = ACCENT)} />
-                      </Field>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 150 }}>
-                      <Field label="Weighted GPA">
-                        <input value={v.gpaWeighted} onChange={(e) => set({ gpaWeighted: e.target.value })}
-                          inputMode="decimal" placeholder="Optional" style={inputStyle}
-                          onFocus={(e) => (e.target.style.borderColor = ACCENT)} />
-                      </Field>
-                    </div>
-                  </div>
-                )}
-                <Field label="Courses you're taking or plan to take"
-                  hint="Course rigor is one of the first things admissions looks at. Tag the level where you know it.">
-                  <CourseList items={v.courses} onChange={(courses) => set({ courses })} />
-                </Field>
-              </>
-            )}
-
-            {current.id === "testing" && (
-              <>
-                <Field label="Have you taken the SAT or ACT?">
-                  <Pills
-                    options={[
-                      { value: "sat",  label: "SAT" },
-                      { value: "act",  label: "ACT" },
-                      { value: "none", label: "Not yet" },
-                    ]}
-                    value={v.testType} onChange={(t) => set({ testType: t })} />
-                </Field>
-                {v.testType === "sat" && (
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <div style={{ flex: 1, minWidth: 110 }}>
-                      <Field label="Total">
-                        <input value={v.sat.total} onChange={(e) => set({ sat: { ...v.sat, total: e.target.value } })}
-                          inputMode="numeric" placeholder="1520" style={inputStyle}
-                          onFocus={(e) => (e.target.style.borderColor = ACCENT)} />
-                      </Field>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 110 }}>
-                      <Field label="Reading & Writing">
-                        <input value={v.sat.rw} onChange={(e) => set({ sat: { ...v.sat, rw: e.target.value } })}
-                          inputMode="numeric" placeholder="760" style={inputStyle}
-                          onFocus={(e) => (e.target.style.borderColor = ACCENT)} />
-                      </Field>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 110 }}>
-                      <Field label="Math">
-                        <input value={v.sat.math} onChange={(e) => set({ sat: { ...v.sat, math: e.target.value } })}
-                          inputMode="numeric" placeholder="760" style={inputStyle}
-                          onFocus={(e) => (e.target.style.borderColor = ACCENT)} />
-                      </Field>
-                    </div>
-                  </div>
-                )}
-                {v.testType === "act" && (
-                  <Field label="Composite score">
-                    <input value={v.act.composite} onChange={(e) => set({ act: { composite: e.target.value } })}
-                      inputMode="numeric" placeholder="34" style={inputStyle}
-                      onFocus={(e) => (e.target.style.borderColor = ACCENT)} />
-                  </Field>
-                )}
-                <Field label="AP exams you've taken" hint="Optional. Add the subject, then tap the score you got.">
-                  <ApList items={v.aps} onChange={(aps) => set({ aps })} />
-                </Field>
-              </>
-            )}
-
-            {current.id === "record" && (
-              <>
-                <Field label="Activities"
-                  hint="Clubs, sports, jobs, projects, volunteering, research. Names only, we'll get into the detail in a moment.">
-                  <ChipList items={v.activities} onChange={(activities) => set({ activities })}
-                    placeholder="e.g. Science Olympiad, then press Enter" max={15} />
-                </Field>
-                <Field label="Awards and honors" hint="Anything you were recognised for, at any level.">
-                  <ChipList items={v.awards} onChange={(awards) => set({ awards })}
-                    placeholder="e.g. State finalist, then press Enter" max={15} />
-                </Field>
-              </>
-            )}
-
-            {current.id === "direction" && (
-              <>
-                <Field label="Majors you're considering" hint="Even if you're not sure. Two or three guesses is plenty.">
-                  <ChipList items={v.majors} onChange={(majors) => set({ majors })}
-                    placeholder="e.g. Computer Science, then press Enter" max={6} />
-                </Field>
-                <Field label="Colleges you're thinking about"
-                  hint="Skip it if you have no idea yet. We'll help you build a real list later.">
-                  <ChipList items={v.colleges} onChange={(colleges) => set({ colleges })}
-                    placeholder="e.g. Georgia Tech, then press Enter" max={20} />
-                </Field>
-              </>
-            )}
-          </div>
-
-          {/* Nav */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: "1.5rem" }}>
-            {step > 0 && (
-              <button type="button" onClick={() => setStep((s) => s - 1)} disabled={submitting}
-                style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", padding: "13px 20px", borderRadius: 12, border: `1.5px solid ${BORDER}`, background: "#fff", color: TEXT2 }}>
-                Back
-              </button>
-            )}
-            <button type="button" onClick={next} disabled={!canAdvance || submitting}
-              style={{
-                flex: 1, fontFamily: SANS, fontSize: "1rem", fontWeight: 700,
-                cursor: canAdvance && !submitting ? "pointer" : "not-allowed",
-                padding: "14px", borderRadius: 12, border: "none",
-                background: canAdvance ? ACCENT : "#c7d2e8", color: "#fff",
-                boxShadow: canAdvance ? `0 6px 20px rgba(29,78,216,0.28)` : "none",
-                transition: "all 0.15s",
-              }}>
-              {submitting ? "Saving…" : isLast ? "Continue" : "Next"}
-            </button>
-          </div>
-
-          <p style={{ fontFamily: SANS, fontSize: "0.84rem", color: TEXT3, textAlign: "center", marginTop: 13 }}>
-            Step {step + 1} of {STEPS.length}
-          </p>
-        </motion.div>
-      </AnimatePresence>
-    </motion.div>
+      {/* ── Right: the record building up ── */}
+      <div style={{ flex: isMobile ? "1 1 auto" : "0 0 340px", width: "100%", maxWidth: isMobile ? "none" : 340 }}>
+        <RecordPanel sections={sectionsFromForm(v)} sticky={!isMobile} />
+      </div>
+    </div>
   );
 }

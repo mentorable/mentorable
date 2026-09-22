@@ -8,8 +8,11 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 import IntakeForm, { EMPTY_INTAKE } from "../components/onboarding/IntakeForm.jsx";
 import TextInterview from "../components/onboarding/TextInterview.jsx";
 import IntakeReview from "../components/onboarding/IntakeReview.jsx";
+import RecordPanel, { sectionsFromRecord } from "../components/onboarding/RecordPanel.jsx";
+import { eyebrowStyle, titleStyle, primaryButton } from "../components/onboarding/intakeTheme.js";
 import {
   saveIntakeForm, fetchIntakeContext, extractIntake, commitIntake, fetchActivities,
+  fetchStudentRecord,
 } from "../lib/intake.js";
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
@@ -27,7 +30,6 @@ const ACCENT2 = "#3b82f6";
 const BORDER  = "rgba(59,91,252,0.13)";
 const SURFACE = "rgba(59,91,252,0.05)";
 const CARD    = "#faf9f5";
-const SERIF   = "'Raleway', sans-serif";
 const SANS    = "'Raleway', sans-serif";
 const MONO    = "'Raleway', sans-serif";
 
@@ -114,71 +116,6 @@ function MicIcon({ color = "white", size = 22 }) {
   );
 }
 
-// ─── Phone Icons ─────────────────────────────────────────────────────────────
-function PhoneOutIcon({ color = "white", size = 26 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <path fillRule="evenodd" clipRule="evenodd"
-        d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.58.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C9.61 21 3 14.39 3 6c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.24 1.02L6.6 10.8z"
-        fill={color}/>
-      <path d="M17 3h4m0 0v4m0-4L15 9" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function PhoneInIcon({ color = "#111", size = 26 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <path fillRule="evenodd" clipRule="evenodd"
-        d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.58.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C9.61 21 3 14.39 3 6c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.24 1.02L6.6 10.8z"
-        fill={color}/>
-      <path d="M21 9l-6-6m0 6V5m0 4h4" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-// ─── Voice Orb ────────────────────────────────────────────────────────────────
-function VoiceOrb({ onStart, loading, size = 340 }) {
-  return (
-    <motion.div
-      initial={{ opacity:0, x:30 }}
-      animate={{ opacity:1, x:0 }}
-      transition={{ duration:0.75, ease:[0.16,1,0.3,1], delay:0.55 }}
-      style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"2rem" }}
-    >
-      {/* WebGL orb */}
-      <div style={{ position:"relative", width:size, height:size, maxWidth:"80vw" }}>
-        <VoicePoweredOrb
-          hue={0}
-          style={{ width:"100%", height:"100%" }}
-        />
-      </div>
-
-      {/* Call button */}
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"0.75rem" }}>
-        <motion.button
-          onClick={onStart}
-          disabled={loading}
-          whileHover={loading ? {} : { scale:1.07 }}
-          whileTap={loading ? {} : { scale:0.93 }}
-          style={{
-            width:80, height:80, borderRadius:"50%",
-            background:"#111111",
-            border:"none", cursor:loading ? "not-allowed" : "pointer",
-            display:"flex", alignItems:"center", justifyContent:"center",
-            boxShadow:"0 6px 28px rgba(0,0,0,0.32)",
-          }}
-        >
-          {loading ? <Spinner size={24} color="#faf9f5"/> : <PhoneOutIcon color="white" size={28}/>}
-        </motion.button>
-        <span style={{ fontFamily:SANS, fontSize:"1rem", color:TEXT2, fontWeight:400, letterSpacing:"-0.01em" }}>
-          Call Agent
-        </span>
-      </div>
-    </motion.div>
-  );
-}
-
 // ─── Elegant floating shape (background element) ─────────────────────────────
 function ElegantShape({ shapeStyle, delay = 0, width = 400, height = 100, rotate = 0, color = "rgba(37,99,235,0.15)", borderColor = "rgba(59,91,252,0.18)", glowColor = "rgba(59,91,252,0.07)" }) {
   return (
@@ -210,22 +147,26 @@ function ChannelPhase({ onPick, retryNotice }) {
   const Option = ({ id, title, blurb, meta, icon }) => (
     <button type="button" onClick={() => onPick(id)}
       style={{
-        display: "flex", alignItems: "flex-start", gap: 15, width: "100%", textAlign: "left",
+        display: "flex", alignItems: "flex-start", gap: 18, width: "100%", textAlign: "left",
         cursor: "pointer", background: "#fff", border: `1.5px solid ${BORDER}`,
-        borderRadius: 16, padding: "1.2rem 1.3rem", transition: "all 0.15s",
+        borderRadius: 20, padding: "1.6rem 1.75rem", transition: "all 0.15s",
+        boxShadow: "0 2px 12px rgba(15,23,42,0.05)",
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.transform = "translateY(-2px)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.transform = "none"; }}>
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 10px 28px rgba(29,78,216,0.15)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 2px 12px rgba(15,23,42,0.05)"; }}>
       <span style={{
-        flexShrink: 0, width: 42, height: 42, borderRadius: 12,
+        flexShrink: 0, width: 54, height: 54, borderRadius: 15,
         background: "rgba(59,91,252,0.08)", color: ACCENT,
         display: "inline-flex", alignItems: "center", justifyContent: "center",
       }}>{icon}</span>
-      <span style={{ minWidth: 0 }}>
-        <span style={{ display: "block", fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: TEXT, marginBottom: 4 }}>{title}</span>
-        <span style={{ display: "block", fontFamily: SANS, fontSize: "0.92rem", color: TEXT2, lineHeight: 1.55 }}>{blurb}</span>
-        <span style={{ display: "block", fontFamily: SANS, fontSize: "0.8rem", fontWeight: 600, color: TEXT3, marginTop: 7 }}>{meta}</span>
+      <span style={{ minWidth: 0, flex: 1 }}>
+        <span style={{ display: "block", fontFamily: SANS, fontWeight: 700, fontSize: "1.3rem", color: TEXT, marginBottom: 6, letterSpacing: "-0.01em" }}>{title}</span>
+        <span style={{ display: "block", fontFamily: SANS, fontSize: "1.02rem", color: TEXT2, lineHeight: 1.55 }}>{blurb}</span>
+        <span style={{ display: "block", fontFamily: SANS, fontSize: "0.88rem", fontWeight: 600, color: TEXT3, marginTop: 9 }}>{meta}</span>
       </span>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, alignSelf: "center" }}>
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
     </button>
   );
 
@@ -233,203 +174,87 @@ function ChannelPhase({ onPick, retryNotice }) {
     <motion.div key="channel"
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
       transition={{ duration: 0.4 }}
-      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "2.5rem 1.25rem" }}>
-      <div style={{ width: "100%", maxWidth: 560 }}>
-        <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: "0.5rem", textAlign: "center" }}>
+      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "3rem 1.5rem" }}>
+      <div style={{ width: "100%", maxWidth: 680 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "2rem" }}><Logo /></div>
+
+        <p style={{ ...eyebrowStyle, textAlign: "center" }}>Next up</p>
+        <h1 style={{ ...titleStyle, textAlign: "center", fontSize: "2.8rem" }}>
           Now let's talk it through
         </h1>
-        <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT2, lineHeight: 1.6, marginBottom: "1.9rem", textAlign: "center" }}>
-          We have your list. Next we find what connects it, and where the gaps are. Pick whichever you'd rather do.
+        <p style={{ fontFamily: SANS, fontSize: "1.15rem", color: TEXT2, lineHeight: 1.6, marginBottom: "2.4rem", textAlign: "center", maxWidth: 540, marginLeft: "auto", marginRight: "auto" }}>
+          We have your list. Now we just need a bit more detail on what you actually did. Pick whichever is easier for you.
         </p>
 
         {retryNotice && (
-          <div style={{ background: "rgba(217,119,6,0.08)", border: "1.5px solid rgba(217,119,6,0.3)", borderRadius: 12, padding: "0.9rem 1.1rem", marginBottom: "1.4rem" }}>
-            <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: "#7c4a03", lineHeight: 1.55, margin: 0 }}>{retryNotice}</p>
+          <div style={{ background: "rgba(217,119,6,0.08)", border: "1.5px solid rgba(217,119,6,0.3)", borderRadius: 14, padding: "1.1rem 1.3rem", marginBottom: "1.6rem" }}>
+            <p style={{ fontFamily: SANS, fontSize: "1rem", color: "#7c4a03", lineHeight: 1.55, margin: 0 }}>{retryNotice}</p>
           </div>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Option id="text" title="Type it out"
             blurb="A short back and forth. Take as long as you like on each answer."
             meta="About 5 minutes"
-            icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>} />
+            icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>} />
           <Option id="voice" title="Talk out loud"
-            blurb="A quick call with Mentorable. Easiest way to get your thinking out."
+            blurb="A quick call with Mentorable. Usually the fastest way to get through it."
             meta="About 3 minutes, needs a microphone"
-            icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>} />
+            icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>} />
         </div>
       </div>
     </motion.div>
   );
 }
 
-// ─── Phase 1: Intro ───────────────────────────────────────────────────────────
-function IntroPhase({ onStart, loading, retryNotice }) {
-  const isMobile = useIsMobile();
-  const topics = [
-    "Academic strengths","Career interests","Work style",
-    "Problem-solving","Collaboration","Long-term goals","Personal values","Communication",
-  ];
-
+// ─── Voice confirm: one tap, then the mic prompt fires ───────────────────────
+function VoiceConfirmPhase({ onStart, onBack, loading }) {
   return (
-    <motion.div
-      key="intro"
-      initial={{ opacity:0 }}
-      animate={{ opacity:1 }}
-      exit={{ opacity:0, y:-16 }}
-      transition={{ duration:0.35 }}
-      style={{
-        display:"flex", flexDirection:"column",
-        // Mobile stacks and scrolls; desktop stays a fixed viewport-height splash.
-        height:isMobile ? "auto" : "100vh",
-        minHeight:"100vh",
-        overflow:isMobile ? "visible" : "hidden",
-        position:"relative", zIndex:1,
-        background:BG,
-      }}
-    >
-      {/* ── Geometric background ────────────────────────────────────────────── */}
-      <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom right, rgba(37,99,235,0.07), transparent, rgba(59,130,246,0.05))", filter:"blur(80px)", zIndex:0 }}/>
-      <div style={{ position:"absolute", inset:0, overflow:"hidden", zIndex:0 }}>
-        <ElegantShape delay={0.3} width={600} height={140} rotate={12}  color="rgba(37,99,235,0.10)"  borderColor="rgba(37,99,235,0.2)"  glowColor="rgba(37,99,235,0.06)"  shapeStyle={{ left:"-10%", top:"15%" }}/>
-        <ElegantShape delay={0.5} width={500} height={120} rotate={-15} color="rgba(59,130,246,0.09)"  borderColor="rgba(59,130,246,0.18)" glowColor="rgba(59,130,246,0.05)"  shapeStyle={{ right:"-5%", top:"70%" }}/>
-        <ElegantShape delay={0.4} width={300} height={80}  rotate={-8}  color="rgba(59,91,252,0.08)"   borderColor="rgba(59,91,252,0.16)"  glowColor="rgba(59,91,252,0.05)"   shapeStyle={{ left:"5%", bottom:"5%" }}/>
-        <ElegantShape delay={0.6} width={200} height={60}  rotate={20}  color="rgba(37,99,235,0.07)"  borderColor="rgba(37,99,235,0.15)" glowColor="rgba(37,99,235,0.04)"  shapeStyle={{ right:"15%", top:"10%" }}/>
-        <ElegantShape delay={0.7} width={150} height={40}  rotate={-25} color="rgba(59,130,246,0.07)"  borderColor="rgba(59,130,246,0.14)" glowColor="rgba(59,130,246,0.04)"  shapeStyle={{ left:"20%", top:"5%" }}/>
-      </div>
-      <div style={{ position:"absolute", inset:0, background:`linear-gradient(to bottom, rgba(250,251,255,0.6), transparent, ${BG})`, pointerEvents:"none", zIndex:0 }}/>
+    <motion.div key="voice-confirm"
+      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
+      transition={{ duration: 0.4 }}
+      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "3rem 1.5rem" }}>
+      <div style={{ width: "100%", maxWidth: 520, textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "2rem" }}><Logo /></div>
 
-      {/* ── Top nav ────────────────────────────────────────────────────────── */}
-      <motion.div
-        {...fadeUp(0.05)}
-        style={{
-          display:"flex", alignItems:"center", justifyContent:"space-between",
-          padding:isMobile ? "1.25rem 1.5rem" : "1.5rem 3rem", flexShrink:0,
-          position:"relative", zIndex:1,
-        }}
-      >
-        <Logo />
-      </motion.div>
-
-      {/* ── Two-column body (stacks on mobile) ─────────────────────────────── */}
-      <div style={{
-        flex:1, display:"grid", gridTemplateColumns:isMobile ? "1fr" : "1fr 1fr",
-        gap:isMobile ? "2.5rem" : "3rem",
-        padding:isMobile ? "0.5rem 1.5rem 3rem" : "0 3rem 2rem",
-        alignItems:"center", overflow:isMobile ? "visible" : "hidden",
-        position:"relative", zIndex:1,
-      }}>
-
-        {/* Left — text & topics */}
-        <div style={{ display:"flex", flexDirection:"column", gap:"1.75rem", alignItems:"center", textAlign:"center", transform:isMobile ? "none" : "translateX(6rem)" }}>
-
-          {/* Heading */}
-          <h1 style={{
-            fontFamily:SERIF,
-            fontSize:isMobile ? "clamp(2.5rem,11vw,3.2rem)" : "clamp(3.2rem,5.5vw,5.2rem)",
-            fontWeight:700,
-            letterSpacing:"-0.03em",
-            lineHeight:1.06,
-            margin:0, overflow:"visible",
+        <motion.div
+          animate={{ scale: [1, 1.04, 1] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          style={{
+            width: 96, height: 96, borderRadius: "50%", margin: "0 auto 2rem",
+            background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: `0 16px 44px rgba(29,78,216,0.32)`,
           }}>
-            {[
-              { text:"Let's get to", delay:0.28 },
-              { text:"know you.",    delay:0.42 },
-            ].map(({ text, delay }, i) => (
-              <motion.span
-                key={i}
-                initial={{ opacity:0, y:28 }}
-                animate={{ opacity:1, y:0 }}
-                transition={{ duration:0.7, ease:[0.16,1,0.3,1], delay }}
-                style={{
-                  display:"block",
-                  color: i === 0 ? TEXT : ACCENT,
-                }}
-              >
-                {text}
-              </motion.span>
-            ))}
-          </h1>
+          <MicIcon color="#fff" size={40} />
+        </motion.div>
 
-          {/* Subtitle */}
-          <motion.p
-            {...fadeUp(0.58)}
-            style={{
-              fontFamily:SANS, color:TEXT2,
-              fontSize:isMobile ? "1.05rem" : "1.25rem", lineHeight:1.75,
-              fontWeight:400, margin:0,
-            }}
-          >
-            Hit the call button and have a short voice conversation with your AI advisor. Just talk naturally, no forms to fill out. It takes about 3 minutes and helps us tailor everything to you.
-          </motion.p>
+        <p style={{ ...eyebrowStyle, textAlign: "center" }}>Voice chat</p>
+        <h1 style={{ ...titleStyle, textAlign: "center", fontSize: "2.6rem" }}>Ready when you are</h1>
+        <p style={{ fontFamily: SANS, fontSize: "1.1rem", color: TEXT2, lineHeight: 1.6, marginBottom: "2.2rem" }}>
+          Your browser will ask for microphone access, then we'll start straight away.
+        </p>
 
-          {/* Topics */}
-          <motion.div {...fadeUp(0.74)}>
-            <p style={{
-              fontFamily:SANS, fontWeight:600, fontSize:"0.8rem", color:TEXT3,
-              letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:"0.75rem",
-            }}>
-              What we'll explore together
-            </p>
-            <motion.div
-              {...staggerParent(0.82, 0.045)}
-              style={{ display:"flex", flexWrap:"wrap", gap:"0.45rem", justifyContent:"center" }}
-            >
-              {topics.map(topic => (
-                <motion.div
-                  key={topic}
-                  {...chipChild}
-                  whileHover={{ scale:1.07, y:-2 }}
-                  transition={{ type:"spring", stiffness:400, damping:18 }}
-                  style={{
-                    padding:"5px 13px", borderRadius:100,
-                    background:`linear-gradient(135deg, rgba(59,91,252,0.07), rgba(59,130,246,0.05))`,
-                    border:`1.5px solid rgba(59,91,252,0.16)`,
-                    color:ACCENT, fontFamily:SANS, fontWeight:500, fontSize:"0.92rem",
-                    cursor:"default",
-                  }}
-                >
-                  {topic}
-                </motion.div>
-              ))}
-            </motion.div>
-          </motion.div>
+        <button type="button" onClick={onStart} disabled={loading}
+          style={{ ...primaryButton(!loading), display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+          {loading ? <Spinner size={20} color="#fff" /> : <MicIcon color="#fff" size={20} />}
+          {loading ? "Connecting…" : "Start the call"}
+        </button>
 
-        </div>
-
-        {/* Right — voice orb */}
-        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"1.25rem" }}>
-          {retryNotice && (
-            <motion.div
-              initial={{ opacity:0, y:8 }}
-              animate={{ opacity:1, y:0 }}
-              transition={{ duration:0.4 }}
-              style={{
-                maxWidth:340,
-                background:"rgba(251,191,36,0.12)",
-                border:"1.5px solid rgba(251,191,36,0.35)",
-                borderRadius:"0.875rem",
-                padding:"0.75rem 1rem",
-                fontSize:"0.825rem",
-                color:"#92400e",
-                lineHeight:1.5,
-                textAlign:"center",
-                fontFamily:"'Raleway', sans-serif",
-              }}
-            >
-              {retryNotice}
-            </motion.div>
-          )}
-          <VoiceOrb onStart={onStart} loading={loading} size={isMobile ? 260 : 340}/>
-        </div>
-
+        <button type="button" onClick={onBack} disabled={loading}
+          style={{
+            display: "block", margin: "1.1rem auto 0", fontFamily: SANS, fontSize: "1rem",
+            fontWeight: 600, color: TEXT2, background: "none", border: "none", cursor: "pointer",
+          }}>
+          Type it out instead
+        </button>
       </div>
     </motion.div>
   );
 }
 
 // ─── Phase 2: Active Conversation ─────────────────────────────────────────────
-function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef }) {
+function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef, record, isMobile }) {
   const formatTime = (s) => {
     const m = Math.floor(s / 60).toString().padStart(2, "0");
     return `${m}:${(s % 60).toString().padStart(2, "0")}`;
@@ -474,9 +299,13 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef 
 
       {/* Transcript */}
       <div style={{
-        flex:1, overflowY:"auto", padding:"1.75rem",
+        flex:1, minHeight:0, display:"flex", gap:"2rem",
+        width:"100%", maxWidth:1240, margin:"0 auto", padding:"1.75rem 1.5rem",
+        flexDirection: isMobile ? "column" : "row", alignItems:"stretch",
+      }}>
+      <div style={{
+        flex:"1 1 0", minWidth:0, overflowY:"auto",
         display:"flex", flexDirection:"column", gap:"0.875rem",
-        maxWidth:640, width:"100%", margin:"0 auto", alignSelf:"stretch",
       }}>
         {transcript.length === 0 && (
           <motion.p
@@ -516,6 +345,12 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, transcriptEndRef 
           ))}
         </AnimatePresence>
         <div ref={transcriptEndRef}/>
+      </div>
+
+        {/* Their list, so they know what we'll be asking about */}
+        <div style={{ flex: isMobile ? "1 1 auto" : "0 0 320px", width:"100%", maxWidth: isMobile ? "none" : 320, overflowY:"auto" }}>
+          <RecordPanel sections={sectionsFromRecord(record)} sticky={false} />
+        </div>
       </div>
 
       {/* Bottom bar */}
@@ -634,17 +469,17 @@ function ProcessingPhase() {
         initial={{ opacity:0, y:16 }}
         animate={{ opacity:1, y:0 }}
         transition={{ delay:0.2, duration:0.6 }}
-        style={{ fontFamily:SERIF, fontWeight:700, fontSize:"1.75rem", color:TEXT, letterSpacing:"-0.03em", marginBottom:"0.875rem" }}
+        style={{ fontFamily:SANS, fontWeight:700, fontSize:"2.3rem", color:ACCENT, letterSpacing:"-0.03em", marginBottom:"0.9rem" }}
       >
-        Setting up your profile...
+        Writing up your record
       </motion.h2>
       <motion.p
         initial={{ opacity:0, y:12 }}
         animate={{ opacity:1, y:0 }}
         transition={{ delay:0.35, duration:0.6 }}
-        style={{ fontFamily:SANS, color:TEXT2, fontSize:"1rem", lineHeight:1.72, maxWidth:360, marginBottom:"2rem" }}
+        style={{ fontFamily:SANS, color:TEXT2, fontSize:"1.12rem", lineHeight:1.7, maxWidth:420, marginBottom:"2rem" }}
       >
-        This takes about 10 seconds. We're analysing your conversation and identifying your unique strengths.
+        This takes about 10 seconds. We're writing up what you told us about each activity.
       </motion.p>
 
       {/* Pulsing dots */}
@@ -692,10 +527,10 @@ function ErrorPhase({ error, onRetry }) {
         }}
       >⚠</motion.div>
 
-      <motion.h2 {...fadeUp(0.25)} style={{ fontFamily:SERIF, fontWeight:700, fontSize:"1.6rem", color:TEXT, letterSpacing:"-0.03em", marginBottom:"0.75rem" }}>
+      <motion.h2 {...fadeUp(0.25)} style={{ fontFamily:SANS, fontWeight:700, fontSize:"2.1rem", color:ACCENT, letterSpacing:"-0.03em", marginBottom:"0.8rem" }}>
         Something went wrong
       </motion.h2>
-      <motion.p {...fadeUp(0.35)} style={{ fontFamily:SANS, color:TEXT2, fontSize:"1rem", lineHeight:1.68, maxWidth:360, marginBottom:"2rem" }}>
+      <motion.p {...fadeUp(0.35)} style={{ fontFamily:SANS, color:TEXT2, fontSize:"1.12rem", lineHeight:1.68, maxWidth:420, marginBottom:"2rem" }}>
         {error || "An unexpected error occurred. Please try again."}
       </motion.p>
       <motion.button
@@ -743,10 +578,10 @@ function MicDeniedPhase({ onRetry }) {
         }}
       >🎙</motion.div>
 
-      <motion.h2 {...fadeUp(0.25)} style={{ fontFamily:SERIF, fontWeight:700, fontSize:"1.6rem", color:TEXT, letterSpacing:"-0.03em", marginBottom:"0.75rem" }}>
+      <motion.h2 {...fadeUp(0.25)} style={{ fontFamily:SANS, fontWeight:700, fontSize:"2.1rem", color:ACCENT, letterSpacing:"-0.03em", marginBottom:"0.8rem" }}>
         Microphone access needed
       </motion.h2>
-      <motion.p {...fadeUp(0.35)} style={{ fontFamily:SANS, color:TEXT2, fontSize:"1rem", lineHeight:1.68, maxWidth:360, marginBottom:"2rem" }}>
+      <motion.p {...fadeUp(0.35)} style={{ fontFamily:SANS, color:TEXT2, fontSize:"1.12rem", lineHeight:1.68, maxWidth:420, marginBottom:"2rem" }}>
         We need microphone access to continue. Please allow access in your browser settings and try again.
       </motion.p>
       <motion.button
@@ -838,6 +673,7 @@ export default function OnboardingPage() {
   const [reviewError, setReviewError] = useState(null);
   const [channel, setChannel]       = useState(null);   // "text" | "voice"
   const intakeContextRef            = useRef("");
+  const [savedRecord, setSavedRecord] = useState(null);
 
   const transcriptEndRef = useRef(null);
   const timerRef         = useRef(null);
@@ -870,6 +706,12 @@ export default function OnboardingPage() {
         intakeContextRef.current = context || "";
       } catch (err) {
         console.warn("[Onboarding] context fetch failed, continuing:", err);
+      }
+      // Powers the record panel shown beside both interview channels.
+      try {
+        setSavedRecord(await fetchStudentRecord(user.id));
+      } catch (err) {
+        console.warn("[Onboarding] record fetch failed, continuing:", err);
       }
       setPhase("channel");
     } catch (err) {
@@ -1123,19 +965,20 @@ export default function OnboardingPage() {
       <AnimatePresence mode="wait">
         {phase === "form" && (
           <div key="form" style={{ flex: 1, overflowY: "auto", padding: "2.5rem 0 3rem" }}>
-            <IntakeForm initial={intake} onComplete={handleFormComplete} submitting={savingForm} />
+            <IntakeForm initial={intake} onComplete={handleFormComplete} submitting={savingForm} isMobile={isMobile} />
           </div>
         )}
         {phase === "channel" && (
           <ChannelPhase key="channel" retryNotice={retryNotice}
             onPick={(c) => {
               setChannel(c); setRetryNotice(null);
-              if (c === "voice") { setPhase("intro"); } else { setPhase("text-interview"); }
+              setPhase(c === "voice" ? "voice-confirm" : "text-interview");
             }} />
         )}
         {phase === "text-interview" && (
           <div key="text-interview" style={{ flex: 1, minHeight: 0, display: "flex", padding: "2rem 0 1.5rem" }}>
             <TextInterview
+              record={savedRecord} isMobile={isMobile}
               onFinish={(transcriptText) => runExtraction(transcriptText, "text", true)}
               onError={(msg) => { setError(msg); setPhase("error"); }}
             />
@@ -1147,12 +990,15 @@ export default function OnboardingPage() {
               committing={committing} error={reviewError} />
           </div>
         )}
-        {phase === "intro"      && <IntroPhase      key="intro"      onStart={startConversation} loading={startingConv} retryNotice={retryNotice}/>}
-        {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} transcriptEndRef={transcriptEndRef}/>}
+        {phase === "voice-confirm" && (
+          <VoiceConfirmPhase key="voice-confirm" onStart={startConversation} loading={startingConv}
+            onBack={() => { setChannel("text"); setPhase("text-interview"); }} />
+        )}
+        {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} transcriptEndRef={transcriptEndRef} record={savedRecord} isMobile={isMobile}/>}
         {phase === "processing" && <ProcessingPhase key="processing"/>}
         {phase === "recovery"   && <RecoveryPhase   key="recovery"   onRetryExtraction={() => { const a = lastAttemptRef.current; return runExtraction(a.transcript, a.via, a.force); }} onRetry={() => { setPhase("channel"); }}/>}
         {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("channel"); }}/>}
-        {phase === "mic-denied" && <MicDeniedPhase  key="mic-denied" onRetry={() => setPhase("intro")}/>}
+        {phase === "mic-denied" && <MicDeniedPhase  key="mic-denied" onRetry={() => setPhase("voice-confirm")}/>}
       </AnimatePresence>
     </div>
   );

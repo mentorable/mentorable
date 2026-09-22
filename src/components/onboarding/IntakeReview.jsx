@@ -1,12 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 
-const SANS   = "'Raleway', sans-serif";
-const TEXT   = "#0e1019";
-const TEXT2  = "#4b5470";
-const TEXT3  = "#5b6188";
-const ACCENT = "#1d4ed8";
-const BORDER = "rgba(59,91,252,0.18)";
+import { SANS, TEXT, TEXT2, TEXT3, ACCENT, BORDER, eyebrowStyle, titleStyle } from "./intakeTheme.js";
 
 const TIMINGS = [
   { value: "school_year", label: "School year" },
@@ -15,8 +10,8 @@ const TIMINGS = [
 ];
 
 const inputStyle = {
-  width: "100%", fontFamily: SANS, fontSize: "0.95rem", color: TEXT,
-  border: `1.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px",
+  width: "100%", fontFamily: SANS, fontSize: "1.02rem", color: TEXT,
+  border: `1.5px solid ${BORDER}`, borderRadius: 11, padding: "12px 14px",
   outline: "none", background: "#fff", boxSizing: "border-box",
 };
 
@@ -38,10 +33,10 @@ function CharCount({ value, max }) {
 function Section({ title, hint, children }) {
   return (
     <div style={{ marginBottom: "1.6rem" }}>
-      <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: TEXT, marginBottom: hint ? 4 : 10 }}>
+      <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.2rem", color: TEXT, marginBottom: hint ? 5 : 12 }}>
         {title}
       </h2>
-      {hint && <p style={{ fontFamily: SANS, fontSize: "0.85rem", color: TEXT3, lineHeight: 1.5, marginBottom: 10 }}>{hint}</p>}
+      {hint && <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT3, lineHeight: 1.55, marginBottom: 12 }}>{hint}</p>}
       {children}
     </div>
   );
@@ -78,7 +73,7 @@ function EditableList({ items, onChange, placeholder }) {
  */
 export default function IntakeReview({ draft, activities, onConfirm, committing, error }) {
   const [d, setD] = useState(() => ({
-    theme: "", theme_evidence: [], major_reasoning: "", concerns: [], gaps: [],
+    theme: "", theme_evidence: [], concerns: [], gaps: [],
     student_voice: [], summary: "", enriched_activities: [], ...(draft || {}),
   }));
   const set = (patch) => setD((prev) => ({ ...prev, ...patch }));
@@ -95,32 +90,25 @@ export default function IntakeReview({ draft, activities, onConfirm, committing,
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}
-      style={{ width: "100%", maxWidth: 680, margin: "0 auto", padding: "0 1.25rem" }}
+      style={{ width: "100%", maxWidth: 820, margin: "0 auto", padding: "0 1.5rem" }}
     >
-      <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.9rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: "0.5rem" }}>
-        Here's what we heard
-      </h1>
-      <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT2, lineHeight: 1.6, marginBottom: "1.75rem" }}>
+      <p style={eyebrowStyle}>Almost done</p>
+      <h1 style={titleStyle}>Here's what we heard</h1>
+      <p style={{ fontFamily: SANS, fontSize: "1.12rem", color: TEXT2, lineHeight: 1.6, marginBottom: "2rem" }}>
         We filled some of this in from the conversation, so check it before we save. Anything here can be edited now or later.
       </p>
 
-      <div style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 18, padding: "1.6rem", boxShadow: "0 2px 12px rgba(15,23,42,0.05)" }}>
+      <div style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 22, padding: "2rem", boxShadow: "0 2px 16px rgba(15,23,42,0.06)" }}>
 
-        <Section title="Your through-line" hint="The thread we think connects what you've done.">
+        <Section title="Your through-line" hint="What we think connects your activities. Reword it if we read it wrong.">
           <textarea value={d.theme} onChange={(e) => set({ theme: e.target.value })} rows={2}
             style={{ ...inputStyle, resize: "vertical" }}
             onFocus={(e) => (e.target.style.borderColor = ACCENT)} />
         </Section>
 
-        <Section title="Why these majors">
-          <textarea value={d.major_reasoning} onChange={(e) => set({ major_reasoning: e.target.value })} rows={3}
-            style={{ ...inputStyle, resize: "vertical" }}
-            onFocus={(e) => (e.target.style.borderColor = ACCENT)} />
-        </Section>
-
         {d.enriched_activities.length > 0 && (
-          <Section title="Your strongest activities"
-            hint="We wrote these in Common App format. Hours and roles were inferred, so correct anything that's off.">
+          <Section title="What you told us about"
+            hint="We wrote these up in Common App format. Hours and roles were inferred from the conversation, so fix anything that's off.">
             <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
               {d.enriched_activities.map((a, i) => (
                 <div key={a.id || i} style={{ border: `1px solid ${BORDER}`, borderRadius: 13, padding: "13px 14px", background: "rgba(59,91,252,0.025)" }}>
@@ -130,7 +118,7 @@ export default function IntakeReview({ draft, activities, onConfirm, committing,
                     </span>
                     <button type="button" onClick={() => dropActivity(i)}
                       style={{ fontFamily: SANS, fontSize: "0.78rem", fontWeight: 700, color: TEXT3, background: "none", border: "none", cursor: "pointer" }}>
-                      Not a highlight
+                      Remove
                     </button>
                   </div>
 
@@ -239,10 +227,10 @@ export default function IntakeReview({ draft, activities, onConfirm, committing,
 
       <button type="button" onClick={() => onConfirm(d)} disabled={committing}
         style={{
-          width: "100%", fontFamily: SANS, fontSize: "1rem", fontWeight: 700,
-          cursor: committing ? "default" : "pointer", padding: "15px", borderRadius: 12,
-          border: "none", marginTop: "1.5rem", background: ACCENT, color: "#fff",
-          boxShadow: "0 6px 20px rgba(29,78,216,0.28)",
+          width: "100%", fontFamily: SANS, fontSize: "1.1rem", fontWeight: 700,
+          cursor: committing ? "default" : "pointer", padding: "17px", borderRadius: 14,
+          border: "none", marginTop: "1.75rem", background: ACCENT, color: "#fff",
+          boxShadow: "0 8px 24px rgba(29,78,216,0.3)",
         }}>
         {committing ? "Saving…" : "Looks right, save it"}
       </button>

@@ -133,3 +133,25 @@ export async function fetchActivities(userId) {
     .eq("user_id", userId).order("order_index");
   return data || [];
 }
+
+/** The whole saved record, for the live panel on the interview screens. */
+export async function fetchStudentRecord(userId) {
+  const rows = (table, cols, order) =>
+    supabase.from(table).select(cols).eq("user_id", userId).order(order);
+
+  const [activities, awards, courses, scores, profile] = await Promise.all([
+    rows("student_activities", "id, title, detail_level", "order_index"),
+    rows("student_awards", "id, title", "order_index"),
+    rows("student_courses", "id, name, level", "order_index"),
+    rows("student_test_scores", "id, test_type, score, subject", "test_type"),
+    supabase.from("profiles").select("candidate_majors, target_colleges").eq("id", userId).single(),
+  ]);
+
+  return {
+    activities: activities.data || [],
+    awards:     awards.data || [],
+    courses:    courses.data || [],
+    scores:     scores.data || [],
+    profile:    profile.data || {},
+  };
+}

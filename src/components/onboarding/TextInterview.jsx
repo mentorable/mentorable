@@ -1,20 +1,38 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "../../lib/supabase.js";
+import RecordPanel, { sectionsFromRecord } from "./RecordPanel.jsx";
+import {
+  SANS, TEXT, TEXT2, TEXT3, ACCENT, ACCENT2, BORDER,
+  eyebrowStyle, titleStyle,
+} from "./intakeTheme.js";
 
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
-
-const SANS   = "'Raleway', sans-serif";
-const TEXT   = "#0e1019";
-const TEXT2  = "#4b5470";
-const TEXT3  = "#5b6188";
-const ACCENT = "#1d4ed8";
-const BORDER = "rgba(59,91,252,0.18)";
 
 // The interviewer is prompted to wrap by ~9 exchanges; this is the hard stop.
 const MAX_EXCHANGES = 12;
 
-export default function TextInterview({ onFinish, onError }) {
+function Logo() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: "1.5rem" }}>
+      <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.1rem", color: TEXT, letterSpacing: "-0.04em" }}>
+        mentorable
+      </span>
+      <motion.span
+        animate={{ scale: [1, 1.35, 1], opacity: [1, 0.7, 1] }}
+        transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          width: 7, height: 7, borderRadius: "50%",
+          background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
+          display: "inline-block", flexShrink: 0,
+          boxShadow: `0 0 10px ${ACCENT}60`,
+        }}
+      />
+    </div>
+  );
+}
+
+export default function TextInterview({ onFinish, onError, record, isMobile }) {
   const [messages, setMessages] = useState([]);   // {role, content}
   const [draft, setDraft] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -30,7 +48,6 @@ export default function TextInterview({ onFinish, onError }) {
 
   const send = useCallback(async (history) => {
     setStreaming(true);
-    // Placeholder the stream fills in.
     setMessages((m) => [...m, { role: "assistant", content: "" }]);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -76,14 +93,13 @@ export default function TextInterview({ onFinish, onError }) {
       if (!acc.trim()) throw new Error("The interviewer didn't respond. Please try again.");
     } catch (err) {
       console.error("[TextInterview]", err);
-      setMessages((m) => m.slice(0, -1));   // drop the empty placeholder
+      setMessages((m) => m.slice(0, -1));
       onError?.(err.message || "The interview hit a snag. Please try again.");
     } finally {
       setStreaming(false);
     }
   }, [onError]);
 
-  // Kick off the opening question once.
   useEffect(() => {
     if (started) return;
     setStarted(true);
@@ -108,101 +124,112 @@ export default function TextInterview({ onFinish, onError }) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
-      style={{ width: "100%", maxWidth: 680, margin: "0 auto", padding: "0 1.25rem",
-               display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}
-    >
-      <div style={{ textAlign: "center", marginBottom: "1.25rem" }}>
-        <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.5rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: 5 }}>
-          Let's talk it through
+    <div style={{
+      display: "flex", gap: "2.5rem", alignItems: "stretch",
+      width: "100%", maxWidth: 1240, margin: "0 auto", padding: "0 1.5rem",
+      flexDirection: isMobile ? "column" : "row",
+      minHeight: 0, flex: 1,
+    }}>
+      {/* ── Left: the conversation ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+        style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
+
+        <Logo />
+        <p style={eyebrowStyle}>A quick chat</p>
+        <h1 style={{ ...titleStyle, fontSize: "2.3rem", marginBottom: "0.5rem" }}>
+          Tell us more about what you do
         </h1>
-        <p style={{ fontFamily: SANS, fontSize: "0.92rem", color: TEXT2 }}>
-          A few questions about what you've done and why it matters to you.
+        <p style={{ fontFamily: SANS, fontSize: "1.05rem", color: TEXT2, lineHeight: 1.6, marginBottom: "1.6rem" }}>
+          Quick questions about the activities and awards you listed. Short answers are fine.
         </p>
-      </div>
 
-      {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", minHeight: 0, paddingRight: 4 }}>
-        {messages.map((m, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", marginBottom: 14 }}>
-            <div style={{
-              maxWidth: "85%", fontFamily: SANS, fontSize: "1rem", lineHeight: 1.6,
-              padding: "12px 16px", borderRadius: 16,
-              background: m.role === "user" ? ACCENT : "#fff",
-              color: m.role === "user" ? "#fff" : TEXT,
-              border: m.role === "user" ? "none" : `1px solid ${BORDER}`,
-              whiteSpace: "pre-wrap",
-            }}>
-              {m.content || (
-                <span style={{ display: "inline-flex", gap: 4 }}>
-                  {[0, 1, 2].map((d) => (
-                    <motion.span key={d}
-                      animate={{ opacity: [0.25, 1, 0.25] }}
-                      transition={{ duration: 1.1, repeat: Infinity, delay: d * 0.18 }}
-                      style={{ width: 6, height: 6, borderRadius: "50%", background: TEXT3 }} />
-                  ))}
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
-        <div ref={endRef} />
-      </div>
-
-      {/* Composer */}
-      <div style={{ paddingTop: 12 }}>
-        {atLimit ? (
-          <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT2, textAlign: "center", marginBottom: 11 }}>
-            That's everything we need.
-          </p>
-        ) : (
-          <div style={{ display: "flex", gap: 9, alignItems: "flex-end" }}>
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
-              placeholder="Type your answer…"
-              rows={1}
-              disabled={streaming}
-              style={{
-                flex: 1, fontFamily: SANS, fontSize: "1rem", color: TEXT, lineHeight: 1.5,
-                border: `1.5px solid ${BORDER}`, borderRadius: 13, padding: "12px 14px",
-                outline: "none", resize: "none", background: "#fff", maxHeight: 140,
-              }}
-              onFocus={(e) => (e.target.style.borderColor = ACCENT)}
-              onBlur={(e) => (e.target.style.borderColor = BORDER)}
-            />
-            <button type="button" onClick={submit} disabled={!draft.trim() || streaming}
-              style={{
-                fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700,
-                cursor: draft.trim() && !streaming ? "pointer" : "not-allowed",
-                padding: "13px 20px", borderRadius: 13, border: "none",
-                background: draft.trim() && !streaming ? ACCENT : "#c7d2e8", color: "#fff",
+        <div style={{ flex: 1, overflowY: "auto", minHeight: 160, paddingRight: 4 }}>
+          {messages.map((m, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", marginBottom: 16 }}>
+              <div style={{
+                maxWidth: "85%", fontFamily: SANS, fontSize: "1.05rem", lineHeight: 1.6,
+                padding: "14px 18px", borderRadius: 18,
+                background: m.role === "user" ? ACCENT : "#fff",
+                color: m.role === "user" ? "#fff" : TEXT,
+                border: m.role === "user" ? "none" : `1px solid ${BORDER}`,
+                boxShadow: m.role === "user" ? "0 4px 16px rgba(29,78,216,0.25)" : "0 1px 6px rgba(15,23,42,0.05)",
+                whiteSpace: "pre-wrap",
               }}>
-              Send
+                {m.content || (
+                  <span style={{ display: "inline-flex", gap: 5 }}>
+                    {[0, 1, 2].map((d) => (
+                      <motion.span key={d}
+                        animate={{ opacity: [0.25, 1, 0.25] }}
+                        transition={{ duration: 1.1, repeat: Infinity, delay: d * 0.18 }}
+                        style={{ width: 7, height: 7, borderRadius: "50%", background: TEXT3 }} />
+                    ))}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+          <div ref={endRef} />
+        </div>
+
+        <div style={{ paddingTop: 14 }}>
+          {atLimit ? (
+            <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT2, textAlign: "center", marginBottom: 13 }}>
+              That's everything we need.
+            </p>
+          ) : (
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
+                placeholder="Type your answer…"
+                rows={1}
+                disabled={streaming}
+                style={{
+                  flex: 1, fontFamily: SANS, fontSize: "1.05rem", color: TEXT, lineHeight: 1.5,
+                  border: `1.5px solid ${BORDER}`, borderRadius: 14, padding: "14px 16px",
+                  outline: "none", resize: "none", background: "#fff", maxHeight: 160,
+                }}
+                onFocus={(e) => (e.target.style.borderColor = ACCENT)}
+                onBlur={(e) => (e.target.style.borderColor = BORDER)}
+              />
+              <button type="button" onClick={submit} disabled={!draft.trim() || streaming}
+                style={{
+                  fontFamily: SANS, fontSize: "1.02rem", fontWeight: 700,
+                  cursor: draft.trim() && !streaming ? "pointer" : "not-allowed",
+                  padding: "15px 24px", borderRadius: 14, border: "none",
+                  background: draft.trim() && !streaming ? ACCENT : "#c7d2e8", color: "#fff",
+                }}>
+                Send
+              </button>
+            </div>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 13, gap: 12, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT3 }}>
+              {exchanges} of {MAX_EXCHANGES} answers
+            </span>
+            <button type="button" onClick={finish} disabled={streaming || exchanges === 0}
+              style={{
+                fontFamily: SANS, fontSize: "0.98rem", fontWeight: 700,
+                cursor: streaming || exchanges === 0 ? "not-allowed" : "pointer",
+                background: atLimit ? ACCENT : "none",
+                color: atLimit ? "#fff" : TEXT2,
+                border: atLimit ? "none" : `1.5px solid ${BORDER}`,
+                padding: "11px 22px", borderRadius: 12,
+                opacity: exchanges === 0 ? 0.5 : 1,
+              }}>
+              {atLimit ? "See what we found" : "I'm done, wrap up"}
             </button>
           </div>
-        )}
-
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 11, gap: 10, flexWrap: "wrap" }}>
-          <span style={{ fontFamily: SANS, fontSize: "0.82rem", color: TEXT3 }}>
-            {exchanges} of {MAX_EXCHANGES} answers
-          </span>
-          <button type="button" onClick={finish} disabled={streaming || exchanges === 0}
-            style={{
-              fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700,
-              cursor: streaming || exchanges === 0 ? "not-allowed" : "pointer",
-              background: atLimit ? ACCENT : "none",
-              color: atLimit ? "#fff" : TEXT2,
-              border: atLimit ? "none" : `1.5px solid ${BORDER}`,
-              padding: "9px 18px", borderRadius: 11,
-              opacity: exchanges === 0 ? 0.5 : 1,
-            }}>
-            {atLimit ? "See what we found" : "I'm done, wrap up"}
-          </button>
         </div>
+      </motion.div>
+
+      {/* ── Right: their record, so they can see what we're asking about ── */}
+      <div style={{ flex: isMobile ? "1 1 auto" : "0 0 340px", width: "100%", maxWidth: isMobile ? "none" : 340 }}>
+        <RecordPanel sections={sectionsFromRecord(record)} sticky={!isMobile} />
       </div>
-    </motion.div>
+    </div>
   );
 }
