@@ -7,18 +7,13 @@ nothing is persisted here. Saving happens client-side (direct Supabase insert)
 after the user confirms in the review modal.
 """
 import io
-import json
 import logging
 import re
 
-from anthropic import AsyncAnthropic
-
-from app.config import ANTHROPIC_API_KEY
+from app.llm import json_completion
+from app.models import PORTFOLIO_UPLOAD_FALLBACK, PORTFOLIO_UPLOAD_MODEL
 
 logger = logging.getLogger(__name__)
-
-_anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-HAIKU = "claude-haiku-4-5-20251001"
 
 # Upload only feeds the ECs/Awards tab, so every extracted row is one of these
 # two kinds. Academics (GPA, scores, courses) is typed in, not parsed.
@@ -70,20 +65,6 @@ def extract_file_text(filename: str, content: bytes) -> str:
     return text[:MAX_TEXT_CHARS]
 
 
-def _parse_items(text: str):
-    """Permissive JSON parse: direct, then first [...] block. Returns list or None."""
-    for candidate in (text, *(m.group(0) for m in [re.search(r"\[[\s\S]*\]", text)] if m)):
-        try:
-            parsed = json.loads(candidate)
-            if isinstance(parsed, list):
-                return parsed
-            if isinstance(parsed, dict) and isinstance(parsed.get("items"), list):
-                return parsed["items"]
-        except Exception:
-            continue
-    return None
-
-
 EXTRACTION_PROMPT = """You extract a student's extracurriculars and awards from their resume, activity list, or brag sheet.
 
 Pull out every distinct activity (clubs, sports, jobs, internships, volunteering, research, projects, leadership roles) and every distinct award or honor.
@@ -104,12 +85,43 @@ Rules:
 - Never use em dashes anywhere. Use commas or periods instead.
 - Return at most {max_items} items, the most substantive ones.
 
-Return ONLY a valid JSON array, no other text, no markdown, no backticks:
-[{{"kind": "activity", "title": "...", "position": null, "organization": null, "hours_per_week": null, "weeks_per_year": null, "grade_levels": [], "description": "..."}},
- {{"kind": "award", "title": "...", "level": null, "year": null, "description": "..."}}]
+Return an object with one key, "items", holding the list.
 
 DOCUMENT:
 {document}"""
+
+
+# Strict mode wants every property required and no extras, so fields that do not
+# apply to a kind (level/year on an activity) are sent as null rather than
+# omitted. The normaliser below drops them per kind.
+ITEMS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "items": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "kind":           {"type": "string", "enum": KINDS},
+                    "title":          {"type": "string"},
+                    "description":    {"type": "string"},
+                    "position":       {"type": ["string", "null"]},
+                    "organization":   {"type": ["string", "null"]},
+                    "hours_per_week": {"type": ["number", "null"]},
+                    "weeks_per_year": {"type": ["number", "null"]},
+                    "grade_levels":   {"type": "array", "items": {"type": "integer"}},
+                    "level":          {"type": ["string", "null"], "enum": [*AWARD_LEVELS, None]},
+                    "year":           {"type": ["integer", "null"]},
+                },
+                "required": ["kind", "title", "description", "position", "organization",
+                             "hours_per_week", "weeks_per_year", "grade_levels", "level", "year"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["items"],
+    "additionalProperties": False,
+}
 
 
 async def extract_portfolio_items(document: str) -> list[dict]:
@@ -119,20 +131,24 @@ async def extract_portfolio_items(document: str) -> list[dict]:
     (File reading/validation lives in extract_file_text so the endpoint can
     reject bad files BEFORE burning a rate-limited upload.)
     """
-    resp = await _anthropic.messages.create(
-        model=HAIKU,
+    result = await json_completion(
+        prompt=EXTRACTION_PROMPT.format(max_items=MAX_ITEMS, document=document),
+        schema=ITEMS_SCHEMA,
+        schema_name="portfolio_items",
+        openai_model=PORTFOLIO_UPLOAD_MODEL,
+        anthropic_model=PORTFOLIO_UPLOAD_FALLBACK,
         max_tokens=4000,
-        messages=[{
-            "role": "user",
-            "content": EXTRACTION_PROMPT.format(max_items=MAX_ITEMS, document=document),
-        }],
     )
-    raw = resp.content[0].text if resp.content else ""
-    if resp.stop_reason == "max_tokens":
-        logger.warning("[portfolio] extraction truncated at max_tokens")
-    parsed = _parse_items(raw)
-    if parsed is None:
-        logger.warning(f"[portfolio] extraction parse failed: {raw[:200]!r}")
+    # A bare list is still accepted: the Anthropic fallback is not schema-bound,
+    # so it can answer with the array instead of the wrapper object.
+    if isinstance(result, dict):
+        parsed = result.get("items")
+    elif isinstance(result, list):
+        parsed = result
+    else:
+        parsed = None
+    if not isinstance(parsed, list):
+        logger.warning("[portfolio] extraction returned nothing usable")
         raise ValueError("Could not extract items from that file. Try again or add pieces manually.")
 
     def num(v, lo, hi):

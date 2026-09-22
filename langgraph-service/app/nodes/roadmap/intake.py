@@ -17,11 +17,11 @@ from anthropic import AsyncAnthropic
 
 from app.config import ANTHROPIC_API_KEY
 from app.db.supabase import get_supabase
+from app.models import HAIKU
 
 logger = logging.getLogger(__name__)
 
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-HAIKU = "claude-haiku-4-5-20251001"
 
 
 def _parse_json(text: str, fallback):

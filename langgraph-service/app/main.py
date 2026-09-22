@@ -16,6 +16,7 @@ from app.posthog_client import posthog_client
 from app.db.checkpointer import get_checkpointer, lifespan_checkpointer, checkpointer_status
 from app.db.supabase import get_supabase
 from app.graphs.chat import create_chat_graph
+from app.models import CHAT_MODEL, INTERVIEW_MODEL
 from app.nodes.chat.extract_signals import extract_signals
 from app.nodes.chat.tools import CHAT_TOOLS, execute_chat_tool, WRITE_TOOLS, TOOL_VERB
 from app.nodes.onboarding.intake import (
@@ -166,7 +167,7 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
             while True:
                 turn_text = ""
                 async with _anthropic.messages.stream(
-                    model="claude-sonnet-4-6",
+                    model=CHAT_MODEL,
                     max_tokens=2048,
                     # Cache the tools+system prefix: it's stable across a session's messages,
                     # so messages 2..N pay ~10% on the prefix instead of full price (demo cost).
@@ -737,7 +738,7 @@ async def onboarding_interview(raw: Request, user_id: str = Depends(verify_jwt))
     async def generate():
         try:
             async with _anthropic.messages.stream(
-                model="claude-sonnet-4-6",
+                model=INTERVIEW_MODEL,
                 max_tokens=1024,
                 # The system prefix is stable for the whole interview, so later turns
                 # pay ~10% on it instead of full price.

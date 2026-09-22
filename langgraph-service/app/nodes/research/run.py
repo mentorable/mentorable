@@ -25,11 +25,11 @@ from app.config import ANTHROPIC_API_KEY, BRAVE_API_KEY
 from app.db.supabase import get_supabase
 from app.scoring import award_axis
 from app.nodes.memory.synthesize import maybe_refresh_living_profile
+from app.models import SONNET
 
 logger = logging.getLogger(__name__)
 
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-SONNET = "claude-sonnet-4-6"
 TOP_N  = 3   # pages fetched + deeply enriched (was 5) — demo cost
 
 

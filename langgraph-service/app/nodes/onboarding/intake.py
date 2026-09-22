@@ -28,11 +28,11 @@ from anthropic import AsyncAnthropic
 
 from app.config import ANTHROPIC_API_KEY
 from app.db.supabase import get_supabase
+from app.models import SONNET
 
 logger = logging.getLogger(__name__)
 
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-SONNET = "claude-sonnet-4-6"
 
 # Common App activity categories, plus a catch-all.
 ACTIVITY_CATEGORIES = [

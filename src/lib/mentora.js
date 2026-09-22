@@ -61,14 +61,19 @@ export async function streamChatResponse({ history, onChunk, onDone, onEvent, no
       if (!line.startsWith("data: ")) continue;
       const data = line.slice(6);
       if (data === "[DONE]") break;
+      // `parsed` is declared out here on purpose. It used to be a const inside
+      // the try, which put it out of scope in the catch that referenced it, so
+      // a malformed chunk raised "parsed is not defined" and a server-sent
+      // error surfaced as that instead of its own message.
+      let parsed;
       try {
-        const parsed = JSON.parse(data);
-        if (parsed.text) { fullText += parsed.text; onChunk(parsed.text); }
-        if (parsed.event && onEvent) onEvent(parsed);
-        if (parsed.error) throw new Error(parsed.error);
-      } catch (e) {
-        if (e.message === parsed?.error) throw e;
+        parsed = JSON.parse(data);
+      } catch {
+        continue;   // a chunk split mid-JSON; the next read completes it
       }
+      if (parsed.error) throw new Error(parsed.error);
+      if (parsed.text) { fullText += parsed.text; onChunk(parsed.text); }
+      if (parsed.event && onEvent) onEvent(parsed);
     }
   }
 

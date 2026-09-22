@@ -17,6 +17,7 @@ from anthropic import AsyncAnthropic
 
 from app.config import ANTHROPIC_API_KEY
 from app.db.supabase import get_supabase
+from app.models import SONNET
 from app.nodes.roadmap.generate import (
     _parse_json, _month_label, _coerce_pillar, _coerce_axis, _coerce_depth, _safe_int,
 )
@@ -24,7 +25,6 @@ from app.nodes.roadmap.generate import (
 logger = logging.getLogger(__name__)
 
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-SONNET = "claude-sonnet-4-6"
 
 
 async def generate_phase(user_id: str, roadmap_id: str, phase_index: int) -> dict:

@@ -15,11 +15,11 @@ from anthropic import AsyncAnthropic
 from app.config import ANTHROPIC_API_KEY
 from app.db.supabase import get_supabase
 from app.nodes.memory.synthesize import maybe_refresh_living_profile
+from app.models import SONNET
 
 logger = logging.getLogger(__name__)
 
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-SONNET = "claude-sonnet-4-6"
 
 _AXES = {"communication", "leadership", "technicality", "resourcefulness", "execution"}
 
