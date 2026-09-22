@@ -42,6 +42,11 @@ from app.scoring import award_axis
 logger = logging.getLogger(__name__)
 
 _anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+
+# Put between an assistant turn that called a tool and the turn that follows it,
+# so the two do not run together in the client's rendered text. A blank line
+# rather than a space, because the model treats each turn as its own paragraph.
+TURN_SEPARATOR = "\n\n"
 chat_graph = None  # initialised in lifespan
 
 
@@ -156,7 +161,7 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
 
     async def generate():
         conversation: list[dict] = list(normalized)
-        final_text = ""
+        full_text = ""
         try:
             # Tool-use loop: stream text, and if the model calls a tool, run it,
             # feed the result back, and continue so it can confirm to the student.
@@ -176,11 +181,17 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
                     tools=CHAT_TOOLS,
                 ) as stream:
                     async for text in stream.text_stream:
+                        # First text of a turn that follows a tool call. The client
+                        # appends raw chunks, so without a separator the previous
+                        # turn's last character runs straight into this one's first:
+                        # "...all the changes at once.Got all the IDs."
+                        if not turn_text and full_text:
+                            full_text += TURN_SEPARATOR
+                            yield "data: " + json.dumps({"text": TURN_SEPARATOR}) + "\n\n"
                         turn_text += text
+                        full_text += text
                         yield f"data: {json.dumps({'text': text})}\n\n"
                     final_message = await stream.get_final_message()
-
-                final_text = turn_text
 
                 if final_message.stop_reason != "tool_use":
                     break
@@ -215,7 +226,7 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
             yield "data: [DONE]\n\n"
 
             # Fire-and-forget signal extraction. Pass a clean text-only transcript.
-            transcript = normalized + [{"role": "assistant", "content": final_text}]
+            transcript = normalized + [{"role": "assistant", "content": full_text}]
             asyncio.create_task(extract_signals(user_id, transcript))
 
             # (The scorecard's Communication award used to fire here. The 5 career
