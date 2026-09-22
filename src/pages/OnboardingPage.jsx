@@ -656,6 +656,7 @@ function RecoveryPhase({ onRetryExtraction, onRetry }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function OnboardingPage() {
+  const isMobile = useIsMobile();
   const [phase, setPhase]               = useState("loading");
   const [transcript, setTranscript]     = useState([]);
   const [elapsed, setElapsed]           = useState(0);
