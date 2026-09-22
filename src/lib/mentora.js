@@ -11,29 +11,6 @@ function sanitizeInput(text) {
 // the frontend no longer constructs it. This must be set in every environment.
 const LANGGRAPH_CHAT_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
-// ─── Onboarding extraction ────────────────────────────────────────────────────
-// Calls FastAPI POST /onboarding/extract. Returns { sufficient, success?, profile?, error? }.
-export async function extractProfile({ transcript, force = false }) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Not authenticated");
-
-  const res = await fetch(`${LANGGRAPH_CHAT_URL}/onboarding/extract`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify({ transcript, force }),
-  });
-
-  if (!res.ok) {
-    let detail = res.statusText;
-    try { const j = await res.json(); detail = j.detail || j.error || detail; } catch {}
-    throw new Error(`Profile extraction failed (${res.status}): ${detail}`);
-  }
-  return res.json();
-}
-
 export async function streamChatResponse({ history, onChunk, onDone, onEvent, nodeId }) {
   const anthropicMessages = history
     .filter((m) => m.content && m.content.trim())

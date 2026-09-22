@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
-from typing import Any, Optional
+from typing import Optional
 
 from anthropic import AsyncAnthropic
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
@@ -18,7 +18,6 @@ from app.db.supabase import get_supabase
 from app.graphs.chat import create_chat_graph
 from app.nodes.chat.extract_signals import extract_signals
 from app.nodes.chat.tools import CHAT_TOOLS, execute_chat_tool, WRITE_TOOLS, TOOL_VERB
-from app.nodes.onboarding.extract import extract_profile
 from app.nodes.onboarding.intake import (
     INTERVIEW_SYSTEM,
     commit_intake,
@@ -37,7 +36,6 @@ from app.nodes.roadmap.reflect import reflect_on_phase
 from app.nodes.roadmap.expand import expand_node
 from app.nodes.roadmap.intake import generate_intake_questions
 from app.rate_limit import check_rate_limit, refund_usage
-from app.scoring import award_axis
 
 logger = logging.getLogger(__name__)
 
@@ -686,30 +684,6 @@ async def portfolio_resume_pdf(raw: Request, user_id: str = Depends(verify_jwt))
         media_type="application/pdf",
         headers={"Content-Disposition": 'attachment; filename="resume.pdf"'},
     )
-
-
-@app.post("/onboarding/extract")
-async def onboarding_extract(raw: Request, user_id: str = Depends(verify_jwt)):
-    try:
-        body = await raw.json()
-    except Exception:
-        body = {}
-
-    transcript = (body.get("transcript") or "").strip()
-    force = bool(body.get("force"))
-    # user_id comes from the verified JWT — body userId (if any) is ignored for safety.
-
-    try:
-        result = await extract_profile(user_id, transcript, force=force)
-        posthog_client.capture(
-            "onboarding_completed",
-            distinct_id=user_id,
-            properties={"transcript_length": len(transcript), "forced": force},
-        )
-        return result
-    except Exception as exc:
-        logger.error(f"[onboarding] Unexpected error for {user_id}: {exc}")
-        raise HTTPException(status_code=500, detail="Profile extraction failed")
 
 
 # ── College application intake ────────────────────────────────────────────────
