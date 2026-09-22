@@ -869,9 +869,6 @@ export default function PortfolioPage({ navigate }) {
     <div data-sidebar-offset style={pagePad}>
       <div style={{ maxWidth: 900, margin: "0 auto", width: "100%" }}>
 
-        <p style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.02em", color: TEXT, marginBottom: 9 }}>
-          Your record
-        </p>
         <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "2.4rem", color: accent, letterSpacing: "-0.03em", marginBottom: "0.6rem" }}>
           Portfolio
         </h1>

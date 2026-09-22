@@ -38,11 +38,20 @@ export async function fetchRecord(userId) {
 const nextIndex = (list) =>
   list.reduce((max, r) => Math.max(max, r.order_index ?? 0), -1) + 1;
 
+// student_test_scores has no order_index column (it's ordered by test_type
+// instead), unlike activities/awards/courses. Inserting the column into a
+// table that doesn't have it fails the whole insert.
+const ORDERED_TABLES = new Set(["student_activities", "student_awards", "student_courses"]);
+
 /** Insert one row, returning it so the caller can splice it into state. */
 export async function addRow(table, userId, values, existing = []) {
   const { data, error } = await supabase
     .from(table)
-    .insert({ user_id: userId, order_index: nextIndex(existing), ...values })
+    .insert({
+      user_id: userId,
+      ...(ORDERED_TABLES.has(table) ? { order_index: nextIndex(existing) } : {}),
+      ...values,
+    })
     .select().single();
   if (error) throw error;
   return data;
