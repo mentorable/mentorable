@@ -19,9 +19,8 @@ silently become the foundation of every later recommendation.
 See .claude/COLLEGE_PIVOT.md.
 """
 import asyncio
-import json
 import logging
-import re
+import math
 from datetime import datetime, timezone
 
 from anthropic import AsyncAnthropic
@@ -62,20 +61,6 @@ async def _create_with_retry(**kwargs):
             if attempt < 2:
                 await asyncio.sleep(0.8 * (2 ** attempt))
     raise last
-
-
-def _parse_json(text: str):
-    try:
-        return json.loads(text)
-    except Exception:
-        pass
-    match = re.search(r"\{[\s\S]*\}", text)
-    if match:
-        try:
-            return json.loads(match.group(0))
-        except Exception:
-            pass
-    return None
 
 
 # ── Record loading ────────────────────────────────────────────────────────────
@@ -222,11 +207,12 @@ THE STUDENT'S FORM DATA:
 
 EXTRACTION_PROMPT = """You are extracting a college application profile from a conversation between a student and Mentorable's interviewer.
 
-Return ONLY valid JSON, no other text, no markdown, no backticks.
+Record the result by calling the save_intake_draft tool.
 
 You are given the student's form data (facts they typed, which are TRUE and must not be contradicted) and the conversation transcript.
 
 RULES:
+- A short or low-effort conversation is normal. Students skip questions, give one-word answers, or end early. Extract whatever is there and leave the rest empty: an empty string or empty list is a correct answer, not a failure. Always call the tool, however little the student said.
 - Only enrich activities that already exist in the form data. Match them by title. Never invent an activity the student did not list. Use the EXACT `id` given for each activity.
 - Enrich every activity that was actually discussed in the transcript, no matter how many. Leave anything not discussed alone rather than guessing at it.
 - "description" must be at most 150 characters, written in the compressed, impact-first style the Common App activities section uses. Lead with what they did and the concrete result. No filler, no first person pronouns where they can be dropped.
@@ -240,29 +226,6 @@ RULES:
 - "gaps" are honest, specific things missing from their application given what they are aiming at. This is the most useful field, do not soften it.
 - "student_voice" is short phrases the student actually said, pulled verbatim, that capture how they talk about themselves. These get used later for essay work, so pick distinctive phrasing, not generic statements.
 - "summary" is 2-3 warm but honest sentences about who this student is. Never use em dashes.
-
-{{
-  "theme": "one sentence",
-  "theme_evidence": ["..."],
-  "concerns": ["..."],
-  "gaps": ["..."],
-  "student_voice": ["verbatim phrases"],
-  "summary": "2-3 sentences",
-  "enriched_activities": [
-    {{
-      "id": "the exact id from the form data",
-      "category": "one of the Common App categories",
-      "position": "<=50 chars",
-      "organization": "<=100 chars",
-      "description": "<=150 chars",
-      "grade_levels": [9, 10],
-      "timing": "school_year | summer | all_year",
-      "hours_per_week": 5,
-      "weeks_per_year": 30,
-      "continue_in_college": false
-    }}
-  ]
-}}
 
 VALID CATEGORIES: {categories}
 
@@ -296,12 +259,22 @@ def _clean_enriched(raw, valid_ids: set) -> list:
             continue  # never let the model invent activities, or double-enrich one
         seen.add(aid)
 
-        grades = [g for g in (item.get("grade_levels") or []) if g in (9, 10, 11, 12)]
+        raw_grades = item.get("grade_levels")
+        grades = []
+        for g in (raw_grades if isinstance(raw_grades, list) else []):
+            try:
+                g = int(g)
+            except (TypeError, ValueError):
+                continue
+            if g in (9, 10, 11, 12):
+                grades.append(g)
 
         def num(key, lo, hi):
             try:
                 v = float(item.get(key))
             except (TypeError, ValueError):
+                return None
+            if not math.isfinite(v):
                 return None
             return max(lo, min(hi, v))
 
@@ -321,8 +294,56 @@ def _clean_enriched(raw, valid_ids: set) -> list:
     return out
 
 
+def _str(raw) -> str:
+    return raw.strip() if isinstance(raw, str) else ""
+
+
 def _str_list(raw) -> list:
-    return [str(x).strip() for x in (raw if isinstance(raw, list) else []) if str(x).strip()]
+    return [x.strip() for x in (raw if isinstance(raw, list) else []) if isinstance(x, str) and x.strip()]
+
+
+_STR_LIST = {"type": "array", "items": {"type": "string"}}
+
+# Forcing the reply through a tool call means it always arrives as a parsed
+# object. Asking for JSON in plain text let a thin transcript get a prose reply
+# ("there isn't enough here to extract") that failed to parse and stranded the
+# student on an error screen.
+EXTRACTION_TOOL = {
+    "name": "save_intake_draft",
+    "description": "Save the extracted college application profile. Empty strings and empty lists are valid when the conversation did not cover something.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "theme":          {"type": "string"},
+            "theme_evidence": _STR_LIST,
+            "concerns":       _STR_LIST,
+            "gaps":           _STR_LIST,
+            "student_voice":  _STR_LIST,
+            "summary":        {"type": "string"},
+            "enriched_activities": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id":                  {"type": "string"},
+                        "category":            {"type": "string"},
+                        "position":            {"type": "string"},
+                        "organization":        {"type": "string"},
+                        "description":         {"type": "string"},
+                        "grade_levels":        {"type": "array", "items": {"type": "integer"}},
+                        "timing":              {"type": "string", "description": "school_year, summer, or all_year"},
+                        "hours_per_week":      {"description": "a number, or null if the student did not say"},
+                        "weeks_per_year":      {"description": "a number, or null if the student did not say"},
+                        "continue_in_college": {"type": "boolean"},
+                    },
+                    "required": ["id"],
+                },
+            },
+        },
+        "required": ["theme", "theme_evidence", "concerns", "gaps", "student_voice",
+                     "summary", "enriched_activities"],
+    },
+}
 
 
 # An empty draft: what a student gets when there was nothing to extract. They
@@ -336,7 +357,9 @@ EMPTY_DRAFT = {
 async def extract_intake(user_id: str, transcript: str, channel: str = "text") -> dict:
     """Turn the interview into a reviewable draft. Never raises.
 
-    Returns {success, draft?, error?}. The draft is stored on
+    Returns {success, draft?, error?}. It only fails when the model is
+    unreachable; a thin or unusable reply becomes an empty draft instead, so a
+    student who gave short answers or ended early still reaches review. The draft is stored on
     profiles.intake_draft and is NOT committed until the student confirms it.
 
     There is deliberately no sufficiency gate. One used to ask Haiku whether the
@@ -347,23 +370,47 @@ async def extract_intake(user_id: str, transcript: str, channel: str = "text") -
     interview that happened is always worth extracting, and a thin result is
     better shown on the review screen than thrown away.
     """
-    supabase = get_supabase()
     transcript = (transcript or "").strip()
+    fields = dict(EMPTY_DRAFT)
 
     if len(transcript) < 40:
-        # Nothing worth an extraction call, but never send them backwards.
         logger.info(f"[intake] transcript too short to extract for {user_id}; empty draft")
-        draft = {**EMPTY_DRAFT, "channel": channel,
-                 "extracted_at": datetime.now(timezone.utc).isoformat()}
+    else:
         try:
-            supabase.from_("profiles").update({
-                "intake_draft": draft, "intake_channel": channel,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            }).eq("id", user_id).execute()
-        except Exception as exc:
-            logger.warning(f"[intake] short-draft save failed for {user_id}: {exc}")
-        return {"success": True, "draft": draft}
+            fields = await _extract_fields(user_id, transcript)
+        except ExtractionUnavailable as exc:
+            # The one case worth an error screen: the model could not be reached
+            # at all. The transcript is still in the browser, so retrying works.
+            logger.error(f"[intake] extraction call failed for {user_id}: {exc}")
+            return {"success": False,
+                    "error": "AI service is temporarily unavailable. Please try again in a moment."}
+        except Exception:
+            # Anything else is a bad reply, not an outage. The student still gets
+            # the review screen, where every field is editable anyway.
+            logger.exception(f"[intake] extraction failed for {user_id}; continuing with an empty draft")
 
+    draft = {**fields, "channel": channel, "extracted_at": datetime.now(timezone.utc).isoformat()}
+
+    try:
+        get_supabase().from_("profiles").update({
+            "intake_draft":   draft,
+            "intake_channel": channel,
+            "updated_at":     datetime.now(timezone.utc).isoformat(),
+        }).eq("id", user_id).execute()
+    except Exception as exc:
+        # Not fatal: commit takes the draft from the review screen's request, so
+        # this saved copy only matters if the student refreshes mid-review.
+        logger.error(f"[intake] draft save failed for {user_id}: {exc}")
+
+    logger.info(f"[intake] draft ready for {user_id} ({len(draft['enriched_activities'])} enriched)")
+    return {"success": True, "draft": draft}
+
+
+class ExtractionUnavailable(Exception):
+    """The model could not be reached, as opposed to replying with something unusable."""
+
+
+async def _extract_fields(user_id: str, transcript: str) -> dict:
     record = load_student_record(user_id)
     activities = record.get("activities") or []
     activity_index = "\n".join(
@@ -381,42 +428,33 @@ async def extract_intake(user_id: str, transcript: str, channel: str = "text") -
     try:
         message = await _create_with_retry(
             model=SONNET, max_tokens=3000,
+            tools=[EXTRACTION_TOOL],
+            tool_choice={"type": "tool", "name": EXTRACTION_TOOL["name"]},
             messages=[{"role": "user", "content": prompt}],
         )
     except Exception as exc:
-        logger.error(f"[intake] extraction call failed for {user_id}: {exc}")
-        return {"success": False,
-                "error": "AI service is temporarily unavailable. Please try again in a moment."}
+        raise ExtractionUnavailable(str(exc)) from exc
 
-    parsed = _parse_json(message.content[0].text if message.content else "")
-    if parsed is None:
-        logger.error(f"[intake] JSON parse failed for {user_id}")
-        return {"success": False, "error": "Failed to parse the interview result"}
+    if getattr(message, "stop_reason", None) == "max_tokens":
+        logger.warning(f"[intake] extraction truncated at max_tokens for {user_id}")
 
-    draft = {
-        "theme":            str(parsed.get("theme") or "").strip(),
-        "theme_evidence":   _str_list(parsed.get("theme_evidence")),
-        "concerns":         _str_list(parsed.get("concerns")),
-        "gaps":             _str_list(parsed.get("gaps")),
-        "student_voice":    _str_list(parsed.get("student_voice")),
-        "summary":          str(parsed.get("summary") or "").strip(),
+    parsed = next(
+        (b.input for b in (message.content or []) if getattr(b, "type", None) == "tool_use"),
+        None,
+    )
+    if not isinstance(parsed, dict):
+        logger.warning(f"[intake] no usable tool call for {user_id}; empty draft")
+        return dict(EMPTY_DRAFT)
+
+    return {
+        "theme":               _str(parsed.get("theme")),
+        "theme_evidence":      _str_list(parsed.get("theme_evidence")),
+        "concerns":            _str_list(parsed.get("concerns")),
+        "gaps":                _str_list(parsed.get("gaps")),
+        "student_voice":       _str_list(parsed.get("student_voice")),
+        "summary":             _str(parsed.get("summary")),
         "enriched_activities": _clean_enriched(parsed.get("enriched_activities"), valid_ids),
-        "channel":          channel,
-        "extracted_at":     datetime.now(timezone.utc).isoformat(),
     }
-
-    try:
-        supabase.from_("profiles").update({
-            "intake_draft":   draft,
-            "intake_channel": channel,
-            "updated_at":     datetime.now(timezone.utc).isoformat(),
-        }).eq("id", user_id).execute()
-    except Exception as exc:
-        logger.error(f"[intake] draft save failed for {user_id}: {exc}")
-        return {"success": False, "error": str(exc)}
-
-    logger.info(f"[intake] draft ready for {user_id} ({len(draft['enriched_activities'])} enriched)")
-    return {"success": True, "draft": draft}
 
 
 async def commit_intake(user_id: str, draft: dict, channel: str | None = None) -> dict:
