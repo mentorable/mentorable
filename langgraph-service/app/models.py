@@ -38,3 +38,15 @@ PORTFOLIO_UPLOAD_FALLBACK = HAIKU
 # The cheapest tier available is the right call here.
 CHAT_SIGNALS_MODEL    = GPT_NANO
 CHAT_SIGNALS_FALLBACK = HAIKU
+
+# Quest. The plan, the suggestions and the portfolio draft happen a few times
+# per quest and shape everything after them, so they get the stronger model.
+# The daily task and the check-in reply run every day for every active student,
+# so they get the cheap one. Haiku rather than gpt-5-mini: mini's reasoning
+# tokens make its saving unproven (scripts/check_openai.py), and these are
+# short replies a student reads, where Haiku is plenty.
+QUEST_PLAN_MODEL    = SONNET
+QUEST_SUGGEST_MODEL = SONNET
+QUEST_DRAFT_MODEL   = SONNET
+QUEST_TASK_MODEL    = HAIKU
+QUEST_CHECKIN_MODEL = HAIKU

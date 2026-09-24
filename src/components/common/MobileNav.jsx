@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import FeedbackModal from "./FeedbackModal.jsx";
 import { useTheme } from "../../lib/ThemeContext.jsx";
 import { isEnabled } from "../../lib/features.js";
+import { useQuest } from "../../lib/QuestContext.jsx";
+import { Flame } from "../quest/questUi.jsx";
 
 const FONT = "'Raleway', sans-serif";
 
@@ -73,6 +75,26 @@ const NAV_ITEMS = [
   },
 ];
 
+// The Quest tab carries the streak on phones, where there is no sidebar: a
+// flame that is lit once today's task is done, with the day count on it.
+function QuestTabIcon({ active }) {
+  const { summary } = useQuest();
+  const lit = !!summary && ["done", "rest"].includes(summary.today_state);
+  const streak = summary?.streak || 0;
+  return (
+    <span style={{ position: "relative", display: "inline-flex", opacity: active || lit ? 1 : 0.8 }}>
+      <Flame size={24} lit={lit} />
+      {streak > 0 && (
+        <span style={{
+          position: "absolute", right: -9, top: -5, minWidth: 16, height: 16, borderRadius: 99, padding: "0 4px",
+          background: lit ? "var(--accent)" : "#8a877f", color: "#fff", fontFamily: FONT, fontWeight: 800,
+          fontSize: 10, lineHeight: "16px", textAlign: "center", boxSizing: "border-box",
+        }}>{streak}</span>
+      )}
+    </span>
+  );
+}
+
 export default function MobileNav({ activePath, navigate }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { accent, accentRgb } = useTheme();
@@ -130,7 +152,7 @@ export default function MobileNav({ activePath, navigate }) {
               minWidth: 44, minHeight: 44,
             }}
           >
-            {item.icon(isActive)}
+            {item.key === "quest" ? <QuestTabIcon active={isActive} /> : item.icon(isActive)}
             <span style={{
               fontFamily: FONT,
               fontSize: 9,

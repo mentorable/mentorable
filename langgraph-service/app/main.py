@@ -18,7 +18,7 @@ from app.db.supabase import get_supabase
 from app.graphs.chat import create_chat_graph
 from app.models import CHAT_MODEL, INTERVIEW_MODEL
 from app.nodes.chat.extract_signals import extract_signals
-from app.nodes.chat.tools import CHAT_TOOLS, execute_chat_tool, WRITE_TOOLS, TOOL_VERB
+from app.nodes.chat.tools import CHAT_TOOLS, execute_chat_tool, WRITE_TOOLS, QUEST_WRITE_TOOLS, TOOL_VERB
 from app.nodes.onboarding.intake import (
     INTERVIEW_SYSTEM,
     commit_intake,
@@ -28,7 +28,6 @@ from app.nodes.onboarding.intake import (
 )
 from app.nodes.portfolio.extract import extract_file_text, extract_portfolio_items
 from app.nodes.portfolio.resume import PdfEngineUnavailable, build_resume_tex, compile_tex_to_pdf
-from app.nodes.quest.generate import generate_quest_items
 from app.nodes.scorecard.improve import improve_axis
 from app.nodes.research.run import run_research
 from app.nodes.roadmap.generate import generate_roadmap
@@ -37,6 +36,7 @@ from app.nodes.roadmap.reflect import reflect_on_phase
 from app.nodes.roadmap.expand import expand_node
 from app.nodes.roadmap.intake import generate_intake_questions
 from app.rate_limit import check_rate_limit, refund_usage
+from app.routers.quest import router as quest_router
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Mentorable LangGraph Service",
-    description="Agentic backend for Mentorable — chat, research, quest graphs",
+    description="Agentic backend for Mentorable: the advisor chat, onboarding, portfolio and Quest",
     version="0.2.0",
     lifespan=lifespan,
 )
@@ -79,6 +79,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Quest: the daily streak loop. Its endpoints live in their own router because
+# this file was already long enough to hide a missing variable.
+app.include_router(quest_router)
 
 
 # ── Health ─────────────────────────────────────────────────────────────────────
@@ -214,6 +218,17 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
                             "portfolio_changed_via_chat", distinct_id=user_id,
                             properties={"tool": block.name, "kind": result.get("kind")},
                         )
+                    elif result.get("success") and block.name in QUEST_WRITE_TOOLS:
+                        # The nav streak chip and the Quest page listen for this.
+                        yield "data: " + json.dumps({
+                            "event": "quest_changed",
+                            "verb":  TOOL_VERB.get(block.name, "Updated"),
+                            "item":  result,
+                        }) + "\n\n"
+                        posthog_client.capture(
+                            "quest_changed_via_chat", distinct_id=user_id,
+                            properties={"tool": block.name, "changed": result.get("changed")},
+                        )
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
@@ -307,33 +322,6 @@ async def research(raw: Request, user_id: str = Depends(verify_jwt)):
             "X-Accel-Buffering": "no",
         },
     )
-
-
-@app.post("/quests/generate")
-async def quests_generate(raw: Request, user_id: str = Depends(verify_jwt)):
-    try:
-        body = await raw.json()
-    except Exception:
-        body = {}
-
-    count = int(body.get("count") or 3)
-    count = max(1, min(count, 5))
-
-    await check_rate_limit(user_id, "quest_gen")
-
-    try:
-        result = await generate_quest_items(user_id, count)
-        posthog_client.capture(
-            "quests_generated",
-            distinct_id=user_id,
-            properties={"quest_count": count},
-        )
-        return result
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
-    except Exception as exc:
-        logger.error(f"[quest_gen] Unexpected error for {user_id}: {exc}")
-        raise HTTPException(status_code=500, detail="Quest generation failed")
 
 
 @app.post("/scorecard/improve")

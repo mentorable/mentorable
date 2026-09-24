@@ -10,6 +10,7 @@ import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import Drawer from "../components/common/Drawer.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { useTheme } from "../lib/ThemeContext.jsx";
+import { useQuest } from "../lib/QuestContext.jsx";
 import { runResearch, summarizeResearchForHistory, ResearchLimitError } from "../lib/research.js";
 import { ResultCard, SourcesSection } from "../components/common/ResearchResults.jsx";
 
@@ -645,7 +646,7 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
           Good {timeOfDay}{firstName ? `, ${firstName}` : ""}.
         </h2>
         <p style={{ fontFamily: SG, fontSize: 19, color: "#494742", fontWeight: 500, maxWidth: 460, lineHeight: 1.65 }}>
-          What's on your mind? Ask about your Quest, career options, or anything you're working through.
+          What's on your mind? Ask about your applications, your quest, or anything you're working through.
         </p>
       </motion.div>
 
@@ -944,9 +945,6 @@ export default function ChatPage({ navigate, seedNode }) {
   const [user, setUser]               = useState(null);
   const [profile, setProfile]         = useState(() => getCache(`profile:${getKnownUserId()}`) || null);
   const [displayName, setDisplayName] = useState(() => getCache(`profile:${getKnownUserId()}`)?.full_name || getStoredName());
-  const [completedQuests, setCompletedQuests] = useState(() => getCache(`completed_quests:${getKnownUserId()}`) || []);
-  const [activeQuests, setActiveQuests]       = useState(() => getCache(`active_quests:${getKnownUserId()}`) || []);
-  const [deletedQuestTitles, setDeletedQuestTitles] = useState(() => getCache(`deleted_quest_titles:${getKnownUserId()}`) || []);
   const [recentResearch, setRecentResearch]   = useState(() => getCache(`recent_research:${getKnownUserId()}`) || []);
   const [sessions, setSessions]       = useState(() => getCache(`chat_sessions:${getKnownUserId()}`) || []);
   const [activeChatId, setActiveChatId] = useState(() => getActiveChat(getKnownUserId()));
@@ -960,8 +958,9 @@ export default function ChatPage({ navigate, seedNode }) {
   const [researchMode, setResearchMode] = useState(false);
   const [researching, setResearching] = useState(false);
   const [limitModal, setLimitModal]   = useState(null);
-  const [questToast, setQuestToast]   = useState(null);
-  const questToastTimer = useRef(null);
+  const [recordToast, setRecordToast] = useState(null);   // { verb, title, where }
+  const recordToastTimer = useRef(null);
+  const { refresh: refreshQuest } = useQuest();
   const isMobile = useIsMobile();
 
   const skipHydrationRef = useRef(false);
@@ -983,15 +982,10 @@ export default function ChatPage({ navigate, seedNode }) {
       setUser(data.user);
       setKnownUserId(uid);
 
-      const [sessionsRes, profileRes, allQuestsRes, researchRes] = await Promise.all([
+      const [sessionsRes, profileRes, researchRes] = await Promise.all([
         supabase.from("chat_sessions").select("id, title, messages, created_at, updated_at, roadmap_node_id")
           .eq("user_id", uid).order("updated_at", { ascending: false }),
         supabase.from("profiles").select("*").eq("id", uid).single(),
-        supabase.from("quest_items")
-          .select("title, category, status, completed_at")
-          .eq("user_id", uid)
-          .in("status", ["completed", "in_progress", "considered", "deleted"])
-          .order("completed_at", { ascending: false }),
         supabase.from("research_sessions")
           .select("query")
           .eq("user_id", uid)
@@ -1001,14 +995,6 @@ export default function ChatPage({ navigate, seedNode }) {
 
       if (sessionsRes.data)  { setSessions(sessionsRes.data); setCache(`chat_sessions:${uid}`, sessionsRes.data); }
       if (profileRes.data)   { setProfile(profileRes.data);   setCache(`profile:${uid}`, profileRes.data); if (profileRes.data.full_name) { setDisplayName(profileRes.data.full_name); storeName(profileRes.data.full_name); } }
-      if (allQuestsRes.data) {
-        const completed = allQuestsRes.data.filter(q => q.status === "completed");
-        const active    = allQuestsRes.data.filter(q => ["in_progress", "considered"].includes(q.status));
-        const deleted   = allQuestsRes.data.filter(q => q.status === "deleted").map(q => q.title);
-        setCompletedQuests(completed);    setCache(`completed_quests:${uid}`, completed);
-        setActiveQuests(active);          setCache(`active_quests:${uid}`, active);
-        setDeletedQuestTitles(deleted);   setCache(`deleted_quest_titles:${uid}`, deleted);
-      }
       if (researchRes.data) {
         const queries = researchRes.data.map(r => r.query).filter(Boolean);
         setRecentResearch(queries);       setCache(`recent_research:${uid}`, queries);
@@ -1138,11 +1124,14 @@ export default function ChatPage({ navigate, seedNode }) {
         onEvent: (evt) => {
           // The agent edits the same record the Portfolio page shows, so every
           // write it makes is confirmed here rather than only in its own prose.
-          if (evt.event === "portfolio_changed" && evt.item?.title) {
-            setQuestToast({ verb: evt.verb || "Updated", title: evt.item.title });
-            if (questToastTimer.current) clearTimeout(questToastTimer.current);
-            questToastTimer.current = setTimeout(() => setQuestToast(null), 5000);
+          const where = evt.event === "portfolio_changed" ? "portfolio" : evt.event === "quest_changed" ? "quest" : null;
+          if (where && evt.item?.title) {
+            setRecordToast({ verb: evt.verb || "Updated", title: evt.item.title, where });
+            if (recordToastTimer.current) clearTimeout(recordToastTimer.current);
+            recordToastTimer.current = setTimeout(() => setRecordToast(null), 5000);
           }
+          // A reshaped or retired quest changes the streak chip in the nav.
+          if (where === "quest") refreshQuest();
         },
         onDone: async (fullText) => {
           const aiMsgFinal  = { ...aiMsgBase, content: fullText, streaming: false };
@@ -1265,11 +1254,11 @@ export default function ChatPage({ navigate, seedNode }) {
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb),0.15); border-radius: 99px; }
         ${STREAMING_CSS}
-        @keyframes questToastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes recordToastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes spinner-rotate { to { transform: rotate(360deg); } }
       `}</style>
 
-      {questToast && (
+      {recordToast && (
         <div
           style={{
             position: "fixed",
@@ -1287,12 +1276,14 @@ export default function ChatPage({ navigate, seedNode }) {
             boxShadow: "0 8px 24px rgba(var(--accent-rgb),0.32)",
             fontFamily: "'Raleway', sans-serif",
             fontSize: 14,
-            animation: "questToastIn 0.25s ease",
+            animation: "recordToastIn 0.25s ease",
           }}
         >
           <span style={{ fontSize: 16 }}>✓</span>
           <span>
-            {questToast.verb} <strong>{questToast.title}</strong> in your Portfolio
+            {recordToast.where === "quest"
+              ? <>{recordToast.verb} your quest <strong>{recordToast.title}</strong></>
+              : <>{recordToast.verb} <strong>{recordToast.title}</strong> in your Portfolio</>}
           </span>
         </div>
       )}

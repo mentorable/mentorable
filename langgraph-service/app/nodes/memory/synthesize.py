@@ -2,8 +2,9 @@
 Living profile — evolving user memory.
 
 Re-synthesizes a focused, current picture of the student from the frozen
-onboarding baseline + recent activity (completed quests, axis-score gains,
-research, chat signals). Recent reality wins; the baseline is never touched, so
+onboarding baseline + recent activity (axis-score gains, research, chat
+signals). It used to read the legacy quest_items board too; that was removed
+with the Quest v2 rebuild, since that table is being retired. Recent reality wins; the baseline is never touched, so
 pivots surface in `momentum`. See .claude/MEMORY_REDESIGN.md.
 
 Trigger model: milestone + lazy. award_axis_points increments
@@ -77,15 +78,6 @@ async def synthesize_living_profile(user_id: str) -> None:
         prev_living = p.get("living_profile") or {}
         synced_at = p.get("living_synced_at")
 
-        # Recent completed quests
-        quests_res = (
-            supabase.from_("quest_items")
-            .select("title, category, target_axis, completed_at")
-            .eq("user_id", user_id).eq("status", "completed")
-            .order("completed_at", desc=True).limit(15).execute()
-        )
-        completed = quests_res.data or []
-
         # Axis movements since last sync
         ev_q = supabase.from_("score_events").select("axis, delta, reason, created_at").eq("user_id", user_id)
         if synced_at:
@@ -111,10 +103,6 @@ async def synthesize_living_profile(user_id: str) -> None:
         if p.get("motivations"):        baseline.append(f"Motivations: {', '.join(p['motivations'])}")
 
         activity = []
-        if completed:
-            activity.append("Completed quests (newest first):\n" + "\n".join(
-                f"- {q.get('title','')} [{q.get('target_axis','')}/{q.get('category','')}]" for q in completed
-            ))
         if events:
             agg = {}
             for e in events:

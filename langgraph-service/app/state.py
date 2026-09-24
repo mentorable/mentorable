@@ -41,20 +41,9 @@ class ResearchFinding(TypedDict):
     found_at: str       # ISO timestamp
 
 
-class QuestItem(TypedDict, total=False):
-    id: str
-    title: str
-    description: str
-    category: str       # Project | Research | Application | Learning | Other
-    estimated_time: str
-    difficulty: str     # Easy | Medium | Hard
-    why_it_matters: str
-    status: str         # suggested | considered | in_progress | completed | deleted
-
-
 class StudentState(TypedDict, total=False):
     """
-    Shared working context across all three LangGraph graphs.
+    Shared working context for the LangGraph graphs.
 
     Supabase is the source of truth for persistent data.
     This state holds the assembled session-scoped snapshot — it is
@@ -63,7 +52,6 @@ class StudentState(TypedDict, total=False):
     Thread IDs:
       chat:     {user_id}_chat
       research: {user_id}_research
-      quest:    {user_id}_quest
     """
 
     # ── Identity ──────────────────────────────────────────────────────────────
@@ -75,17 +63,14 @@ class StudentState(TypedDict, total=False):
 
     # ── Accumulated memory (active updates only — written to Supabase on key events)
     research_findings: list[ResearchFinding]   # top findings from research sessions
-    quest_signals: list[str]                   # observations from completed quest batches
     chat_signals: list[str]                    # signals extracted from chat sessions (Haiku)
 
     # ── Active context (re-fetched from Supabase each request) ────────────────
-    active_quests: list[QuestItem]
     recent_research_queries: list[str]
 
     # ── Intermediate results (ephemeral — per-request, not persisted) ─────────
     current_response: Optional[str]
     research_results: Optional[list[dict[str, Any]]]
-    generated_quests: Optional[list[QuestItem]]
 
     # ── Chat graph internals (passed between load_context → build_prompt) ─────
     # LangGraph only carries keys declared here from one node to the next, and
@@ -96,7 +81,7 @@ class StudentState(TypedDict, total=False):
     _awards: list[dict[str, Any]]
     _courses: list[dict[str, Any]]
     _scores: list[dict[str, Any]]
-    _completed_quests: list[dict[str, Any]]
+    _quest: Optional[dict[str, Any]]
     _deleted_titles: list[str]
     _recent_research: list[str]
     _chat_topics: list[str]

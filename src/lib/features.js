@@ -1,18 +1,21 @@
 /**
  * Feature flags for the college application pivot.
  *
- * Quest, Roadmap and Research were built for career guidance and need a real
- * redesign for the college domain (quests become application tasks, the roadmap
- * becomes an application timeline). They stay parked rather than half-migrated,
- * so they aren't rewired twice.
+ * Quest is live again, rebuilt from scratch as a daily-streak loop: one
+ * project, a small task every scheduled day. It shares nothing with the old
+ * career-era quest board but the name.
+ *
+ * Roadmap and Research were built for career guidance and need a real redesign
+ * for the college domain (the roadmap becomes an application timeline). They
+ * stay parked rather than half-migrated, so they aren't rewired twice.
  *
  * The Scorecard's 5 career axes don't map to admissions at all, so it's off
  * entirely rather than parked.
  *
- * See .claude/COLLEGE_PIVOT.md.
+ * See .claude/COLLEGE_PIVOT.md and .claude/QUEST_PLAN.md.
  */
 export const FEATURES = {
-  quest:     false,
+  quest:     true,
   roadmap:   false,
   research:  false,
   scorecard: false,
@@ -22,8 +25,11 @@ export const FEATURES = {
 
 export const isEnabled = (key) => FEATURES[key] !== false;
 
-/** Where a returning student lands after login. */
-export const HOME_PATH = "/chat";
+/**
+ * Where a returning student lands after login: today's quest step, since the
+ * daily habit is what brings them back.
+ */
+export const HOME_PATH = "/quest";
 
 /**
  * Where a student lands the moment onboarding finishes.

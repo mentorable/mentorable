@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 LIMITS = {
     "chat": 8,
     "research": 2,
-    "quest_gen": 3,
     "axis_boost": 5,
     "roadmap_gen": 1,    # the one-time broad outline
     "phase_gen": 5,      # per-phase node generation (sequential)
@@ -24,7 +23,6 @@ LIMITS = {
 _USAGE_COLUMN = {
     "chat": "chat_messages_used",
     "research": "research_queries_used",
-    "quest_gen": "quest_generations_used",
     "axis_boost": "axis_boosts_used",
     "roadmap_gen": "roadmap_generations_used",
     "phase_gen": "phase_generations_used",

@@ -6,16 +6,17 @@ so the prompt always reflects what the Portfolio page currently shows. Nothing
 here is cached: the student can edit their record mid-conversation (from the
 Portfolio page or through a chat tool) and the next turn must see it.
 
-Quest, roadmap and research context used to be loaded here too. Those features
-are parked behind FEATURES flags pending a college-domain redesign (see
-src/lib/features.js), so loading them meant four dead queries per request and
-four prompt sections about a product the student cannot reach. They come back
-with the features, rebuilt for admissions rather than careers.
+The student's Quest (the daily-streak project) is loaded too, so the advisor can
+talk about it and reshape it. Roadmap and research context are not: those
+features are parked behind FEATURES flags (src/lib/features.js), and loading
+them would mean dead queries and prompt sections about something the student
+cannot reach.
 """
 import logging
 
 from app.state import StudentState
 from app.db.supabase import get_supabase
+from app.nodes.quest.service import brief_for_chat
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ async def load_context(state: StudentState) -> StudentState:
     scores_res  = rows("student_test_scores",
                        "id, test_type, score, subject, section_scores, test_date", "test_type")
 
-    profile = profile_res.data or {}
+    profile = (profile_res.data if profile_res is not None else None) or {}
 
     return {
         **state,
@@ -56,4 +57,6 @@ async def load_context(state: StudentState) -> StudentState:
         "_awards":     awards_res.data or [],
         "_courses":    courses_res.data or [],
         "_scores":     scores_res.data or [],
+        # Never raises: a quest that fails to load just leaves the section out.
+        "_quest":      brief_for_chat(user_id, profile.get("timezone")),
     }

@@ -8,6 +8,8 @@ import Spinner from "../components/common/Spinner.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { useTheme } from "../lib/ThemeContext.jsx";
+import { useQuest } from "../lib/QuestContext.jsx";
+import { isEnabled } from "../lib/features.js";
 import {
   fetchRecord, addRow, updateRow, deleteRow, saveGpa, saveContact,
   addExtracted, generateResume,
@@ -739,6 +741,7 @@ const TABS = [
 export default function PortfolioPage({ navigate }) {
   const isMobile = useIsMobile();
   const { accent } = useTheme();
+  const { summary: questSummary } = useQuest();
   const [phase, setPhase]   = useState("loading");
   const [tab, setTab]       = useState("academics");
   const [userId, setUserId] = useState(null);
@@ -903,6 +906,10 @@ export default function PortfolioPage({ navigate }) {
     </div>;
   }
 
+  // The first quest is offered here, right after onboarding, once the student
+  // has seen their record. Hidden for anyone who has had one before.
+  const questNudge = isEnabled("quest") && questSummary && !questSummary.ever && !questSummary.has_quest;
+
   const ecCount = record.activities.length + record.awards.length;
   const acCount = record.courses.length + record.scores.length;
   const exportsLeft = Math.max(0, LIMITS.resume_export - exportsUsed);
@@ -926,6 +933,25 @@ export default function PortfolioPage({ navigate }) {
             chat page
           </button>.
         </p>
+
+        {questNudge && (
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", background: WHITE,
+            border: `2px solid ${accent}`, borderRadius: 16, padding: "1.2rem 1.4rem", marginBottom: "1.5rem" }}>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: TEXT, margin: "0 0 4px" }}>
+                Start your first quest
+              </p>
+              <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.55, margin: 0 }}>
+                Pick one project and move it forward a little every day. We'll suggest a few based on your record.
+              </p>
+            </div>
+            <button onClick={() => navigate("/quest")}
+              style={{ flexShrink: 0, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: "pointer",
+                padding: "11px 18px", borderRadius: 11, border: "none", background: accent, color: WHITE }}>
+              Find a quest
+            </button>
+          </div>
+        )}
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap", marginBottom: "1.5rem" }}>
           <div style={{ display: "flex", gap: 6, background: "rgba(20,20,19,0.04)", borderRadius: 12, padding: 5 }}>

@@ -1,7 +1,6 @@
 export const LIMITS = {
   chat: 8,
   research: 2,
-  quest_gen: 3,
   axis_boost: 5,
   roadmap_gen: 1,
   phase_gen: 5,
@@ -23,7 +22,6 @@ export function remaining(usage, feature) {
   const map = {
     chat: 'chat_messages_used',
     research: 'research_queries_used',
-    quest_gen: 'quest_generations_used',
     axis_boost: 'axis_boosts_used',
     roadmap_gen: 'roadmap_generations_used',
     phase_gen: 'phase_generations_used',

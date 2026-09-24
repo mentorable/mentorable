@@ -17,14 +17,17 @@ Two rules hold everywhere in this module:
     the real Common App limits, so a hallucinated 400-character "description"
     cannot land in a 150-character field.
 
-The add_quest_to_board tool was removed with the college pivot: the quest board
-is parked behind a FEATURES flag, so the model would have been writing rows to a
-board the student has no way to open, then telling them it had.
+The Quest tools (view_quest, update_quest, retire_quest) can reshape the
+student's daily-streak project, but there is deliberately no tool that completes
+a task, awards XP or touches the streak. Those only move when the student checks
+in on the Quest page, so "just mark today done" is not something the model can
+be talked into.
 """
 import logging
 from datetime import datetime, timezone
 
 from app.db.supabase import get_supabase
+from app.nodes.quest.service import brief_for_chat, retire_from_chat, update_from_chat
 
 logger = logging.getLogger(__name__)
 
@@ -270,6 +273,66 @@ CHAT_TOOLS = [
         },
     },
     {
+        "name": "view_quest",
+        "description": (
+            "Read the student's Quest in full: its milestones and where they are, today's task, "
+            "how far behind they are, their streak, and what they said in their recent check-ins. "
+            "A summary is already in your context; call this when you need the detail."
+        ),
+        "input_schema": {"type": "object", "properties": {}, "required": []},
+    },
+    {
+        "name": "update_quest",
+        "description": (
+            "Reshape the student's active or paused Quest when they ask. Pass only what changes. "
+            "You can rename it, change the daily time or rest days, set or clear a fixed deadline, "
+            "and edit milestones by position: titles and descriptions on any milestone that is not "
+            "done, and the number of days only on milestones after the current one. This cannot "
+            "complete tasks, award XP or change the streak, and nothing else can either."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string", "description": "New name for the quest, at most 60 characters."},
+                "summary": {"type": "string", "description": "New one or two sentence summary."},
+                "daily_minutes": {"type": "integer", "enum": [15, 30, 45],
+                                  "description": "Minutes a day the tasks are sized for."},
+                "rest_days": {"type": "array", "items": {"type": "integer"},
+                              "description": "Days off, as 0 = Sunday through 6 = Saturday. At most six."},
+                "hard_deadline": {"type": "string",
+                                  "description": "A fixed deadline as YYYY-MM-DD, or an empty string to clear it."},
+                "milestones": {
+                    "type": "array",
+                    "description": "Edits to milestones, each addressed by its position.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "position": {"type": "integer"},
+                            "title": {"type": "string"},
+                            "description": {"type": "string"},
+                            "days": {"type": "integer", "description": "Work days, 1 to 20."},
+                        },
+                        "required": ["position"],
+                    },
+                },
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "retire_quest",
+        "description": (
+            "End the student's Quest. Only when they clearly say they want to stop it, not when "
+            "they are merely behind (offer to lighten the pace instead). They keep their XP and "
+            "can start a new quest afterwards."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"reason": {"type": "string", "description": "Why, in a few words."}},
+            "required": [],
+        },
+    },
+    {
         "name": "update_gpa",
         "description": (
             "Set the student's GPA, which lives on their profile rather than as a record entry. "
@@ -425,22 +488,47 @@ async def _update_gpa(user_id: str, args: dict) -> dict:
     return {"success": True, "kind": "gpa", "title": "GPA", "changed": sorted(values)}
 
 
+async def _view_quest(user_id: str, args: dict) -> dict:
+    brief = brief_for_chat(user_id, None)
+    if not brief:
+        return {"success": True, "quest": None,
+                "note": "They have no quest right now. They can start one on the Quest page."}
+    return {"success": True, "quest": brief}
+
+
+async def _update_quest(user_id: str, args: dict) -> dict:
+    return update_from_chat(user_id, None, args or {})
+
+
+async def _retire_quest(user_id: str, args: dict) -> dict:
+    result = retire_from_chat(user_id, None)
+    if result.get("success"):
+        logger.info(f"[retire_quest] {user_id} retired their quest: {str(args.get('reason') or '')[:120]}")
+    return result
+
+
 _HANDLERS = {
     "view_portfolio":        _view_portfolio,
     "add_portfolio_item":    _add_portfolio_item,
     "update_portfolio_item": _update_portfolio_item,
     "delete_portfolio_item": _delete_portfolio_item,
     "update_gpa":            _update_gpa,
+    "view_quest":            _view_quest,
+    "update_quest":          _update_quest,
+    "retire_quest":          _retire_quest,
 }
 
 # Which tools changed something the student should see a confirmation for.
 WRITE_TOOLS = {"add_portfolio_item", "update_portfolio_item", "delete_portfolio_item", "update_gpa"}
+QUEST_WRITE_TOOLS = {"update_quest", "retire_quest"}
 
 TOOL_VERB = {
     "add_portfolio_item":    "Added",
     "update_portfolio_item": "Updated",
     "delete_portfolio_item": "Removed",
     "update_gpa":            "Updated",
+    "update_quest":          "Updated",
+    "retire_quest":          "Retired",
 }
 
 

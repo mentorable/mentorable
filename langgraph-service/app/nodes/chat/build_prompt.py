@@ -156,6 +156,58 @@ def _record_sections(profile: dict, data: dict) -> list[str]:
     return out
 
 
+def _quest_section(quest: dict | None) -> str | None:
+    """The student's Quest, if they have one. It is the thing they touch every
+    day, so it is often what they want to talk about."""
+    if not quest:
+        return None
+    status = quest.get("status")
+    lines = []
+    if status == "completed":
+        lines.append(f"They just finished a Quest: **{quest.get('title')}**. {quest.get('summary') or ''}".strip())
+        lines.append(f"- {quest.get('done')} of {quest.get('total')} days done. Streak: {quest.get('streak')} days.")
+        return "## Their Quest\n" + "\n".join(lines)
+
+    lines.append("They are working on a Quest: one project they move forward a little every day, checking in on a small "
+                 "daily task from the Quest page.")
+    lines.append(f"- Quest: **{quest.get('title')}**" + (" (paused)" if status == "paused" else ""))
+    if quest.get("summary"):
+        lines.append(f"- What it builds: {quest['summary']}")
+    rest = ", ".join(quest.get("rest_days") or []) or "none"
+    lines.append(f"- Pace: {quest.get('daily_minutes')} minutes a day. Rest days: {rest}.")
+    lines.append(f"- Progress: {quest.get('done')} of {quest.get('total')} days done."
+                 + (f" Current milestone: {quest['current_milestone']}." if quest.get("current_milestone") else ""))
+    today = quest.get("today_state")
+    if today == "open":
+        lines.append(f"- Today's task (not done yet): {quest.get('today_task') or 'not opened yet'}")
+    elif today == "done":
+        lines.append(f"- Today's task is done: {quest.get('today_task')}")
+    elif today == "blocked":
+        lines.append("- Today's task is locked until they catch up on the milestone before it.")
+    elif today == "rest":
+        lines.append("- Today is a rest day.")
+    if quest.get("backlog"):
+        lines.append(f"- Behind by {quest['backlog']} task{'s' if quest['backlog'] != 1 else ''}.")
+    lines.append(f"- Streak: {quest.get('streak')} days.")
+    if quest.get("projected_finish"):
+        finish = f"- On pace to finish {quest['projected_finish']}"
+        if quest.get("hard_deadline"):
+            finish += f". Fixed deadline: {quest['hard_deadline']}"
+            if quest.get("deadline_risk"):
+                finish += ". At this pace they finish AFTER it. Raise this."
+        lines.append(finish + ".")
+    ms = quest.get("milestones") or []
+    if ms:
+        label = {"done": "done", "current": "in progress", "locked": "not started"}
+        lines.append("Milestones:\n" + "\n".join(
+            f"{m['position']}. {m['title']} ({m['days']} days, {label.get(m['state'], m['state'])})" for m in ms))
+    recent = quest.get("recent") or []
+    if recent:
+        lines.append("What they said on recent tasks, in their words:\n" + "\n".join(
+            f"- On \"{r['task']}\": {r['said']}" for r in recent))
+    return "## Their Quest\n" + "\n".join(lines)
+
+
 ADVISING_RULES = """
 ## How to advise
 
@@ -210,6 +262,22 @@ How to use them:
 - After a successful write, confirm in one short line what changed.
 """
 
+QUEST_CAPABILITY = """
+## Their Quest, and changing it
+
+- `view_quest` reads the whole quest: milestones, progress and what they said in recent check-ins.
+- `update_quest` reshapes it when they ask: rename it, change the daily time (15, 30 or 45 minutes) or the rest days, set or clear a fixed deadline, or edit milestones. Finished milestones cannot change, and only milestones after the current one can change length.
+- `retire_quest` ends the quest. Only when they clearly say they want to stop it. They keep their XP.
+
+How to use them:
+
+- You cannot mark a task done, award XP, clear their backlog or change their streak, and no tool does. If they ask, tell them check-ins happen on the Quest page, where they write a line about what they did.
+- When they ask about today's task, help them start: what done looks like, the first step, how to get unstuck. Do the thinking with them, not the work for them.
+- If they are behind, be matter of fact about it, never disappointed. Offer one concrete way to catch up, or offer to lighten the pace.
+- If their pace puts them past a fixed deadline, say so and offer to trim the milestones that have not started.
+- If they have no quest and want one, send them to the Quest page, where they can pick one or write their own.
+"""
+
 FORMATTING = """
 ## Format
 
@@ -243,8 +311,12 @@ def build_system_prompt(profile: dict, data: dict) -> str:
         parts.append("## Where they are\n" + stage)
 
     parts.extend(_record_sections(profile, data))
+    quest = _quest_section(data.get("quest"))
+    if quest:
+        parts.append(quest)
     parts.append(ADVISING_RULES.strip())
     parts.append(PORTFOLIO_CAPABILITY.strip())
+    parts.append(QUEST_CAPABILITY.strip())
     parts.append(FORMATTING.strip())
 
     prompt = "\n\n".join(parts)
@@ -279,5 +351,6 @@ async def build_prompt(state: StudentState) -> StudentState:
         "awards":     state.get("_awards", []),
         "courses":    state.get("_courses", []),
         "scores":     state.get("_scores", []),
+        "quest":      state.get("_quest"),
     }
     return {**state, "_system_prompt": build_system_prompt(profile, data)}

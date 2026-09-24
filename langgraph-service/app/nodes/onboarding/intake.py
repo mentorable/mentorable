@@ -18,20 +18,15 @@ silently become the foundation of every later recommendation.
 
 See .claude/COLLEGE_PIVOT.md.
 """
-import asyncio
 import logging
 import math
 from datetime import datetime, timezone
 
-from anthropic import AsyncAnthropic
-
-from app.config import ANTHROPIC_API_KEY
 from app.db.supabase import get_supabase
-from app.models import SONNET
+from app.llm import ModelUnavailable, tool_completion
+from app.models import INTAKE_EXTRACTION_MODEL
 
 logger = logging.getLogger(__name__)
-
-_anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
 # Common App activity categories, plus a catch-all.
 ACTIVITY_CATEGORIES = [
@@ -48,19 +43,6 @@ AWARD_LEVELS = ["school", "regional", "state", "national", "international"]
 # No cap on how many activities get enriched: the interview now works through the
 # student's whole list rather than curating a narrative "spike", so extraction
 # enriches whatever was actually discussed. The turn budget bounds this naturally.
-
-
-async def _create_with_retry(**kwargs):
-    """Call Anthropic with a few backoff retries for transient failures."""
-    last = None
-    for attempt in range(3):
-        try:
-            return await _anthropic.messages.create(**kwargs)
-        except Exception as exc:
-            last = exc
-            if attempt < 2:
-                await asyncio.sleep(0.8 * (2 ** attempt))
-    raise last
 
 
 # ── Record loading ────────────────────────────────────────────────────────────
@@ -426,22 +408,13 @@ async def _extract_fields(user_id: str, transcript: str) -> dict:
     )
 
     try:
-        message = await _create_with_retry(
-            model=SONNET, max_tokens=3000,
-            tools=[EXTRACTION_TOOL],
-            tool_choice={"type": "tool", "name": EXTRACTION_TOOL["name"]},
-            messages=[{"role": "user", "content": prompt}],
+        parsed = await tool_completion(
+            model=INTAKE_EXTRACTION_MODEL, prompt=prompt, tool=EXTRACTION_TOOL,
+            max_tokens=3000, label=f"intake_extract {user_id}",
         )
-    except Exception as exc:
+    except ModelUnavailable as exc:
         raise ExtractionUnavailable(str(exc)) from exc
 
-    if getattr(message, "stop_reason", None) == "max_tokens":
-        logger.warning(f"[intake] extraction truncated at max_tokens for {user_id}")
-
-    parsed = next(
-        (b.input for b in (message.content or []) if getattr(b, "type", None) == "tool_use"),
-        None,
-    )
     if not isinstance(parsed, dict):
         logger.warning(f"[intake] no usable tool call for {user_id}; empty draft")
         return dict(EMPTY_DRAFT)

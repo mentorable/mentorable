@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Routes, Route, useNavigate, useParams, useLocation } from "react-router-dom";
 import { supabase } from "./lib/supabase.js";
 import { ThemeProvider } from "./lib/ThemeContext.jsx";
+import { QuestProvider } from "./lib/QuestContext.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import OnboardingPage from "./pages/OnboardingPage.jsx";
@@ -18,7 +19,7 @@ import Sidebar from "./components/common/Sidebar.jsx";
 import MobileNav from "./components/common/MobileNav.jsx";
 import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
-import { HOME_PATH } from "./lib/features.js";
+import { HOME_PATH, isEnabled } from "./lib/features.js";
 import { getValidUser } from "./lib/auth.js";
 
 // Routes that show the persistent sidebar
@@ -72,8 +73,10 @@ function AppShell({ children }) {
     (p) => location.pathname === p || location.pathname.startsWith(p + "/")
   );
 
+  // The streak chip lives in the nav, so the summary is only fetched on the
+  // signed-in pages that show it.
   return (
-    <>
+    <QuestProvider enabled={showSidebar && isEnabled("quest")}>
       {showSidebar && !isMobile && (
         <Sidebar activePath={location.pathname} navigate={navigate} />
       )}
@@ -81,7 +84,7 @@ function AppShell({ children }) {
       {showSidebar && isMobile && (
         <MobileNav activePath={location.pathname} navigate={navigate} />
       )}
-    </>
+    </QuestProvider>
   );
 }
 

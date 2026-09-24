@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import FeedbackModal from "./FeedbackModal.jsx";
 import { useTheme } from "../../lib/ThemeContext.jsx";
 import { isEnabled } from "../../lib/features.js";
+import NavStreakChip from "../quest/NavStreakChip.jsx";
 
 const FONT = "'Raleway', sans-serif";
 export const SIDEBAR_WIDTH = 220;
@@ -20,7 +21,7 @@ const TOP_NAV = [
     key: "quest", label: "Quest", path: "/quest",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        <path d="M12.4 2.2c.4 2.9-1 4.6-2.4 6.2-1.3 1.5-2.6 3-2.6 5.5 0 1.3.4 2.4 1.1 3.3-.5-2.1.4-3.6 1.6-4.8.2 1.4 1 2.3 1.9 2.9.9-2.4.6-4.2 0-5.9 2.9 1.7 5.2 4.4 5.2 7.6 0 3.2-2.7 5.3-6 5.3S5 20.2 5 16.4c0-4.8 3.3-7 5-9.7.8-1.4 1.5-2.9 2.4-4.5Z"/>
       </svg>
     ),
   },
@@ -147,6 +148,7 @@ export default function Sidebar({ activePath, navigate }) {
             flexShrink: 0, marginBottom: 1,
           }} />
         </div>
+        {isEnabled("quest") && <NavStreakChip onClick={() => navigate("/quest")} />}
       </div>
 
       {/* Top nav */}

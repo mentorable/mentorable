@@ -17,6 +17,7 @@ in prose or a markdown fence, or got truncated mid-object, produced a parse
 failure that surfaced to the student as lost work. A schema makes that class of
 failure impossible on the OpenAI path.
 """
+import asyncio
 import json
 import logging
 import re
@@ -188,3 +189,59 @@ async def json_completion(
     except Exception as exc:
         logger.error(f"[llm] {schema_name}: Anthropic call failed: {exc}")
         return None
+
+
+class ModelUnavailable(Exception):
+    """The model could not be reached at all, as opposed to replying badly."""
+
+
+async def tool_completion(
+    *,
+    model: str,
+    prompt: str,
+    tool: dict,
+    max_tokens: int,
+    label: str,
+    system: Optional[str] = None,
+) -> Optional[dict]:
+    """Force one Anthropic tool call and return its input, or None.
+
+    Asking for JSON in plain text let a model answer a thin input in prose
+    ("there isn't enough here to extract") that then failed to parse. Forcing a
+    tool call means the reply always arrives as a parsed object. Callers still
+    type-check every field: the schema guides the model, it does not bind it.
+
+    Retries transient failures a couple of times, then raises ModelUnavailable
+    so the caller can choose between an error and a fallback.
+    """
+    kwargs = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "tools": [tool],
+        "tool_choice": {"type": "tool", "name": tool["name"]},
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    if system:
+        kwargs["system"] = system
+
+    last = None
+    message = None
+    for attempt in range(3):
+        try:
+            message = await _anthropic.messages.create(**kwargs)
+            break
+        except Exception as exc:
+            last = exc
+            if attempt < 2:
+                await asyncio.sleep(0.8 * (2 ** attempt))
+    if message is None:
+        raise ModelUnavailable(str(last)) from last
+
+    if getattr(message, "stop_reason", None) == "max_tokens":
+        logger.warning(f"[llm] {label}: tool reply truncated at max_tokens")
+
+    for block in message.content or []:
+        if getattr(block, "type", None) == "tool_use" and isinstance(getattr(block, "input", None), dict):
+            return block.input
+    logger.warning(f"[llm] {label}: no usable tool call in the reply")
+    return None
