@@ -41,20 +41,30 @@ export function useQuestColors() {
 
 // ─── Flame ────────────────────────────────────────────────────────────────────
 // Real fire colors, never the accent: a blue flame reads as a drop. Below a
-// week the flame is a single tongue with a yellow core; from FLAME_GROWS_AT
-// on it becomes a three-tongue campfire, so a long streak looks like one.
+// week the flame is a sticker (one tongue, a dark outline and solid bottom
+// edge like the raised Quest buttons); from FLAME_GROWS_AT on it becomes a
+// three-tongue campfire, so a long streak looks like one.
 
 export const FLAME_GROWS_AT = 7;
 
-const CLASSIC = [
-  ["M33 3C37 13 51 21 51 39C51 52 43 61 32 61C21 61 13 52 13 40C13 31 18 25 22 20C23 26 25 29 28 31C27 21 29 12 33 3Z", "#FF9600", "#d6d5d2", "body"],
-  ["M32 27C35 34 42 38 42 47C42 54 37 58 32 58C27 58 22 54 22 47C22 41 28 36 32 27Z", "#FFC800", "#e9e8e5", "core"],
-];
-const CAMPFIRE = [
-  ["M32 2C38 12 48 16 50 30C54 26 55 20 54 16C60 24 62 34 60 42C58 54 46 62 32 62C18 62 6 54 4 42C2 32 6 24 11 18C11 24 13 28 16 30C16 18 24 10 32 2Z", "#F2542D", "#cfcecb", "body"],
-  ["M32 15C36 23 44 27 45 37C48 34 49 31 49 28C53 34 54 40 53 45C51 54 43 59 32 59C21 59 13 54 11 45C10 39 12 34 15 30C16 34 18 37 21 38C21 28 26 22 32 15Z", "#FF9A1F", "#dcdbd8", "body"],
-  ["M32 31C35 37 41 41 41 48C41 54 37 58 32 58C27 58 23 54 23 48C23 42 29 38 32 31Z", "#FFD84A", "#eceae7", "core"],
-];
+const TONGUE = "M33 3C37 13 51 21 51 39C51 52 43 61 32 61C21 61 13 52 13 40C13 31 18 25 22 20C23 26 25 29 28 31C27 21 29 12 33 3Z";
+const STICKER = {
+  viewBox: "-3 -3 70 72",
+  layers: [
+    { d: TONGUE, on: "#C24E00", off: "#bdbcb9", transform: "translate(0 4)" },
+    { d: TONGUE, on: "#FF8A00", off: "#d6d5d2", part: "body", stroke: ["#C24E00", "#bdbcb9"] },
+    { d: "M32 27C35 34 42 38 42 47C42 54 37 58 32 58C27 58 22 54 22 47C22 41 28 36 32 27Z", on: "#FFD23F", off: "#eceae7", part: "core" },
+  ],
+  glint: true,
+};
+const CAMPFIRE = {
+  viewBox: "0 0 64 64",
+  layers: [
+    { d: "M32 2C38 12 48 16 50 30C54 26 55 20 54 16C60 24 62 34 60 42C58 54 46 62 32 62C18 62 6 54 4 42C2 32 6 24 11 18C11 24 13 28 16 30C16 18 24 10 32 2Z", on: "#F2542D", off: "#cfcecb", part: "body" },
+    { d: "M32 15C36 23 44 27 45 37C48 34 49 31 49 28C53 34 54 40 53 45C51 54 43 59 32 59C21 59 13 54 11 45C10 39 12 34 15 30C16 34 18 37 21 38C21 28 26 22 32 15Z", on: "#FF9A1F", off: "#dcdbd8", part: "body" },
+    { d: "M32 31C35 37 41 41 41 48C41 54 37 58 32 58C27 58 23 54 23 48C23 42 29 38 32 31Z", on: "#FFD84A", off: "#eceae7", part: "core" },
+  ],
+};
 
 // The body sways from its base and the core breathes on a different beat, so
 // the two never line up and the flame looks alive rather than wobbling.
@@ -65,15 +75,19 @@ const FLICKER = {
 
 export function Flame({ size = 22, lit = true, animate = false, streak = 0 }) {
   const reduce = useReducedMotion();
-  const layers = streak >= FLAME_GROWS_AT ? CAMPFIRE : CLASSIC;
+  const stage = streak >= FLAME_GROWS_AT ? CAMPFIRE : STICKER;
   const move = animate && lit && !reduce;
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" style={{ display: "block", overflow: "visible" }}>
-      {layers.map(([d, on, off, part]) => (
-        <motion.path key={d} d={d} fill={lit ? on : off}
+    <svg width={size} height={size} viewBox={stage.viewBox} aria-hidden="true" style={{ display: "block", overflow: "visible" }}>
+      {stage.layers.map((l, i) => (
+        <motion.path key={i} d={l.d} fill={lit ? l.on : l.off} transform={l.transform}
+          stroke={l.stroke ? l.stroke[lit ? 0 : 1] : undefined} strokeWidth={l.stroke ? 3.5 : undefined} strokeLinejoin="round"
           style={{ transformBox: "fill-box", transformOrigin: "50% 100%" }}
-          {...(move ? FLICKER[part] : {})} />
+          {...(move && l.part ? FLICKER[l.part] : {})} />
       ))}
+      {stage.glint && (
+        <ellipse cx="22" cy="42" rx="3" ry="6" transform="rotate(20 22 42)" fill="#fff" opacity={lit ? 0.7 : 0.5} />
+      )}
     </svg>
   );
 }
