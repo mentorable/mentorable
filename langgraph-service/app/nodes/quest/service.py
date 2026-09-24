@@ -16,6 +16,7 @@ never gets to say what day it is.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
@@ -782,7 +783,7 @@ async def open_task(user_id: str, tz_hint: Optional[str], slot: int) -> dict:
     student can look back over a paused or finished quest. Only generating a
     new one needs the quest to be active and the day to be open.
     """
-    ctx = load(user_id, tz_hint)
+    ctx = await asyncio.to_thread(load, user_id, tz_hint)
     if not ctx.quest or not ctx.view:
         raise QuestError(409, "no_active_quest", "You do not have a quest right now.")
     existing = next((t for t in ctx.tasks if t["slot"] == slot), None)
@@ -832,7 +833,7 @@ async def check_in(user_id: str, tz_hint: Optional[str], slot: int, body_text) -
         raise QuestError(422, "empty", "Write a line about what you did.")
     body = body[:1000]
 
-    ctx = load(user_id, tz_hint)
+    ctx = await asyncio.to_thread(load, user_id, tz_hint)
     stone = _slot_or_error(ctx, slot)
     task = next((t for t in ctx.tasks if t["slot"] == slot), None)
     if not task:

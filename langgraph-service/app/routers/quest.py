@@ -11,6 +11,7 @@ import uuid
 from typing import Any, Callable, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 
 from app.auth import verify_jwt
 from app.nodes.quest import service as svc
@@ -49,9 +50,15 @@ def _track(user_id: str, event: str, **props) -> None:
 
 
 async def _run(user_id: str, label: str, fn: Callable[[], Any]) -> Any:
-    """Call the service, turning its refusals into HTTP errors the page can show."""
+    """Call the service, turning its refusals into HTTP errors the page can show.
+
+    The service talks to Supabase through a blocking client, so a plain call
+    runs on a worker thread: on the event loop it would hold up every other
+    request, and the page's first load fires several at once. An async service
+    function only builds its coroutine there and is awaited here.
+    """
     try:
-        result = fn()
+        result = await run_in_threadpool(fn)
         if inspect.isawaitable(result):
             result = await result
         return result

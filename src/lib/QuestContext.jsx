@@ -18,8 +18,11 @@ export function QuestProvider({ enabled, children }) {
     }
   }, [enabled]);
 
+  // The Quest page loads the full state and hands the summary over itself, so
+  // opening the app on /quest does not fetch the same quest twice.
   useEffect(() => {
     if (!enabled) { setSummary(null); return; }
+    if (window.location.pathname.startsWith("/quest")) return;
     refresh();
   }, [enabled, refresh]);
 

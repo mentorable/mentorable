@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate, useParams, useLocation } from "react-router
 import { supabase } from "./lib/supabase.js";
 import { ThemeProvider } from "./lib/ThemeContext.jsx";
 import { QuestProvider } from "./lib/QuestContext.jsx";
+import { warmBackend } from "./lib/quest.js";
 import LandingPage from "./pages/LandingPage.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import OnboardingPage from "./pages/OnboardingPage.jsx";
@@ -30,6 +31,8 @@ const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/quest", "/roadmap",
 // tokens in the hash — that's our signal to forward them into the app.
 const INITIAL_HASH = typeof window !== "undefined" ? window.location.hash : "";
 const CAME_FROM_AUTH = /access_token|type=signup|type=recovery/.test(INITIAL_HASH);
+
+if (typeof window !== "undefined") warmBackend();
 
 // Decide where a freshly-authenticated user should land:
 // onboarded → scorecard (the home/welcome); not yet → continue onboarding.

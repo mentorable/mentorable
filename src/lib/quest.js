@@ -53,6 +53,14 @@ async function call(path, { method = "GET", body } = {}) {
 
 const post = (path, body = {}) => call(path, { method: "POST", body });
 
+/** Wake the backend. It sleeps when idle and takes a while to boot, so this is
+ *  fired as the app loads: the boot then overlaps with the student signing in
+ *  instead of starting when their quest is requested. */
+export function warmBackend() {
+  if (!BASE) return;
+  fetch(`${BASE}/health`, { mode: "no-cors" }).catch(() => {});
+}
+
 export const questApi = {
   state:            ()             => call("/quest"),
   summary:          ()             => call("/quest/summary"),

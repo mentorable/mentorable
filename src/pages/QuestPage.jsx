@@ -61,12 +61,12 @@ export default function QuestPage({ navigate }) {
     }
   }, []);
 
+  // The quest request goes out alongside the sign-in check rather than after
+  // it: the backend validates the token anyway, and waiting would add a full
+  // round trip to every visit.
   useEffect(() => {
-    (async () => {
-      const user = await requireUser();
-      if (!user) { navigate("/auth"); return; }
-      load();
-    })();
+    load();
+    requireUser().then((user) => { if (!user) navigate("/auth"); });
   }, [load, navigate]);
 
   useEffect(() => { if (state) setSummary(summaryFromState(state)); }, [state, setSummary]);

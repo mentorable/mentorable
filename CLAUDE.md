@@ -39,7 +39,7 @@ It was pivoted from a broad career-guidance product in September 2026. Some of t
 
 React 19 SPA (Vite) on Vercel, Supabase (Postgres + Auth), and a **Python + LangGraph/FastAPI service on Render** (the agentic backend; `render.yaml` is the live deploy config — `railway.toml` is a leftover). All fonts are **Raleway**. No component library, all styling is inline styles with per-file token constants.
 
-Provider keys live only in the backend. The frontend reaches it via `VITE_LANGGRAPH_CHAT_URL`.
+Provider keys live only in the backend. The frontend reaches it via `VITE_LANGGRAPH_CHAT_URL`. The Render service is on the free plan, which sleeps after 15 idle minutes and takes about a minute to wake; `warmBackend()` (`src/lib/quest.js`) pings `/health` as the app loads so the boot overlaps with signing in.
 
 ### Feature flags
 
@@ -108,6 +108,7 @@ The retention loop. One project at a time, split into 3 to 8 milestones, moved f
 - **Day-slots, not dates.** A quest has N day-slots. Their dates are derived from `quests.schedule` (a list of segments) and never stored. A pace change, a resume, or "count it as a break" appends a segment from the first slot not yet reached, so a day that has already happened never moves.
 - **Settle before you rebase.** `_settle_streak` writes 0 when the streak is already dead. Call it before anything that rewrites the schedule or ends a quest: relaying the missed days would otherwise erase the miss and bring the streak back to life.
 - **"Today" is the server's.** Computed from `profiles.timezone` (saved from the browser's zone on first visit). The client never sends a date.
+- **The service is blocking.** It uses the sync Supabase client, so `_run` in the router puts every call on a worker thread, and async service functions load with `asyncio.to_thread`. Called straight on the event loop, the page's parallel first requests queue behind each other.
 - **Writes go through the backend only.** Students can read their quest rows but have no write policies, and the four `quest_*` SQL functions are callable by the service role only. `quest_complete_task` does the check-in, task, milestone, quest, XP and streak in one transaction; `UNIQUE (task_id)` on check-ins is what stops a double submit from paying twice.
 - **The check-in lands before the reply.** The task is completed first and the advisor's reply is generated after, so a model outage costs a canned reply, never a streak.
 - **Budgets.** Quest has its own (`quest_usage` + `quest_bump_usage`), separate from the lifetime caps. Daily ones (4 task generations, 4 replies) fall back to plain content when spent; monthly ones (3 plans, 3 suggestion refreshes) refuse with `429 {error: "QUEST_BUDGET"}`.
