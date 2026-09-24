@@ -88,6 +88,14 @@ class StudentState(TypedDict, total=False):
     generated_quests: Optional[list[QuestItem]]
 
     # ── Chat graph internals (passed between load_context → build_prompt) ─────
+    # LangGraph only carries keys declared here from one node to the next, and
+    # silently drops the rest. The four record keys were once returned by
+    # load_context without being declared, so build_prompt always saw an empty
+    # record and the advisor's prompt said "nothing recorded" for everyone.
+    _activities: list[dict[str, Any]]
+    _awards: list[dict[str, Any]]
+    _courses: list[dict[str, Any]]
+    _scores: list[dict[str, Any]]
     _completed_quests: list[dict[str, Any]]
     _deleted_titles: list[str]
     _recent_research: list[str]
