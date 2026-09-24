@@ -48,46 +48,93 @@ export function useQuestColors() {
 export const FLAME_GROWS_AT = 7;
 
 const TONGUE = "M33 3C37 13 51 21 51 39C51 52 43 61 32 61C21 61 13 52 13 40C13 31 18 25 22 20C23 26 25 29 28 31C27 21 29 12 33 3Z";
+// Each layer names the beat it moves to: "sway" (the body), "sway-fast"
+// (a middle layer swaying the other way, so the layers never move as one)
+// and "core" (the yellow heart, stretching fastest).
 const STICKER = {
   viewBox: "-3 -3 70 72",
+  emberY: 12,
   layers: [
-    { d: TONGUE, on: "#C24E00", off: "#bdbcb9", transform: "translate(0 4)" },
-    { d: TONGUE, on: "#FF8A00", off: "#d6d5d2", part: "body", stroke: ["#C24E00", "#bdbcb9"] },
-    { d: "M32 27C35 34 42 38 42 47C42 54 37 58 32 58C27 58 22 54 22 47C22 41 28 36 32 27Z", on: "#FFD23F", off: "#eceae7", part: "core" },
+    { beat: "sway", paths: [
+      { d: TONGUE, on: "#C24E00", off: "#bdbcb9", transform: "translate(0 4)" },
+      { d: TONGUE, on: "#FF8A00", off: "#d6d5d2", stroke: ["#C24E00", "#bdbcb9"] },
+    ], glint: true },
+    { beat: "core", paths: [
+      { d: "M32 27C35 34 42 38 42 47C42 54 37 58 32 58C27 58 22 54 22 47C22 41 28 36 32 27Z", on: "#FFD23F", off: "#eceae7" },
+    ] },
   ],
-  glint: true,
 };
 const CAMPFIRE = {
   viewBox: "0 0 64 64",
+  emberY: 8,
   layers: [
-    { d: "M32 2C38 12 48 16 50 30C54 26 55 20 54 16C60 24 62 34 60 42C58 54 46 62 32 62C18 62 6 54 4 42C2 32 6 24 11 18C11 24 13 28 16 30C16 18 24 10 32 2Z", on: "#F2542D", off: "#cfcecb", part: "body" },
-    { d: "M32 15C36 23 44 27 45 37C48 34 49 31 49 28C53 34 54 40 53 45C51 54 43 59 32 59C21 59 13 54 11 45C10 39 12 34 15 30C16 34 18 37 21 38C21 28 26 22 32 15Z", on: "#FF9A1F", off: "#dcdbd8", part: "body" },
-    { d: "M32 31C35 37 41 41 41 48C41 54 37 58 32 58C27 58 23 54 23 48C23 42 29 38 32 31Z", on: "#FFD84A", off: "#eceae7", part: "core" },
+    { beat: "sway", paths: [{ d: "M32 2C38 12 48 16 50 30C54 26 55 20 54 16C60 24 62 34 60 42C58 54 46 62 32 62C18 62 6 54 4 42C2 32 6 24 11 18C11 24 13 28 16 30C16 18 24 10 32 2Z", on: "#F2542D", off: "#cfcecb" }] },
+    { beat: "sway-fast", paths: [{ d: "M32 15C36 23 44 27 45 37C48 34 49 31 49 28C53 34 54 40 53 45C51 54 43 59 32 59C21 59 13 54 11 45C10 39 12 34 15 30C16 34 18 37 21 38C21 28 26 22 32 15Z", on: "#FF9A1F", off: "#dcdbd8" }] },
+    { beat: "core", paths: [{ d: "M32 31C35 37 41 41 41 48C41 54 37 58 32 58C27 58 23 54 23 48C23 42 29 38 32 31Z", on: "#FFD84A", off: "#eceae7" }] },
   ],
 };
+// [drift x, start x, delay s, radius]
+const EMBERS = [[-6, 27, 0, 3.4], [7, 38, 0.6, 3], [-3, 32, 1.2, 2.6]];
 
-// The body sways from its base and the core breathes on a different beat, so
-// the two never line up and the flame looks alive rather than wobbling.
-const FLICKER = {
-  body: { animate: { skewX: [0, -3, 0], scaleY: [1, 1.03, 1] }, transition: { duration: 2.4, repeat: Infinity, ease: "easeInOut" } },
-  core: { animate: { scaleX: [1, 0.94, 1.04, 1], scaleY: [1, 1.08, 0.95, 1] }, transition: { duration: 1.6, repeat: Infinity, ease: "easeInOut" } },
-};
+// Plain CSS rather than framer-motion: the flame sits in the nav on every
+// page, loops forever, and has up to six moving parts, which CSS runs off the
+// main thread. Injected once, so the nav chip does not depend on the Quest
+// page's own styles being mounted.
+const FLAME_CSS = `
+.qf-sway, .qf-sway-fast, .qf-core, .qf-ember { transform-box: fill-box; transform-origin: 50% 100%; }
+.qf-live .qf-sway { animation: qf-sway 1.5s ease-in-out infinite; }
+.qf-live .qf-sway-fast { animation: qf-sway 1.05s ease-in-out infinite reverse; }
+.qf-live .qf-core { animation: qf-core 0.8s ease-in-out infinite; }
+.qf-ember { opacity: 0; animation: qf-ember 1.8s ease-out infinite; }
+@keyframes qf-sway { 0%, 100% { transform: skewX(0) scaleY(1); } 25% { transform: skewX(-6deg) scaleY(1.06); }
+  50% { transform: skewX(2deg) scaleY(0.97); } 75% { transform: skewX(5deg) scaleY(1.05); } }
+@keyframes qf-core { 0%, 100% { transform: scale(1, 1); } 30% { transform: scale(0.88, 1.16); } 60% { transform: scale(1.08, 0.92); } }
+@keyframes qf-ember { 0% { transform: translate(0, 0) scale(1); opacity: 0; } 15% { opacity: 1; }
+  100% { transform: translate(var(--qf-dx), -30px) scale(0.35); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .qf-live * { animation: none !important; } .qf-ember { display: none; } }
+`;
+if (typeof document !== "undefined" && !document.querySelector("style[data-quest-flame]")) {
+  const el = document.createElement("style");
+  el.dataset.questFlame = "";
+  el.textContent = FLAME_CSS;
+  document.head.appendChild(el);
+}
 
 export function Flame({ size = 22, lit = true, animate = false, streak = 0 }) {
-  const reduce = useReducedMotion();
   const stage = streak >= FLAME_GROWS_AT ? CAMPFIRE : STICKER;
-  const move = animate && lit && !reduce;
+  const live = animate && lit;
   return (
-    <svg width={size} height={size} viewBox={stage.viewBox} aria-hidden="true" style={{ display: "block", overflow: "visible" }}>
-      {stage.layers.map((l, i) => (
-        <motion.path key={i} d={l.d} fill={lit ? l.on : l.off} transform={l.transform}
-          stroke={l.stroke ? l.stroke[lit ? 0 : 1] : undefined} strokeWidth={l.stroke ? 3.5 : undefined} strokeLinejoin="round"
-          style={{ transformBox: "fill-box", transformOrigin: "50% 100%" }}
-          {...(move && l.part ? FLICKER[l.part] : {})} />
+    <svg width={size} height={size} viewBox={stage.viewBox} aria-hidden="true" className={live ? "qf-live" : undefined}
+      style={{ display: "block", overflow: "visible" }}>
+      {stage.layers.map((layer) => (
+        <g key={layer.beat} className={`qf-${layer.beat}`}>
+          {layer.paths.map((p, i) => (
+            <path key={i} d={p.d} fill={lit ? p.on : p.off} transform={p.transform}
+              stroke={p.stroke ? p.stroke[lit ? 0 : 1] : undefined} strokeWidth={p.stroke ? 3.5 : undefined}
+              strokeLinejoin="round" />
+          ))}
+          {layer.glint && (
+            <ellipse cx="22" cy="42" rx="3" ry="6" transform="rotate(20 22 42)" fill="#fff" opacity={lit ? 0.7 : 0.5} />
+          )}
+        </g>
       ))}
-      {stage.glint && (
-        <ellipse cx="22" cy="42" rx="3" ry="6" transform="rotate(20 22 42)" fill="#fff" opacity={lit ? 0.7 : 0.5} />
-      )}
+      {live && EMBERS.map(([dx, x, delay, r]) => (
+        <circle key={x} className="qf-ember" cx={x} cy={stage.emberY} r={r} fill="#FFB020" stroke="#F2542D" strokeWidth="1"
+          style={{ "--qf-dx": `${dx}px`, animationDelay: `${delay}s` }} />
+      ))}
+    </svg>
+  );
+}
+
+/** The Quest nav icon: a torn treasure map with a dotted trail to an X.
+ *  An outline icon like the rest of the nav, so it takes `currentColor`. */
+export function TreasureMapIcon({ size = 20, strokeWidth = 2 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth}
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 5l3-1.2 3 1.2 3-1.2 3 1.2 3-1.2 3 1.2v14l-3 1.2-3-1.2-3 1.2-3-1.2-3 1.2-3-1.2z" />
+      <path d="M7 16c1.8-.8 2.8-.1 4-1.5 1-1.2.8-2.7 2.4-3.6" strokeDasharray="0.1 2.6" />
+      <path d="M14.9 7.9l3.2 3.2M18.1 7.9l-3.2 3.2" />
     </svg>
   );
 }

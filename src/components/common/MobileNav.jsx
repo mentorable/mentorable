@@ -4,7 +4,7 @@ import FeedbackModal from "./FeedbackModal.jsx";
 import { useTheme } from "../../lib/ThemeContext.jsx";
 import { isEnabled } from "../../lib/features.js";
 import { useQuest } from "../../lib/QuestContext.jsx";
-import { Flame } from "../quest/questUi.jsx";
+import { Flame, TreasureMapIcon } from "../quest/questUi.jsx";
 
 const FONT = "'Raleway', sans-serif";
 
@@ -25,12 +25,7 @@ const NAV_ITEMS = [
     key: "quest",
     label: "Quest",
     path: "/quest",
-    icon: (active) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <polyline points="12 6 12 12 16 14"/>
-      </svg>
-    ),
+    icon: (active) => <QuestTabIcon active={active} />,
   },
   {
     key: "roadmap",
@@ -75,21 +70,25 @@ const NAV_ITEMS = [
   },
 ];
 
-// The Quest tab carries the streak on phones, where there is no sidebar: a
-// flame that is lit once today's task is done, with the day count on it.
+// The Quest tab carries the streak on phones, where there is no sidebar: the
+// map, with a badge holding the flame and the day count. The flame is lit once
+// today's task is done.
 function QuestTabIcon({ active }) {
   const { summary } = useQuest();
   const lit = !!summary && ["done", "rest"].includes(summary.today_state);
   const streak = summary?.streak || 0;
   return (
-    <span style={{ position: "relative", display: "inline-flex", opacity: active || lit ? 1 : 0.8 }}>
-      <Flame size={24} lit={lit} streak={streak} />
+    <span style={{ position: "relative", display: "inline-flex" }}>
+      <TreasureMapIcon size={22} strokeWidth={active ? 2.5 : 2} />
       {streak > 0 && (
         <span style={{
-          position: "absolute", right: -9, top: -5, minWidth: 16, height: 16, borderRadius: 99, padding: "0 4px",
-          background: lit ? "var(--accent)" : "#8a877f", color: "#fff", fontFamily: FONT, fontWeight: 800,
-          fontSize: 10, lineHeight: "16px", textAlign: "center", boxSizing: "border-box",
-        }}>{streak}</span>
+          position: "absolute", right: -14, top: -7, height: 17, display: "inline-flex", alignItems: "center", gap: 1,
+          padding: "0 5px 0 3px", borderRadius: 99, background: "#fff", boxSizing: "border-box",
+          border: `1.5px solid ${lit ? "#FF8A00" : "#d6d5d2"}`, color: lit ? "#C24E00" : "#8a877f",
+          fontFamily: FONT, fontWeight: 800, fontSize: 10, lineHeight: 1,
+        }}>
+          <Flame size={11} lit={lit} streak={streak} />{streak}
+        </span>
       )}
     </span>
   );
@@ -152,7 +151,7 @@ export default function MobileNav({ activePath, navigate }) {
               minWidth: 44, minHeight: 44,
             }}
           >
-            {item.key === "quest" ? <QuestTabIcon active={isActive} /> : item.icon(isActive)}
+            {item.icon(isActive)}
             <span style={{
               fontFamily: FONT,
               fontSize: 9,
