@@ -13,8 +13,10 @@ input, textarea, select, button {
   font-family: 'Raleway', sans-serif !important;
 }
 
-/* Prevent horizontal overflow globally */
-html, body { overflow-x: hidden; }
+/* Prevent horizontal overflow globally. `clip` where the browser has it (the
+   second declaration wins there): `hidden` turns <body> into a scroll container,
+   which silently stops position: sticky from working anywhere in the app. */
+html, body { overflow-x: hidden; overflow-x: clip; }
 
 @keyframes spinner-rotate { to { transform: rotate(360deg); } }
 
