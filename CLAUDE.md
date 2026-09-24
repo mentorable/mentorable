@@ -39,7 +39,7 @@ It was pivoted from a broad career-guidance product in September 2026. Some of t
 
 React 19 SPA (Vite) on Vercel, Supabase (Postgres + Auth), and a **Python + LangGraph/FastAPI service on Render** (the agentic backend; `render.yaml` is the live deploy config — `railway.toml` is a leftover). All fonts are **Raleway**. No component library, all styling is inline styles with per-file token constants.
 
-Provider keys live only in the backend. The frontend reaches it via `VITE_LANGGRAPH_CHAT_URL`. The Render service is on the free plan, which sleeps after 15 idle minutes and takes about a minute to wake; `warmBackend()` (`src/lib/quest.js`) pings `/health` as the app loads so the boot overlaps with signing in.
+Provider keys live only in the backend. The frontend reaches it via `VITE_LANGGRAPH_CHAT_URL`. The Render service is on the free plan, which sleeps after 15 idle minutes and takes about a minute to wake. A `pg_cron` job in Supabase (`keep-backend-awake`, `20260924_keep_backend_awake.sql`) pings `/health` every 10 minutes so it never does, and `warmBackend()` (`src/lib/quest.js`) pings it as the app loads as a fallback. One always-on free service fits Render's 750 free hours a month only if it is the only free service in the workspace.
 
 ### Feature flags
 
