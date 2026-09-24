@@ -302,8 +302,6 @@ export function QuestStyles() {
     <style>{`
       .quest-chunky:not(:disabled):active { transform: translateY(3px) !important; box-shadow: 0 1px 0 transparent !important; }
       .quest-chunky:focus-visible, .quest-stone:focus-visible { outline: 3px solid rgba(var(--accent-rgb),0.45); outline-offset: 3px; }
-      @keyframes quest-halo { 0% { transform: scale(1); opacity: 0.55; } 100% { transform: scale(1.55); opacity: 0; } }
-      @media (prefers-reduced-motion: reduce) { .quest-halo { animation: none !important; opacity: 0.35 !important; } }
     `}</style>
   );
 }

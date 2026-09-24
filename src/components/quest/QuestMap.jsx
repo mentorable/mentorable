@@ -69,12 +69,6 @@ const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, a
   return (
     <div style={{ display: "flex", justifyContent: "center", padding: isToday ? "10px 0" : "6px 0" }}>
       <div style={{ position: "relative", transform: `translateX(${offsetFor(stone.slot, amp)}px)` }}>
-        {state === "today" && doable && (
-          <span className="quest-halo" aria-hidden="true" style={{
-            position: "absolute", inset: -8, borderRadius: "50%", border: `3px solid ${c.accent}`,
-            animation: "quest-halo 1.8s ease-out infinite",
-          }} />
-        )}
         <motion.button
           ref={ref}
           type="button"

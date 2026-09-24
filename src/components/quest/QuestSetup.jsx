@@ -54,20 +54,21 @@ function Mapping() {
   const c = useQuestColors();
   const reduce = useReducedMotion();
   return (
-    <div style={{ padding: "48px 0", textAlign: "center" }} role="status" aria-live="polite">
-      <div style={{ display: "flex", flexDirection: "column-reverse", alignItems: "center", gap: 10, marginBottom: 22 }}>
+    <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center",
+      justifyContent: "center", textAlign: "center", padding: "32px 0" }} role="status" aria-live="polite">
+      <div style={{ display: "flex", flexDirection: "column-reverse", alignItems: "center", gap: 14, marginBottom: 30 }}>
         {[0, 1, 2, 3, 4].map((i) => (
           <motion.span key={i}
             initial={reduce ? false : { scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: reduce ? 0 : i * 0.35, repeat: reduce ? 0 : Infinity, repeatDelay: 1.4, duration: 0.35 }}
-            style={{ width: 34, height: 34, borderRadius: "50%", background: i === 4 ? WHITE : c.accent,
+            style={{ width: 46, height: 46, borderRadius: "50%", background: i === 4 ? WHITE : c.accent,
               border: i === 4 ? `4px solid ${c.accent}` : "none", boxShadow: `0 4px 0 ${c.edge}`,
-              x: Math.round(Math.sin(i * 0.9) * 46), boxSizing: "border-box" }} />
+              x: Math.round(Math.sin(i * 0.9) * 62), boxSizing: "border-box" }} />
         ))}
       </div>
-      <p style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "1.2rem", color: INK }}>Mapping your quest</p>
-      <p style={{ margin: "6px 0 0", fontFamily: SANS, fontSize: "0.98rem", color: MUTED }}>
+      <p style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "1.5rem", color: INK }}>Mapping your quest</p>
+      <p style={{ margin: "8px 0 0", fontFamily: SANS, fontSize: "1.1rem", color: MUTED, maxWidth: 420 }}>
         Breaking it into milestones sized to your pace. This takes about 20 seconds.
       </p>
     </div>
@@ -179,8 +180,8 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
     <div>
       <Title>Pick your quest</Title>
       <Lead>
-        One real project, moved forward a little every day. These ideas come from your record, or you can write
-        your own.
+        One project moved forward a little every day. These suggestions come from what we know about you, or you
+        can write your own.
       </Lead>
 
       {ideas === null ? (
@@ -294,7 +295,7 @@ export function DraftReview({ state, onStart, onDiscard, busy, error }) {
         <Chunky onClick={onStart} disabled={busy}>{busy ? "Starting..." : "Start quest"}</Chunky>
         <TextButton onClick={onDiscard} color={MUTED} disabled={busy}>Pick something else</TextButton>
       </div>
-      <p style={{ margin: "14px 0 0", fontFamily: SANS, fontSize: "0.88rem", color: FAINT, lineHeight: 1.5 }}>
+      <p style={{ margin: "14px 0 0", fontFamily: SANS, fontSize: "0.88rem", color: c.accent, lineHeight: 1.5 }}>
         Your advisor can reshape milestones later if the plan stops fitting.
       </p>
     </div>
