@@ -118,7 +118,7 @@ function TodayCallout({ state, task, onStart, onCatchUp, amp, slot }) {
     body = (
       <>
         <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.86rem", fontWeight: 800, color: c.accent, display: "flex", alignItems: "center", gap: 6 }}>
-          <Flame size={16} /> Done for today
+          <Flame size={16} streak={state.stats?.streak || 0} /> Done for today
         </p>
         <p style={{ margin: "4px 0 0", fontFamily: SANS, fontSize: "0.98rem", fontWeight: 600, color: MID, lineHeight: 1.45 }}>
           {state.next_work_date

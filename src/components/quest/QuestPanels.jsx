@@ -37,7 +37,7 @@ export function TopBar({ title, stats, streakLit, menu, isMobile }) {
         <span title={`${stats?.streak || 0} day streak`}
           style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: SANS, fontWeight: 800,
             fontSize: "1.1rem", color: streakLit ? c.accent : FAINT, fontVariantNumeric: "tabular-nums" }}>
-          <Flame size={24} lit={streakLit} animate={streakLit} /> {stats?.streak || 0}
+          <Flame size={24} lit={streakLit} animate={streakLit} streak={stats?.streak || 0} /> {stats?.streak || 0}
         </span>
         <LevelChip stats={stats} compact={isMobile} />
         {menu && menu.length > 0 && (

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useTheme } from "../../lib/ThemeContext.jsx";
 import { darken, lighten } from "../../lib/theme.js";
@@ -40,35 +40,60 @@ export function useQuestColors() {
 }
 
 // ─── Flame ────────────────────────────────────────────────────────────────────
+// Real fire colors, never the accent: a blue flame reads as a drop. Below a
+// week the flame is a single tongue with a yellow core; from FLAME_GROWS_AT
+// on it becomes a three-tongue campfire, so a long streak looks like one.
 
-export function Flame({ size = 22, lit = true, animate = false }) {
-  const { accent } = useTheme();
+export const FLAME_GROWS_AT = 7;
+
+const CLASSIC = [
+  ["M33 3C37 13 51 21 51 39C51 52 43 61 32 61C21 61 13 52 13 40C13 31 18 25 22 20C23 26 25 29 28 31C27 21 29 12 33 3Z", "#FF9600", "#d6d5d2", "body"],
+  ["M32 27C35 34 42 38 42 47C42 54 37 58 32 58C27 58 22 54 22 47C22 41 28 36 32 27Z", "#FFC800", "#e9e8e5", "core"],
+];
+const CAMPFIRE = [
+  ["M32 2C38 12 48 16 50 30C54 26 55 20 54 16C60 24 62 34 60 42C58 54 46 62 32 62C18 62 6 54 4 42C2 32 6 24 11 18C11 24 13 28 16 30C16 18 24 10 32 2Z", "#F2542D", "#cfcecb", "body"],
+  ["M32 15C36 23 44 27 45 37C48 34 49 31 49 28C53 34 54 40 53 45C51 54 43 59 32 59C21 59 13 54 11 45C10 39 12 34 15 30C16 34 18 37 21 38C21 28 26 22 32 15Z", "#FF9A1F", "#dcdbd8", "body"],
+  ["M32 31C35 37 41 41 41 48C41 54 37 58 32 58C27 58 23 54 23 48C23 42 29 38 32 31Z", "#FFD84A", "#eceae7", "core"],
+];
+
+// The body sways from its base and the core breathes on a different beat, so
+// the two never line up and the flame looks alive rather than wobbling.
+const FLICKER = {
+  body: { animate: { skewX: [0, -3, 0], scaleY: [1, 1.03, 1] }, transition: { duration: 2.4, repeat: Infinity, ease: "easeInOut" } },
+  core: { animate: { scaleX: [1, 0.94, 1.04, 1], scaleY: [1, 1.08, 0.95, 1] }, transition: { duration: 1.6, repeat: Infinity, ease: "easeInOut" } },
+};
+
+export function Flame({ size = 22, lit = true, animate = false, streak = 0 }) {
   const reduce = useReducedMotion();
-  const top = lit ? lighten(accent, 0.45) : "#dcdcda";
-  const bottom = lit ? accent : "#bdbdba";
-  const id = `flame-${size}-${lit ? "l" : "d"}`;
-  const svg = (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" style={{ display: "block" }}>
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={top} />
-          <stop offset="100%" stopColor={bottom} />
-        </linearGradient>
-      </defs>
-      <path
-        d="M12.4 2.2c.4 2.9-1 4.6-2.4 6.2-1.3 1.5-2.6 3-2.6 5.5 0 1.3.4 2.4 1.1 3.3-.5-2.1.4-3.6 1.6-4.8.2 1.4 1 2.3 1.9 2.9.9-2.4.6-4.2 0-5.9 2.9 1.7 5.2 4.4 5.2 7.6 0 3.2-2.7 5.3-6 5.3S5 20.2 5 16.4c0-4.8 3.3-7 5-9.7.8-1.4 1.5-2.9 2.4-4.5Z"
-        fill={`url(#${id})`}
-      />
+  const layers = streak >= FLAME_GROWS_AT ? CAMPFIRE : CLASSIC;
+  const move = animate && lit && !reduce;
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" style={{ display: "block", overflow: "visible" }}>
+      {layers.map(([d, on, off, part]) => (
+        <motion.path key={d} d={d} fill={lit ? on : off}
+          style={{ transformBox: "fill-box", transformOrigin: "50% 100%" }}
+          {...(move ? FLICKER[part] : {})} />
+      ))}
     </svg>
   );
-  if (!animate || !lit || reduce) return svg;
+}
+
+/** The streak flame on the day it crosses FLAME_GROWS_AT: starts as the
+ *  single tongue, then pops into the campfire. */
+export function GrowingFlame({ size = 22, streak }) {
+  const reduce = useReducedMotion();
+  const [grown, setGrown] = useState(!!reduce);
+  useEffect(() => {
+    if (reduce) return undefined;
+    const t = setTimeout(() => setGrown(true), 650);
+    return () => clearTimeout(t);
+  }, [reduce]);
   return (
-    <motion.span
-      style={{ display: "inline-block", transformOrigin: "50% 90%" }}
-      animate={{ scaleY: [1, 1.07, 0.97, 1.04, 1], rotate: [0, -2, 1.5, -1, 0] }}
-      transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-    >
-      {svg}
+    <motion.span key={grown ? "grown" : "small"} style={{ display: "inline-block", transformOrigin: "50% 90%" }}
+      initial={grown && !reduce ? { scale: 0.6 } : false}
+      animate={grown && !reduce ? { scale: [0.6, 1.35, 1] } : { scale: 1 }}
+      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}>
+      <Flame size={size} animate={grown} streak={grown ? streak : FLAME_GROWS_AT - 1} />
     </motion.span>
   );
 }

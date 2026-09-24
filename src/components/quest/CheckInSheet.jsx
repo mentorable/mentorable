@@ -4,7 +4,7 @@ import { formatDay } from "../../lib/quest.js";
 import Spinner from "../common/Spinner.jsx";
 import {
   SANS, WHITE, INK, MID, MUTED, FAINT, LINE, AMBER,
-  Chunky, ErrorLine, Flame, Sheet, TextButton, fieldStyle, useQuestColors,
+  Chunky, ErrorLine, FLAME_GROWS_AT, Flame, GrowingFlame, Sheet, TextButton, fieldStyle, useQuestColors,
 } from "./questUi.jsx";
 
 function useCountUp(target, run) {
@@ -54,6 +54,7 @@ function Reward({ result, streak }) {
   const c = useQuestColors();
   const xp = useCountUp(result.xp_gained, true);
   const leveled = result.level_after > result.level_before;
+  const grew = result.on_time && streak === FLAME_GROWS_AT;
   return (
     <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, margin: "4px 0 16px" }}>
       <motion.span
@@ -65,7 +66,7 @@ function Reward({ result, streak }) {
       </motion.span>
       {result.on_time ? (
         <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: SANS, fontWeight: 800, fontSize: "1rem", color: INK }}>
-          <Flame size={22} animate /> {streak} day streak
+          {grew ? <GrowingFlame size={22} streak={streak} /> : <Flame size={22} animate streak={streak} />} {streak} day streak
         </span>
       ) : (
         <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", color: MUTED }}>
@@ -80,6 +81,12 @@ function Reward({ result, streak }) {
             border: `2px solid ${c.accent}`, borderRadius: 10, padding: "4px 10px" }}>
           Level {result.level_after}
         </motion.span>
+      )}
+      {grew && (
+        <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9, duration: 0.3 }}
+          style={{ flexBasis: "100%", margin: 0, fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", color: MUTED }}>
+          {FLAME_GROWS_AT} days. Your flame grew.
+        </motion.p>
       )}
     </div>
   );

@@ -20,7 +20,7 @@ export default function NavStreakChip({ onClick }) {
         background: WHITE, borderRadius: 12, padding: "7px 10px",
         border: `2px solid ${lit ? c.accent : "#e4e2dd"}`, boxShadow: `0 3px 0 ${lit ? c.edge : "#e4e2dd"}`,
       }}>
-      <Flame size={20} lit={lit} animate={lit} />
+      <Flame size={20} lit={lit} animate={lit} streak={summary.streak} />
       <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: "0.98rem", color: lit ? c.accent : FAINT,
         fontVariantNumeric: "tabular-nums" }}>
         {summary.streak}

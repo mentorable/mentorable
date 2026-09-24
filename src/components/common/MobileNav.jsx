@@ -83,7 +83,7 @@ function QuestTabIcon({ active }) {
   const streak = summary?.streak || 0;
   return (
     <span style={{ position: "relative", display: "inline-flex", opacity: active || lit ? 1 : 0.8 }}>
-      <Flame size={24} lit={lit} />
+      <Flame size={24} lit={lit} streak={streak} />
       {streak > 0 && (
         <span style={{
           position: "absolute", right: -9, top: -5, minWidth: 16, height: 16, borderRadius: 99, padding: "0 4px",
