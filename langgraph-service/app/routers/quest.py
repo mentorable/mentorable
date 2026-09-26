@@ -127,6 +127,13 @@ async def quest_open_task(slot: int, raw: Request, user_id: str = Depends(verify
     return await _run(user_id, "open_task", lambda: svc.open_task(user_id, _tz(raw), slot))
 
 
+@router.post("/tasks/{slot}/resources")
+async def quest_task_resources(slot: int, raw: Request, user_id: str = Depends(verify_jwt)):
+    result = await _run(user_id, "resources", lambda: svc.find_task_resources(user_id, _tz(raw), slot))
+    _track(user_id, "quest_resources_found", count=len((result or {}).get("resources") or []))
+    return result
+
+
 @router.post("/tasks/{slot}/checkin")
 async def quest_checkin(slot: int, raw: Request, user_id: str = Depends(verify_jwt)):
     body = await _body(raw)

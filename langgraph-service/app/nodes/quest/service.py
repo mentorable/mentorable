@@ -30,6 +30,7 @@ from app.nodes.quest.checkin import canned_reply, looks_thin, reply_to_checkin
 from app.nodes.quest.common import grade_line, student_context
 from app.nodes.quest.draft import computed_fields, draft_activity
 from app.nodes.quest.plan import plan_quest
+from app.nodes.quest.resources import find_resources
 from app.nodes.quest.suggest import FALLBACK_SUGGESTIONS, record_key, suggest_quests
 from app.nodes.quest.task import fallback_task, generate_task
 
@@ -44,6 +45,7 @@ BUDGETS = {
     "plan":            ("month", 3),
     "suggest_refresh": ("month", 3),
     "suggest_auto":    ("month", 5),
+    "resources":       ("month", 6),
 }
 
 OPEN_STATUSES = ["draft", "active", "paused"]
@@ -304,6 +306,8 @@ def _task_payload(t: dict, c: Optional[dict]) -> dict:
         "id": t["id"], "slot": t["slot"], "title": t["title"], "detail": t.get("detail") or "",
         "est_minutes": _int(t.get("est_minutes"), 15), "fallback": bool(t.get("fallback")),
         "status": t.get("status"), "checkin": _checkin_payload(c),
+        # None: never searched. A list (possibly empty): what was found.
+        "resources": t.get("resources"),
     }
 
 
@@ -825,6 +829,68 @@ async def open_task(user_id: str, tz_hint: Optional[str], slot: int) -> dict:
     if not saved:
         raise QuestError(500, "save_failed", "Could not set up that task. Try again.")
     return {"task": _task_payload(saved, None)}
+
+
+# Searches in flight, by (student, task). One tap runs one paid search: a
+# double tap, or the same task in two tabs, is turned away instead of paying
+# for a search that would only lose the race to save.
+_RESOURCE_SEARCHES: set[tuple[str, str]] = set()
+
+
+async def find_task_resources(user_id: str, tz_hint: Optional[str], slot: int) -> dict:
+    """Find real links for a task the student has opened, once, on request.
+
+    Saved on the task, so asking again returns the same links for free. Costs
+    one of the student's monthly searches; the search is refunded if it fails,
+    but not when it honestly finds nothing, because it still cost money.
+    """
+    ctx = await asyncio.to_thread(load, user_id, tz_hint)
+    if not ctx.quest or not ctx.view:
+        raise QuestError(409, "no_active_quest", "You do not have a quest right now.")
+    task = next((t for t in ctx.tasks if t["slot"] == slot), None)
+    if not task:
+        raise QuestError(404, "no_task", "Open that day's task first.")
+    if task.get("resources") is not None:
+        return {"resources": task["resources"], "left": await asyncio.to_thread(_left, ctx, "resources")}
+    if task.get("status") == "done":
+        raise QuestError(409, "task_done", "That task is finished, so there is nothing left to look up.")
+    if ctx.quest["status"] != "active":
+        raise QuestError(409, "not_active", "Resume your quest to look up resources.")
+
+    key = (user_id, task["id"])
+    if key in _RESOURCE_SEARCHES:
+        raise QuestError(409, "busy", "Already looking that up.")
+    if not await asyncio.to_thread(_spend, ctx, "resources"):
+        raise QuestError(429, "QUEST_BUDGET",
+                         "You have used this month's resource searches. They reset next month.")
+
+    # From here the search is refunded unless it is saved: on a failed search,
+    # any unexpected error, a dropped connection, or losing the race below.
+    saved = False
+    _RESOURCE_SEARCHES.add(key)
+    try:
+        grade = await asyncio.to_thread(_grade, user_id)
+        found = await find_resources(quest=ctx.quest, task=task, grade=grade)
+        if found is None:
+            raise QuestError(502, "resources_unavailable", "Could not look up resources right now. Try again in a bit.")
+
+        # Only the first search for a task is kept; a second tab loses here and
+        # gets the winner's links.
+        def save():
+            return _sb().from_("quest_tasks").update({"resources": found, "resources_at": _iso_now()}) \
+                .eq("id", task["id"]).eq("user_id", user_id).is_("resources", "null").execute().data
+
+        saved = bool(await asyncio.to_thread(save))
+        if not saved:
+            row = _first(await asyncio.to_thread(
+                lambda: _sb().from_("quest_tasks").select("resources").eq("id", task["id"])
+                .eq("user_id", user_id).limit(1).execute().data or []))
+            found = (row or {}).get("resources") or []
+    finally:
+        _RESOURCE_SEARCHES.discard(key)
+        if not saved:
+            _refund(ctx, "resources")
+    return {"resources": found, "left": await asyncio.to_thread(_left, ctx, "resources")}
 
 
 async def check_in(user_id: str, tz_hint: Optional[str], slot: int, body_text) -> dict:

@@ -69,6 +69,7 @@ export const questApi = {
   start:            (id)           => post(`/quest/${id}/start`),
   discard:          (id)           => post(`/quest/${id}/discard`),
   openTask:         (slot)         => post(`/quest/tasks/${slot}`),
+  resources:        (slot)         => post(`/quest/tasks/${slot}/resources`),
   checkIn:          (slot, body)   => post(`/quest/tasks/${slot}/checkin`, { body }),
   followup:         (id, answer)   => post(`/quest/checkins/${id}/followup`, { answer }),
   pause:            (id)           => post(`/quest/${id}/pause`),

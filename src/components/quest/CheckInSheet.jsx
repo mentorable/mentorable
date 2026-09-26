@@ -92,8 +92,95 @@ function Reward({ result, streak }) {
   );
 }
 
+function Resources({ slot, task, find, canSearch }) {
+  const c = useQuestColors();
+  const [found, setFound] = useState(null);      // { resources, left } from a search made in this sheet
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [spent, setSpent] = useState(false);     // the monthly searches are used up
+
+  const list = found ? found.resources : task.resources;   // null: never searched
+  const search = async () => {
+    if (busy) return;
+    setBusy(true); setError(null);
+    try {
+      setFound(await find(slot));
+    } catch (e) {
+      if (e.code === "QUEST_BUDGET") setSpent(true);
+      setError(e.message || "Could not look up resources right now. Try again in a bit.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // A finished task shows what was saved and never offers a new search.
+  if (list === null && !canSearch) return null;
+
+  return (
+    <section aria-label="Resources" style={{ marginTop: 22, paddingTop: 16, borderTop: `2px solid ${LINE}` }}>
+      <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 800, color: INK }}>
+        Resources <span style={{ fontWeight: 600, color: FAINT }}>(optional)</span>
+      </p>
+
+      {list === null && !spent && (
+        <>
+          <p style={{ margin: "4px 0 12px", fontFamily: SANS, fontSize: "0.92rem", color: MUTED, lineHeight: 1.5 }}>
+            A few real pages that help with this task.
+          </p>
+          {busy ? (
+            <div role="status" style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
+              <Spinner size={18} color={c.accent} />
+              <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.92rem", color: MID }}>
+                Looking for good pages. This takes a few seconds.
+              </span>
+            </div>
+          ) : (
+            <Chunky tone="quiet" small onClick={search}>{error ? "Try again" : "Find resources"}</Chunky>
+          )}
+        </>
+      )}
+
+      {list !== null && list.length === 0 && (
+        <p style={{ margin: "6px 0 0", fontFamily: SANS, fontSize: "0.92rem", color: MUTED, lineHeight: 1.5 }}>
+          Nothing solid turned up for this one. Your advisor in Chat can help you find a starting point.
+        </p>
+      )}
+
+      {list !== null && list.length > 0 && (
+        <ul style={{ listStyle: "none", margin: "10px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+          {list.filter((r) => typeof r.url === "string" && r.url.startsWith("https://")).map((r) => (
+            <li key={r.url}>
+              <a href={r.url} target="_blank" rel="noopener noreferrer" aria-label={`${r.title}, opens in a new tab`}
+                style={{ display: "block", textDecoration: "none", border: `2px solid ${LINE}`, borderRadius: 14, padding: "10px 12px" }}>
+                <span style={{ display: "block", fontFamily: SANS, fontWeight: 800, fontSize: "0.98rem", color: c.accent, lineHeight: 1.35 }}>
+                  {r.title}
+                </span>
+                {r.note && (
+                  <span style={{ display: "block", marginTop: 3, fontFamily: SANS, fontSize: "0.9rem", color: MID, lineHeight: 1.5 }}>
+                    {r.note}
+                  </span>
+                )}
+                <span style={{ display: "block", marginTop: 4, fontFamily: SANS, fontWeight: 700, fontSize: "0.82rem", color: MUTED }}>
+                  {r.domain}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {found && found.left !== undefined && (
+        <p role="status" style={{ margin: "10px 0 0", fontFamily: SANS, fontSize: "0.85rem", color: MUTED }}>
+          {found.left === 1 ? "1 search left" : `${found.left} searches left`} this month.
+        </p>
+      )}
+      <ErrorLine>{error}</ErrorLine>
+    </section>
+  );
+}
+
 export default function CheckInSheet({
-  slot, stone, today, task, loading, loadError, onRetry, onSubmit, onAnswer, onClose,
+  slot, stone, today, task, loading, loadError, onRetry, onSubmit, onAnswer, onFindResources, onClose,
 }) {
   const c = useQuestColors();
   const [body, setBody] = useState("");
@@ -196,6 +283,7 @@ export default function CheckInSheet({
                   <TheirWords>{task.checkin.followup_answer}</TheirWords>
                 </>
               )}
+              <Resources slot={slot} task={task} find={onFindResources} canSearch={false} />
               <div style={{ marginTop: 6 }}><Chunky tone="quiet" full onClick={close}>Close</Chunky></div>
             </div>
           )}
@@ -219,6 +307,7 @@ export default function CheckInSheet({
                   {busy ? "Checking in..." : "Check in"}
                 </Chunky>
               </div>
+              <Resources slot={slot} task={task} find={onFindResources} canSearch />
             </>
           )}
 

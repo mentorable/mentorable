@@ -11,6 +11,8 @@ It answers the things the offline tests cannot:
   2. Do the replies survive the app's own cleaning (lengths, no em dashes,
      a usable plan) rather than falling back?
   3. What does a day of Quest really cost per student?
+  4. Does the web search tool return real, checked links for a task, and what
+     does one "Find resources" tap cost (searches plus tokens)?
 
 Nothing is written to the database and no budget is touched. The key is read
 from the environment (or langgraph-service/.env) and never printed.
@@ -36,7 +38,7 @@ _stub.get_supabase = lambda: None
 sys.modules["app.db.supabase"] = _stub
 
 # Per-million-token list rates (input, output).
-RATES = {"claude-sonnet-5": (2.00, 10.00), "claude-haiku-4-5-20251001": (1.00, 5.00)}
+RATES = {"claude-sonnet-5": (2.00, 10.00), "claude-haiku-4-5-20251001": (1.00, 5.00)}  # web search adds $0.01 a search
 
 RECORD = """Name: Ada Chen
 Year: currently grade 11, graduating 2028
@@ -96,6 +98,10 @@ def show(obj, limit=14):
         print("    ...")
 
 
+def quote_quest(quest: dict) -> dict:
+    return {"title": quest["title"], "summary": quest["summary"]}
+
+
 def has_em_dash(obj) -> bool:
     import json
     return "—" in json.dumps(obj, ensure_ascii=False)
@@ -105,7 +111,7 @@ async def main() -> int:
     from anthropic import AsyncAnthropic
     from app.models import (QUEST_CHECKIN_MODEL, QUEST_DRAFT_MODEL, QUEST_PLAN_MODEL,
                             QUEST_SUGGEST_MODEL, QUEST_TASK_MODEL)
-    from app.nodes.quest import checkin, draft, plan, suggest, task
+    from app.nodes.quest import checkin, draft, plan, resources, suggest, task
 
     client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     problems, costs = [], {}
@@ -195,11 +201,45 @@ async def main() -> int:
     if len(entry.get("description") or "") > 150:
         problems.append("draft: description over 150 characters")
 
+    # Resources for a task: the real search, through the app's own code path.
+    print(f"\n{'=' * 68}\nTask resources, on request ({resources.QUEST_RESOURCES_MODEL}, web search)\n{'=' * 68}")
+    import app.llm as llm
+    usage = {"in": 0, "out": 0, "searches": 0}
+    real_create = llm._anthropic.messages.create
+
+    async def counting_create(**kw):
+        msg = await real_create(**kw)
+        u = msg.usage
+        usage["in"] += u.input_tokens
+        usage["out"] += u.output_tokens
+        usage["searches"] += getattr(getattr(u, "server_tool_use", None), "web_search_requests", 0) or 0
+        return msg
+
+    llm._anthropic.messages.create = counting_create
+    found = await resources.find_resources(
+        quest=quote_quest(quest), grade="They are in grade 11.",
+        task={"title": (cleaned_task or {}).get("title", "Find the county dataset"),
+              "detail": (cleaned_task or {}).get("detail", "Find where the state publishes lead readings by county.")})
+    llm._anthropic.messages.create = real_create
+    inp, out = RATES.get(resources.QUEST_RESOURCES_MODEL, (0, 0))
+    res_cost = (usage["in"] * inp + usage["out"] * out) / 1_000_000 + usage["searches"] * 0.01
+    costs["resources"] = res_cost
+    print(f"  tokens        : {usage['in']} in, {usage['out']} out, {usage['searches']} search(es)  (${res_cost:.4f})")
+    if found is None:
+        problems.append("resources: the search call failed or returned nothing usable; the button would say 'try again'")
+    elif not found:
+        print("  RESULT: searched, nothing solid survived the filter (the student sees 'nothing turned up')")
+    else:
+        show(found, limit=24)
+        if any(not r["url"].startswith("https://") for r in found):
+            problems.append("resources: a non-https link got through")
+
     # The cost of a quest day
     daily = costs.get("task", 0) + costs.get("reply", 0)
     print(f"\n{'=' * 68}\nCOST\n{'=' * 68}")
     print(f"  one active day (task + reply) : ${daily:.4f}")
     print(f"  a 30-day month at that rate   : ${daily * 30:.2f}")
+    print(f"  one 'Find resources' tap      : ${costs.get('resources', 0):.4f}  (6 a month max = ${costs.get('resources', 0) * 6:.2f})")
     print(f"  one-off per quest (plan + draft + suggestions): "
           f"${costs.get('plan', 0) + costs.get('draft', 0) + costs.get('suggest', 0):.4f}")
 

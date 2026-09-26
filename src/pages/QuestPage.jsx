@@ -137,7 +137,9 @@ export default function QuestPage({ navigate }) {
     if (cached) return;
     try {
       const { task } = await questApi.openTask(stone.slot);
-      setSheet((prev) => (prev && prev.slot === stone.slot ? { ...prev, task, loading: false } : prev));
+      // Links found while this response was in flight are newer than it is.
+      setSheet((prev) => (prev && prev.slot === stone.slot
+        ? { ...prev, task: { ...task, resources: prev.task?.resources ?? task.resources }, loading: false } : prev));
     } catch (e) {
       setSheet((prev) => (prev && prev.slot === stone.slot ? { ...prev, loading: false, error: e.message } : prev));
     }
@@ -152,6 +154,16 @@ export default function QuestPage({ navigate }) {
   const startToday = () => {
     if (!state?.today_slot) return;
     openStone(state.stones[state.today_slot - 1]);
+  };
+
+  // Saved on the task, so it is kept in both places the task is held: the open
+  // sheet, and today's cached task the map hands to a reopened sheet.
+  const findResources = async (slot) => {
+    const r = await questApi.resources(slot);
+    const withLinks = (t) => (t && t.slot === slot ? { ...t, resources: r.resources } : t);
+    setSheet((prev) => (prev && prev.slot === slot ? { ...prev, task: withLinks(prev.task) } : prev));
+    setState((prev) => (prev ? { ...prev, today_task: withLinks(prev.today_task) } : prev));
+    return r;
   };
 
   const submitCheckIn = (slot, body) => questApi.checkIn(slot, body);
@@ -321,7 +333,7 @@ export default function QuestPage({ navigate }) {
             slot={sheet.slot} stone={sheet.stone} today={state.today}
             task={sheet.task} loading={sheet.loading} loadError={sheet.error}
             onRetry={() => openStone(sheet.stone)}
-            onSubmit={submitCheckIn} onAnswer={answerFollowup} onClose={closeSheet}
+            onSubmit={submitCheckIn} onAnswer={answerFollowup} onFindResources={findResources} onClose={closeSheet}
           />
         )}
         {milestoneCard && (

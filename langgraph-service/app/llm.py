@@ -245,3 +245,83 @@ async def tool_completion(
             return block.input
     logger.warning(f"[llm] {label}: no usable tool call in the reply")
     return None
+
+
+def _field(obj: Any, name: str) -> Any:
+    """Read a field from an SDK object or a plain dict."""
+    return obj.get(name) if isinstance(obj, dict) else getattr(obj, name, None)
+
+
+async def search_completion(
+    *,
+    model: str,
+    prompt: str,
+    submit_tool: dict,
+    max_tokens: int,
+    label: str,
+    max_searches: int = 3,
+    blocked_domains: Optional[list[str]] = None,
+) -> tuple[Optional[dict], set[str], dict[str, int]]:
+    """Let the model search the web, then submit an answer through a tool.
+
+    Returns (what the model submitted, or None; the set of URLs the searches
+    actually returned; {"searches": n, "errors": n} counting the searches the
+    model ran and how many came back as errors). The URLs are the point: a model asked to "list some
+    links" will invent plausible ones, so callers keep only submitted links
+    that appear in that set. Every link that survives is a page the search tool
+    really found.
+
+    Each search is billed on top of tokens. A failed search is not. Raises
+    ModelUnavailable when the API cannot be reached at all.
+    """
+    search_tool: dict[str, Any] = {"type": "web_search_20250305", "name": "web_search", "max_uses": max_searches}
+    if blocked_domains:
+        search_tool["blocked_domains"] = blocked_domains
+
+    messages: list[Any] = [{"role": "user", "content": prompt}]
+    found: set[str] = set()
+    stats = {"searches": 0, "errors": 0}
+
+    for _turn in range(3):
+        message = None
+        last = None
+        for attempt in range(2):
+            try:
+                message = await _anthropic.messages.create(
+                    model=model, max_tokens=max_tokens, tools=[search_tool, submit_tool], messages=messages,
+                )
+                break
+            except Exception as exc:
+                last = exc
+                if attempt < 1:
+                    await asyncio.sleep(0.8)
+        if message is None:
+            raise ModelUnavailable(str(last)) from last
+
+        for block in message.content or []:
+            kind = _field(block, "type")
+            if kind == "web_search_tool_result":
+                results = _field(block, "content")
+                if isinstance(results, list):
+                    for r in results:
+                        url = _field(r, "url")
+                        if isinstance(url, str):
+                            found.add(url)
+                else:                              # a failed search comes back as one error object
+                    stats["errors"] += 1
+            elif kind == "server_tool_use":
+                stats["searches"] += 1
+            elif kind == "tool_use" and _field(block, "name") == submit_tool["name"]:
+                submitted = _field(block, "input")
+                logger.info(f"[llm] {label}: {stats['searches']} search(es), {stats['errors']} error(s), "
+                            f"{len(found)} result url(s)")
+                return (submitted if isinstance(submitted, dict) else None), found, stats
+
+        if getattr(message, "stop_reason", None) != "pause_turn":
+            break
+        # The API paused a long search turn: hand it back unchanged to continue.
+        # Appended, so a second pause still carries the first turn's results.
+        messages = messages + [{"role": "assistant", "content": message.content}]
+
+    logger.warning(f"[llm] {label}: no submission after {stats['searches']} search(es)")
+    return None, found, stats

@@ -111,9 +111,10 @@ The retention loop. One project at a time, split into 3 to 8 milestones, moved f
 - **The service is blocking.** It uses the sync Supabase client, so `_run` in the router puts every call on a worker thread, and async service functions load with `asyncio.to_thread`. Called straight on the event loop, the page's parallel first requests queue behind each other.
 - **Writes go through the backend only.** Students can read their quest rows but have no write policies, and the four `quest_*` SQL functions are callable by the service role only. `quest_complete_task` does the check-in, task, milestone, quest, XP and streak in one transaction; `UNIQUE (task_id)` on check-ins is what stops a double submit from paying twice.
 - **The check-in lands before the reply.** The task is completed first and the advisor's reply is generated after, so a model outage costs a canned reply, never a streak.
-- **Budgets.** Quest has its own (`quest_usage` + `quest_bump_usage`), separate from the lifetime caps. Daily ones (4 task generations, 4 replies) fall back to plain content when spent; monthly ones (3 plans, 3 suggestion refreshes) refuse with `429 {error: "QUEST_BUDGET"}`.
+- **Budgets.** Quest has its own (`quest_usage` + `quest_bump_usage`), separate from the lifetime caps. Daily ones (4 task generations, 4 replies) fall back to plain content when spent; monthly ones (3 plans, 3 suggestion refreshes, 6 resource searches) refuse with `429 {error: "QUEST_BUDGET"}`.
+- **Resources are optional and searched, never invented.** A "Find resources" button at the bottom of a task runs Haiku with the web search tool (`nodes/quest/resources.py`, `llm.search_completion`) and saves 1 to 3 links on `quest_tasks.resources` (`NULL` = never searched, `[]` = searched and found nothing, both kept so reopening never searches again). **Every link must appear in the search's own results**; anything else the model submits is dropped, because a model asked for links makes up plausible ones. Social media, forums and homework-answer sites are blocked at the search and again on the way out. Search costs $0.01 on top of tokens, so it has its own budget (6 a month), refunded if the search fails but not when it honestly finds nothing.
 - **Chat can reshape, never complete.** `update_quest` and `retire_quest` exist; no tool touches tasks, check-ins, XP or the streak.
-- Schema: `supabase/migrations/20260923_quest_v2.sql`. Live-API check of the five Quest prompts: `python3 scripts/check_quest.py` (reports cost per active day).
+- Schema: `supabase/migrations/20260923_quest_v2.sql`. Task resources: `20260926_quest_task_resources.sql`. Live-API check of the Quest prompts and the resource search: `python3 scripts/check_quest.py` (reports cost per active day and per resource search).
 
 ### Chat (`/chat`)
 
@@ -144,6 +145,7 @@ A tool call splits a reply into multiple model turns; `TURN_SEPARATOR` in `main.
 | `extract_signals` | `gpt-5-nano` (fallback Haiku 4.5) | One sentence into a JSON blob, never shown as prose |
 | Quest plan, suggestions, portfolio draft | `claude-sonnet-5` | A few calls per quest, and everything after them builds on the result |
 | Quest daily task, check-in reply | `claude-haiku-4-5` | Every active student, every day; short replies |
+| Quest task resources | `claude-haiku-4-5` + web search tool | On request only; the search ($10 per 1,000) costs more than the tokens |
 
 The Quest calls go through `app/llm.py` → `tool_completion()`, which forces one Anthropic tool call so the reply always arrives as an object (intake extraction uses it too). Callers still type-check every field, and fall back to plain content when the reply is unusable.
 
