@@ -10,6 +10,7 @@ import Spinner from "../components/common/Spinner.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { useTheme } from "../lib/ThemeContext.jsx";
+import { darken, lighten } from "../lib/theme.js";
 
 // College List: the schools a student is applying to, grouped reach, target
 // and likely. Calm like Portfolio, not bold like Quest: this is a record to
@@ -66,6 +67,45 @@ function facts(s) {
 const place = (s) => [s.city, s.state].filter(Boolean).join(", ");
 
 // ─── Small pieces ─────────────────────────────────────────────────────────────
+
+// Three strengths of the student's own accent, darkest for the hardest to get
+// into. Fixed hues would collide with some accents (violet, emerald), and
+// these never do.
+function useCategoryColors() {
+  const { accent } = useTheme();
+  return { reach: darken(accent, 0.35), target: accent, likely: lighten(accent, 0.35) };
+}
+
+/** The list's balance as a bar, with the counts spelled out beside it. */
+function BalanceBar({ b }) {
+  const colors = useCategoryColors();
+  const keys = ["reach", "target", "likely"];
+  return (
+    <div>
+      <div aria-hidden="true" style={{ display: "flex", gap: 3, height: 12, borderRadius: 99, overflow: "hidden",
+        maxWidth: 640, margin: "0 0 8px" }}>
+        {keys.filter((k) => b[k] > 0).map((k) => (
+          <span key={k} style={{ flex: b[k], background: colors[k], borderRadius: 99 }} />
+        ))}
+      </div>
+      <p style={{ margin: 0, display: "flex", flexWrap: "wrap", gap: 16, fontFamily: SANS, fontSize: "0.92rem",
+        fontWeight: 700, color: TEXT }}>
+        {keys.map((k) => (
+          <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 3, background: colors[k] }} />
+            {b[k]} {k}
+          </span>
+        ))}
+      </p>
+    </div>
+  );
+}
+
+function SectionDot({ category }) {
+  const colors = useCategoryColors();
+  return <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 3, background: colors[category],
+    alignSelf: "center", flexShrink: 0 }} />;
+}
 
 function Facts({ school }) {
   const list = facts(school);
@@ -538,11 +578,9 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
         ) : (
           <>
             <div style={{ marginBottom: "1.4rem" }}>
-              <p style={{ margin: 0, fontFamily: SANS, fontSize: "1rem", fontWeight: 700, color: TEXT }}>
-                {b.reach} reach, {b.target} target, {b.likely} likely
-              </p>
+              <BalanceBar b={b} />
               {b.note && (
-                <p style={{ margin: "6px 0 0", fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MID, lineHeight: 1.55,
+                <p style={{ margin: "10px 0 0", fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MID, lineHeight: 1.55,
                   borderLeft: `3px solid ${accent}`, paddingLeft: 10, maxWidth: 640 }}>
                   {b.note}
                 </p>
@@ -554,6 +592,7 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
               return (
                 <section key={sec.key} aria-labelledby={`sec-${sec.key}`} style={{ marginBottom: "1.8rem" }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
+                    <SectionDot category={sec.key} />
                     <h2 id={`sec-${sec.key}`} style={{ margin: 0, fontFamily: SANS, fontWeight: 700, fontSize: "1.2rem", color: TEXT }}>
                       {sec.label}
                     </h2>
