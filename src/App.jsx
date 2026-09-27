@@ -11,6 +11,7 @@ import ScorecardPage from "./pages/ScorecardPage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import QuestPage from "./pages/QuestPage.jsx";
+import CollegeListPage from "./pages/CollegeListPage.jsx";
 import RoadmapPage from "./pages/RoadmapPage.jsx";
 import RoadmapNodePage from "./pages/RoadmapNodePage.jsx";
 import PortfolioPage from "./pages/PortfolioPage.jsx";
@@ -24,7 +25,7 @@ import { HOME_PATH, isEnabled } from "./lib/features.js";
 import { getValidUser } from "./lib/auth.js";
 
 // Routes that show the persistent sidebar
-const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/quest", "/roadmap", "/portfolio"];
+const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/quest", "/college-list", "/roadmap", "/portfolio"];
 
 // Captured at module load, before the Supabase client strips the URL hash.
 // After clicking the email-confirmation link the user lands here with auth
@@ -124,6 +125,11 @@ function QuestRoute() {
   return <QuestPage navigate={navigate} />;
 }
 
+function CollegeListRoute() {
+  const navigate = useNavigate();
+  return <CollegeListPage navigate={navigate} />;
+}
+
 function RoadmapRoute() {
   const navigate = useNavigate();
   return <RoadmapPage navigate={navigate} />;
@@ -177,6 +183,7 @@ export default function App() {
         <Route path="/chat" element={<ErrorBoundary><ChatRoute /></ErrorBoundary>} />
         <Route path="/profile" element={<ProfileRoute />} />
         <Route path="/quest" element={<ErrorBoundary><QuestRoute /></ErrorBoundary>} />
+        <Route path="/college-list" element={<ErrorBoundary><CollegeListRoute /></ErrorBoundary>} />
         <Route path="/roadmap" element={<ErrorBoundary><RoadmapRoute /></ErrorBoundary>} />
         <Route path="/roadmap/node/:nodeId" element={<ErrorBoundary><RoadmapNodeRoute /></ErrorBoundary>} />
         <Route path="/portfolio" element={<ErrorBoundary><PortfolioRoute /></ErrorBoundary>} />

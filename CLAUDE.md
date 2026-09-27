@@ -46,7 +46,7 @@ Provider keys live only in the backend. The frontend reaches it via `VITE_LANGGR
 `src/lib/features.js` is the source of truth for what a student can actually reach:
 
 ```js
-FEATURES = { quest: true, roadmap: false, research: false, scorecard: false, chat: true, portfolio: true }
+FEATURES = { quest: true, colleges: true, roadmap: false, research: false, scorecard: false, chat: true, portfolio: true }
 HOME_PATH = "/quest"               // where a returning student lands
 POST_ONBOARDING_PATH = "/portfolio" // straight after onboarding
 ```
@@ -56,7 +56,7 @@ Roadmap, Research and Scorecard were built for career guidance and need a real r
 ### Frontend
 
 - `main.jsx` → `App.jsx` — root router. `AppShell` wraps logged-in routes with `Sidebar` (desktop) / `MobileNav` (mobile), filtered by `isEnabled()`.
-- Live pages: `LandingPage`, `AuthPage`, `OnboardingPage`, `QuestPage`, `ChatPage`, `PortfolioPage`, `ProfilePage`. Parked: `ScorecardPage`, `RoadmapPage`, `ResearchPage`.
+- Live pages: `LandingPage`, `AuthPage`, `OnboardingPage`, `QuestPage`, `CollegeListPage`, `ChatPage`, `PortfolioPage`, `ProfilePage`. Parked: `ScorecardPage`, `RoadmapPage`, `ResearchPage`.
 - `components/onboarding/` — `IntakeForm`, `TextInterview`, `IntakeReview`, `RecordPanel`, `intakeTheme.js`.
 - `components/quest/` — the map, check-in sheet, setup flow, panels, `NavStreakChip`, and `questUi.jsx` (tokens and the raised button).
 - `lib/`:
@@ -68,6 +68,7 @@ Roadmap, Research and Scorecard were built for career guidance and need a real r
   - `mentora.js` — `streamChatResponse` (SSE from `/chat`)
   - `quest.js` — Quest API client and date helpers. API dates are calendar dates: parse them with `parseDay`, since `new Date("2026-09-23")` lands on the previous evening in US zones
   - `QuestContext.jsx` — the streak/level summary behind the nav chip, mounted in `AppShell`
+  - `collegeList.js` — College List reads/writes and the school search; `collegeCategory.js` — the reach/target/likely rule (no imports, so it can be checked with plain Node)
   - `usage.js`, `retry.js`, `cache.js`, `onet.js`
 
 ### The student record (the core data model)
@@ -116,13 +117,24 @@ The retention loop. One project at a time, split into 3 to 8 milestones, moved f
 - **Chat can reshape, never complete.** `update_quest` and `retire_quest` exist; no tool touches tasks, check-ins, XP or the streak.
 - Schema: `supabase/migrations/20260923_quest_v2.sql`. Task resources: `20260926_quest_task_resources.sql`. Live-API check of the Quest prompts and the resource search: `python3 scripts/check_quest.py` (reports cost per active day and per resource search).
 
+### College List (`/college-list`)
+
+The schools a student is applying to, grouped reach, target and likely. Not an application tracker: no deadlines or statuses.
+
+- **The facts are the government's.** A school is found through the `college-search` Edge Function, which queries the U.S. Department of Education's College Scorecard with `COLLEGE_SCORECARD_API_KEY` held server-side; `supabase/functions/_shared/scorecard.ts` builds the request and cleans the reply. Admit rate, score ranges, net price and size are copied onto the row when it is added. The API searches official names only, so `scorecard.ts` carries a short list of well-known abbreviations (UMich, NYU, UCLA); anything ambiguous (OSU, UW) is left out on purpose. SAT comes back as two section ranges, stored as their sum. An open-admission school has no admit rate and is stored as 100%.
+- **The category is a rule, not a model.** `suggestCategory` in `collegeCategory.js`: anything admitting under 20% is a reach; otherwise the student's best SAT or ACT against the school's middle 50%, with the admit rate deciding the likely line. With no score to compare it falls back to admit rate and GPA and says "rough guess". Every suggestion carries its reason, shown on the card. The cut-offs live in `RULES`.
+- **`category_source`**: `suggested`, `rough`, or `student`. The page re-runs the rule on load, so a new SAT moves a suggested school; a school the student sorted themselves is never moved.
+- **Students write their own rows**, like the Portfolio tables (RLS `auth.uid() = user_id`, full CRUD). Nothing here is scored, so there is no service-role gate, and search is free government data, so there is no budget.
+- **Chat reads it, never edits it.** `load_context` loads up to 40 rows into `_college_list` (declared on `StudentState`); the prompt shows each school with its category, where the category came from, and its facts. With no list yet, the prompt falls back to the free-text `profiles.target_colleges` from onboarding, which the page also offers to import on a first visit.
+- Schema: `supabase/migrations/20260927_college_list.sql`. Plan and the calls behind it: `.claude/COLLEGE_LIST_PLAN.md`.
+
 ### Chat (`/chat`)
 
 The advisor. `load_context` → `build_prompt` → streaming tool-use loop in `main.py`.
 
 **Every key passed between graph nodes must be declared on `StudentState` (`app/state.py`).** LangGraph silently drops undeclared keys between nodes. The four record keys were once returned by `load_context` without being declared, so `build_prompt` got an empty record and the advisor's prompt said "nothing recorded" for every student while each function looked correct when tested on its own. Test prompt changes through `create_chat_graph`, not by calling the two functions in sequence.
 
-`build_prompt.py` assembles: persona and advising rules, the live record, their Quest, tool instructions, formatting, then memory from past sessions, then the student's own `agent_instructions` last (highest priority, but they cannot override the rules on predicting admission, writing essays, or inflating the record).
+`build_prompt.py` assembles: persona and advising rules, the live record (including their College List), their Quest, tool instructions, formatting, then memory from past sessions, then the student's own `agent_instructions` last (highest priority, but they cannot override the rules on predicting admission, writing essays, or inflating the record).
 
 **The advising rules are researched, not invented** — NACAC's ethical practice guide, IECA principles, ASCA, public admissions-office writing, and the research on undermatching (Hoxby & Avery) and summer melt. Key behaviours: never predict admission odds, flag a list that is too *low* as hard as one too high, judge a record against the opportunity the student actually had, raise net price before being asked, never ghostwrite an essay or inflate a record, hand off when a disclosure stops being about applications.
 
@@ -189,7 +201,7 @@ Limits are enforced by the `check_and_increment_usage` Postgres RPC (atomic chec
 
 ### Edge functions (`supabase/functions/`)
 
-`toggle-roadmap-task` (parked), `onet-proxy`, `delete-account`. The source of `update-quest-item` (the old quest board's) was deleted with the Quest rebuild; the deployed copy is unreferenced and can be removed with `supabase functions delete update-quest-item`.
+`college-search` (College List's school search), `toggle-roadmap-task` (parked), `onet-proxy`, `delete-account`. The source of `update-quest-item` (the old quest board's) was deleted with the Quest rebuild; the deployed copy is unreferenced and can be removed with `supabase functions delete update-quest-item`.
 
 ## Environment variables
 
@@ -215,6 +227,12 @@ CORS_ORIGIN
 DEV_BYPASS_EMAILS
 POSTHOG_PROJECT_TOKEN, POSTHOG_HOST
 ```
+
+Edge Function secrets (`supabase secrets set NAME=value`):
+```
+COLLEGE_SCORECARD_API_KEY   # free from api.data.gov; without it college-search answers 503 NOT_CONFIGURED
+```
+The public `DEMO_KEY` works for a one-off `curl` but allows about 10 calls an hour, so it is no use in production.
 
 ## Design system
 

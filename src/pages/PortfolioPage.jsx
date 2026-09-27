@@ -760,6 +760,7 @@ export default function PortfolioPage({ navigate }) {
 
   const [limitModal, setLimitModal] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [collegeCount, setCollegeCount] = useState(null);   // null until known
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -770,6 +771,12 @@ export default function PortfolioPage({ navigate }) {
         setUserId(user.id);
         const [rec, usage] = await Promise.all([fetchRecord(user.id), fetchUsage(supabase)]);
         setRecord(rec);
+        // Only decides whether to offer College List, so a failure hides the
+        // card rather than the page.
+        if (isEnabled("colleges")) {
+          supabase.from("college_list_items").select("id", { count: "exact", head: true }).eq("user_id", user.id)
+            .then(({ count, error }) => { if (!error) setCollegeCount(count ?? 0); }, () => {});
+        }
         setUploadsUsed(usage.portfolio_uploads_used ?? 0);
         setExportsUsed(usage.resume_exports_used ?? 0);
         setPhase("ready");
@@ -909,6 +916,7 @@ export default function PortfolioPage({ navigate }) {
   // The first quest is offered here, right after onboarding, once the student
   // has seen their record. Hidden for anyone who has had one before.
   const questNudge = isEnabled("quest") && questSummary && !questSummary.ever && !questSummary.has_quest;
+  const collegeNudge = isEnabled("colleges") && collegeCount === 0;
 
   const ecCount = record.activities.length + record.awards.length;
   const acCount = record.courses.length + record.scores.length;
@@ -949,6 +957,25 @@ export default function PortfolioPage({ navigate }) {
               style={{ flexShrink: 0, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: "pointer",
                 padding: "11px 18px", borderRadius: 11, border: "none", background: accent, color: WHITE }}>
               Find a quest
+            </button>
+          </div>
+        )}
+
+        {collegeNudge && (
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", background: WHITE,
+            border: `2px solid ${accent}`, borderRadius: 16, padding: "1.2rem 1.4rem", marginBottom: "1.5rem" }}>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: TEXT, margin: "0 0 4px" }}>
+                Build your college list
+              </p>
+              <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.55, margin: 0 }}>
+                Add the schools you are thinking about, and we will sort them into reach, target and likely using real admissions data.
+              </p>
+            </div>
+            <button onClick={() => navigate("/college-list")}
+              style={{ flexShrink: 0, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: "pointer",
+                padding: "11px 18px", borderRadius: 11, border: "none", background: accent, color: WHITE }}>
+              Start my list
             </button>
           </div>
         )}

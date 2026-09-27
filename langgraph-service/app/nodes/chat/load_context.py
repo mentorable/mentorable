@@ -7,7 +7,8 @@ here is cached: the student can edit their record mid-conversation (from the
 Portfolio page or through a chat tool) and the next turn must see it.
 
 The student's Quest (the daily-streak project) is loaded too, so the advisor can
-talk about it and reshape it. Roadmap and research context are not: those
+talk about it and reshape it, and their College List, so it can discuss it (the
+list itself is only edited on its page). Roadmap and research context are not: those
 features are parked behind FEATURES flags (src/lib/features.js), and loading
 them would mean dead queries and prompt sections about something the student
 cannot reach.
@@ -50,6 +51,20 @@ async def load_context(state: StudentState) -> StudentState:
 
     profile = (profile_res.data if profile_res is not None else None) or {}
 
+    # Read-only here, and never fatal: a list that fails to load just leaves
+    # the section out. Capped at the 40 newest so a runaway list cannot swamp
+    # the prompt, then put back in the order they were added.
+    try:
+        college_list = list(reversed(
+            supabase.from_("college_list_items")
+            .select("name, city, state, category, category_source, admission_rate, "
+                    "sat_25, sat_75, act_25, act_75, net_price")
+            .eq("user_id", user_id).order("created_at", desc=True).limit(40).execute().data or []
+        ))
+    except Exception as exc:
+        logger.warning(f"[chat] college list failed to load for {user_id}: {exc}")
+        college_list = []
+
     return {
         **state,
         "profile":     profile,
@@ -59,4 +74,5 @@ async def load_context(state: StudentState) -> StudentState:
         "_scores":     scores_res.data or [],
         # Never raises: a quest that fails to load just leaves the section out.
         "_quest":      brief_for_chat(user_id, profile.get("timezone")),
+        "_college_list": college_list,
     }

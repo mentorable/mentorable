@@ -82,6 +82,7 @@ class StudentState(TypedDict, total=False):
     _courses: list[dict[str, Any]]
     _scores: list[dict[str, Any]]
     _quest: Optional[dict[str, Any]]
+    _college_list: list[dict[str, Any]]
     _deleted_titles: list[str]
     _recent_research: list[str]
     _chat_topics: list[str]

@@ -135,11 +135,9 @@ def _record_sections(profile: dict, data: dict) -> list[str]:
     if profile.get("candidate_majors"):
         out.append("## Majors they are considering\n" + ", ".join(profile["candidate_majors"]))
 
-    if profile.get("target_colleges"):
-        out.append(
-            "## Colleges they have named\n" + ", ".join(profile["target_colleges"])
-            + "\nThis is their own list, not a vetted one. Whether it is realistically balanced is something you should "
-              "assess and raise, not assume.")
+    colleges = _college_list_section(profile, data.get("college_list") or [])
+    if colleges:
+        out.append(colleges)
 
     narrative = profile.get("narrative") or {}
     if narrative.get("summary"):
@@ -154,6 +152,58 @@ def _record_sections(profile: dict, data: dict) -> list[str]:
                    + "\nThese are their words. Take them seriously rather than talking them out of the worry.")
 
     return out
+
+
+CATEGORY_SOURCE = {
+    "suggested": "suggested by the app",
+    "rough": "a rough guess by the app, with no score range to compare",
+    "student": "their own call",
+}
+
+
+def _college_line(c: dict) -> str:
+    facts = []
+    rate = c.get("admission_rate")
+    if rate is not None:
+        facts.append("open admission" if float(rate) >= 1 else f"admits {round(float(rate) * 100)}%")
+    if c.get("sat_25") and c.get("sat_75"):
+        facts.append(f"SAT middle 50% {c['sat_25']}-{c['sat_75']}")
+    if c.get("act_25") and c.get("act_75"):
+        facts.append(f"ACT middle 50% {c['act_25']}-{c['act_75']}")
+    if c.get("net_price") is not None:
+        facts.append(f"average net price ${int(c['net_price']):,}")
+    where = ", ".join(x for x in [c.get("city"), c.get("state")] if x)
+    head = f"- {c.get('name')}" + (f" ({where})" if where else "")
+    how = CATEGORY_SOURCE.get(c.get("category_source"), "")
+    detail = "; ".join(facts)
+    return (f"{head}: {(c.get('category') or '').capitalize()}" + (f", {how}" if how else "")
+            + (f". {detail[:1].upper()}{detail[1:]}." if detail else "."))
+
+
+def _college_list_section(profile: dict, items: list[dict]) -> str | None:
+    """Their College List, or failing that the names they typed at onboarding."""
+    if items:
+        n = {k: sum(1 for c in items if c.get("category") == k) for k in ("reach", "target", "likely")}
+        return (
+            "## Their college list\n"
+            f"{n['reach']} reach, {n['target']} target, {n['likely']} likely.\n"
+            + "\n".join(_college_line(c) for c in items)
+            + "\nThe app sorts a school with a simple rule: their best SAT or ACT against the school's published middle "
+              "50%, and the admit rate, with anything admitting under 20% counted as a reach. A category is a starting "
+              "point. Disagree with one when the rest of their record says otherwise, and say why. The figures are from "
+              "the College Scorecard (U.S. Department of Education) and can lag a year or two. Whether the list is "
+              "realistically balanced, in either direction, is something to assess and raise. You cannot edit this "
+              "list: to add, remove or re-sort a school, point them to the College List page."
+        )
+    names = [n for n in (profile.get("target_colleges") or []) if isinstance(n, str) and n.strip()]
+    if names:
+        return (
+            "## Colleges they have named\n" + ", ".join(names)
+            + "\nThis is their own list, not a vetted one. Whether it is realistically balanced is something you should "
+              "assess and raise, not assume. They have not built a College List yet: the College List page sorts "
+              "schools into reach, target and likely using published admissions data."
+        )
+    return None
 
 
 def _quest_section(quest: dict | None) -> str | None:
@@ -352,5 +402,6 @@ async def build_prompt(state: StudentState) -> StudentState:
         "courses":    state.get("_courses", []),
         "scores":     state.get("_scores", []),
         "quest":      state.get("_quest"),
+        "college_list": state.get("_college_list", []),
     }
     return {**state, "_system_prompt": build_system_prompt(profile, data)}

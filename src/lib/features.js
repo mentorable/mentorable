@@ -12,10 +12,14 @@
  * The Scorecard's 5 career axes don't map to admissions at all, so it's off
  * entirely rather than parked.
  *
- * See .claude/COLLEGE_PIVOT.md and .claude/QUEST_PLAN.md.
+ * College List (colleges) is the reach/target/likely list, built for the
+ * pivot rather than carried over from the career era.
+ *
+ * See .claude/COLLEGE_PIVOT.md, .claude/QUEST_PLAN.md and .claude/COLLEGE_LIST_PLAN.md.
  */
 export const FEATURES = {
   quest:     true,
+  colleges:  true,
   roadmap:   false,
   research:  false,
   scorecard: false,
