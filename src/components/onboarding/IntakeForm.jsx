@@ -319,11 +319,15 @@ const STEPS = [
   { id: "direction", eyebrow: "Direction",       title: "Where you're headed",          blurb: "Rough guesses are genuinely useful here." },
 ];
 
-export default function IntakeForm({ initial, onComplete, submitting, isMobile, userId }) {
+export default function IntakeForm({ initial, startAt, onComplete, submitting, isMobile, userId }) {
   const key = draftKey(userId);
   // Restored values win over `initial`: they're the newer edit.
   const restored = loadDraft(key);
   const [step, setStep] = useState(() => {
+    // Sent back to add something ("Add one" on the channel page): open that step,
+    // not the last one the saved draft remembers.
+    const asked = STEPS.findIndex((s) => s.id === startAt);
+    if (asked >= 0) return asked;
     const n = restored?.step;
     return Number.isInteger(n) && n >= 0 && n < STEPS.length ? n : 0;
   });

@@ -712,7 +712,23 @@ async def onboarding_interview(raw: Request, user_id: str = Depends(verify_jwt))
         if str(m.get("content") or "").strip()
     ]
 
-    record = load_student_record(user_id)
+    def sse_error(message: str, code: str):
+        def one():
+            yield f"data: {json.dumps({'error': message, 'code': code})}\n\n"
+        return StreamingResponse(one(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
+
+    # Strict: a failed read is a retryable error, never "you listed nothing".
+    try:
+        record = load_student_record(user_id, strict=True)
+    except Exception as exc:
+        logger.error(f"[intake] interview record read failed for {user_id}: {exc}")
+        return sse_error("Interview stream failed", "READ_FAILED")
+    # The interview walks the listed activities and awards. With none, the
+    # model has nothing real to ask about and reaches for names of its own; the
+    # channel picker disables the interview in that case, and this backs it up.
+    if not (record.get("activities") or record.get("awards")):
+        return sse_error("Add at least one activity or award to have this conversation. "
+                         "Refresh the page to go back to the form.", "NO_ITEMS")
     system_prompt = INTERVIEW_SYSTEM.format(
         max_turns=INTERVIEW_MAX_TURNS,
         wrap_turn=INTERVIEW_WRAP_TURN,

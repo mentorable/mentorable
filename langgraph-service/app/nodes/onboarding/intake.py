@@ -20,6 +20,7 @@ See .claude/COLLEGE_PIVOT.md.
 """
 import logging
 import math
+import re
 from datetime import datetime, timezone
 
 from app.db.supabase import get_supabase
@@ -47,9 +48,13 @@ AWARD_LEVELS = ["school", "regional", "state", "national", "international"]
 
 # ── Record loading ────────────────────────────────────────────────────────────
 
-def load_student_record(user_id: str) -> dict:
+def load_student_record(user_id: str, strict: bool = False) -> dict:
     """Read everything the form collected. Used both to seed the interviewer and to
-    give extraction the list of activities it is allowed to enrich."""
+    give extraction the list of activities it is allowed to enrich.
+
+    A failed table read normally comes back empty, so one bad read only thins
+    the context. With strict, it raises instead, for a caller that must tell
+    "nothing listed" apart from "could not read"."""
     supabase = get_supabase()
 
     def rows(table: str, order: str = "order_index"):
@@ -59,6 +64,8 @@ def load_student_record(user_id: str) -> dict:
                 .order(order).execute().data or []
             )
         except Exception as exc:
+            if strict:
+                raise
             logger.warning(f"[intake] failed to load {table} for {user_id}: {exc}")
             return []
 
@@ -161,8 +168,9 @@ INTERVIEW_SYSTEM = """You are Mentorable's college application interviewer, talk
 Your ONLY job is to clarify and add detail to what they already listed. This is not a reflective interview and you are not trying to figure out who they are as a person. You are a fast, friendly fact-gatherer.
 
 You already have their form data below. NEVER ask them to repeat anything you already know from it. Go through their listed activities and awards, one at a time, in the order they listed them:
-- ALWAYS name the specific activity or award you are asking about. Say "tell me about Science Olympiad" and never "tell me about the first one on your list" or "the next one". The student cannot see the list the way you can, and asking them to recall it is backwards: you are the one holding it.
-- Your very first question must name their first listed activity outright.
+- Only ever talk about the activities and awards in their form data. Never name, suggest or ask about any other activity, club, competition or award, not even as an example. If they bring up something new themselves, you can ask one question about it.
+- ALWAYS name the activity or award you are asking about, exactly as it appears in their form data, never "the first one on your list" or "the next one". The student cannot see the list the way you can, and asking them to recall it is backwards: you are the one holding it.
+- Your very first question must name their first listed activity outright. If they listed no activities, start with their first award.
 - For each activity, ask 1-2 concrete questions: what they actually did (their specific role, not the group's), roughly how many hours a week and weeks a year, and one real result or outcome.
 - For each award, a quick line on what it was for and at what level (school, regional, state, national).
 - If they clearly have nothing more to add on something, move on immediately, don't dig.
@@ -194,6 +202,7 @@ Record the result by calling the save_intake_draft tool.
 You are given the student's form data (facts they typed, which are TRUE and must not be contradicted) and the conversation transcript.
 
 RULES:
+- The interviewer can get things wrong. Only record activities, awards and accomplishments that appear in the form data, or that the student described doing in their own words. If only the interviewer mentioned something and the student did not confirm it with details of their own, it did not happen: leave it out of every field, including the theme, the evidence and the summary.
 - A short or low-effort conversation is normal. Students skip questions, give one-word answers, or end early. Extract whatever is there and leave the rest empty: an empty string or empty list is a correct answer, not a failure. Always call the tool, however little the student said.
 - Only enrich activities that already exist in the form data. Match them by title. Never invent an activity the student did not list. Use the EXACT `id` given for each activity.
 - Enrich every activity that was actually discussed in the transcript, no matter how many. Leave anything not discussed alone rather than guessing at it.
@@ -206,7 +215,7 @@ RULES:
 - "theme_evidence" lists the concrete things from their record that support the theme.
 - "concerns" are worries they actually expressed (money, scores, being behind, family pressure). Empty list if none.
 - "gaps" are honest, specific things missing from their application given what they are aiming at. This is the most useful field, do not soften it.
-- "student_voice" is short phrases the student actually said, pulled verbatim, that capture how they talk about themselves. These get used later for essay work, so pick distinctive phrasing, not generic statements.
+- "student_voice" is short phrases the student actually said, copied exactly from their own lines (never the interviewer's), that capture how they talk about themselves. These get used later for essay work, so pick distinctive phrasing, not generic statements.
 - "summary" is 2-3 warm but honest sentences about who this student is. Never use em dashes.
 
 VALID CATEGORIES: {categories}
@@ -388,6 +397,146 @@ async def extract_intake(user_id: str, transcript: str, channel: str = "text") -
     return {"success": True, "draft": draft}
 
 
+# ── Keeping the interviewer's words out of the student's record ───────────────
+#
+# The prompt tells extraction to ignore anything only the interviewer said, but
+# a prompt guides a model, it does not bind it. An interviewer once asked a
+# DECA-only student about "Science Olympiad" (the example its own instructions
+# used), and the name reached the student's summary. So after extraction, any
+# name that appears only in the interviewer's lines (not in the form, not in
+# anything the student said) is taken back out.
+
+_SPEAKER = re.compile(r"^\s*(Student|Interviewer|Mentorable)\s*:\s*", re.I)
+
+# A name: two or more capitalised words ("Science Olympiad", "Model United
+# Nations", "Society of Women Engineers"), or an acronym of three or more
+# capitals ("DECA", "USACO").
+_NAME = re.compile(r"\b[A-Z][\w&'-]*(?:[ \t]+(?:(?:of|the|and|for|in|on)[ \t]+)?[A-Z][\w&'-]*)+|\b[A-Z]{3,}\b")
+
+_CONNECTORS = {"of", "the", "and", "for", "in", "on", "a", "an"}
+
+# Admissions and testing words an interviewer uses in passing. They are not
+# activities, and treating them as names deleted real gaps like "No SAT score yet".
+_GENERIC = {
+    "sat", "act", "psat", "nmsqt", "ssat", "gpa", "stem", "steam", "fafsa", "css", "usa", "toefl", "ielts",
+    "clep", "ap", "ib", "common app", "early decision", "early action", "regular decision", "financial aid",
+    "united states", "high school",
+}
+
+
+def _split_transcript(transcript: str) -> tuple[str, str]:
+    """(what the student said, what the interviewer said). A line without a
+    speaker label continues whoever spoke last."""
+    student, other = [], []
+    current = other
+    for line in (transcript or "").splitlines():
+        m = _SPEAKER.match(line)
+        if m:
+            current = student if m.group(1).lower() == "student" else other
+            line = line[m.end():]
+        current.append(line)
+    return "\n".join(student), "\n".join(other)
+
+
+def _norm(text: str) -> str:
+    # Apostrophes go first, so a model's "I'm" matches a student's "im".
+    text = re.sub(r"['\u2019]", "", (text or "").lower())
+    return " ".join(re.sub(r"[^a-z0-9& ]+", " ", text).split())
+
+
+def _confirmed(words: list[str], known_text: str, known_words: set[str]) -> bool:
+    """Whether the form or the student already backs up this name. Generous on
+    purpose: the interviewer expanding a name they confirmed ("DECA Nationals"
+    after "we went to nationals", "National Honor Society" for "NHS", "Vice
+    President" for "VP") is still theirs."""
+    phrase = " ".join(words)
+    if phrase in _GENERIC or f" {phrase} " in known_text:
+        return True
+    content = [w for w in words if w not in _CONNECTORS]
+    if content and all(w in known_words or w in _GENERIC for w in content):
+        return True
+    initials = "".join(w[0] for w in content)
+    return len(initials) >= 2 and initials in known_words
+
+
+def _unconfirmed_names(transcript: str, record_context: str) -> set[str]:
+    """Names the interviewer used that neither the form nor the student backs up.
+
+    A match can carry extra words ("During Science Olympiad", "DECA and Science
+    Olympiad"), so it is split at "and" and every ending of it is checked: a
+    part is fine if any ending is confirmed, and otherwise all its endings of
+    two or more words are flagged, which catches the real name inside."""
+    student, interviewer = _split_transcript(transcript)
+    known_text = f" {_norm(record_context)} {_norm(student)} "
+    known_words = set(known_text.split())
+    names: set[str] = set()
+    for match in _NAME.findall(interviewer):
+        for part in re.split(r"[ \t]+and[ \t]+", match):
+            tokens = part.split()
+            words = _norm(part).split()
+            if not words or len(words) != len(tokens):
+                continue
+            if len(words) == 1:
+                w = words[0]
+                if tokens[0].isupper() and len(w) >= 3 and w not in _GENERIC and w not in known_words:
+                    names.add(w)
+                continue
+            endings = [words[i:] for i in range(len(words))]
+            if any(_confirmed(e, known_text, known_words) for e in endings if len(e) >= 2) or \
+                    (tokens[-1].isupper() and words[-1] in known_words):
+                continue
+            names.update(" ".join(e) for e in endings if len(e) >= 2)
+    return names
+
+
+def _no_em_dash(text: str) -> str:
+    return re.sub(r"\s*\u2014\s*", ", ", text or "").strip()
+
+
+def _keep_confirmed(fields: dict, transcript: str, record_context: str) -> dict:
+    """Take unconfirmed names back out of the draft, keep only quotes the
+    student really said, and strip em dashes. Pure; returns a new dict."""
+    names = _unconfirmed_names(transcript, record_context)
+    student_text = f" {_norm(_split_transcript(transcript)[0])} "
+
+    def mentions(text) -> bool:
+        padded = f" {_norm(text)} "
+        return any(f" {n} " in padded for n in names)
+
+    def items(key: str) -> list:
+        return [_no_em_dash(x) for x in fields.get(key) or [] if not mentions(x)]
+
+    def sentences(key: str) -> str:
+        parts = re.split(r"(?<=[.!?])\s+", fields.get(key) or "")
+        return _no_em_dash(" ".join(p for p in parts if p and not mentions(p)))
+
+    def activity(a: dict) -> dict:
+        # These become the student's real activity row (the description is
+        # their Common App text), so an unconfirmed name empties the field.
+        out = dict(a)
+        for key in ("position", "organization", "description"):
+            if out.get(key):
+                out[key] = None if mentions(out[key]) else _no_em_dash(out[key])
+        return out
+
+    out = {
+        **fields,
+        "theme":          sentences("theme"),
+        "summary":        sentences("summary"),
+        "theme_evidence": items("theme_evidence"),
+        "concerns":       items("concerns"),
+        "gaps":           items("gaps"),
+        # Their own words, so they must actually be in their lines.
+        "student_voice":  [_no_em_dash(v) for v in fields.get("student_voice") or []
+                           if _norm(v) and f" {_norm(v)} " in student_text],
+        "enriched_activities": [activity(a) for a in fields.get("enriched_activities") or []],
+    }
+    dropped = {k: len(fields.get(k) or []) - len(out[k]) for k in ("theme_evidence", "concerns", "gaps", "student_voice")}
+    if names or any(dropped.values()):
+        logger.info(f"[intake] unconfirmed names {sorted(names)}; dropped {dropped}")
+    return out
+
+
 class ExtractionUnavailable(Exception):
     """The model could not be reached, as opposed to replying with something unusable."""
 
@@ -419,7 +568,7 @@ async def _extract_fields(user_id: str, transcript: str) -> dict:
         logger.warning(f"[intake] no usable tool call for {user_id}; empty draft")
         return dict(EMPTY_DRAFT)
 
-    return {
+    fields = {
         "theme":               _str(parsed.get("theme")),
         "theme_evidence":      _str_list(parsed.get("theme_evidence")),
         "concerns":            _str_list(parsed.get("concerns")),
@@ -428,6 +577,7 @@ async def _extract_fields(user_id: str, transcript: str) -> dict:
         "summary":             _str(parsed.get("summary")),
         "enriched_activities": _clean_enriched(parsed.get("enriched_activities"), valid_ids),
     }
+    return _keep_confirmed(fields, transcript, render_record_context(record))
 
 
 async def commit_intake(user_id: str, draft: dict, channel: str | None = None) -> dict:

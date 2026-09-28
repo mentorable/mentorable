@@ -162,7 +162,10 @@ export async function fetchActivities(userId) {
   return data || [];
 }
 
-/** The whole saved record, for the live panel on the interview screens. */
+/** The whole saved record, for the live panel on the interview screens and
+ *  for deciding whether there is anything to interview about. Throws when a
+ *  read fails: an empty list from a failed read would tell a student who
+ *  listed activities that they listed none. */
 export async function fetchStudentRecord(userId) {
   const rows = (table, cols, order) =>
     supabase.from(table).select(cols).eq("user_id", userId).order(order);
@@ -174,6 +177,8 @@ export async function fetchStudentRecord(userId) {
     rows("student_test_scores", "id, test_type, score, subject", "test_type"),
     supabase.from("profiles").select("candidate_majors, target_colleges").eq("id", userId).single(),
   ]);
+  const failed = [activities, awards, courses, scores, profile].find((r) => r.error);
+  if (failed) throw new Error(`Could not read the saved record: ${failed.error.message}`);
 
   return {
     activities: activities.data || [],

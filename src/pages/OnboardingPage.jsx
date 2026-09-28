@@ -123,17 +123,21 @@ function ElegantShape({ shapeStyle, delay = 0, width = 400, height = 100, rotate
 }
 
 // ─── Channel picker: talk it through by text or by voice ─────────────────────
-function ChannelPhase({ onPick, skipping }) {
+// The conversation walks through the activities and awards on the form, so with
+// neither there is nothing to talk about: both options stay visible but
+// disabled, with the reason and a way back to the form.
+function ChannelPhase({ onPick, skipping, canTalk, onBackToForm }) {
   const Option = ({ id, title, blurb, meta, icon }) => (
-    <button type="button" onClick={() => onPick(id)}
+    <button type="button" onClick={() => canTalk && onPick(id)} disabled={!canTalk}
+      aria-describedby={canTalk ? undefined : "talk-needs-items"}
       style={{
         display: "flex", alignItems: "flex-start", gap: 18, width: "100%", textAlign: "left",
-        cursor: "pointer", background: "#fff", border: `1.5px solid ${BORDER}`,
+        cursor: canTalk ? "pointer" : "not-allowed", background: "#fff", border: `1.5px solid ${BORDER}`,
         borderRadius: 20, padding: "1.6rem 1.75rem", transition: "all 0.15s",
-        boxShadow: "0 2px 12px rgba(15,23,42,0.05)",
+        boxShadow: "0 2px 12px rgba(15,23,42,0.05)", opacity: canTalk ? 1 : 0.5,
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 10px 28px rgba(29,78,216,0.15)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 2px 12px rgba(15,23,42,0.05)"; }}>
+      onMouseEnter={(e) => { if (!canTalk) return; e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 10px 28px rgba(29,78,216,0.15)"; }}
+      onMouseLeave={(e) => { if (!canTalk) return; e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 2px 12px rgba(15,23,42,0.05)"; }}>
       <span style={{
         flexShrink: 0, width: 54, height: 54, borderRadius: 15,
         background: "rgba(59,91,252,0.08)", color: ACCENT,
@@ -163,8 +167,26 @@ function ChannelPhase({ onPick, skipping }) {
           Now let's talk it through
         </h1>
         <p style={{ fontFamily: SANS, fontSize: "1.15rem", color: TEXT2, lineHeight: 1.6, marginBottom: "2.4rem", textAlign: "center", maxWidth: 540, marginLeft: "auto", marginRight: "auto" }}>
-          We have your list. Now we just need a bit more detail on what you actually did. Pick whichever is easier for you.
+          {canTalk
+            ? "We have your list. Now we just need a bit more detail on what you actually did. Pick whichever is easier for you."
+            : "This conversation goes through the activities and awards you listed, one at a time."}
         </p>
+
+        {!canTalk && (
+          <div id="talk-needs-items" role="note"
+            style={{ background: "#fff", border: `1.5px solid ${ACCENT}`, borderRadius: 16, padding: "1.1rem 1.3rem",
+              marginBottom: 16, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            <p style={{ flex: 1, minWidth: 240, margin: 0, fontFamily: SANS, fontSize: "1.02rem", color: TEXT, lineHeight: 1.55 }}>
+              <strong>You need at least one activity or award for the conversation.</strong> You didn't list any, so there
+              is nothing for it to ask about yet.
+            </p>
+            <button type="button" onClick={onBackToForm}
+              style={{ flexShrink: 0, fontFamily: SANS, fontSize: "0.98rem", fontWeight: 700, cursor: "pointer",
+                padding: "10px 16px", borderRadius: 11, border: "none", background: ACCENT, color: "#fff" }}>
+              Add one
+            </button>
+          </div>
+        )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Option id="text" title="Type it out"
@@ -191,8 +213,9 @@ function ChannelPhase({ onPick, skipping }) {
             {skipping ? "Setting up your account…" : "Skip for now"}
           </button>
           <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT3, lineHeight: 1.55, marginTop: 8, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>
-            We'll only know the names of your activities, so early advice will be
-            more general. You can add the detail any time.
+            {canTalk
+              ? "We'll only know the names of your activities, so early advice will be more general. You can add the detail any time."
+              : "You can add activities and awards from your Portfolio any time."}
           </p>
         </div>
       </div>
@@ -729,6 +752,9 @@ export default function OnboardingPage() {
   const [channel, setChannel]       = useState(null);   // "text" | "voice"
   const intakeContextRef            = useRef("");
   const [savedRecord, setSavedRecord] = useState(null);
+  // Where the error screen's "Try again" goes, and which form step "Add one" opens.
+  const [errorReturn, setErrorReturn] = useState("channel");
+  const [formStartAt, setFormStartAt] = useState(null);
   const [skipping, setSkipping] = useState(false);
 
   const timerRef         = useRef(null);
@@ -778,7 +804,11 @@ export default function OnboardingPage() {
       } catch (err) {
         console.warn("[Onboarding] context fetch failed, continuing:", err);
       }
-      // Powers the record panel shown beside both interview channels.
+      // Powers the record panel shown beside both interview channels, and
+      // whether there is anything to interview about. Cleared first so a failed
+      // read falls back to what was just submitted, never to an older read.
+      setSavedRecord(null);
+      setFormStartAt(null);
       try {
         setSavedRecord(await fetchStudentRecord(user.id));
       } catch (err) {
@@ -788,11 +818,17 @@ export default function OnboardingPage() {
     } catch (err) {
       console.error("[Onboarding] form save error:", err);
       setError(err?.message || "We couldn't save that. Please try again.");
+      setErrorReturn("form");
       setPhase("error");
     } finally {
       setSavingForm(false);
     }
   };
+
+  // What the interview can talk about: the saved rows when we have them (what
+  // the interviewer will actually see), otherwise the form as submitted.
+  const listed = savedRecord || intake || {};
+  const canTalk = (listed.activities?.length || 0) + (listed.awards?.length || 0) > 0;
 
   // ── Shared: transcript → draft → review ─────────────────────────────────────
   const lastAttemptRef = useRef({ transcript: "", via: "text" });
@@ -1066,12 +1102,14 @@ export default function OnboardingPage() {
       <AnimatePresence mode="wait">
         {phase === "form" && (
           <div key="form" style={{ flex: 1, overflowY: "auto", padding: "2.5rem 0 3rem" }}>
-            <IntakeForm initial={intake} onComplete={handleFormComplete} submitting={savingForm} isMobile={isMobile} userId={user?.id} />
+            <IntakeForm initial={intake} startAt={formStartAt} onComplete={handleFormComplete} submitting={savingForm} isMobile={isMobile} userId={user?.id} />
           </div>
         )}
         {phase === "channel" && (
-          <ChannelPhase key="channel" skipping={skipping}
+          <ChannelPhase key="channel" skipping={skipping} canTalk={canTalk}
+            onBackToForm={() => { setFormStartAt("record"); setPhase("form"); }}
             onPick={(c) => {
+              if (c !== "skip" && !canTalk) return;
               setChannel(c);
               if (c === "skip") { handleSkip(); return; }
               setPhase(c === "voice" ? "voice-confirm" : "text-interview");
@@ -1098,7 +1136,7 @@ export default function OnboardingPage() {
         {phase === "active"     && <ActivePhase     key="active"     transcript={transcript} elapsed={elapsed} isSpeaking={conversation.isSpeaking} onEnd={endConversation} getInputLevel={getInputLevel}/>}
         {phase === "processing" && <ProcessingPhase key="processing"/>}
         {phase === "recovery"   && <RecoveryPhase   key="recovery"   onRetryExtraction={() => { const a = lastAttemptRef.current; return runExtraction(a.transcript, a.via); }} onRetry={() => { setPhase("channel"); }}/>}
-        {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase("channel"); }}/>}
+        {phase === "error"      && <ErrorPhase      key="error"      error={error} onRetry={() => { setError(null); setPhase(errorReturn); setErrorReturn("channel"); }}/>}
         {phase === "mic-denied" && <MicDeniedPhase  key="mic-denied" onRetry={() => setPhase("voice-confirm")}/>}
       </AnimatePresence>
     </div>
