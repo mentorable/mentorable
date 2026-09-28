@@ -12,6 +12,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 import { useTheme } from "../lib/ThemeContext.jsx";
 import { useQuest } from "../lib/QuestContext.jsx";
 import { runResearch, summarizeResearchForHistory, ResearchLimitError } from "../lib/research.js";
+import { readableOn } from "../lib/theme.js";
 import { ResultCard, SourcesSection } from "../components/common/ResearchResults.jsx";
 
 const NAVY    = "#141413";
@@ -607,6 +608,10 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
   const timeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
   const firstName = userName?.split(" ")[0];
   const { accent } = useTheme();
+  // Matches the Portfolio/College List page titles: darkened just enough to
+  // stay readable with a light accent like amber or sky. #faf9f5 is this
+  // page's actual background (html, body in index.css), not those pages' BG.
+  const titleColor = readableOn(accent, "#faf9f5", 3);
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 32px 24px" }}>
@@ -642,7 +647,8 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
         transition={{ duration: 0.38, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
         style={{ textAlign: "center", marginBottom: 32 }}
       >
-        <h2 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 600, fontSize: 42, color: NAVY, letterSpacing: "-0.02em", marginBottom: 14, lineHeight: 1.15 }}>
+        <h2 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 800, fontSize: isMobile ? "2.1rem" : "2.5rem",
+          color: titleColor, letterSpacing: "-0.03em", marginBottom: 14, lineHeight: 1.1 }}>
           Good {timeOfDay}{firstName ? `, ${firstName}` : ""}.
         </h2>
         <p style={{ fontFamily: SG, fontSize: 19, color: "#494742", fontWeight: 500, maxWidth: 460, lineHeight: 1.65 }}>
