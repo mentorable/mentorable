@@ -10,7 +10,7 @@ import Spinner from "../components/common/Spinner.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { useTheme } from "../lib/ThemeContext.jsx";
-import { darken, lighten } from "../lib/theme.js";
+import { contrastRatio, readableOn } from "../lib/theme.js";
 
 // College List: the schools a student is applying to, grouped reach, target
 // and likely. Calm like Portfolio, not bold like Quest: this is a record to
@@ -52,15 +52,16 @@ function writeFlag(key) {
 
 const money = (n) => `$${Number(n).toLocaleString("en-US")}`;
 
+/** The school's facts, admit rate first. `lead` marks the one that sorts it. */
 function facts(s) {
   const out = [];
   if (s.admission_rate !== null && s.admission_rate !== undefined) {
-    out.push(s.admission_rate >= 1 ? "Open admission" : `${Math.round(s.admission_rate * 100)}% admitted`);
+    out.push({ text: s.admission_rate >= 1 ? "Open admission" : `${Math.round(s.admission_rate * 100)}% admitted`, lead: true });
   }
-  if (s.sat_25 && s.sat_75) out.push(`SAT ${s.sat_25}-${s.sat_75}`);
-  if (s.act_25 && s.act_75) out.push(`ACT ${s.act_25}-${s.act_75}`);
-  if (s.net_price !== null && s.net_price !== undefined) out.push(`${money(s.net_price)} avg. net price`);
-  if (s.enrollment) out.push(`${Number(s.enrollment).toLocaleString("en-US")} undergrads`);
+  if (s.sat_25 && s.sat_75) out.push({ text: `SAT ${s.sat_25}-${s.sat_75}` });
+  if (s.act_25 && s.act_75) out.push({ text: `ACT ${s.act_25}-${s.act_75}` });
+  if (s.net_price !== null && s.net_price !== undefined) out.push({ text: `${money(s.net_price)} avg. net price` });
+  if (s.enrollment) out.push({ text: `${Number(s.enrollment).toLocaleString("en-US")} undergrads` });
   return out;
 }
 
@@ -68,52 +69,29 @@ const place = (s) => [s.city, s.state].filter(Boolean).join(", ");
 
 // ─── Small pieces ─────────────────────────────────────────────────────────────
 
-// Three strengths of the student's own accent, darkest for the hardest to get
-// into. Fixed hues would collide with some accents (violet, emerald), and
-// these never do.
-function useCategoryColors() {
+// The accent as text, darkened just enough to read on this page's white and
+// #F5F5F5, and an accent-filled button whose label reads: white if it can,
+// dark ink if that reads instead (amber, sky), and otherwise white on an
+// accent darkened just enough (violet and indigo, where neither passes).
+function useAccentInk() {
   const { accent } = useTheme();
-  return { reach: darken(accent, 0.35), target: accent, likely: lighten(accent, 0.35) };
-}
-
-/** The list's balance as a bar, with the counts spelled out beside it. */
-function BalanceBar({ b }) {
-  const colors = useCategoryColors();
-  const keys = ["reach", "target", "likely"];
-  return (
-    <div>
-      <div aria-hidden="true" style={{ display: "flex", gap: 3, height: 12, borderRadius: 99, overflow: "hidden",
-        maxWidth: 640, margin: "0 0 8px" }}>
-        {keys.filter((k) => b[k] > 0).map((k) => (
-          <span key={k} style={{ flex: b[k], background: colors[k], borderRadius: 99 }} />
-        ))}
-      </div>
-      <p style={{ margin: 0, display: "flex", flexWrap: "wrap", gap: 16, fontFamily: SANS, fontSize: "0.92rem",
-        fontWeight: 700, color: TEXT }}>
-        {keys.map((k) => (
-          <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 3, background: colors[k] }} />
-            {b[k]} {k}
-          </span>
-        ))}
-      </p>
-    </div>
-  );
-}
-
-function SectionDot({ category }) {
-  const colors = useCategoryColors();
-  return <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 3, background: colors[category],
-    alignSelf: "center", flexShrink: 0 }} />;
+  const button = contrastRatio(WHITE, accent) >= 4.5 ? { bg: accent, fg: WHITE }
+    : contrastRatio(TEXT, accent) >= 4.5 ? { bg: accent, fg: TEXT }
+    : { bg: readableOn(accent, WHITE, 4.5), fg: WHITE };
+  return { text: readableOn(accent, WHITE, 4.5), title: readableOn(accent, BG, 3), button };
 }
 
 function Facts({ school }) {
   const list = facts(school);
   if (!list.length) return null;
   return (
-    <p style={{ margin: "6px 0 0", fontFamily: SANS, fontSize: "0.88rem", color: TEXT_MID, lineHeight: 1.5,
-      display: "flex", flexWrap: "wrap", columnGap: 14, rowGap: 2 }}>
-      {list.map((f) => <span key={f}>{f}</span>)}
+    <p style={{ margin: "10px 0 0", fontFamily: SANS, color: TEXT, lineHeight: 1.5, fontVariantNumeric: "tabular-nums",
+      display: "flex", flexWrap: "wrap", alignItems: "baseline", columnGap: 16, rowGap: 2 }}>
+      {list.map((f) => (
+        <span key={f.text} style={f.lead ? { fontSize: "1.15rem", fontWeight: 800 } : { fontSize: "0.95rem", fontWeight: 500 }}>
+          {f.text}
+        </span>
+      ))}
     </p>
   );
 }
@@ -121,7 +99,7 @@ function Facts({ school }) {
 /** Reach / Target / Likely as one segmented control: a labelled group of
  *  toggle buttons, each reachable with Tab. */
 function CategoryPicker({ value, onChange, disabled, label }) {
-  const { accent } = useTheme();
+  const ink = useAccentInk();
   return (
     <div role="group" aria-label={label}
       style={{ display: "inline-flex", background: "rgba(20,20,19,0.05)", borderRadius: 10, padding: 3, gap: 2 }}>
@@ -130,9 +108,9 @@ function CategoryPicker({ value, onChange, disabled, label }) {
         return (
           <button key={s.key} type="button" aria-pressed={on} disabled={disabled}
             onClick={() => !on && onChange(s.key)}
-            style={{ fontFamily: SANS, fontSize: "0.84rem", fontWeight: 700, cursor: disabled ? "default" : "pointer",
+            style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, cursor: disabled ? "default" : "pointer",
               padding: "6px 11px", borderRadius: 8, border: "none",
-              background: on ? accent : "transparent", color: on ? WHITE : TEXT_MUTED,
+              background: on ? ink.button.bg : "transparent", color: on ? ink.button.fg : TEXT_MUTED,
               transition: "background 0.15s, color 0.15s" }}>
             {s.label}
           </button>
@@ -218,16 +196,17 @@ function SchoolCard({ item, stats, onSetCategory, onRemove, isMobile, saving }) 
       listStyle: "none" }}>
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flexDirection: isMobile ? "column" : "row" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: TEXT, lineHeight: 1.35 }}>
+          <p style={{ margin: 0, fontFamily: SANS, fontWeight: 700, fontSize: isMobile ? "1.2rem" : "1.3rem", color: TEXT,
+            lineHeight: 1.3, letterSpacing: "-0.01em" }}>
             {item.name}
           </p>
           {place(item) && (
-            <p style={{ margin: "2px 0 0", fontFamily: SANS, fontSize: "0.88rem", color: TEXT_FAINT }}>{place(item)}</p>
+            <p style={{ margin: "3px 0 0", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, color: TEXT_MUTED }}>{place(item)}</p>
           )}
           <Facts school={item} />
           {why && (
-            <p style={{ margin: "7px 0 0", fontFamily: SANS, fontSize: "0.86rem", lineHeight: 1.5,
-              color: rough ? TEXT_MUTED : TEXT_FAINT, fontStyle: rough ? "italic" : "normal" }}>
+            <p style={{ margin: "10px 0 0", fontFamily: SANS, lineHeight: 1.55, fontWeight: 500,
+              fontSize: rough ? "1rem" : "1.05rem", color: rough ? TEXT_MUTED : TEXT, fontStyle: rough ? "italic" : "normal" }}>
               {why}
             </p>
           )}
@@ -247,32 +226,34 @@ function SchoolCard({ item, stats, onSetCategory, onRemove, isMobile, saving }) 
 
 function SearchResult({ school, stats, onList, adding, onAdd, first }) {
   const { accent } = useTheme();
+  const ink = useAccentInk();
   const suggestion = suggestCategory(stats, school);
   return (
     <li style={{ listStyle: "none", padding: "12px 14px", borderTop: first ? "none" : `1px solid ${BORDER}`,
       display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
       <div style={{ flex: 1, minWidth: 200 }}>
-        <p style={{ margin: 0, fontFamily: SANS, fontWeight: 700, fontSize: "0.98rem", color: TEXT }}>{school.name}</p>
-        <p style={{ margin: "2px 0 0", fontFamily: SANS, fontSize: "0.85rem", color: TEXT_FAINT }}>
-          {[place(school), facts(school)[0]].filter(Boolean).join(", ")}
+        <p style={{ margin: 0, fontFamily: SANS, fontWeight: 700, fontSize: "1.1rem", color: TEXT }}>{school.name}</p>
+        <p style={{ margin: "3px 0 0", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, color: TEXT_MUTED,
+          fontVariantNumeric: "tabular-nums" }}>
+          {[place(school), facts(school)[0]?.text].filter(Boolean).join(", ")}
           {suggestion?.source === "rough" && !onList && (
             <span style={{ fontStyle: "italic" }}>. {LABEL[suggestion.category]} is a rough guess without a score range.</span>
           )}
         </p>
       </div>
       {onList ? (
-        <span style={{ fontFamily: SANS, fontSize: "0.88rem", fontWeight: 700, color: TEXT_FAINT }}>On your list</span>
+        <span style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, color: TEXT_MUTED }}>On your list</span>
       ) : adding ? (
         <Spinner size={18} color={accent} />
       ) : suggestion ? (
         <button type="button" onClick={() => onAdd(school)}
-          style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, color: accent, cursor: "pointer",
+          style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, color: ink.text, cursor: "pointer",
             background: "rgba(var(--accent-rgb),0.08)", border: "none", borderRadius: 10, padding: "8px 13px" }}>
           Add as {LABEL[suggestion.category]}
         </button>
       ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontFamily: SANS, fontSize: "0.84rem", color: TEXT_MUTED }}>No admit rate published. Add as:</span>
+          <span style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED }}>No admit rate published. Add as:</span>
           <CategoryPicker value={null} onChange={(c) => onAdd(school, c)} label={`Add ${school.name} as`} />
         </div>
       )}
@@ -330,7 +311,7 @@ function AddSchool({ api, stats, items, onAdded }) {
   return (
     <div style={{ marginBottom: "1.6rem" }}>
       <label htmlFor="college-search" style={{ display: "block", fontFamily: SANS, fontWeight: 700,
-        fontSize: "0.95rem", color: TEXT, marginBottom: 8 }}>
+        fontSize: "1.05rem", color: TEXT, marginBottom: 8 }}>
         Add a school
       </label>
       <div style={{ position: "relative" }}>
@@ -352,17 +333,17 @@ function AddSchool({ api, stats, items, onAdded }) {
       <div aria-live="polite">
         {searching && (
           <p style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 2px 0", fontFamily: SANS,
-            fontSize: "0.9rem", color: TEXT_FAINT }}>
+            fontSize: "0.95rem", color: TEXT_MUTED }}>
             <Spinner size={14} color={accent} /> Searching...
           </p>
         )}
         {!searching && error && (
-          <p role="alert" style={{ margin: "10px 2px 0", fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, color: DANGER }}>
+          <p role="alert" style={{ margin: "10px 2px 0", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, color: DANGER }}>
             {error}
           </p>
         )}
         {!searching && results && results.length === 0 && (
-          <p style={{ margin: "10px 2px 0", fontFamily: SANS, fontSize: "0.92rem", color: TEXT_MUTED }}>
+          <p style={{ margin: "10px 2px 0", fontFamily: SANS, fontSize: "1rem", color: TEXT_MUTED }}>
             No schools found. Try the full official name, like University of Michigan.
           </p>
         )}
@@ -386,6 +367,7 @@ function AddSchool({ api, stats, items, onAdded }) {
 export default function CollegeListPage({ navigate, api = REAL_API }) {
   const isMobile = useIsMobile();
   const { accent } = useTheme();
+  const ink = useAccentInk();
   const [phase, setPhase] = useState("loading");
   const [userId, setUserId] = useState(null);
   const [items, setItems] = useState([]);
@@ -509,11 +491,11 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
   return (
     <div data-sidebar-offset style={pagePad}>
       <div style={{ maxWidth: 820, margin: "0 auto", width: "100%" }}>
-        <h1 style={{ fontFamily: SANS, fontWeight: 700, fontSize: isMobile ? "2rem" : "2.4rem", color: accent,
-          letterSpacing: "-0.03em", margin: "0 0 0.6rem" }}>
+        <h1 style={{ fontFamily: SANS, fontWeight: 800, fontSize: isMobile ? "2.1rem" : "2.5rem", color: ink.title,
+          letterSpacing: "-0.03em", margin: "0 0 0.6rem", lineHeight: 1.1 }}>
           College List
         </h1>
-        <p style={{ fontFamily: SANS, fontSize: "1.05rem", color: TEXT_MUTED, lineHeight: 1.6, margin: "0 0 1.75rem", maxWidth: 640 }}>
+        <p style={{ fontFamily: SANS, fontSize: "1.15rem", color: TEXT_MUTED, lineHeight: 1.6, margin: "0 0 1.9rem", maxWidth: 640 }}>
           The schools you are applying to, sorted by how likely you are to get in. Admit rates, score ranges and
           costs come from the U.S. Department of Education.
         </p>
@@ -521,22 +503,22 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
         {offerImport && (
           <div style={{ background: WHITE, border: `2px solid ${accent}`, borderRadius: 16, padding: "1.2rem 1.4rem",
             marginBottom: "1.5rem" }}>
-            <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: TEXT, margin: "0 0 4px" }}>
+            <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", color: TEXT, margin: "0 0 5px" }}>
               Start with the schools you already named
             </p>
-            <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.55, margin: "0 0 14px" }}>
+            <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT_MUTED, lineHeight: 1.55, margin: "0 0 14px" }}>
               When you signed up you mentioned {onboardingNames.join(", ")}. We can look them up and sort them for you.
             </p>
             {importing ? (
               <p role="status" style={{ display: "flex", alignItems: "center", gap: 9, margin: 0, fontFamily: SANS,
-                fontSize: "0.95rem", fontWeight: 700, color: TEXT_MID }}>
+                fontSize: "1rem", fontWeight: 700, color: TEXT_MID }}>
                 <Spinner size={16} color={accent} /> Looking up {importing}...
               </p>
             ) : (
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <button type="button" onClick={runImport}
                   style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: "pointer",
-                    padding: "11px 18px", borderRadius: 11, border: "none", background: accent, color: WHITE }}>
+                    padding: "11px 18px", borderRadius: 11, border: "none", background: ink.button.bg, color: ink.button.fg }}>
                   Add them to my list
                 </button>
                 <button type="button" onClick={skipImport}
@@ -555,7 +537,7 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
           {notice && (
             <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: WHITE, border: `1px solid ${BORDER}`,
               borderRadius: 12, padding: "10px 12px 10px 14px", marginBottom: "1.2rem" }}>
-              <p style={{ flex: 1, margin: 0, fontFamily: SANS, fontSize: "0.93rem", color: TEXT_MID, lineHeight: 1.5 }}>{notice}</p>
+              <p style={{ flex: 1, margin: 0, fontFamily: SANS, fontSize: "1rem", color: TEXT_MID, lineHeight: 1.5 }}>{notice}</p>
               <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss"
                 style={{ border: "none", background: "none", cursor: "pointer", color: TEXT_FAINT, padding: 2,
                   fontFamily: SANS, fontSize: "1.1rem", lineHeight: 1 }}>
@@ -567,21 +549,24 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
 
         {items.length === 0 ? (
           <div style={{ background: WHITE, border: `1px dashed ${BORDER}`, borderRadius: 16, padding: "1.6rem 1.4rem" }}>
-            <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: TEXT, margin: "0 0 6px" }}>
+            <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", color: TEXT, margin: "0 0 6px" }}>
               Your list is empty
             </p>
-            <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.6, margin: 0, maxWidth: 560 }}>
+            <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT_MUTED, lineHeight: 1.6, margin: 0, maxWidth: 560 }}>
               Search for a school above. Each one is sorted into reach, target or likely for you, and you can change
               that any time. A strong list has a few of each.
             </p>
           </div>
         ) : (
           <>
-            <div style={{ marginBottom: "1.4rem" }}>
-              <BalanceBar b={b} />
+            <div style={{ marginBottom: "1.8rem" }}>
+              <p style={{ margin: 0, fontFamily: SANS, fontSize: "1.2rem", fontWeight: 600, color: TEXT,
+                fontVariantNumeric: "tabular-nums" }}>
+                {b.reach} reach, {b.target} target, {b.likely} likely
+              </p>
               {b.note && (
-                <p style={{ margin: "10px 0 0", fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MID, lineHeight: 1.55,
-                  borderLeft: `3px solid ${accent}`, paddingLeft: 10, maxWidth: 640 }}>
+                <p style={{ margin: "10px 0 0", fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT, lineHeight: 1.55,
+                  borderLeft: `3px solid ${accent}`, paddingLeft: 12, maxWidth: 640 }}>
                   {b.note}
                 </p>
               )}
@@ -592,17 +577,18 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
               return (
                 <section key={sec.key} aria-labelledby={`sec-${sec.key}`} style={{ marginBottom: "1.8rem" }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
-                    <SectionDot category={sec.key} />
-                    <h2 id={`sec-${sec.key}`} style={{ margin: 0, fontFamily: SANS, fontWeight: 700, fontSize: "1.2rem", color: TEXT }}>
+                    <h2 id={`sec-${sec.key}`} style={{ margin: 0, fontFamily: SANS, fontWeight: 700, color: TEXT,
+                      fontSize: isMobile ? "1.35rem" : "1.5rem", letterSpacing: "-0.01em" }}>
                       {sec.label}
                     </h2>
-                    <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.92rem", color: TEXT_FAINT }}>{list.length}</span>
+                    <span style={{ fontFamily: SANS, fontWeight: 500, fontSize: isMobile ? "1.35rem" : "1.5rem", color: TEXT_MUTED,
+                      fontVariantNumeric: "tabular-nums" }}>{list.length}</span>
                   </div>
-                  <p style={{ margin: "0 0 10px", fontFamily: SANS, fontSize: "0.9rem", color: TEXT_FAINT, lineHeight: 1.5 }}>
+                  <p style={{ margin: "0 0 12px", fontFamily: SANS, fontSize: "1.1rem", fontStyle: "italic", color: TEXT, lineHeight: 1.5 }}>
                     {sec.hint}
                   </p>
                   {list.length === 0 ? (
-                    <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.92rem", color: TEXT_FAINT,
+                    <p style={{ margin: 0, fontFamily: SANS, fontSize: "1rem", fontWeight: 700, color: TEXT_MUTED,
                       border: `1px dashed ${BORDER}`, borderRadius: 14, padding: "12px 14px" }}>
                       None yet.
                     </p>
@@ -618,13 +604,13 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
               );
             })}
 
-            <p style={{ margin: "0.4rem 0 0", fontFamily: SANS, fontSize: "0.85rem", color: TEXT_FAINT, lineHeight: 1.6, maxWidth: 660 }}>
+            <p style={{ margin: "0.4rem 0 0", fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.6, maxWidth: 660 }}>
               Figures are from the College Scorecard. Score ranges are the middle 50% of admitted students, and average
               net price is what students who got financial aid paid in a year, which is often far below the listed price.
               A category is a starting point, not a prediction.{" "}
               {navigate && (
                 <button type="button" onClick={() => navigate("/chat")}
-                  style={{ fontFamily: SANS, fontSize: "0.85rem", color: accent, fontWeight: 700, background: "none",
+                  style={{ fontFamily: SANS, fontSize: "0.95rem", color: ink.text, fontWeight: 700, background: "none",
                     border: "none", padding: 0, cursor: "pointer", textDecoration: "underline" }}>
                   Talk your list over in Chat.
                 </button>
