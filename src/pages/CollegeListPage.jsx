@@ -584,7 +584,7 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
                     <span style={{ fontFamily: SANS, fontWeight: 500, fontSize: isMobile ? "1.35rem" : "1.5rem", color: TEXT_MUTED,
                       fontVariantNumeric: "tabular-nums" }}>{list.length}</span>
                   </div>
-                  <p style={{ margin: "0 0 12px", fontFamily: SANS, fontSize: "1.1rem", fontStyle: "italic", color: TEXT, lineHeight: 1.5 }}>
+                  <p style={{ margin: "0 0 12px", fontFamily: SANS, fontSize: "1.1rem", fontStyle: "italic", color: ink.text, lineHeight: 1.5 }}>
                     {sec.hint}
                   </p>
                   {list.length === 0 ? (
