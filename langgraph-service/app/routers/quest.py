@@ -96,13 +96,22 @@ async def quest_suggestions(raw: Request, user_id: str = Depends(verify_jwt)):
     return result
 
 
+@router.post("/talk")
+async def quest_talk(raw: Request, user_id: str = Depends(verify_jwt)):
+    body = await _body(raw)
+    result = await _run(user_id, "talk", lambda: svc.talk(user_id, _tz(raw), body))
+    _track(user_id, "quest_talk_turn", done=bool((result or {}).get("done")),
+           fallback=bool((result or {}).get("fallback")))
+    return result
+
+
 @router.post("/plan")
 async def quest_plan(raw: Request, user_id: str = Depends(verify_jwt)):
     body = await _body(raw)
     result = await _run(user_id, "plan", lambda: svc.create_plan(user_id, _tz(raw), body))
     _track(user_id, "quest_planned", daily_minutes=body.get("daily_minutes"),
            rest_days=len(body.get("rest_days") or []), has_deadline=bool(body.get("hard_deadline")),
-           from_suggestion=bool(body.get("from_suggestion")))
+           from_suggestion=bool(body.get("from_suggestion")), talked=bool(body.get("conversation")))
     return result
 
 

@@ -223,6 +223,8 @@ def _quest_section(quest: dict | None) -> str | None:
     lines.append(f"- Quest: **{quest.get('title')}**" + (" (paused)" if status == "paused" else ""))
     if quest.get("summary"):
         lines.append(f"- What it builds: {quest['summary']}")
+    if quest.get("direction"):
+        lines.append(f"- Where it is headed, from what they told us before planning: {quest['direction']}")
     rest = ", ".join(quest.get("rest_days") or []) or "none"
     lines.append(f"- Pace: {quest.get('daily_minutes')} minutes a day. Rest days: {rest}.")
     lines.append(f"- Progress: {quest.get('done')} of {quest.get('total')} days done."

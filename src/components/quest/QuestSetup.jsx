@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { questApi, formatDay } from "../../lib/quest.js";
 import Spinner from "../common/Spinner.jsx";
@@ -75,6 +75,122 @@ function Mapping() {
   );
 }
 
+// ─── A few questions before planning ──────────────────────────────────────────
+// The advisor asks two to four quick questions, one at a time, so the plan
+// points where the student wants to go. The answers become the quest's
+// direction. Skippable, and never a dead end: any failure just moves them on.
+
+const toApi = (messages) => messages.map((m) => ({ role: m.role === "advisor" ? "assistant" : "user", content: m.content }));
+
+function Talk({ goal, title, talk, setTalk, onContinue, onBack }) {
+  const c = useQuestColors();
+  const [answer, setAnswer] = useState("");
+  const box = useRef(null);
+  const end = useRef(null);
+  // Pending and error live in the parent's talk state, so leaving this step
+  // mid-request and coming back shows the right thing instead of a dead end.
+  const busy = !!talk.pending;
+
+  const ask = async (messages) => {
+    // A reply for a project they have since switched away from is dropped.
+    const forGoal = goal;
+    setTalk((t) => ({ ...t, pending: true, error: null }));
+    try {
+      const r = await questApi.talk({ goal, messages: toApi(messages) });
+      setTalk((t) => (t.goal !== forGoal ? t : {
+        ...t, pending: false, done: !!r.done,
+        messages: [...messages, { role: "advisor", content: r.message }],
+      }));
+    } catch (e) {
+      setTalk((t) => (t.goal !== forGoal ? t : {
+        ...t, pending: false, error: e.message || "Could not reach your advisor. Try again, or skip and plan it.",
+      }));
+    }
+  };
+
+  // On opening the step: ask the first question, or pick up after an answer
+  // whose reply never arrived. Once per mount: StrictMode runs this effect
+  // twice in development, and each run would be a paid call.
+  const opened = useRef(false);
+  useEffect(() => {
+    if (opened.current) return;
+    opened.current = true;
+    const last = talk.messages[talk.messages.length - 1];
+    if (talk.done || talk.pending || talk.error) return;
+    if (!last || last.role === "student") ask(talk.messages);
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    end.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    if (!busy && !talk.done) box.current?.focus();
+  }, [talk.messages.length, busy, talk.done]);
+
+  const send = () => {
+    const text = answer.trim();
+    if (!text || busy) return;
+    const messages = [...talk.messages, { role: "student", content: text }];
+    setTalk((t) => ({ ...t, messages }));
+    setAnswer("");
+    ask(messages);
+  };
+
+  const last = talk.messages[talk.messages.length - 1];
+  const waiting = !talk.done && last?.role === "advisor";
+
+  return (
+    <div>
+      <Title>A few quick questions</Title>
+      <Lead>{title.replace(/[.!?\s]+$/, "")}. Your answers shape the plan and every day's task.</Lead>
+
+      <div role="log" aria-live="polite" aria-label="Your advisor's questions"
+        style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {talk.messages.map((m, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: m.role === "advisor" ? "flex-start" : "flex-end" }}>
+            <p style={{ margin: 0, maxWidth: "85%", minWidth: 0, fontFamily: SANS, fontSize: "1rem", lineHeight: 1.55, color: INK,
+              padding: "11px 14px", whiteSpace: "pre-wrap", overflowWrap: "anywhere",
+              ...(m.role === "advisor"
+                ? { background: c.wash, borderRadius: "16px 16px 16px 4px", fontWeight: 600 }
+                : { background: WHITE, border: `2px solid ${LINE}`, borderRadius: "16px 16px 4px 16px" }) }}>
+              {m.content}
+            </p>
+          </div>
+        ))}
+        {busy && (
+          <p role="status" style={{ display: "flex", alignItems: "center", gap: 8, margin: "2px 0 0", fontFamily: SANS,
+            fontSize: "0.95rem", fontWeight: 700, color: MUTED }}>
+            <Spinner size={16} color={c.accent} /> Thinking...
+          </p>
+        )}
+        <div ref={end} />
+      </div>
+
+      {waiting && (
+        <div style={{ marginTop: 14 }}>
+          <textarea ref={box} rows={2} value={answer} maxLength={400} aria-label="Your answer"
+            onChange={(e) => setAnswer(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+            placeholder="A sentence is plenty."
+            style={{ ...fieldStyle, resize: "vertical" }} />
+        </div>
+      )}
+      <ErrorLine>{talk.error}</ErrorLine>
+
+      <div style={{ display: "flex", gap: 12, marginTop: 18, alignItems: "center", flexWrap: "wrap" }}>
+        {talk.done ? (
+          <Chunky onClick={onContinue}>Continue</Chunky>
+        ) : talk.error && !busy ? (
+          <Chunky onClick={() => ask(talk.messages)}>Try again</Chunky>
+        ) : (
+          <Chunky onClick={send} disabled={!waiting || busy || !answer.trim()}>Send</Chunky>
+        )}
+        {/* Never a dead end: both stay available while a reply is on its way. */}
+        {!talk.done && <TextButton onClick={onContinue} color={MUTED}>Skip, just plan it</TextButton>}
+        <TextButton onClick={onBack} color={MUTED}>Back</TextButton>
+      </div>
+    </div>
+  );
+}
+
 // ─── Pick, then pace ──────────────────────────────────────────────────────────
 
 export function QuestSetup({ onPlanned, onCancel, canCancel }) {
@@ -91,6 +207,8 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
   const [deadline, setDeadline] = useState("");
   const [addToPortfolio, setAddToPortfolio] = useState(true);
   const [error, setError] = useState(null);
+  // The talk before planning, kept here so Back from the pace step returns to it.
+  const [talk, setTalk] = useState({ goal: null, messages: [], done: false, pending: false, error: null });
 
   const loadIdeas = async (refresh = false) => {
     setIdeasBusy(true); setError(null);
@@ -120,6 +238,8 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
         goal, daily_minutes: minutes, rest_days: rest,
         hard_deadline: hasDeadline && deadline ? deadline : null,
         add_to_portfolio: addToPortfolio, from_suggestion: pick !== "own",
+        // Only a conversation they took part in: a lone unanswered question tells the planner nothing.
+        conversation: talk.goal === goal && talk.messages.some((m) => m.role === "student") ? toApi(talk.messages) : [],
       });
       onPlanned(state);
     } catch (e) {
@@ -129,6 +249,13 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
   };
 
   if (step === "mapping") return <Mapping />;
+
+  if (step === "talk") {
+    return (
+      <Talk goal={goal} title={chosen ? chosen.title : own.trim()} talk={talk} setTalk={setTalk}
+        onContinue={() => setStep("pace")} onBack={() => setStep("pick")} />
+    );
+  }
 
   if (step === "pace") {
     return (
@@ -170,7 +297,7 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
         <ErrorLine>{error}</ErrorLine>
         <div style={{ display: "flex", gap: 12, marginTop: 26, alignItems: "center" }}>
           <Chunky onClick={plan} disabled={hasDeadline && !deadline}>Map my quest</Chunky>
-          <TextButton onClick={() => setStep("pick")} color={MUTED}>Back</TextButton>
+          <TextButton onClick={() => setStep("talk")} color={MUTED}>Back</TextButton>
         </div>
       </div>
     );
@@ -242,7 +369,11 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
 
       <ErrorLine>{error}</ErrorLine>
       <div style={{ display: "flex", gap: 12, marginTop: 22, alignItems: "center" }}>
-        <Chunky onClick={() => setStep("pace")} disabled={!canContinue}>Continue</Chunky>
+        <Chunky disabled={!canContinue} onClick={() => {
+          // A different project starts a fresh conversation; the same one picks it back up.
+          if (talk.goal !== goal) setTalk({ goal, messages: [], done: false, pending: false, error: null });
+          setStep("talk");
+        }}>Continue</Chunky>
         {canCancel && <TextButton onClick={onCancel} color={MUTED}>Cancel</TextButton>}
       </div>
     </div>
@@ -261,6 +392,12 @@ export function DraftReview({ state, onStart, onDiscard, busy, error }) {
     <div>
       <Title>{q.title}</Title>
       {q.summary && <Lead>{q.summary}</Lead>}
+      {q.direction && (
+        <div style={{ background: c.wash, borderRadius: 14, padding: "12px 15px", margin: "0 0 18px", maxWidth: 560 }}>
+          <p style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "0.95rem", color: INK }}>Where this is headed</p>
+          <p style={{ margin: "4px 0 0", fontFamily: SANS, fontSize: "1rem", color: INK, lineHeight: 1.55 }}>{q.direction}</p>
+        </div>
+      )}
       <p style={{ margin: "0 0 18px", fontFamily: SANS, fontSize: "0.98rem", color: MID, lineHeight: 1.6 }}>
         {state.draft.total_days} days at {q.daily_minutes} minutes a day. Start today and you finish around{" "}
         <strong style={{ color: INK }}>{formatDay(state.draft.finish_if_started_today)}</strong>.{rest}

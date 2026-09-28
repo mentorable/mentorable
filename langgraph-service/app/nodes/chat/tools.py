@@ -295,6 +295,7 @@ CHAT_TOOLS = [
             "properties": {
                 "title": {"type": "string", "description": "New name for the quest, at most 60 characters."},
                 "summary": {"type": "string", "description": "New one or two sentence summary."},
+                "direction": {"type": "string", "description": "Where the quest is headed, two or three sentences to the student: what they will have at the end, what they are starting from, what it is for. Update it whenever the aim changes, or every daily task keeps steering toward the old one."},
                 "daily_minutes": {"type": "integer", "enum": [15, 30, 45],
                                   "description": "Minutes a day the tasks are sized for."},
                 "rest_days": {"type": "array", "items": {"type": "integer"},

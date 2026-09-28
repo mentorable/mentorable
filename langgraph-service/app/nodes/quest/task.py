@@ -33,6 +33,7 @@ TASK_PROMPT = """You set one day's task in a high school student's Quest: one sm
 
 QUEST: {quest_title}
 {quest_summary}
+WHERE IT IS HEADED: {direction}
 
 CURRENT MILESTONE ({ms_position} of {ms_count}): {ms_title}
 {ms_description}
@@ -49,6 +50,7 @@ ABOUT THEM: {grade}
 Write the task. Rules:
 - One action a high school student can finish in {minutes} minutes in one sitting. If it cannot be finished in one sitting, cut it down.
 - Concrete and checkable. "Sketch three layouts for the home screen on paper" is a task. "Think about the design" is not.
+- Keep today's step pointed where the quest is headed, toward what they said they want at the end. If the current milestone and that direction disagree, the milestone wins: it is the newer plan.
 - Build on what they reported. If they got stuck, today's task is the way unstuck. If they are ahead, move forward.
 - Do not repeat a task already set in this milestone.
 - Pace the milestone so it is finished by its last day: the last task of a milestone should complete its stated outcome.
@@ -103,6 +105,7 @@ async def generate_task(*, quest: dict, milestone: dict, milestone_count: int, d
         minutes=minutes,
         quest_title=quest.get("title") or "",
         quest_summary=quest.get("summary") or "",
+        direction=quest.get("direction") or "Not discussed; go by the quest and the milestone.",
         ms_position=milestone.get("position"),
         ms_count=milestone_count,
         ms_title=milestone.get("title") or "",

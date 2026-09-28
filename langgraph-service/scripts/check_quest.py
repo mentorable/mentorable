@@ -13,6 +13,8 @@ It answers the things the offline tests cannot:
   3. What does a day of Quest really cost per student?
   4. Does the web search tool return real, checked links for a task, and what
      does one "Find resources" tap cost (searches plus tokens)?
+  5. Does the pre-plan talk ask a real first question, finish when told to,
+     and does the plan write a direction from it?
 
 Nothing is written to the database and no budget is touched. The key is read
 from the environment (or langgraph-service/.env) and never printed.
@@ -111,16 +113,42 @@ async def main() -> int:
     from anthropic import AsyncAnthropic
     from app.models import (QUEST_CHECKIN_MODEL, QUEST_DRAFT_MODEL, QUEST_PLAN_MODEL,
                             QUEST_SUGGEST_MODEL, QUEST_TASK_MODEL)
-    from app.nodes.quest import checkin, draft, plan, resources, suggest, task
+    from app.nodes.quest import checkin, draft, plan, resources, suggest, talk, task
 
     client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     problems, costs = [], {}
 
+    # The talk before planning: a first question, then a forced finish.
+    goal = "Test lead levels in my county's drinking water and share what I find"
+    raw, costs["talk"] = await run(client, "Pre-plan talk, first question", talk.QUEST_TALK_MODEL,
+                                   talk.TALK_PROMPT.format(goal=goal, record=RECORD,
+                                                           conversation="(nothing yet: ask your first question)",
+                                                           asked=0, max_q=talk.MAX_QUESTIONS, rule=talk._rule(0)),
+                                   talk.TALK_TOOL, 300)
+    first = talk.clean_turn(raw, 0)
+    show(first or {})
+    if not first or first["done"] or not first["message"].endswith("?"):
+        problems.append("talk: the first turn did not come back as a question")
+    convo = [{"role": "advisor", "content": (first or {}).get("message") or "What do you want at the end?"},
+             {"role": "student", "content": "a short report for my town council with a map of the readings"},
+             {"role": "advisor", "content": "What have you done with data like this before?"},
+             {"role": "student", "content": "just spreadsheets in chem class"}]
+    raw, talk_cost2 = await run(client, "Pre-plan talk, told to finish", talk.QUEST_TALK_MODEL,
+                                talk.TALK_PROMPT.format(goal=goal, record=RECORD, conversation=talk.render(convo),
+                                                        asked=talk.MAX_QUESTIONS, max_q=talk.MAX_QUESTIONS,
+                                                        rule=talk._rule(talk.MAX_QUESTIONS)),
+                                talk.TALK_TOOL, 300)
+    closing = talk.clean_turn(raw, talk.MAX_QUESTIONS)
+    show(closing or {})
+    if not closing or not closing["done"]:
+        problems.append("talk: told to finish, it did not")
+    costs["talk"] += talk_cost2
+
     # Plan
     raw, costs["plan"] = await run(client, "Quest plan (once per quest)", QUEST_PLAN_MODEL,
                                    plan.PLAN_PROMPT.format(
-                                       minutes=30, work_days=5, record=RECORD,
-                                       goal="Test lead levels in my county's drinking water and share what I find",
+                                       minutes=30, work_days=5, record=RECORD, goal=goal,
+                                       conversation_block=plan.conversation_block(talk.render(convo)),
                                        deadline_block="\n", deadline_sizing=""),
                                    plan.PLAN_TOOL, 2000)
     cleaned = plan.clean_plan(raw)
@@ -129,18 +157,23 @@ async def main() -> int:
     else:
         print(f"  plan          : {len(cleaned['milestones'])} milestones, "
               f"{sum(m['days'] for m in cleaned['milestones'])} days")
+        print(f"  direction     : {cleaned['direction'] or '(empty)'}")
+        if not cleaned["direction"]:
+            problems.append("plan: no direction written from the talk")
         show(cleaned)
         if has_em_dash(raw):
             print("  note          : the raw reply had em dashes (the app strips them)")
 
     ms = (cleaned or {"milestones": [{"title": "Pick the question", "description": "", "days": 3}]})["milestones"][0]
     quest = {"title": (cleaned or {}).get("title", "Water quality project"),
-             "summary": (cleaned or {}).get("summary", ""), "daily_minutes": 30}
+             "summary": (cleaned or {}).get("summary", ""), "daily_minutes": 30,
+             "direction": (cleaned or {}).get("direction", "")}
 
     # Daily task
     raw, costs["task"] = await run(client, "Daily task (every active student, every day)", QUEST_TASK_MODEL,
                                    task.TASK_PROMPT.format(
                                        minutes=30, quest_title=quest["title"], quest_summary=quest["summary"],
+                                       direction=quest["direction"] or "Not discussed; go by the quest and the milestone.",
                                        ms_position=1, ms_count=5, ms_title=ms["title"],
                                        ms_description=ms["description"], day_in_ms=2, ms_days=ms["days"],
                                        catch_up_note="", prior="- List five questions you could test",
@@ -240,6 +273,7 @@ async def main() -> int:
     print(f"  one active day (task + reply) : ${daily:.4f}")
     print(f"  a 30-day month at that rate   : ${daily * 30:.2f}")
     print(f"  one 'Find resources' tap      : ${costs.get('resources', 0):.4f}  (6 a month max = ${costs.get('resources', 0) * 6:.2f})")
+    print(f"  pre-plan talk (two turns)     : ${costs.get('talk', 0):.4f}")
     print(f"  one-off per quest (plan + draft + suggestions): "
           f"${costs.get('plan', 0) + costs.get('draft', 0) + costs.get('suggest', 0):.4f}")
 

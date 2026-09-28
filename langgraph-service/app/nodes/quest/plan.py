@@ -26,6 +26,7 @@ PLAN_TOOL = {
             "title": {"type": "string", "description": "A short name for the whole quest, at most 60 characters."},
             "summary": {"type": "string", "description": "One or two sentences on what they will have at the end."},
             "goal_kind": {"type": "string", "enum": GOAL_KINDS},
+            "direction": {"type": "string", "description": "Two or three sentences to the student: where this project is headed (what they will have at the end), what they are starting from, and what it is for. Only from their goal and what they told the advisor; never invent."},
             "milestones": {
                 "type": "array",
                 "items": {
@@ -39,7 +40,7 @@ PLAN_TOOL = {
                 },
             },
         },
-        "required": ["title", "summary", "goal_kind", "milestones"],
+        "required": ["title", "summary", "goal_kind", "direction", "milestones"],
     },
 }
 
@@ -50,7 +51,7 @@ THE STUDENT'S GOAL, IN THEIR OWN WORDS:
 
 WHAT WE KNOW ABOUT THEM:
 {record}
-{deadline_block}
+{conversation_block}{deadline_block}
 Break the project into 5 to 8 milestones. Each milestone is a real, checkable stage of the work ("A working prototype", "First full practice test under timed conditions", "Summaries of ten papers"), not a vague theme like "Learn more". They run in order, and each should be possible once the one before it is done.
 
 For each milestone:
@@ -62,11 +63,13 @@ Size the whole quest honestly for {minutes} minutes a day. Most quests land betw
 
 Rules:
 - It has to be doable by a high school student with the time and resources a typical student has: free tools, their school, their library, the internet. Never require paid programs, travel, or special access unless the goal itself names it.
+- Anything personal they told the advisor that is not about the project (stress, family, health) stays out of the title, summary, direction and milestones.
 - Keep it theirs. If the goal involves an essay or application writing, plan the thinking, drafting and revising, never a step where someone or something else writes it.
 - Build something real. Never plan steps that exist to manufacture a title, an award, or an impressive-sounding line for an application.
 - Do not state deadlines, dates or rules for any competition, program or school: they change every year. If the goal depends on one, make an early step "look up the current rules on the official site".
 - title: a short name for the whole quest, at most 60 characters, that they would be glad to see on their screen every day.
 - summary: one or two sentences on what they will have at the end.
+- direction: two or three sentences to them, "you" not "the student": what they will have at the end, what they are starting from, and what it is for. Only from their goal and anything they told the advisor.
 - goal_kind: passion_project, competition_prep, research, or other.
 - Plain words. Never use em dashes.
 
@@ -124,12 +127,22 @@ def clean_plan(raw, max_days: Optional[int] = None) -> Optional[dict]:
         "title": title,
         "summary": clean_text(raw.get("summary"), 300),
         "goal_kind": clean_kind(raw.get("goal_kind")),
+        "direction": clean_text(raw.get("direction"), 500),
         "milestones": milestones,
     }
 
 
+def conversation_block(conversation: str) -> str:
+    """The talk before planning, for the plan prompt. Empty when they skipped it."""
+    if not conversation:
+        return ""
+    return ("\nWHAT THEY TOLD THE ADVISOR ABOUT IT:\n" + conversation + "\n"
+            "Plan toward what they said they want to have at the end, starting from where they said they are.\n")
+
+
 async def plan_quest(*, goal: str, record_text: str, minutes: int, work_days: int,
-                     max_days: Optional[int], deadline_label: Optional[str]) -> Optional[dict]:
+                     max_days: Optional[int], deadline_label: Optional[str],
+                     conversation: str = "") -> Optional[dict]:
     """Raises ModelUnavailable if the model cannot be reached; None if its
     answer was unusable."""
     if max_days is not None:
@@ -141,6 +154,7 @@ async def plan_quest(*, goal: str, record_text: str, minutes: int, work_days: in
         deadline_sizing = ""
     prompt = PLAN_PROMPT.format(
         minutes=minutes, work_days=work_days, goal=goal.strip(), record=record_text,
+        conversation_block=conversation_block(conversation),
         deadline_block=deadline_block, deadline_sizing=deadline_sizing,
     )
     raw = await tool_completion(model=QUEST_PLAN_MODEL, prompt=prompt, tool=PLAN_TOOL,

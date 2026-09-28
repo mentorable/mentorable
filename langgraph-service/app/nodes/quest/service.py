@@ -27,10 +27,11 @@ from app.llm import ModelUnavailable
 from app.nodes.quest import schedule as S
 from app.nodes.quest import xp as X
 from app.nodes.quest.checkin import canned_reply, looks_thin, reply_to_checkin
-from app.nodes.quest.common import grade_line, student_context
+from app.nodes.quest.common import clean_text, grade_line, student_context
 from app.nodes.quest.draft import computed_fields, draft_activity
 from app.nodes.quest.plan import plan_quest
 from app.nodes.quest.resources import find_resources
+from app.nodes.quest.talk import FALLBACK_LINE, clean_messages, next_turn, render as render_talk
 from app.nodes.quest.suggest import FALLBACK_SUGGESTIONS, record_key, suggest_quests
 from app.nodes.quest.task import fallback_task, generate_task
 
@@ -46,6 +47,10 @@ BUDGETS = {
     "suggest_refresh": ("month", 3),
     "suggest_auto":    ("month", 5),
     "resources":       ("month", 6),
+    # The questions before planning. A plan is 3 a month and a talk is at most
+    # five turns, so this leaves room for restarts; when it runs out the talk
+    # just ends and they go on to their pace.
+    "talk":            ("month", 20),
 }
 
 OPEN_STATUSES = ["draft", "active", "paused"]
@@ -342,6 +347,7 @@ def _quest_payload(q: dict) -> dict:
         "add_to_portfolio": bool(q.get("add_to_portfolio")),
         "portfolio_activity_id": q.get("portfolio_activity_id"),
         "has_portfolio_draft": bool(q.get("portfolio_draft")),
+        "direction": q.get("direction") or "",
     }
 
 
@@ -488,6 +494,38 @@ def _minutes(raw) -> int:
     return m
 
 
+async def talk(user_id: str, tz_hint: Optional[str], body: dict) -> dict:
+    """The advisor's next question before planning, or its closing line.
+
+    Stateless: the page sends the goal and the conversation so far each turn.
+    Returns {done, message, fallback}. Never blocks the student: a spent budget,
+    an outage or a bad reply all end the talk so they can go on to their pace.
+    """
+    goal = _clip(body.get("goal"), 600)
+    if len(goal) < 3:
+        raise QuestError(422, "goal_required", "Tell us what you want to work on.")
+    messages = clean_messages(body.get("messages"))
+    if messages and messages[-1]["role"] == "advisor":
+        raise QuestError(422, "answer_first", "Answer the question first, or skip it.")
+
+    ctx = await asyncio.to_thread(load, user_id, tz_hint, include_recent=False, with_checkins=False)
+    if ctx.quest and ctx.quest["status"] != "draft":
+        raise QuestError(409, "quest_open", "Finish or retire your current quest before planning a new one.")
+    # Say so before any questions: answering four of them and then being told
+    # at "Map my quest" that no plans are left wastes the student's time and ours.
+    if await asyncio.to_thread(_left, ctx, "plan") <= 0:
+        raise QuestError(429, "QUEST_BUDGET",
+                         "You have planned 3 quests this month. New plans open up on the 1st.")
+
+    if not await asyncio.to_thread(_spend, ctx, "talk"):
+        return {"done": True, "message": FALLBACK_LINE, "fallback": True}
+    record_text, _ = await asyncio.to_thread(student_context, user_id)
+    turn = await next_turn(goal=goal, record_text=record_text, messages=messages)
+    if turn.get("fallback"):
+        await asyncio.to_thread(_refund, ctx, "talk")
+    return turn
+
+
 async def create_plan(user_id: str, tz_hint: Optional[str], body: dict) -> dict:
     goal = _clip(body.get("goal"), 600)
     if len(goal) < 3:
@@ -522,6 +560,7 @@ async def create_plan(user_id: str, tz_hint: Optional[str], body: dict) -> dict:
             goal=goal, record_text=record_text, minutes=minutes, work_days=7 - len(rest),
             max_days=max_days,
             deadline_label=(f"{deadline:%B} {deadline.day}, {deadline.year}" if deadline else None),
+            conversation=render_talk(clean_messages(body.get("conversation"))),
         )
     except ModelUnavailable:
         _refund(ctx, "plan")
@@ -540,7 +579,7 @@ async def create_plan(user_id: str, tz_hint: Optional[str], body: dict) -> dict:
     try:
         quest = (_sb().from_("quests").insert({
             "user_id": user_id, "title": plan["title"], "summary": plan["summary"],
-            "goal_kind": plan["goal_kind"], "status": "draft", "daily_minutes": minutes,
+            "goal_kind": plan["goal_kind"], "direction": plan["direction"], "status": "draft", "daily_minutes": minutes,
             "rest_days": rest, "hard_deadline": _iso(deadline),
             "add_to_portfolio": body.get("add_to_portfolio", True) is not False,
         }).execute().data or [None])[0]
@@ -688,6 +727,9 @@ def apply_changes(ctx: Ctx, changes: dict, *, allow_structure: bool) -> list[str
         if isinstance(changes.get("summary"), str):
             values["summary"] = _clip(changes["summary"], 300)
             changed.append("summary")
+        if isinstance(changes.get("direction"), str):
+            values["direction"] = clean_text(changes["direction"], 500)
+            changed.append("direction")
         if "hard_deadline" in changes:
             values["hard_deadline"] = _iso(_parse_deadline(changes["hard_deadline"], ctx.today))
             changed.append("hard_deadline")
@@ -1127,6 +1169,7 @@ def brief_for_chat(user_id: str, tz_name: Optional[str]) -> Optional[dict]:
     deadline = _date(q.get("hard_deadline"))
     return {
         "title": q["title"], "summary": q.get("summary") or "", "status": q["status"],
+        "direction": q.get("direction") or "",
         "daily_minutes": _int(q.get("daily_minutes"), 30),
         "rest_days": [DAY_NAMES[d] for d in S.clean_rest_days(q.get("rest_days"))],
         "hard_deadline": q.get("hard_deadline"),

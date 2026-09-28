@@ -65,6 +65,7 @@ export const questApi = {
   state:            ()             => call("/quest"),
   summary:          ()             => call("/quest/summary"),
   suggestions:      (refresh)      => post("/quest/suggestions", { refresh: !!refresh }),
+  talk:             (body)         => post("/quest/talk", body),
   plan:             (body)         => post("/quest/plan", body),
   start:            (id)           => post(`/quest/${id}/start`),
   discard:          (id)           => post(`/quest/${id}/discard`),
