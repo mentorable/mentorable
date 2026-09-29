@@ -1,0 +1,2846 @@
+{
+ "about": "Synthetic students for scripts/eval_memory.py, written for the eval: no real student data. Each has memories (check-ins, follow-up answers, chat lines; days_ago counts back from the eval's fixed date) with facts planted among look-alike distractors, and questions whose answers are memory ids. A question marked changed is about a fact the student later changed; its newer memory is listed first.",
+ "students": [
+  {
+   "id": "maya",
+   "about": "Maya is a high school junior in Easton, Ohio who spent the summer and early fall testing lead in her town's tap water and presenting it to the town council, while weighing colleges and shifting from environmental science toward public health.",
+   "memories": [
+    {
+     "id": "maya-001",
+     "source": "checkin",
+     "context": "Pick your quest and write down why it matters to you",
+     "body": "ok starting this for real. my aunt rosa got a letter from the water dept last year saying her house might have a lead pipe and nobody on her street knew what that meant. i want to actually find out",
+     "days_ago": 100
+    },
+    {
+     "id": "maya-002",
+     "source": "checkin",
+     "context": "Read the basics of the federal Lead and Copper Rule",
+     "body": "read the epa summary of the lead and copper rule. the action level is 15 ppb but they also say there's no safe level for kids which is kind of terrifying. took notes on my phone",
+     "days_ago": 99
+    },
+    {
+     "id": "maya-003",
+     "source": "checkin",
+     "context": "Find where Ohio posts drinking water sampling results",
+     "body": "found the ohio epa drinking water watch site. it's super clunky but you can search by water system, and easton's system number is printed on our water bill which is kinda funny",
+     "days_ago": 98
+    },
+    {
+     "id": "maya-004",
+     "source": "chat",
+     "context": "",
+     "body": "hi, rising junior here. i'm pretty sure i want to major in environmental science, like doing field work outside at streams and forests, not stuck in an office all day",
+     "days_ago": 98
+    },
+    {
+     "id": "maya-005",
+     "source": "checkin",
+     "context": "Download the lead sampling results for Easton's water system",
+     "body": "downloaded all the lead results for easton from 2019 to 2025 as a csv. it's like 60 rows, way smaller than i expected for a whole town",
+     "days_ago": 96
+    },
+    {
+     "id": "maya-006",
+     "source": "chat",
+     "context": "",
+     "body": "heads up for planning stuff, my laptop died in june and we can't replace it rn, maybe christmas. so at home it's just my phone, and the public library computers kick you off after an hour",
+     "days_ago": 96
+    },
+    {
+     "id": "maya-007",
+     "source": "checkin",
+     "context": "Open the data and note what each column means",
+     "body": "went through the columns. site id, sample date, result, and the result is in mg/L not ppb which confused me for like 20 minutes. 0.015 mg/L is the same as 15 ppb",
+     "days_ago": 95
+    },
+    {
+     "id": "maya-008",
+     "source": "chat",
+     "context": "",
+     "body": "for colleges i think i want somewhere small, like under 3000 students, quiet, and no more than 2 hours from home. big schools kind of freak me out tbh",
+     "days_ago": 95
+    },
+    {
+     "id": "maya-009",
+     "source": "checkin",
+     "context": "Convert every result to ppb and sort highest to lowest",
+     "body": "converted everything to ppb and sorted it. highest was 41 ppb in 2022 at one site, most are under 5 which is good i guess",
+     "days_ago": 94
+    },
+    {
+     "id": "maya-010",
+     "source": "checkin",
+     "context": "Write down three questions the data can't answer",
+     "body": "wrote down 3 things this data can't tell me: which houses actually have lead pipes, who lives in them, and whether it's getting better or worse",
+     "days_ago": 93
+    },
+    {
+     "id": "maya-011",
+     "source": "checkin",
+     "context": "List which neighborhoods the sampling sites are in",
+     "body": "tried to figure out where the sites are but the data only has site ids, no addresses. so i can't tell which neighborhoods these are. kind of stuck",
+     "days_ago": 92
+    },
+    {
+     "id": "maya-012",
+     "source": "followup",
+     "context": "List which neighborhoods the sampling sites are in",
+     "body": "i think i'll email the water department and ask which streets each site id is on, they have to know right",
+     "days_ago": 92
+    },
+    {
+     "id": "maya-013",
+     "source": "checkin",
+     "context": "Count how many sites were sampled each year",
+     "body": "counted sites per year. 2019 had 20, 2022 had 20, 2025 had 18. so they only sample every 3 years, i thought it was every year",
+     "days_ago": 91
+    },
+    {
+     "id": "maya-014",
+     "source": "chat",
+     "context": "",
+     "body": "one thing about how i work, i do way better with a checklist. i put every step on a sticky note on my mirror and peel them off when they're done. big vague tasks make me freeze up",
+     "days_ago": 90
+    },
+    {
+     "id": "maya-015",
+     "source": "checkin",
+     "context": "Compare Easton's numbers to two nearby towns",
+     "body": "pulled the same data for two nearby towns. one has way lower numbers but it's a much newer town. easton's 90th percentile was 9 ppb in 2022, under 15 but not by alot",
+     "days_ago": 89
+    },
+    {
+     "id": "maya-016",
+     "source": "checkin",
+     "context": "Check whether schools and the Flats show up in the state data",
+     "body": "big problem. none of the schools are in the state data at all, and the 4 sites i can place aren't in the flats, which is the oldest part of town. so the data might miss the places i care about most",
+     "days_ago": 88
+    },
+    {
+     "id": "maya-017",
+     "source": "checkin",
+     "context": "Write a short email to the water department asking for site locations",
+     "body": "drafted the email. asked which streets the sampling sites are on and if they have anything older than 2019. kept it short and polite, sending it tomorrow morning",
+     "days_ago": 87
+    },
+    {
+     "id": "maya-018",
+     "source": "chat",
+     "context": "",
+     "body": "is it weird to email a government office as a 16 year old? i need info from the water department and im scared they'll just ignore me",
+     "days_ago": 87
+    },
+    {
+     "id": "maya-019",
+     "source": "checkin",
+     "context": "Send the email and start a log of who you contacted",
+     "body": "sent the email this morning, fingers crossed",
+     "days_ago": 86
+    },
+    {
+     "id": "maya-020",
+     "source": "followup",
+     "context": "Send the email and start a log of who you contacted",
+     "body": "i sent it to the general info address on their website since i couldn't find a real person's name, and started a contacts list in my notes",
+     "days_ago": 86
+    },
+    {
+     "id": "maya-021",
+     "source": "checkin",
+     "context": "Read about how lead gets into tap water",
+     "body": "read about lead service lines today",
+     "days_ago": 85
+    },
+    {
+     "id": "maya-022",
+     "source": "followup",
+     "context": "Read about how lead gets into tap water",
+     "body": "it's the pipe from the water main to your house. houses built before about 1950 often have lead ones, and most of the flats is from the 1920s",
+     "days_ago": 85
+    },
+    {
+     "id": "maya-023",
+     "source": "checkin",
+     "context": "Look up when Easton's water pipes were installed",
+     "body": "found an old town history pdf. the water system was built in 1908 and most of the flats went up between 1915 and 1930, so lead lines there are really likely",
+     "days_ago": 83
+    },
+    {
+     "id": "maya-024",
+     "source": "chat",
+     "context": "",
+     "body": "we drove to oberlin for a summer tour yesterday and honestly i loved it. the environmental studies building has solar panels and a living machine that cleans wastewater with plants, and everyone was so nice to us",
+     "days_ago": 83
+    },
+    {
+     "id": "maya-025",
+     "source": "checkin",
+     "context": "Follow up on your email to the water department",
+     "body": "the water dept replied!! a guy named mr delgado, he's their water quality supervisor. he said schools aren't in the state data because they test separately, and he'll send me the site list with street names",
+     "days_ago": 82
+    },
+    {
+     "id": "maya-026",
+     "source": "checkin",
+     "context": "Set up a spreadsheet to track sites, streets and pipe material",
+     "body": "made the tracking sheet at the library with columns for site id, street, year built, pipe material and result. mostly empty for now but it looks official",
+     "days_ago": 80
+    },
+    {
+     "id": "maya-027",
+     "source": "checkin",
+     "context": "Read the town's annual water quality report",
+     "body": "read this year's water quality report",
+     "days_ago": 79
+    },
+    {
+     "id": "maya-028",
+     "source": "followup",
+     "context": "Read the town's annual water quality report",
+     "body": "it says easton had zero violations, but it only gives the 90th percentile number, nothing about individual houses or streets",
+     "days_ago": 79
+    },
+    {
+     "id": "maya-029",
+     "source": "checkin",
+     "context": "Read how other towns handled their lead lines",
+     "body": "read about newark nj replacing basically all of its lead service lines in like 3 years, free for homeowners. so it's possible if a town actually wants to",
+     "days_ago": 78
+    },
+    {
+     "id": "maya-030",
+     "source": "chat",
+     "context": "",
+     "body": "is it better to take ap stats or ap calc senior year? people say colleges want calc but stats seems way more useful for data stuff",
+     "days_ago": 78
+    },
+    {
+     "id": "maya-031",
+     "source": "checkin",
+     "context": "Find the town's lead service line inventory",
+     "body": "looked for the lead service line inventory every water system had to publish by 2024. couldn't find it anywhere on the town website, which feels like it shouldn't be allowed",
+     "days_ago": 77
+    },
+    {
+     "id": "maya-032",
+     "source": "checkin",
+     "context": "Add the full site list and school results to your sheet",
+     "body": "mr delgado sent the full site list with streets plus the school results from the district, and a link to the inventory. gap filled: 5 of the 18 sites are in the flats, and every school is under 5 ppb except one fountain at the middle school",
+     "days_ago": 76
+    },
+    {
+     "id": "maya-033",
+     "source": "checkin",
+     "context": "Tag every site by neighborhood",
+     "body": "tagged every site by neighborhood. the flats sites are consistently the highest, like 3 of the top 4 readings every single round",
+     "days_ago": 75
+    },
+    {
+     "id": "maya-034",
+     "source": "checkin",
+     "context": "Write a one paragraph project summary to reuse in emails",
+     "body": "wrote a short paragraph about my project to paste into emails. took like 6 tries to make it not sound like a school essay",
+     "days_ago": 74
+    },
+    {
+     "id": "maya-035",
+     "source": "checkin",
+     "context": "Look up your street and the Flats in the line inventory",
+     "body": "went through the inventory, it's a giant pdf not a map. our street says galvanized requiring replacement which i had to google, and aunt rosa's whole block is listed as lead",
+     "days_ago": 73
+    },
+    {
+     "id": "maya-036",
+     "source": "chat",
+     "context": "",
+     "body": "fyi for planning, my mom works second shift at the hospital so every tuesday and thursday i have my little brothers from like 2:30 til she gets home around 11:30. those days are basically gone for anything else",
+     "days_ago": 72
+    },
+    {
+     "id": "maya-037",
+     "source": "checkin",
+     "context": "Decide what question your own testing will answer",
+     "body": "picked my question: do homes with lead service lines actually have more lead at the tap than homes with copper lines? the state data can't answer that, there's only 5 sites in the flats",
+     "days_ago": 71
+    },
+    {
+     "id": "maya-038",
+     "source": "chat",
+     "context": "",
+     "body": "money is honestly my biggest worry about college. my mom said she can maybe do 8k a year at most and i really don't want huge loans. is that even realistic for a decent school",
+     "days_ago": 70
+    },
+    {
+     "id": "maya-039",
+     "source": "checkin",
+     "context": "Figure out how many homes to test and where",
+     "body": "planning 25 homes, about half in the flats and half in newer parts of town. the epa guidance says to use first draw water that sat in the pipes at least 6 hours",
+     "days_ago": 69
+    },
+    {
+     "id": "maya-040",
+     "source": "checkin",
+     "context": "Research at-home lead test kits and their limits",
+     "body": "looked at test kits. mail in lab kits are like 30 to 40 dollars each which is way too much for 25 homes. the cheap strips are 20 dollars for 50 so going with those for now",
+     "days_ago": 68
+    },
+    {
+     "id": "maya-041",
+     "source": "checkin",
+     "context": "Estimate what the testing will cost",
+     "body": "added up costs: strips 20, bottles 18, maybe 10 for gas. under 50 total if nothing goes wrong, famous last words",
+     "days_ago": 67
+    },
+    {
+     "id": "maya-042",
+     "source": "checkin",
+     "context": "Write a sign-up form for volunteer homes",
+     "body": "made a google form for volunteers. asks address, year the house was built, pipe type if they know it, and a good time for pickup. kept it to 5 questions",
+     "days_ago": 66
+    },
+    {
+     "id": "maya-043",
+     "source": "checkin",
+     "context": "Post the sign-up form where neighbors will see it",
+     "body": "posted the form in the easton community facebook group and the flats neighborhood group. 9 sign ups in the first few hours which is way more then i expected",
+     "days_ago": 65
+    },
+    {
+     "id": "maya-044",
+     "source": "chat",
+     "context": "",
+     "body": "random but i really hate presenting. my voice shakes and i talk way too fast, and last year in bio i blanked in the middle of a slide and just stood there. the council part of this quest scares me the most",
+     "days_ago": 65
+    },
+    {
+     "id": "maya-045",
+     "source": "checkin",
+     "context": "Recruit more volunteers from the Flats",
+     "body": "aunt rosa put my flyer by the register at the bakery and a bunch of flats people signed up. i'm at 25 homes now, 13 in the flats and 12 in newer areas",
+     "days_ago": 64
+    },
+    {
+     "id": "maya-046",
+     "source": "checkin",
+     "context": "Order the test kits and sample bottles",
+     "body": "ordered the test kits and 40 sample bottles, should come friday. my mom put it on her card and i'm paying her back out of my bakery money",
+     "days_ago": 62
+    },
+    {
+     "id": "maya-047",
+     "source": "checkin",
+     "context": "Write sampling instructions for volunteers",
+     "body": "wrote the instructions for volunteers today",
+     "days_ago": 61
+    },
+    {
+     "id": "maya-048",
+     "source": "followup",
+     "context": "Write sampling instructions for volunteers",
+     "body": "don't run any water for 6 hours, then first thing in the morning fill the bottle from the kitchen cold tap and write the time on the label",
+     "days_ago": 61
+    },
+    {
+     "id": "maya-049",
+     "source": "chat",
+     "context": "",
+     "body": "also i work saturday mornings at my aunt rosa's bakery, 6am to noon, so on saturdays i can't do anything til the afternoon and i'm usually wiped after",
+     "days_ago": 60
+    },
+    {
+     "id": "maya-050",
+     "source": "checkin",
+     "context": "Plan a route to drop off and pick up bottles",
+     "body": "planned the pickup route. problem is i don't have my license yet, so i'll bike to the flats houses and my mom has to drive me to the far ones on sunday since that's her only day off",
+     "days_ago": 59
+    },
+    {
+     "id": "maya-051",
+     "source": "checkin",
+     "context": "Test the first batch of samples with the strips",
+     "body": "tested a pilot batch of 8 samples from our house, aunt rosa's and a few neighbors, and every single strip turned positive, even the bottled water i used as a control. so either everything is bad or the strips are garbage",
+     "days_ago": 58
+    },
+    {
+     "id": "maya-052",
+     "source": "followup",
+     "context": "Test the first batch of samples with the strips",
+     "body": "the box sat in my mom's hot car for two days before i opened it and it says store below 80 degrees, so probably that",
+     "days_ago": 58
+    },
+    {
+     "id": "maya-053",
+     "source": "checkin",
+     "context": "Ask Mr. Delgado what kind of testing he'd trust",
+     "body": "asked mr delgado what kind of testing he'd trust for a project like this. he said a certified lab, and that the utility's lab sometimes runs samples for residents if you fill out their form",
+     "days_ago": 57
+    },
+    {
+     "id": "maya-054",
+     "source": "checkin",
+     "context": "Fill out the utility lab's resident sampling request",
+     "body": "filled out the lab's resident sampling request for 25 homes. they'll do all 25 free since it's a public project, but they only take drop offs monday to wednesday before noon",
+     "days_ago": 56
+    },
+    {
+     "id": "maya-055",
+     "source": "checkin",
+     "context": "Tell your volunteers about the switch to lab testing",
+     "body": "messaged all the volunteers that we're switching to real lab bottles, so they'll get a new bottle from me this week. everyone was really chill about it",
+     "days_ago": 55
+    },
+    {
+     "id": "maya-056",
+     "source": "chat",
+     "context": "",
+     "body": "what's the actual difference between early action and early decision? my friend says she's applying ed somewhere and now i feel behind even though it's a year away",
+     "days_ago": 54
+    },
+    {
+     "id": "maya-057",
+     "source": "checkin",
+     "context": "Hand out lab bottles to the Flats homes",
+     "body": "handed out lab bottles to all 13 flats homes. two people invited me in and asked a ton of questions about their pipes, i felt like an actual scientist",
+     "days_ago": 53
+    },
+    {
+     "id": "maya-058",
+     "source": "checkin",
+     "context": "Get bottles to the rest of the volunteer homes",
+     "body": "got bottles to the other 12 homes. one lady thought i was selling something lol. all 25 have bottles now",
+     "days_ago": 52
+    },
+    {
+     "id": "maya-059",
+     "source": "checkin",
+     "context": "Remind volunteers about sampling day",
+     "body": "texted everyone the reminder for tomorrow: no water for 6 hours, first thing in the morning, cold tap, fill to the line",
+     "days_ago": 51
+    },
+    {
+     "id": "maya-060",
+     "source": "checkin",
+     "context": "Collect the first samples and log collection times",
+     "body": "picked up 12 samples and logged the time from each label. took a picture of every label on my phone so i don't mix anything up",
+     "days_ago": 50
+    },
+    {
+     "id": "maya-061",
+     "source": "checkin",
+     "context": "Get the samples to the lab",
+     "body": "got 23 of 25 samples into the lab. two homes forgot so they're doing it this week. the lab tech showed me the machine that measures the lead which was cool",
+     "days_ago": 49
+    },
+    {
+     "id": "maya-062",
+     "source": "chat",
+     "context": "",
+     "body": "my friend priya's sister goes to oberlin and she said the dining hall food is kinda bad lol. do people actually pick colleges based on food",
+     "days_ago": 48
+    },
+    {
+     "id": "maya-063",
+     "source": "checkin",
+     "context": "Write down what you'll do while you wait for results",
+     "body": "made a list for the waiting week",
+     "days_ago": 47
+    },
+    {
+     "id": "maya-064",
+     "source": "followup",
+     "context": "Write down what you'll do while you wait for results",
+     "body": "clean up the sheet, read how other students presented to their town councils, and get the last two samples from the homes that forgot",
+     "days_ago": 47
+    },
+    {
+     "id": "maya-065",
+     "source": "checkin",
+     "context": "Collect the two late samples",
+     "body": "picked up the last 2 samples, they're in our fridge labeled do not drink lol. they go to the lab monday with the form",
+     "days_ago": 45
+    },
+    {
+     "id": "maya-066",
+     "source": "chat",
+     "context": "",
+     "body": "we were in columbus yesterday for my cousin's graduation party and walked through ohio state's public health building. undergrads were running actual water samples in a lab, i didn't know freshmen could do that",
+     "days_ago": 43
+    },
+    {
+     "id": "maya-067",
+     "source": "checkin",
+     "context": "Read about lead's health effects on kids",
+     "body": "read the cdc page on lead and kids. it can lower iq and attention and the damage is basically permanent. the flats has a lot of young families which makes this feel way more real",
+     "days_ago": 42
+    },
+    {
+     "id": "maya-068",
+     "source": "checkin",
+     "context": "Find out what the county health department offers",
+     "body": "called the county health department. the public health nurse said blood lead tests for kids under 6 are free at their clinic. saving that for the slides",
+     "days_ago": 41
+    },
+    {
+     "id": "maya-069",
+     "source": "chat",
+     "context": "",
+     "body": "ok so my plan is changing. i was all in on environmental science but the part of this project that gets me is what lead does to little kids. i think i want public health now, like environmental health or epidemiology",
+     "days_ago": 40
+    },
+    {
+     "id": "maya-070",
+     "source": "checkin",
+     "context": "Tell a teacher about the project and ask for help",
+     "body": "told my apes teacher ms okafor about the project and she got really into it. she said she'll help me with the stats and i can use her room after school on wednesdays",
+     "days_ago": 39
+    },
+    {
+     "id": "maya-071",
+     "source": "chat",
+     "context": "",
+     "body": "school started so i can use the library computers at lunch and in study hall now, way better than the 1 hour limit at the public library. still only my phone at home though",
+     "days_ago": 39
+    },
+    {
+     "id": "maya-072",
+     "source": "checkin",
+     "context": "Clean up the tracking sheet before results arrive",
+     "body": "cleaned up the whole tracking sheet today",
+     "days_ago": 38
+    },
+    {
+     "id": "maya-073",
+     "source": "followup",
+     "context": "Clean up the tracking sheet before results arrive",
+     "body": "deleted duplicate rows, fixed street names that were spelled three different ways, and added the pipe type from the inventory for every home",
+     "days_ago": 38
+    },
+    {
+     "id": "maya-074",
+     "source": "checkin",
+     "context": "Learn the difference between mean and median",
+     "body": "watched a khan academy video on mean vs median and why one weird house can wreck an average. did the practice problems on my phone",
+     "days_ago": 37
+    },
+    {
+     "id": "maya-075",
+     "source": "checkin",
+     "context": "Enter the lab results into your sheet",
+     "body": "lab results came back!! they actually make sense unlike the strips. 19 homes under 5 ppb, 6 over 15, and all 6 are in the flats on lead lines. the bottled water control was zero",
+     "days_ago": 36
+    },
+    {
+     "id": "maya-076",
+     "source": "checkin",
+     "context": "Let the six high homes know their results",
+     "body": "the utility has to notify the 6 high homes officially but i can too, so i wrote each family a short note with their number and the info about free blood tests for kids",
+     "days_ago": 35
+    },
+    {
+     "id": "maya-077",
+     "source": "checkin",
+     "context": "Compare lead line homes to copper line homes",
+     "body": "compared them at lunch. lead line homes averaged 14 ppb and copper ones averaged 2. ms okafor showed me how to run a t test and the difference is significant",
+     "days_ago": 34
+    },
+    {
+     "id": "maya-078",
+     "source": "chat",
+     "context": "",
+     "body": "should i actually study for the psat in october or just take it cold? people keep saying national merit but idk what it actually does",
+     "days_ago": 33
+    },
+    {
+     "id": "maya-079",
+     "source": "checkin",
+     "context": "Make charts of your results",
+     "body": "made two charts, a bar chart by neighborhood and a dot plot of every home. ms okafor said the dot plot is clearer because you can actually see the 6 high ones",
+     "days_ago": 32
+    },
+    {
+     "id": "maya-080",
+     "source": "checkin",
+     "context": "Find out how to get on the town council agenda",
+     "body": "council meets the second monday of the month at 6:30. you get 5 minutes in public comment or you can ask the clerk for an agenda slot, so i emailed the clerk",
+     "days_ago": 31
+    },
+    {
+     "id": "maya-081",
+     "source": "chat",
+     "context": "",
+     "body": "ok i changed my mind on the small school thing. after seeing the osu labs i want a big research university where undergrads can get into real labs, and a city sounds fun now. being far from home matters less than i thought",
+     "days_ago": 30
+    },
+    {
+     "id": "maya-082",
+     "source": "checkin",
+     "context": "Write the main message of your talk in one sentence",
+     "body": "my one sentence: homes in the flats with lead service lines have way more lead at the tap, so the town should replace those lines first",
+     "days_ago": 29
+    },
+    {
+     "id": "maya-083",
+     "source": "checkin",
+     "context": "Outline the slides",
+     "body": "outlined 6 slides: why i started, the data gap, how i tested, results, what it means for kids, and my ask. moved them around til it flowed",
+     "days_ago": 28
+    },
+    {
+     "id": "maya-084",
+     "source": "checkin",
+     "context": "Draft the slides",
+     "body": "drafted the slides at lunch and in study hall. kept the words short and used the dot plot and a map of the flats. ms okafor said less words more pictures",
+     "days_ago": 26
+    },
+    {
+     "id": "maya-085",
+     "source": "chat",
+     "context": "",
+     "body": "is michigan too big of a reach for me? my counselor said it's really hard to get in from out of state. it's kind of my dream school though, the campus looks unreal in pictures",
+     "days_ago": 25
+    },
+    {
+     "id": "maya-086",
+     "source": "checkin",
+     "context": "Have someone who knows the data check your slides",
+     "body": "sent the slides to mr delgado to check my numbers. he caught one thing, the 15 ppb action level applies to the 90th percentile of the whole system, not single homes, so i reworded that slide",
+     "days_ago": 24
+    },
+    {
+     "id": "maya-087",
+     "source": "checkin",
+     "context": "Practice the talk once start to finish",
+     "body": "practiced it once, it was bad",
+     "days_ago": 23
+    },
+    {
+     "id": "maya-088",
+     "source": "followup",
+     "context": "Practice the talk once start to finish",
+     "body": "it went 8 minutes when i only get 5, the background part alone took like 3 minutes",
+     "days_ago": 23
+    },
+    {
+     "id": "maya-089",
+     "source": "chat",
+     "context": "",
+     "body": "did the net price calculators with my mom today. michigan came out around 34k a year for us which is impossible. ohio state was about 11k. oberlin said 16k, way lower than the sticker price, so honestly it's back on my list",
+     "days_ago": 22
+    },
+    {
+     "id": "maya-090",
+     "source": "checkin",
+     "context": "Cut the talk down to five minutes",
+     "body": "cut most of the background and merged the data gap slide into the first one. down to 5:40, need to lose about 40 more seconds somewhere",
+     "days_ago": 21
+    },
+    {
+     "id": "maya-091",
+     "source": "checkin",
+     "context": "Practice in front of someone and get feedback",
+     "body": "practiced for ms okafor after school. she said i rush when i'm nervous so i should pause after every number, and use note cards instead of reading off the slides. got it to 4:50",
+     "days_ago": 20
+    },
+    {
+     "id": "maya-092",
+     "source": "checkin",
+     "context": "Make note cards for the talk",
+     "body": "made my note cards for monday tonight",
+     "days_ago": 19
+    },
+    {
+     "id": "maya-093",
+     "source": "followup",
+     "context": "Make note cards for the talk",
+     "body": "one card per slide with just 3 or 4 words in big letters, so i can glance down instead of reading the slides",
+     "days_ago": 19
+    },
+    {
+     "id": "maya-094",
+     "source": "checkin",
+     "context": "Confirm your agenda slot and what to bring",
+     "body": "the clerk confirmed i'm on the agenda monday under public comment, 5 minutes. i have to bring the slides on a usb because they don't allow links",
+     "days_ago": 18
+    },
+    {
+     "id": "maya-095",
+     "source": "checkin",
+     "context": "Do a final run-through with your note cards",
+     "body": "final run through with the note cards. my brothers were my audience and mostly asked if the water turns people into zombies lol",
+     "days_ago": 17
+    },
+    {
+     "id": "maya-096",
+     "source": "chat",
+     "context": "",
+     "body": "should i put this water project on my common app activities list even though it's not a club or anything? it's the thing i've spent the most time on this year",
+     "days_ago": 16
+    },
+    {
+     "id": "maya-097",
+     "source": "checkin",
+     "context": "Present your findings at the town council meeting",
+     "body": "presented to the council tonight!! it went ok. i rushed the middle like always and ran out of time before my ask slide, but the note cards saved me when i blanked. two council members asked follow up questions",
+     "days_ago": 15
+    },
+    {
+     "id": "maya-098",
+     "source": "followup",
+     "context": "Present your findings at the town council meeting",
+     "body": "one asked how many lead lines are left in the flats and another asked what families can do right now, so i said filters and the free blood tests for little kids",
+     "days_ago": 15
+    },
+    {
+     "id": "maya-099",
+     "source": "checkin",
+     "context": "Send thank-you notes after the meeting",
+     "body": "sent the thank you emails today",
+     "days_ago": 14
+    },
+    {
+     "id": "maya-100",
+     "source": "followup",
+     "context": "Send thank-you notes after the meeting",
+     "body": "to the two council members who asked questions, the clerk, and the three volunteers who came to watch",
+     "days_ago": 14
+    },
+    {
+     "id": "maya-101",
+     "source": "checkin",
+     "context": "Follow up with the town clerk after the meeting",
+     "body": "emailed the clerk to follow up and she said the mayor wants a 2 page summary of my results to put on the town website. kind of huge. it's due in 3 weeks",
+     "days_ago": 12
+    },
+    {
+     "id": "maya-102",
+     "source": "chat",
+     "context": "",
+     "body": "should i ask ms okafor for a rec letter now or wait til spring? she's the teacher who knows me best because of this project",
+     "days_ago": 11
+    },
+    {
+     "id": "maya-103",
+     "source": "checkin",
+     "context": "Read the meeting minutes and note what the council decided",
+     "body": "read the minutes. the council asked the utility to come back with a plan to replace lead lines that starts with the flats. i literally screamed",
+     "days_ago": 10
+    },
+    {
+     "id": "maya-104",
+     "source": "checkin",
+     "context": "Look for other groups who should hear your results",
+     "body": "was going to email the county health department but the health commissioner emailed me first!! she saw the council video and invited me to present to the board of health in november, 10 minutes plus questions. i said yes before i could chicken out",
+     "days_ago": 8
+    },
+    {
+     "id": "maya-105",
+     "source": "chat",
+     "context": "",
+     "body": "is it bad that i spend more time on the water thing than my actual homework? my english grade dropped to a b minus and my mom noticed",
+     "days_ago": 7
+    },
+    {
+     "id": "maya-106",
+     "source": "checkin",
+     "context": "Tell all your volunteers what happened at council",
+     "body": "emailed all 25 volunteer homes about what happened at council and what the utility has to do next. a few replied thank you which made my whole day",
+     "days_ago": 6
+    },
+    {
+     "id": "maya-107",
+     "source": "checkin",
+     "context": "Share the results with the neighborhood",
+     "body": "posted a summary in the flats facebook group with the free blood test info. like 40 comments, mostly nice, one guy says i'm fearmongering",
+     "days_ago": 5
+    },
+    {
+     "id": "maya-108",
+     "source": "chat",
+     "context": "",
+     "body": "my mom asked me how the fafsa even works since she's never done one. i know it's not until next fall for me but she's already stressed about the money side",
+     "days_ago": 5
+    },
+    {
+     "id": "maya-109",
+     "source": "checkin",
+     "context": "Ask volunteers if they want to stay in the loop",
+     "body": "asked the volunteers if they want updates when the utility's plan comes out. 17 said yes so i made a little email list",
+     "days_ago": 4
+    },
+    {
+     "id": "maya-110",
+     "source": "chat",
+     "context": "",
+     "body": "should my college essay be about the water project? i feel like everyone writes about their big project and it might be cliche",
+     "days_ago": 4
+    },
+    {
+     "id": "maya-111",
+     "source": "checkin",
+     "context": "Ask the utility when the replacement plan is due",
+     "body": "asked the utility when their replacement plan goes back to council. they said january, so i put a reminder in my phone",
+     "days_ago": 3
+    },
+    {
+     "id": "maya-112",
+     "source": "checkin",
+     "context": "Write down what you'd do differently next time",
+     "body": "if i did this again i'd start recruiting homes way earlier and ask for the agenda slot sooner. everything at the end felt rushed",
+     "days_ago": 2
+    },
+    {
+     "id": "maya-113",
+     "source": "chat",
+     "context": "",
+     "body": "can you give me a rough plan for what i should be doing for college stuff this fall and winter? i keep hearing different things from everyone",
+     "days_ago": 1
+    },
+    {
+     "id": "maya-114",
+     "source": "checkin",
+     "context": "Write down your three biggest takeaways",
+     "body": "three takeaways: public data has gaps, adults actually answer emails from teenagers, and a dot plot beats a paragraph every time",
+     "days_ago": 0
+    }
+   ],
+   "questions": [
+    {
+     "id": "maya-q01",
+     "kind": "tool",
+     "query": "preferred school size and setting",
+     "answers": [
+      "maya-081",
+      "maya-008"
+     ],
+     "note": "Changed preference: 081 (big research university, city is fine, distance matters less) supersedes 008 (small, quiet, within 2 hours). Newer first. Distractors: 024, 066, 085 name colleges without a size or setting preference; 005 says 'smaller'.",
+     "changed": true
+    },
+    {
+     "id": "maya-q02",
+     "kind": "tool",
+     "query": "worries about paying for college",
+     "answers": [
+      "maya-108",
+      "maya-089",
+      "maya-038"
+     ],
+     "note": "038: biggest worry is money, mom can do about 8k a year, no big loans. 089: net price results (Michigan 34k, Ohio State 11k, Oberlin 16k). 108: mom stressed about the FAFSA. Distractors: 040, 041, 046 are about the cost of test kits, not college."
+    },
+    {
+     "id": "maya-q03",
+     "kind": "tool",
+     "query": "her opinion of Oberlin",
+     "answers": [
+      "maya-089",
+      "maya-024"
+     ],
+     "note": "024: loved the Oberlin tour and the environmental studies building. 089: Oberlin's net price came out 16k so it is back on her list. Distractor: 062 is a friend's sister's opinion of the dining hall."
+    },
+    {
+     "id": "maya-q04",
+     "kind": "tool",
+     "query": "what she wants to study",
+     "answers": [
+      "maya-069",
+      "maya-004"
+     ],
+     "note": "Changed interest: 069 (now public health, environmental health or epidemiology) supersedes 004 (environmental science, field work). Newer first. Distractors: 068 and 066 mention public health but are not about her major.",
+     "changed": true
+    },
+    {
+     "id": "maya-q05",
+     "kind": "tool",
+     "query": "weekly commitments that limit her time",
+     "answers": [
+      "maya-036",
+      "maya-049"
+     ],
+     "note": "036: watches her brothers every Tuesday and Thursday from 2:30 to 11:30. 049: works Saturday mornings 6 to noon at her aunt's bakery. Distractors: 045 and 046 mention the bakery, 095 her brothers, 070 a Wednesday room offer, 050 her mom's day off."
+    },
+    {
+     "id": "maya-q06",
+     "kind": "checkin",
+     "query": "tried the leftover test strips on our kitchen tap just to see and it said negative this time??",
+     "answers": [
+      "maya-051",
+      "maya-052",
+      "maya-075"
+     ],
+     "note": "051: the strips read positive on everything including bottled water. 052: the box sat in a hot car, likely ruined. 075: the certified lab results made sense unlike the strips. Distractors: 040, 041, 046 are about buying the kits, 055 the switch to lab bottles."
+    },
+    {
+     "id": "maya-q07",
+     "kind": "checkin",
+     "query": "the water department guy who helped me with the data said he'd come to the board of health meeting too",
+     "answers": [
+      "maya-025",
+      "maya-032",
+      "maya-053",
+      "maya-086"
+     ],
+     "note": "Every memory about Mr. Delgado, the utility's water quality supervisor: 025 first reply, 032 sent the site list and school results, 053 pointed her to the certified lab, 086 checked her slides. Distractors: 012, 017, 019, 111 mention the water department or utility without him."
+    },
+    {
+     "id": "maya-q08",
+     "kind": "checkin",
+     "query": "noticed the state website finally lists results for the school buildings, didn't expect that",
+     "answers": [
+      "maya-016",
+      "maya-025",
+      "maya-032"
+     ],
+     "note": "016: schools were missing from the state data. 025: schools test separately, not in state data. 032: she got the school results from the district through the utility. Distractor: 011 is a different gap (site ids without addresses)."
+    },
+    {
+     "id": "maya-q09",
+     "kind": "task",
+     "query": "Present to the county board of health: adapt the council talk into a 10 minute presentation and get ready for the board's questions",
+     "answers": [
+      "maya-104",
+      "maya-044",
+      "maya-091",
+      "maya-097"
+     ],
+     "note": "104: the invitation (November, 10 minutes plus questions). 044: she hates presenting, voice shakes, talks fast, once blanked. 091: teacher's advice to pause after numbers and use note cards. 097: at council she rushed and ran out of time but note cards helped. Distractors: 087, 090, 094, 095 are council logistics and run-throughs."
+    },
+    {
+     "id": "maya-q10",
+     "kind": "task",
+     "query": "Write the results summary for the town website: a plain language two page write-up with your charts",
+     "answers": [
+      "maya-101",
+      "maya-006",
+      "maya-071"
+     ],
+     "note": "101: the mayor's request, 2 pages, due in 3 weeks. 006 and 071: only a phone at home, so computer work happens at the school library at lunch or study hall (public library caps at an hour). Distractors: 002, 060, 074, 111 mention her phone; 026, 077, 084 mention the library or lunch without stating the limit."
+    },
+    {
+     "id": "maya-q11",
+     "kind": "task",
+     "query": "Retest the six homes over the limit: schedule bottle drop-offs, pickups and lab runs around your week",
+     "answers": [
+      "maya-036",
+      "maya-049",
+      "maya-050",
+      "maya-054"
+     ],
+     "note": "036: busy with her brothers Tuesdays and Thursdays. 049: works Saturday mornings. 050: no license, bikes to the Flats, mom drives on Sundays only. 054: the lab takes drop offs Monday to Wednesday before noon. Distractors: 057, 058, 059, 061, 065 describe the first round without a constraint."
+    },
+    {
+     "id": "maya-q12",
+     "kind": "no_answer",
+     "query": "pets she has at home",
+     "answers": [],
+     "note": "She never mentions any pet or animal."
+    },
+    {
+     "id": "maya-q13",
+     "kind": "no_answer",
+     "query": "plays a musical instrument",
+     "answers": [],
+     "note": "She never mentions music, band, or an instrument."
+    },
+    {
+     "id": "maya-q14",
+     "kind": "no_answer",
+     "query": "video games she likes",
+     "answers": [],
+     "note": "She never mentions games or gaming."
+    }
+   ]
+  },
+  {
+   "id": "dev",
+   "about": "Dev is a New Jersey high school senior applying for computer science (maybe economics) who works shifts at his parents' convenience store, codes on a locked-down school Chromebook through GitHub Codespaces, and is building a club-scheduling web app his school's clubs actually use.",
+   "memories": [
+    {
+     "id": "dev-001",
+     "source": "chat",
+     "context": "",
+     "body": "hey. rising senior, want to do cs, maybe econ. my parents went to college in india so this whole us application thing is new for all of us. mostly i just dont want to mess it up",
+     "days_ago": 100
+    },
+    {
+     "id": "dev-002",
+     "source": "checkin",
+     "context": "Message five club presidents about how they plan meetings",
+     "body": "dmed 5 club presidents on insta asking how they plan meetings. 3 answered already. every club uses something different, groupme, google cal, and one literally uses the whiteboard outside room 214",
+     "days_ago": 100
+    },
+    {
+     "id": "dev-003",
+     "source": "checkin",
+     "context": "Interview two club leads about what goes wrong with scheduling",
+     "body": "facetimed marcus (robotics captain) and the key club president. both said the same thing, two clubs show up to the same room and somebody gets kicked out. room conflicts are the real problem",
+     "days_ago": 99
+    },
+    {
+     "id": "dev-004",
+     "source": "checkin",
+     "context": "Write down the biggest scheduling problems you heard",
+     "body": "wrote the list in my notes app. short one today",
+     "days_ago": 98
+    },
+    {
+     "id": "dev-005",
+     "source": "followup",
+     "context": "Write down the biggest scheduling problems you heard",
+     "body": "room double booking is number one, then people not knowing a meeting got moved, then advisors having zero idea whats going on",
+     "days_ago": 98
+    },
+    {
+     "id": "dev-006",
+     "source": "checkin",
+     "context": "Pick two clubs to pilot the app",
+     "body": "robotics and key club are in. both big, both sick of the groupme chaos. marcus says robotics gets like 60 people during build season",
+     "days_ago": 97
+    },
+    {
+     "id": "dev-007",
+     "source": "chat",
+     "context": "",
+     "body": "fyi i work shifts at my parents convenience store, tuesdays and thursdays 4 to 10 plus sunday mornings, mostly on the register. so those days my quest stuff is gonna be tiny, im not ghosting",
+     "days_ago": 96
+    },
+    {
+     "id": "dev-008",
+     "source": "checkin",
+     "context": "Sketch the three main screens on paper",
+     "body": "sketched the calendar, a club page, and the new meeting form in my notebook. the calendar looks like a spreadsheet and google cal had a baby",
+     "days_ago": 95
+    },
+    {
+     "id": "dev-009",
+     "source": "checkin",
+     "context": "List what goes on each screen",
+     "body": "wrote out every field. meeting form needs club, room, date, start and end, and a repeats weekly box. room is a dropdown so nobody can typo it",
+     "days_ago": 94
+    },
+    {
+     "id": "dev-010",
+     "source": "checkin",
+     "context": "Show the sketches to a club lead and get feedback",
+     "body": "showed marcus. he said the room dropdown is the killer feature and asked if advisors could approve meetings. put that on the maybe later list",
+     "days_ago": 92
+    },
+    {
+     "id": "dev-011",
+     "source": "chat",
+     "context": "",
+     "body": "whats a realistic cs list for a 3.8 unweighted at a normal public school in jersey. i know cs is brutal everywhere, i just dont want a list of 12 lottery tickets",
+     "days_ago": 92
+    },
+    {
+     "id": "dev-012",
+     "source": "checkin",
+     "context": "Set up the project and get a hello world page running",
+     "body": "my only computer is the school chromebook and its locked down, cant install python or node or anything. so i made a github codespace and got flask to say hello world in the browser. we're live-ish",
+     "days_ago": 90
+    },
+    {
+     "id": "dev-013",
+     "source": "checkin",
+     "context": "Put the code on GitHub",
+     "body": "repo is up on github, first commits pushed",
+     "days_ago": 89
+    },
+    {
+     "id": "dev-014",
+     "source": "followup",
+     "context": "Put the code on GitHub",
+     "body": "commit early and often, and dont git add . blindly bc i almost pushed my env file with the secret key in it",
+     "days_ago": 89
+    },
+    {
+     "id": "dev-015",
+     "source": "checkin",
+     "context": "Build the club list page with a Flask template",
+     "body": "jinja template for the club list works. pulling from a hardcoded python list for now. ugly but its real and its mine",
+     "days_ago": 88
+    },
+    {
+     "id": "dev-016",
+     "source": "checkin",
+     "context": "Learn how JavaScript fetch and promises work",
+     "body": "did a fetch tutorial. my python brain keeps expecting the code to just wait for the answer. async is a whole different animal",
+     "days_ago": 87
+    },
+    {
+     "id": "dev-017",
+     "source": "chat",
+     "context": "",
+     "body": "pretty sure im applying early decision to carnegie mellon. its been the dream since 9th grade, their robotics and cs stuff is literally why i got into coding. thats the plan unless you think its dumb",
+     "days_ago": 87
+    },
+    {
+     "id": "dev-018",
+     "source": "checkin",
+     "context": "Make a branch for the club page styling",
+     "body": "made my first real branch, changed the header, merged it back into main. nothing broke, which feels illegal",
+     "days_ago": 86
+    },
+    {
+     "id": "dev-019",
+     "source": "checkin",
+     "context": "Load the club list from an API instead of hardcoding it",
+     "body": "flask has a /api/clubs route returning json now and the page fetches it. felt like an actual developer for about 5 minutes",
+     "days_ago": 85
+    },
+    {
+     "id": "dev-020",
+     "source": "checkin",
+     "context": "Style the club list page",
+     "body": "css done for now, looks less bad",
+     "days_ago": 84
+    },
+    {
+     "id": "dev-021",
+     "source": "followup",
+     "context": "Style the club list page",
+     "body": "put each club in a card with its meeting day on it, and made the header purple bc i said so",
+     "days_ago": 84
+    },
+    {
+     "id": "dev-022",
+     "source": "checkin",
+     "context": "Design the database tables on paper",
+     "body": "drew the tables: clubs, rooms, events, members. events points at a club and a room. no clue yet how to handle meetings that repeat every week",
+     "days_ago": 83
+    },
+    {
+     "id": "dev-023",
+     "source": "chat",
+     "context": "",
+     "body": "rutgers is my safety i guess. in state and the cs program is solid. but like 70 kids from my school go there every year, it would feel like 13th grade ngl",
+     "days_ago": 82
+    },
+    {
+     "id": "dev-024",
+     "source": "checkin",
+     "context": "Create the tables in SQLite from a Python script",
+     "body": "tables created with a python script and seeded with fake clubs like the underwater basket weaving society. sqlite is chill, zero setup",
+     "days_ago": 81
+    },
+    {
+     "id": "dev-025",
+     "source": "checkin",
+     "context": "Add a form to create a new meeting",
+     "body": "form posts to flask and saves the meeting. zero validation so rn you can make a meeting that ends before it starts lol",
+     "days_ago": 80
+    },
+    {
+     "id": "dev-026",
+     "source": "checkin",
+     "context": "Validate the new meeting form",
+     "body": "added validation to the form, quick one today",
+     "days_ago": 79
+    },
+    {
+     "id": "dev-027",
+     "source": "followup",
+     "context": "Validate the new meeting form",
+     "body": "end time has to be after start, title cant be blank, and you cant pick a date that already passed",
+     "days_ago": 79
+    },
+    {
+     "id": "dev-028",
+     "source": "checkin",
+     "context": "Handle meetings that repeat every week",
+     "body": "recurring meetings store a rule now (weekly, which day, until when) instead of 40 copies. took me all day to get my head around generating the actual dates",
+     "days_ago": 78
+    },
+    {
+     "id": "dev-029",
+     "source": "chat",
+     "context": "",
+     "body": "uiuc cs is top tier but i looked up champaign on google maps and its just corn in every direction. still applying, just saying",
+     "days_ago": 78
+    },
+    {
+     "id": "dev-030",
+     "source": "checkin",
+     "context": "Show one week of meetings from the database",
+     "body": "query for this weeks meetings works, repeating ones included. just printing them in teh console for now, calendar comes later",
+     "days_ago": 77
+    },
+    {
+     "id": "dev-031",
+     "source": "checkin",
+     "context": "Get someone experienced to review the schema",
+     "body": "my cousin nikhil (backend dev at a fintech in hoboken) went over my schema on a call. said use a memberships table instead of a list of names in clubs, and index the event dates",
+     "days_ago": 76
+    },
+    {
+     "id": "dev-032",
+     "source": "checkin",
+     "context": "Add a memberships table and move members into it",
+     "body": "memberships table done, many to many between students and clubs. my join query took an hour and nikhil fixed it in like 30 seconds over text. humbling",
+     "days_ago": 74
+    },
+    {
+     "id": "dev-033",
+     "source": "checkin",
+     "context": "Learn how database indexes work",
+     "body": "watched two of the cmu database course lectures on youtube. the prof is great but half of it went over my head. indexes finally clicked tho, its the index in the back of a textbook",
+     "days_ago": 73
+    },
+    {
+     "id": "dev-034",
+     "source": "chat",
+     "context": "",
+     "body": "random question. i do my best work like 11pm to 2am when the house is dead quiet, before that my brain just refuses. is that gonna be a problem once school starts",
+     "days_ago": 73
+    },
+    {
+     "id": "dev-035",
+     "source": "checkin",
+     "context": "Choose a database for the live version",
+     "body": "final decision: postgres, not sqlite. render wipes the disk on every deploy so sqlite would lose everything. switching now while theres no real data to lose",
+     "days_ago": 71
+    },
+    {
+     "id": "dev-036",
+     "source": "checkin",
+     "context": "Move the tables from SQLite to Postgres",
+     "body": "moved everything to postgres, it mostly works",
+     "days_ago": 70
+    },
+    {
+     "id": "dev-037",
+     "source": "followup",
+     "context": "Move the tables from SQLite to Postgres",
+     "body": "sqlite let me store dates as plain text and postgres refused, so i had to convert every date column by hand",
+     "days_ago": 70
+    },
+    {
+     "id": "dev-038",
+     "source": "checkin",
+     "context": "Set up Google sign-in",
+     "body": "google oauth is the most confusing thing ive ever touched. redirect uri mismatch like 9 times. finally logged in once and yelled so loud my dad came to check on me",
+     "days_ago": 69
+    },
+    {
+     "id": "dev-039",
+     "source": "chat",
+     "context": "",
+     "body": "did the georgia tech virtual info session. the co-op thing where you alternate semesters working at actual companies sounds sick. and atlanta seems way more alive than a random college town",
+     "days_ago": 68
+    },
+    {
+     "id": "dev-040",
+     "source": "checkin",
+     "context": "Only let school Google accounts sign in",
+     "body": "login only accepts our school domain now. tried my personal gmail and it bounced, good. nobody has to register or remember a password, its just sign in with google",
+     "days_ago": 67
+    },
+    {
+     "id": "dev-041",
+     "source": "checkin",
+     "context": "Give club leads and members different permissions",
+     "body": "roles are lead, member, advisor. leads make meetings, members just view, advisors see everything for their club. the role lives on the memberships table",
+     "days_ago": 66
+    },
+    {
+     "id": "dev-042",
+     "source": "chat",
+     "context": "",
+     "body": "for my main essay im thinking about my grandpa and the tv remote. i made him a laminated cheat sheet with only 4 buttons and it taught me to design for one real person, not everyone. writing it myself, is that too small of an idea",
+     "days_ago": 66
+    },
+    {
+     "id": "dev-043",
+     "source": "checkin",
+     "context": "Ask the school if the app can use school logins",
+     "body": "emailed mr alvarez (ap csa teacher, runs cs club). he said hed take it to the district tech director so i dont get in trouble for using school accounts. he seemed lowkey hyped about it",
+     "days_ago": 64
+    },
+    {
+     "id": "dev-044",
+     "source": "checkin",
+     "context": "Keep people logged in between visits",
+     "body": "sessions work now so login sticks around",
+     "days_ago": 63
+    },
+    {
+     "id": "dev-045",
+     "source": "followup",
+     "context": "Keep people logged in between visits",
+     "body": "you stay logged in for two weeks. had to learn what the flask secret key actually does, total rabbit hole",
+     "days_ago": 63
+    },
+    {
+     "id": "dev-046",
+     "source": "checkin",
+     "context": "Show the login flow to the robotics captain",
+     "body": "marcus logged in on his phone first try. he asked why everything is purple. because i like purple marcus",
+     "days_ago": 62
+    },
+    {
+     "id": "dev-047",
+     "source": "chat",
+     "context": "",
+     "body": "ran the cmu net price calculator and it said about 41k a year for us. my parents said 15k is the max they can do. so merit money is basically everything now",
+     "days_ago": 62
+    },
+    {
+     "id": "dev-048",
+     "source": "checkin",
+     "context": "Build a basic week view calendar",
+     "body": "found a rutgers students github project for room booking and borrowed the week grid idea. mine renders but every meeting stacks in the top left corner",
+     "days_ago": 60
+    },
+    {
+     "id": "dev-049",
+     "source": "checkin",
+     "context": "Switch the calendar to a library",
+     "body": "ripped out my grid and used fullcalender. about 40 lines replaced 300 of mine. little sad, mostly relieved",
+     "days_ago": 59
+    },
+    {
+     "id": "dev-050",
+     "source": "chat",
+     "context": "",
+     "body": "my little brother starts high school in september and my mom wants me to show him around. i barely know where half the rooms are and ive been there 3 years",
+     "days_ago": 58
+    },
+    {
+     "id": "dev-051",
+     "source": "checkin",
+     "context": "Give each club its own color on the calendar",
+     "body": "every club gets a color now. robotics is orange, key club is blue. marcus asked for neon green and got denied",
+     "days_ago": 57
+    },
+    {
+     "id": "dev-052",
+     "source": "chat",
+     "context": "",
+     "body": "my dad keeps saying i should look at pharmacy programs becuase stable job. im not doing that but how do i tell him without starting a whole thing",
+     "days_ago": 57
+    },
+    {
+     "id": "dev-053",
+     "source": "checkin",
+     "context": "Let leads edit and delete meetings",
+     "body": "edit and delete work. delete asks are you sure first, because i already deleted a real test meeting by accident twice",
+     "days_ago": 56
+    },
+    {
+     "id": "dev-054",
+     "source": "checkin",
+     "context": "Open the new meeting form by clicking a day",
+     "body": "clicking a day on the calendar opens the form with the date already filled in. small thing but it feels like a real app now",
+     "days_ago": 55
+    },
+    {
+     "id": "dev-055",
+     "source": "checkin",
+     "context": "Warn when two meetings book the same room",
+     "body": "room conflict check works. if chess and robotics both try room 214 at 3pm the second one gets a warning and has to pick another room. the thing everyone asked for",
+     "days_ago": 53
+    },
+    {
+     "id": "dev-056",
+     "source": "checkin",
+     "context": "Deploy the app so other people can use it",
+     "body": "deployed the flask app on render free tier with a free neon postgres db. first load took like 50 seconds and marcus thought it was broken. it lives tho",
+     "days_ago": 52
+    },
+    {
+     "id": "dev-057",
+     "source": "checkin",
+     "context": "Stop the app from sleeping between visits",
+     "body": "render wants 7 bucks a month so it doesnt sleep and im not paying that. set up a free cron ping every 10 min instead. first load is fast now",
+     "days_ago": 50
+    },
+    {
+     "id": "dev-058",
+     "source": "chat",
+     "context": "",
+     "body": "my counselor has like 400 students and ive talked to her once, for 5 minutes. is it bad if she doesnt really know me when she writes her letter",
+     "days_ago": 50
+    },
+    {
+     "id": "dev-059",
+     "source": "checkin",
+     "context": "Import the robotics club's fall schedule",
+     "body": "marcus sent robotics fall schedule as a csv and i wrote an import script. did the whole thing from midnight to 1:30, fastest ive coded all week",
+     "days_ago": 48
+    },
+    {
+     "id": "dev-060",
+     "source": "checkin",
+     "context": "Fix meetings showing up on the wrong day",
+     "body": "every meeting showed up shifted one day early. classic utc vs eastern time bug. storing dates as local now and its fixed",
+     "days_ago": 47
+    },
+    {
+     "id": "dev-061",
+     "source": "checkin",
+     "context": "Get key club using the app as the second pilot",
+     "body": "hannah (key club president) added 22 meetings herself and found 2 bugs in 10 minutes. shes basically my qa team now",
+     "days_ago": 46
+    },
+    {
+     "id": "dev-062",
+     "source": "chat",
+     "context": "",
+     "body": "whole weekend is my cousin priyas wedding, three days of events, so zero coding till monday. my mom already has my outfit laid out on the bed like im 6",
+     "days_ago": 45
+    },
+    {
+     "id": "dev-063",
+     "source": "checkin",
+     "context": "Add a notes column to meetings",
+     "body": "ran my init_db script to add the notes column and my codespace .env had the live database url instead of the local one. that script runs drop_all first. robotics and key club fall schedules are gone, like 80 meetings. i feel sick",
+     "days_ago": 43
+    },
+    {
+     "id": "dev-064",
+     "source": "checkin",
+     "context": "Restore the lost meetings",
+     "body": "robotics was easy, i still had marcus's csv so i reran the import. key club i retyped by hand from hannahs screenshots. took 3 hours but every meeting is back",
+     "days_ago": 42
+    },
+    {
+     "id": "dev-065",
+     "source": "checkin",
+     "context": "Set up automatic database backups",
+     "body": "github action now runs pg_dump every night at 3am and keeps a week of backups. also renamed the prod database url so my local scripts literally cant touch it. nikhil said everyone nukes prod once",
+     "days_ago": 41
+    },
+    {
+     "id": "dev-066",
+     "source": "checkin",
+     "context": "Let leads cancel a single meeting",
+     "body": "leads can cancel one meeting without killing the whole series now. cancelled ones show crossed out so people know",
+     "days_ago": 40
+    },
+    {
+     "id": "dev-067",
+     "source": "checkin",
+     "context": "Make the calendar usable on phones",
+     "body": "most kids will open this on their phones not laptops, so under 600px the week view turns into a list. looks decent on my moms iphone",
+     "days_ago": 39
+    },
+    {
+     "id": "dev-068",
+     "source": "checkin",
+     "context": "Let club leads invite members with a link",
+     "body": "every club has an invite link now. click it, sign in with google, youre a member. nobody types 60 emails",
+     "days_ago": 38
+    },
+    {
+     "id": "dev-069",
+     "source": "chat",
+     "context": "",
+     "body": "walked around rutgers busch campus with my mom today. the buses between campuses are chaos but the cs building was nicer than i expected. still not excited about it, just less mad",
+     "days_ago": 37
+    },
+    {
+     "id": "dev-070",
+     "source": "checkin",
+     "context": "Pitch the app to the debate team captain",
+     "body": "pitched it to the debate captain, she said no",
+     "days_ago": 36
+    },
+    {
+     "id": "dev-071",
+     "source": "followup",
+     "context": "Pitch the app to the debate team captain",
+     "body": "sana said they already have groupme plus a shared google calendar and shes not making 40 people check another app. if it showed up in google calendar she wouldnt care where it came from",
+     "days_ago": 36
+    },
+    {
+     "id": "dev-072",
+     "source": "chat",
+     "context": "",
+     "body": "is it true some colleges track demonstrated interest? like should i be opening all their emails and signing up for every info session or is that a myth",
+     "days_ago": 35
+    },
+    {
+     "id": "dev-073",
+     "source": "checkin",
+     "context": "Get the school's approval to launch",
+     "body": "mr alvarez got the ok from the tech director as long as we only store names and school emails. no phone numbers, no grades. fine by me",
+     "days_ago": 34
+    },
+    {
+     "id": "dev-074",
+     "source": "checkin",
+     "context": "Add a privacy note to the login page",
+     "body": "privacy note is up on the login page",
+     "days_ago": 33
+    },
+    {
+     "id": "dev-075",
+     "source": "followup",
+     "context": "Add a privacy note to the login page",
+     "body": "it says what we store and who can see it. leads only see their own members and advisors only see their clubs",
+     "days_ago": 33
+    },
+    {
+     "id": "dev-076",
+     "source": "checkin",
+     "context": "Write a one page how-to for club leads",
+     "body": "wrote the one pager: make your club, add rooms, invite members, 5 steps max bc nobody reads. good timing since codespaces says ive burned 55 of my 60 free hours this month, so im rationing it till the 1st",
+     "days_ago": 32
+    },
+    {
+     "id": "dev-077",
+     "source": "checkin",
+     "context": "Fix the bugs key club found",
+     "body": "fixed both key club bugs. the repeat-until date was off by a week, and deleting one meeting deleted the whole series. series deletes ask first now",
+     "days_ago": 31
+    },
+    {
+     "id": "dev-078",
+     "source": "chat",
+     "context": "",
+     "body": "update on apps. not doing ED to cmu anymore, my dad wont sign anything binding before we see real aid numbers. so early action to georgia tech and uiuc, and cmu goes regular decision",
+     "days_ago": 30
+    },
+    {
+     "id": "dev-079",
+     "source": "checkin",
+     "context": "Add a page for each club",
+     "body": "club pages have a description, meeting times, lead names, and a join button. hannah wrote key clubs description like a movie trailer",
+     "days_ago": 29
+    },
+    {
+     "id": "dev-080",
+     "source": "checkin",
+     "context": "Add a search box for clubs",
+     "body": "search box filters clubs as you type. like 10 lines of js. i think im actually getting ok at this",
+     "days_ago": 28
+    },
+    {
+     "id": "dev-081",
+     "source": "checkin",
+     "context": "Run a bug bash with the pilot clubs",
+     "body": "had 6 robotics kids try to break it for 20 min. they found 7 bugs. worst one was two leads editing the same meeting at the same time",
+     "days_ago": 27
+    },
+    {
+     "id": "dev-082",
+     "source": "chat",
+     "context": "",
+     "body": "current list: cmu, georgia tech, uiuc, umd, stevens, rutgers, njit. feels really top heavy. should i swap a reach for another match or am i overthinking it",
+     "days_ago": 27
+    },
+    {
+     "id": "dev-083",
+     "source": "checkin",
+     "context": "Fix the bugs from the bug bash",
+     "body": "fixed 5 of the 7. for the double edit one, last save wins but it shows who edited it last. good enough for v1 i guess",
+     "days_ago": 25
+    },
+    {
+     "id": "dev-084",
+     "source": "checkin",
+     "context": "Make a poster for the club fair",
+     "body": "made a poster with a qr code to the app. mr alvarez is printing it in color on the teacher printer. the goat",
+     "days_ago": 24
+    },
+    {
+     "id": "dev-085",
+     "source": "checkin",
+     "context": "Load every club from the activities office list",
+     "body": "ms rivera in the activities office sent the official list, 43 clubs. loaded them all so leads just claim their club instead of making duplicates",
+     "days_ago": 22
+    },
+    {
+     "id": "dev-086",
+     "source": "chat",
+     "context": "",
+     "body": "looked at the css profile worksheet and theres a whole section on the store, business assets and profit and stuff. my dad does the store taxes himself and hes already stressed. we really need real aid or merit",
+     "days_ago": 22
+    },
+    {
+     "id": "dev-087",
+     "source": "checkin",
+     "context": "Click through every page before school starts",
+     "body": "clicked through every page as a lead, a member, and an advisor. found one broken link in the how-to and fixed it. ready i think",
+     "days_ago": 21
+    },
+    {
+     "id": "dev-088",
+     "source": "chat",
+     "context": "",
+     "body": "first day of senior year. turned in the summer reading response late because i forgot it existed and ms park took 10 points. great start",
+     "days_ago": 20
+    },
+    {
+     "id": "dev-089",
+     "source": "checkin",
+     "context": "Test sign-in on the school network",
+     "body": "sign in works on the school wifi. thats all i got today, first week of school plus a thursday shift at the store means 20 minutes tops",
+     "days_ago": 19
+    },
+    {
+     "id": "dev-090",
+     "source": "checkin",
+     "context": "Present the app at the club advisors meeting",
+     "body": "mr alvarez let me demo at the club advisors meeting after school. 5 minutes, and 3 advisors asked for invites on the spot",
+     "days_ago": 18
+    },
+    {
+     "id": "dev-091",
+     "source": "checkin",
+     "context": "Prep the table for the club fair",
+     "body": "printed 50 qr cards and made a demo account full of fake meetings so i dont have to log in live in front of people",
+     "days_ago": 17
+    },
+    {
+     "id": "dev-092",
+     "source": "checkin",
+     "context": "Onboard the first clubs of the school year",
+     "body": "chess, mock trial, and model un signed up this weekend. mock trial made 30 meetings in one go and the conflict checker held up. proud of that one",
+     "days_ago": 15
+    },
+    {
+     "id": "dev-093",
+     "source": "chat",
+     "context": "",
+     "body": "senior schedule is ap calc bc, ap gov, ap macro, physics c, english 12, and an independent study in data structures with mr alvarez. its a lot but i picked it",
+     "days_ago": 15
+    },
+    {
+     "id": "dev-094",
+     "source": "checkin",
+     "context": "Answer questions from new club leads",
+     "body": "answered a bunch of dms from leads tonight",
+     "days_ago": 14
+    },
+    {
+     "id": "dev-095",
+     "source": "followup",
+     "context": "Answer questions from new club leads",
+     "body": "mostly how to add a co-lead and how to move one meeting without moving the whole series. added both to the how-to",
+     "days_ago": 14
+    },
+    {
+     "id": "dev-096",
+     "source": "checkin",
+     "context": "Run the table at the club fair",
+     "body": "club fair at lunch. talked nonstop for 40 minutes and my voice is gone. anime club and math league signed up right at the table",
+     "days_ago": 13
+    },
+    {
+     "id": "dev-097",
+     "source": "chat",
+     "context": "",
+     "body": "ap gov already assigned a group project. i hate group projects, i always end up redoing everyones slides anyway. the app is the one thing where its just me and i like it that way",
+     "days_ago": 12
+    },
+    {
+     "id": "dev-098",
+     "source": "checkin",
+     "context": "Help the new clubs set up rooms and meetings",
+     "body": "sat with 4 leads at lunch setting up rooms. red cross club wants their first aid and cpr cert sessions on it, key club wants volunteer hours tracked. not doing hours yet",
+     "days_ago": 11
+    },
+    {
+     "id": "dev-099",
+     "source": "checkin",
+     "context": "Fix the bugs new clubs reported",
+     "body": "a room called o'neil's lab broke the query because i was building sql with f strings like a clown. switched to parameters everywhere. never again",
+     "days_ago": 10
+    },
+    {
+     "id": "dev-100",
+     "source": "chat",
+     "context": "",
+     "body": "mr alvarez said he'll write one of my teacher recs and mention the app since robotics basically runs on it now. is it wierd to also put the app in my activities list or is that double counting",
+     "days_ago": 10
+    },
+    {
+     "id": "dev-101",
+     "source": "chat",
+     "context": "",
+     "body": "ap macro is lowkey my favorite class so far. thinking cs major with an econ minor, or does adding econ look like i cant decide",
+     "days_ago": 9
+    },
+    {
+     "id": "dev-102",
+     "source": "checkin",
+     "context": "Send a feedback form to every club lead",
+     "body": "sent a google form to all 11 club leads. 5 questions max so they actually finish it. 6 answered by tonight",
+     "days_ago": 8
+    },
+    {
+     "id": "dev-103",
+     "source": "checkin",
+     "context": "Read the feedback and pick the top fixes",
+     "body": "read all the answers and picked the fixes",
+     "days_ago": 7
+    },
+    {
+     "id": "dev-104",
+     "source": "followup",
+     "context": "Read the feedback and pick the top fixes",
+     "body": "reminders before meetings, 7 of 10 leads asked for that. then dark mode. the chess club guy wants elo ratings, which no",
+     "days_ago": 7
+    },
+    {
+     "id": "dev-105",
+     "source": "chat",
+     "context": "",
+     "body": "gatsby essay for english due friday and i havent read chapter 7. the green light is symbolism, i get it, can we move on",
+     "days_ago": 7
+    },
+    {
+     "id": "dev-106",
+     "source": "checkin",
+     "context": "Add a calendar subscribe link for each club",
+     "body": "every club has a subscribe link now so meetings show up inside google calendar. built it mostly because of debate. sent sana the link and she said she'll look after their first tournament",
+     "days_ago": 6
+    },
+    {
+     "id": "dev-107",
+     "source": "checkin",
+     "context": "Ask leads how members want to get reminders",
+     "body": "asked the leads in the groupme how reminders should work",
+     "days_ago": 5
+    },
+    {
+     "id": "dev-108",
+     "source": "followup",
+     "context": "Ask leads how members want to get reminders",
+     "body": "basically nobody checks their school email. they want a text or a phone notification, anything that hits the lock screen, or it wont get seen",
+     "days_ago": 5
+    },
+    {
+     "id": "dev-109",
+     "source": "checkin",
+     "context": "Fix the top three bugs from the feedback",
+     "body": "fixed invite links expiring too fast, the month view cutting off long titles, and advisors seeing clubs they dont even run",
+     "days_ago": 4
+    },
+    {
+     "id": "dev-110",
+     "source": "checkin",
+     "context": "Pull usage numbers from the database",
+     "body": "wrote the usage queries. 11 clubs, 214 students signed in at least once, 151 this week. robotics alone is 58. did not expect that",
+     "days_ago": 3
+    },
+    {
+     "id": "dev-111",
+     "source": "checkin",
+     "context": "Add dark mode",
+     "body": "dark mode shipped. took 20 minutes because all my colors were already css variables. past me did something right for once",
+     "days_ago": 1
+    },
+    {
+     "id": "dev-112",
+     "source": "chat",
+     "context": "",
+     "body": "supplements are piling up and im putting all my free time into the app instead. is that dumb or is that kinda the point",
+     "days_ago": 1
+    },
+    {
+     "id": "dev-113",
+     "source": "checkin",
+     "context": "Make a chart of weekly active users",
+     "body": "made the weekly actives chart tonight",
+     "days_ago": 0
+    },
+    {
+     "id": "dev-114",
+     "source": "followup",
+     "context": "Make a chart of weekly active users",
+     "body": "weekly actives went 38, then 97, then 151 over three weeks. mostly the club fair and robotics",
+     "days_ago": 0
+    }
+   ],
+   "questions": [
+    {
+     "id": "dev-q01",
+     "kind": "tool",
+     "query": "early round application plans",
+     "answers": [
+      "dev-078",
+      "dev-017"
+     ],
+     "note": "dev-078 is the newer plan and supersedes dev-017: he dropped early decision to Carnegie Mellon for early action at Georgia Tech and UIUC, with CMU moved to regular decision. Memories using 'early' or 'decision' in other senses (commit early, shifted one day early, the postgres decision) are distractors.",
+     "changed": true
+    },
+    {
+     "id": "dev-q02",
+     "kind": "tool",
+     "query": "worries about affording college",
+     "answers": [
+      "dev-086",
+      "dev-078",
+      "dev-047"
+     ],
+     "note": "dev-086: the CSS Profile wants the family store's business details, his dad is stressed and they need aid or merit. dev-078: his dad will not sign a binding application before seeing aid numbers. dev-047: the CMU net price calculator says about 41k a year against a 15k family maximum, so merit matters. The Render hosting fee and the red cross club's first aid sessions are distractors."
+    },
+    {
+     "id": "dev-q03",
+     "kind": "tool",
+     "query": "his computer situation",
+     "answers": [
+      "dev-076",
+      "dev-012"
+     ],
+     "note": "dev-012: his only computer is a locked-down school Chromebook, so he codes in GitHub Codespaces. dev-076: he has burned 55 of his 60 free Codespaces hours for the month and is rationing them. The phones-not-laptops memory is about the app's users, not his setup."
+    },
+    {
+     "id": "dev-q04",
+     "kind": "tool",
+     "query": "how he feels about rutgers",
+     "answers": [
+      "dev-069",
+      "dev-023"
+     ],
+     "note": "dev-023: Rutgers is his safety with solid CS, but it would feel like 13th grade. dev-069: after walking Busch campus he is still not excited, just less negative. The Rutgers student's GitHub project and his full college list only name the school."
+    },
+    {
+     "id": "dev-q05",
+     "kind": "tool",
+     "query": "personal statement subject",
+     "answers": [
+      "dev-042"
+     ],
+     "note": "dev-042 is the only statement of his main essay idea: his grandpa and the laminated TV remote cheat sheet, which he is writing himself. The Gatsby essay for English class is a distractor."
+    },
+    {
+     "id": "dev-q06",
+     "kind": "checkin",
+     "query": "adding a capacity column to the rooms table tonight, gonna run the schema change straight on the live db after dinner",
+     "answers": [
+      "dev-063",
+      "dev-065",
+      "dev-064"
+     ],
+     "note": "Running a schema script against the live database is how he wiped it before (dev-063: init_db ran drop_all with the live URL in his .env). dev-065 added nightly pg_dump backups and renamed the prod URL so local scripts cannot reach it, and dev-064 is how he rebuilt the lost meetings."
+    },
+    {
+     "id": "dev-q07",
+     "kind": "checkin",
+     "query": "stayed up till 2 fixing the month view and honestly got more done after midnight than the whole afternoon",
+     "answers": [
+      "dev-034",
+      "dev-059"
+     ],
+     "note": "dev-034 says he works best from 11pm to 2am; dev-059 is an earlier midnight to 1:30 session he called his fastest coding of the week. The 3am nightly backup job is a distractor."
+    },
+    {
+     "id": "dev-q08",
+     "kind": "checkin",
+     "query": "had to cover the register till close, only got like 20 min in. just renamed some variables",
+     "answers": [
+      "dev-007",
+      "dev-089"
+     ],
+     "note": "dev-007 gives his shifts at his parents' convenience store (Tuesdays and Thursdays 4 to 10 plus Sunday mornings, on the register); dev-089 is a Thursday shift that squeezed the quest to 20 minutes. The 'register' in the login memory and the 'shifted one day early' bug are distractors."
+    },
+    {
+     "id": "dev-q09",
+     "kind": "task",
+     "query": "Win over the debate team: go back to their captain, deal with the reason they turned the app down, and get their practices into it",
+     "answers": [
+      "dev-070",
+      "dev-071",
+      "dev-106"
+     ],
+     "note": "dev-070 and dev-071: the captain said no because the team lives in GroupMe and a shared Google Calendar, and she would not care where events came from if they showed up in Google Calendar. dev-106: he built per-club Google Calendar subscribe links because of debate and sent her the link."
+    },
+    {
+     "id": "dev-q10",
+     "kind": "task",
+     "query": "Add meeting reminders: notify members before each club meeting so fewer people forget to show up",
+     "answers": [
+      "dev-104",
+      "dev-108",
+      "dev-073"
+     ],
+     "note": "dev-104: reminders were the top request in the feedback form. dev-108: members only notice texts or phone notifications, not school email. dev-073: the school only allowed storing names and school emails, no phone numbers, which rules out plain SMS."
+    },
+    {
+     "id": "dev-q11",
+     "kind": "task",
+     "query": "Write the app up for college applications: pull together usage numbers and draft the activities list entry",
+     "answers": [
+      "dev-110",
+      "dev-114",
+      "dev-100"
+     ],
+     "note": "dev-110 and dev-114 hold the usage numbers (11 clubs, 214 students signed in, weekly actives 38 to 97 to 151). dev-100: Mr. Alvarez will mention the app in his recommendation and Dev asked whether to list it in activities too."
+    },
+    {
+     "id": "dev-q12",
+     "kind": "no_answer",
+     "query": "sports or athletic recruiting",
+     "answers": [],
+     "note": "He never mentions playing a sport or being recruited; the clubs he names (robotics, debate, chess, key club, mock trial, model UN, math league) are not sports."
+    },
+    {
+     "id": "dev-q13",
+     "kind": "no_answer",
+     "query": "musical instrument or band",
+     "answers": [],
+     "note": "He never mentions music, an instrument, a band or a choir."
+    },
+    {
+     "id": "dev-q14",
+     "kind": "no_answer",
+     "query": "gap year plans",
+     "answers": [],
+     "note": "He never mentions taking a gap year or delaying college; every college memory assumes he starts next fall."
+    }
+   ]
+  },
+  {
+   "id": "ana",
+   "about": "Ana is a first-generation Mexican-American high school junior in Chicago who ran a bean plant light-color experiment for her regional science fair, watches her younger siblings twice a week, and is shifting from nursing toward pharmacy.",
+   "memories": [
+    {
+     "id": "ana-001",
+     "source": "checkin",
+     "context": "Pick a question you can test in about six weeks",
+     "body": "ok i picked my question!! does the color of light change how bean plants grow. i almost did salt water on plants but light seemed cooler, and beans are cheap and grow fast",
+     "days_ago": 100
+    },
+    {
+     "id": "ana-002",
+     "source": "checkin",
+     "context": "Read two sources on how plants use different colors of light",
+     "body": "read about photosynthesis and chlorophyll, apparently plants soak up red and blue light the most and bounce green back, which is why leaves look green?? my mind is blown ngl. took notes in my composition notebook",
+     "days_ago": 99
+    },
+    {
+     "id": "ana-003",
+     "source": "chat",
+     "context": "",
+     "body": "hi so im new to all this college stuff, nobody in my family has applied to college before. my parents came from mexico and theyre super supportive but they dont know how any of it works, so pues where do i even start",
+     "days_ago": 98
+    },
+    {
+     "id": "ana-004",
+     "source": "checkin",
+     "context": "Write your hypothesis and name your variables",
+     "body": "hypothesis: if bean plants grow under blue light then they will be the tallest and healthiest bc blue helps leaves grow. independent variable is light color, dependent is height and health, controlled is water, soil and cup size",
+     "days_ago": 97
+    },
+    {
+     "id": "ana-005",
+     "source": "checkin",
+     "context": "Write a step by step procedure someone else could follow",
+     "body": "wrote my procedure, 11 steps. took alot longer than i thought and its so boring ngl, but if somebody else cant repeat it then it doesnt really count",
+     "days_ago": 96
+    },
+    {
+     "id": "ana-006",
+     "source": "checkin",
+     "context": "Find a real study or article that tested light color on plants",
+     "body": "found one on a university extension website, it was pretty short",
+     "days_ago": 95
+    },
+    {
+     "id": "ana-007",
+     "source": "followup",
+     "context": "Find a real study or article that tested light color on plants",
+     "body": "it said plants under only green light got tall and skinny and kinda weak, which is the opposite of what i guessed, so now im really curious what mine will do",
+     "days_ago": 95
+    },
+    {
+     "id": "ana-008",
+     "source": "checkin",
+     "context": "Decide what you will measure and how often",
+     "body": "decided to measure height in cm every other day from the soil line and count leaves once a week. keeping everything in one notebook so i dont lose stuff",
+     "days_ago": 93
+    },
+    {
+     "id": "ana-009",
+     "source": "checkin",
+     "context": "Pick your light colors and a control group",
+     "body": "picked red, blue, green and white. white is my control bc its the closest to normal light, and green is the wild card since plants reflect it",
+     "days_ago": 92
+    },
+    {
+     "id": "ana-010",
+     "source": "chat",
+     "context": "",
+     "body": "for college i really wanna stay close to home, like UIC or somewhere i can take the pink line to. my mom would be so sad if i left, she already cries at every graduation even for people she barely knows lol",
+     "days_ago": 92
+    },
+    {
+     "id": "ana-011",
+     "source": "checkin",
+     "context": "Read your teacher's reply and adjust your plan",
+     "body": "ms okafor wrote back!! she was my bio teacher this year. she said use the same measuring cup to water every cup and do at least 4 plants per color, not 2, so one weird plant doesnt mess up everything. changed my plan",
+     "days_ago": 90
+    },
+    {
+     "id": "ana-012",
+     "source": "checkin",
+     "context": "Make a materials list with prices",
+     "body": "made my materials list: colored LED bulbs, 4 cardboard boxes, foil, 16 cups, potting soil, seeds and a timer. the colored bulbs are like $6 each at home depot which adds up fast",
+     "days_ago": 89
+    },
+    {
+     "id": "ana-013",
+     "source": "chat",
+     "context": "",
+     "body": "my counselor said not to make junior year too heavy but i signed up for honors chem, precalc and AP lang anyway. is that too much? i want colleges to see im actually trying",
+     "days_ago": 88
+    },
+    {
+     "id": "ana-014",
+     "source": "checkin",
+     "context": "Set a budget and cut your list to fit it",
+     "body": "my whole budget is about $30, my tia lupe gave me $20 and i have $12 left from my birthday. that has to cover bulbs, soil, cups AND the tri fold board at the end so im being cheap about everything",
+     "days_ago": 87
+    },
+    {
+     "id": "ana-015",
+     "source": "checkin",
+     "context": "Collect free materials: boxes, foil and cups",
+     "body": "only got the boxes today, 4 from the fruteria on the corner",
+     "days_ago": 86
+    },
+    {
+     "id": "ana-016",
+     "source": "followup",
+     "context": "Collect free materials: boxes, foil and cups",
+     "body": "couldnt do more bc i had to watch my little brother and sister all day, my mom picked up an extra shift at the hotel. ill grab foil and cups from the kitchen tommorow",
+     "days_ago": 86
+    },
+    {
+     "id": "ana-017",
+     "source": "checkin",
+     "context": "Sketch the light box design before you build it",
+     "body": "drew the whole light box setup in my notebook first with arrows and measurements. i get stuff way better when i draw it out, and when i have to explain something i like having a drawing to point at",
+     "days_ago": 84
+    },
+    {
+     "id": "ana-018",
+     "source": "checkin",
+     "context": "Put all your research notes in one place",
+     "body": "we dont have a printer at home so i copied my research notes by hand into the notebook. the library prints for 15 cents a page but im not spending money on notes",
+     "days_ago": 83
+    },
+    {
+     "id": "ana-019",
+     "source": "checkin",
+     "context": "Buy the bulbs, soil and seeds",
+     "body": "went to home depot with my dad and got red, blue and green LED bulbs plus potting soil. no matching white one so im using a daylight bulb from our hallway. for seeds im just using frijoles from the kitchen lol",
+     "days_ago": 82
+    },
+    {
+     "id": "ana-020",
+     "source": "checkin",
+     "context": "Build the four light boxes and line them with foil",
+     "body": "built all 4 boxes!! lined the insides with foil so the light bounces around and cut a hole in the top of each one for the bulb. my room looks like a mad scientist lab now",
+     "days_ago": 81
+    },
+    {
+     "id": "ana-021",
+     "source": "checkin",
+     "context": "Soak the bean seeds overnight before planting",
+     "body": "my tia said frijoles from the kitchen might not sprout so i spent $2 on a seed packet of bush beans. soaking 48 of them in a bowl overnight",
+     "days_ago": 80
+    },
+    {
+     "id": "ana-022",
+     "source": "checkin",
+     "context": "Plant four cups per color and label every cup",
+     "body": "planted 16 cups, 4 per color, 3 beans in each so i can keep the strongest one. labeled them with masking tape R1, B1, G1, W1 and so on and gave each one exactly 50 ml of water",
+     "days_ago": 79
+    },
+    {
+     "id": "ana-023",
+     "source": "checkin",
+     "context": "Check the soil and keep it damp but not soaked",
+     "body": "checked every cup, the soil is still damp from yesterday so no water today",
+     "days_ago": 78
+    },
+    {
+     "id": "ana-024",
+     "source": "chat",
+     "context": "",
+     "body": "is it bad that i dont know what to major in yet? i like biology and i think maybe nursing. my cousin daniela is in nursing school at UIC and she makes it sound really cool, like hard but worth it",
+     "days_ago": 78
+    },
+    {
+     "id": "ana-025",
+     "source": "checkin",
+     "context": "Set a timer so every box gets 12 hours of light",
+     "body": "plugged all 4 boxes into a power strip with a cheap outlet timer, lights on at 7am and off at 7pm. my sister sofi is mad bc the red one glows through the cracks at night lol",
+     "days_ago": 77
+    },
+    {
+     "id": "ana-026",
+     "source": "checkin",
+     "context": "Check for sprouts and write down your first observations",
+     "body": "no sprouts yet, checked all 16 cups",
+     "days_ago": 76
+    },
+    {
+     "id": "ana-027",
+     "source": "followup",
+     "context": "Check for sprouts and write down your first observations",
+     "body": "i poked the soil a little in a couple cups and the beans look swollen, one has a tiny white root coming out, so something is happening down there",
+     "days_ago": 76
+    },
+    {
+     "id": "ana-028",
+     "source": "chat",
+     "context": "",
+     "body": "had to go with my dad to his doctor appointment to translate again, i do that a lot for both my parents. the nurse explained his blood sugar stuff so patiently, thats kinda why nursing sounds good to me",
+     "days_ago": 75
+    },
+    {
+     "id": "ana-029",
+     "source": "checkin",
+     "context": "Record which cups sprouted first and measure them",
+     "body": "SPROUTS!!! the blue cups came up first, B2 is already 1.5 cm. red has 2 tiny ones, white has 3 and green has nothing yet. wrote it all in the table",
+     "days_ago": 74
+    },
+    {
+     "id": "ana-030",
+     "source": "checkin",
+     "context": "Measure every sprout from the soil line",
+     "body": "measured every sprout from the soil line with my ruler. blue avg 2.1 cm, white 1.8, red 1.2, green 0.4. took pics with my phone too in case something happens to the notebook",
+     "days_ago": 73
+    },
+    {
+     "id": "ana-031",
+     "source": "checkin",
+     "context": "Thin each cup down to the strongest sprout",
+     "body": "pulled the extra sprouts so every cup has just one plant, felt kinda mean ngl. kept the healthiest looking one in each cup",
+     "days_ago": 72
+    },
+    {
+     "id": "ana-032",
+     "source": "checkin",
+     "context": "Water every cup the same amount and check the soil",
+     "body": "UGH theres white fuzzy stuff growing on top of the soil in the green box cups, i think its mold?? that box stays closed and gets super humid in there. G3 looks the worst",
+     "days_ago": 71
+    },
+    {
+     "id": "ana-033",
+     "source": "chat",
+     "context": "",
+     "body": "whats even the difference between a college and a university? my friend jaz keeps saying she wants northwestern and i didnt even know that was in illinois lol",
+     "days_ago": 70
+    },
+    {
+     "id": "ana-034",
+     "source": "checkin",
+     "context": "Look up what causes mold on seedling soil",
+     "body": "looked it up and its probably from too much water and no air moving around. some people sprinkle cinnamon on the soil?? so random but we have canela in the kitchen so im trying it",
+     "days_ago": 69
+    },
+    {
+     "id": "ana-035",
+     "source": "checkin",
+     "context": "Fix the mold and restart any cups that died",
+     "body": "i think i fixed it!! scraped off the fuzzy top layer, sprinkled canela, cut air holes in the green box and now i only water when the top of the soil is dry. G3 died so i replanted it",
+     "days_ago": 68
+    },
+    {
+     "id": "ana-036",
+     "source": "checkin",
+     "context": "Measure all cups and note any that look sick",
+     "body": "blue avg 6.3 cm, white 5.8, red 4.4, green 5.1 but the green ones are skinny and kinda pale like the article said. G3 is a baby again lol",
+     "days_ago": 67
+    },
+    {
+     "id": "ana-037",
+     "source": "chat",
+     "context": "",
+     "body": "my abuela is visiting from michoacan for two weeks so the apartment is packed lol. she saw my light boxes and thinks its brujeria, i tried explaining photosynthesis in spanish and totally failed",
+     "days_ago": 66
+    },
+    {
+     "id": "ana-038",
+     "source": "checkin",
+     "context": "Take photos of every cup from the same spot",
+     "body": "took photos of all 16 cups from the same spot on my dresser with the ruler next to each one, so ill have good pics for the board later",
+     "days_ago": 65
+    },
+    {
+     "id": "ana-039",
+     "source": "checkin",
+     "context": "Measure all cups and add the numbers to your table",
+     "body": "measured everything and added it to the table",
+     "days_ago": 64
+    },
+    {
+     "id": "ana-040",
+     "source": "followup",
+     "context": "Measure all cups and add the numbers to your table",
+     "body": "the surprising part is green grew the most since last time, like 2 cm in two days, but it leans hard toward the bulb and the stem looks like a noodle",
+     "days_ago": 64
+    },
+    {
+     "id": "ana-041",
+     "source": "chat",
+     "context": "",
+     "body": "ay wait you have to PAY to apply to college?? i saw some schools want like $50 or $75 just to send the application. if i apply to 8 thats like $500 and theres no way my parents have that",
+     "days_ago": 64
+    },
+    {
+     "id": "ana-042",
+     "source": "checkin",
+     "context": "Count the leaves on every plant",
+     "body": "counted leaves today, blue and white have the most, red has big leaves but fewer of them. G1 fell over so i put a popsicle stick next to it to hold it up",
+     "days_ago": 63
+    },
+    {
+     "id": "ana-043",
+     "source": "checkin",
+     "context": "Measure all cups and check the leaves for spots",
+     "body": "measured all 16, no spots on any leaves. the blue ones are such a dark green now, they look like the plants at the store",
+     "days_ago": 62
+    },
+    {
+     "id": "ana-044",
+     "source": "chat",
+     "context": "",
+     "body": "honestly the part of the science fair im most scared of is talking to the judges. i freeze up with adults i dont know, my voice gets shaky and i forget words, even in spanish lol",
+     "days_ago": 61
+    },
+    {
+     "id": "ana-045",
+     "source": "checkin",
+     "context": "Measure all cups and look for patterns",
+     "body": "blue avg 9.8 cm, white 8.9, red 7.1, and green 11.2?? green is the tallest now but theyre so skinny and floppy. so tallest isnt the same as healthiest i guess",
+     "days_ago": 60
+    },
+    {
+     "id": "ana-046",
+     "source": "checkin",
+     "context": "Add a health score so height is not your only data",
+     "body": "made a health score from 1 to 5 for leaf color, stem thickness and if it can stand up by itself. bc height alone makes green look like the winner and it def isnt",
+     "days_ago": 58
+    },
+    {
+     "id": "ana-047",
+     "source": "checkin",
+     "context": "Measure and water all 16 cups",
+     "body": "measured and watered everything, took like 40 minutes",
+     "days_ago": 57
+    },
+    {
+     "id": "ana-048",
+     "source": "followup",
+     "context": "Measure and water all 16 cups",
+     "body": "the blue ones have really dark green leaves and thick stems, and the red ones are getting kinda yellow on the bottom leaves, gonna keep an eye on that",
+     "days_ago": 57
+    },
+    {
+     "id": "ana-049",
+     "source": "chat",
+     "context": "",
+     "body": "my friend jaz said our school has a science bowl team, its like jeopardy but for science?? i kinda wanna try it in the fall. i love the bio questions but i know basically nothing about physics",
+     "days_ago": 57
+    },
+    {
+     "id": "ana-050",
+     "source": "checkin",
+     "context": "Measure all cups and compare the stems",
+     "body": "measured, the green stems are so thin they bend when i water them. the blue stems are thick like a pencil almost, its wild how different they look",
+     "days_ago": 56
+    },
+    {
+     "id": "ana-051",
+     "source": "checkin",
+     "context": "Measure all cups and write down anything unusual",
+     "body": "the red bulb burned out!! came home from my tios and the red box was completely dark, idk for how long, maybe since last night. thats gonna mess up my data",
+     "days_ago": 55
+    },
+    {
+     "id": "ana-052",
+     "source": "checkin",
+     "context": "Replace the broken bulb and note the gap in your data",
+     "body": "my dad drove me to home depot for a new red bulb, $6.48 out of my budget ugh. wrote in my notebook that red had no light for about a day so im being honest about it",
+     "days_ago": 54
+    },
+    {
+     "id": "ana-053",
+     "source": "chat",
+     "context": "",
+     "body": "my dad asked me how much college costs and i had no idea what to say, like is it 10 thousand? 60? he got kinda quiet after. is there a way to know what we would actually pay",
+     "days_ago": 52
+    },
+    {
+     "id": "ana-054",
+     "source": "checkin",
+     "context": "Measure all cups and compare this week to last week",
+     "body": "this week blue grew 3.1 cm, white 2.8, green 3.5 but still floppy, and red only 1.4. red is the slowest by far",
+     "days_ago": 51
+    },
+    {
+     "id": "ana-055",
+     "source": "checkin",
+     "context": "Water, measure, and write one sentence about what you see",
+     "body": "done, everything looks pretty normal today i think",
+     "days_ago": 50
+    },
+    {
+     "id": "ana-056",
+     "source": "followup",
+     "context": "Water, measure, and write one sentence about what you see",
+     "body": "ok one thing, the white box plants have tiny flower buds already which i didnt expect this early, and the blue ones are still the darkest green",
+     "days_ago": 50
+    },
+    {
+     "id": "ana-057",
+     "source": "chat",
+     "context": "",
+     "body": "ok plot twist, i think i want pharmacy not nursing. i went to walgreens to translate for my dad and the pharmacist explained how his metformin works and why he takes it with food and i was like wait que cool",
+     "days_ago": 49
+    },
+    {
+     "id": "ana-058",
+     "source": "checkin",
+     "context": "Check soil moisture before you water",
+     "body": "checked every cup with my finger first and only watered 5 of them, the rest were still damp. plants look good",
+     "days_ago": 48
+    },
+    {
+     "id": "ana-059",
+     "source": "checkin",
+     "context": "Measure all cups",
+     "body": "measured super fast bc we had a family party at my tios house, got home at like 11 and still did it lol",
+     "days_ago": 47
+    },
+    {
+     "id": "ana-060",
+     "source": "checkin",
+     "context": "Take your final measurements and look at the roots",
+     "body": "last measuring day!! pulled one plant from each color to look at the roots and blue had the biggest roots by far. kinda sad to end this part ngl",
+     "days_ago": 46
+    },
+    {
+     "id": "ana-061",
+     "source": "chat",
+     "context": "",
+     "body": "do colleges care that i only have like 2 activities? its just this science fair and helping with the kids program at my church on sundays",
+     "days_ago": 45
+    },
+    {
+     "id": "ana-062",
+     "source": "checkin",
+     "context": "Put every measurement into one data table",
+     "body": "typed all my measurements into a google sheet on my school chromebook, took forever bc my handwriting in the notebook is a mess. 16 plants times like 5 weeks",
+     "days_ago": 44
+    },
+    {
+     "id": "ana-063",
+     "source": "checkin",
+     "context": "Find the average height for each color",
+     "body": "did the averages with the AVERAGE formula, i didnt know sheets could do that. final avg: green 18.9 cm, blue 17.4, white 16.1, red 12.2",
+     "days_ago": 43
+    },
+    {
+     "id": "ana-064",
+     "source": "checkin",
+     "context": "Check your data table for mistakes",
+     "body": "found 3 spots where i typed 1.2 instead of 12, fixed them by checking my photos. so glad i took pics of everything",
+     "days_ago": 41
+    },
+    {
+     "id": "ana-065",
+     "source": "chat",
+     "context": "",
+     "body": "school started today, junior year!! and now every tuesday and thursday i pick up my little brother mateo and my sister sofi from their school at 3 and watch them till my mom gets home around 6, so on those days i do quest stuff late",
+     "days_ago": 40
+    },
+    {
+     "id": "ana-066",
+     "source": "checkin",
+     "context": "Make a bar graph of the average final height for each color",
+     "body": "made a bar graph in google sheets and green is the tallest bar, which looks wrong compared to how the plants actually looked lol. i need a second graph",
+     "days_ago": 39
+    },
+    {
+     "id": "ana-067",
+     "source": "checkin",
+     "context": "Graph the health scores next to the heights",
+     "body": "made the second graph for the health scores",
+     "days_ago": 38
+    },
+    {
+     "id": "ana-068",
+     "source": "followup",
+     "context": "Graph the health scores next to the heights",
+     "body": "it shows blue had the best health score, 4.6 out of 5, and green was the worst at 2.1. so tall doesnt mean healthy, the green ones were basically stretching to find better light",
+     "days_ago": 38
+    },
+    {
+     "id": "ana-069",
+     "source": "chat",
+     "context": "",
+     "body": "went to college night at school, the loyola table was so nice and the campus by the lake looks beautiful. but its private and the lady said tuition is over 50 thousand a year?? i almost walked away lol",
+     "days_ago": 36
+    },
+    {
+     "id": "ana-070",
+     "source": "checkin",
+     "context": "Write about what went wrong and how you handled it",
+     "body": "wrote my what went wrong section and its almost half a page lol. tried to be honest about everything instead of hiding it",
+     "days_ago": 35
+    },
+    {
+     "id": "ana-071",
+     "source": "checkin",
+     "context": "Use a light meter to compare how bright each box was",
+     "body": "ms okafor let me borrow the light meter from her classroom after school. turns out the white box was like twice as bright as the red one, so brightness wasnt really controlled. big flaw i gotta mention",
+     "days_ago": 34
+    },
+    {
+     "id": "ana-072",
+     "source": "checkin",
+     "context": "Answer your original question in one sentence",
+     "body": "wrote my one sentence answer, took me like 5 tries",
+     "days_ago": 32
+    },
+    {
+     "id": "ana-073",
+     "source": "followup",
+     "context": "Answer your original question in one sentence",
+     "body": "light color does change how bean plants grow, blue made the healthiest plants and green made the tallest but weakest ones. thats the sentence",
+     "days_ago": 32
+    },
+    {
+     "id": "ana-074",
+     "source": "chat",
+     "context": "",
+     "body": "i was looking up pharmacy programs and butler university in indianapolis has one you get into straight from high school, 6 years and you come out a doctor of pharmacy?? im kinda obsessed now",
+     "days_ago": 32
+    },
+    {
+     "id": "ana-075",
+     "source": "checkin",
+     "context": "Write your conclusion in three sentences",
+     "body": "conclusion: blue light made the healthiest plants with the thickest stems and biggest roots. green made the tallest plants but they were weak bc they stretched. my hypothesis was half right",
+     "days_ago": 31
+    },
+    {
+     "id": "ana-076",
+     "source": "chat",
+     "context": "",
+     "body": "my counselor mr castillo said i can probably get fee waivers for my applications bc i get free lunch?? i didnt even know that was a thing, i was lowkey panicking about the money part",
+     "days_ago": 30
+    },
+    {
+     "id": "ana-077",
+     "source": "checkin",
+     "context": "Write your limitations and what you'd change next time",
+     "body": "limitations: brightness wasnt the same in every box and 4 cups per color is kinda small. next time id measure brightness before i start anything",
+     "days_ago": 29
+    },
+    {
+     "id": "ana-078",
+     "source": "checkin",
+     "context": "Register for the regional science fair",
+     "body": "registered for the regional fair online!! theres a $15 entry fee but the main office said the school pays it for students, thank god",
+     "days_ago": 28
+    },
+    {
+     "id": "ana-079",
+     "source": "checkin",
+     "context": "Plan the board layout on paper first",
+     "body": "sketched the board layout on paper, question and hypothesis on the left, setup and procedure in the middle, graphs and conclusion on the right",
+     "days_ago": 27
+    },
+    {
+     "id": "ana-080",
+     "source": "chat",
+     "context": "",
+     "body": "told my cousin daniela im going for pharmacy now instead of nursing and she wasnt even mad lol. she said at her clinicals the pharmacists are the ones everybody runs to with questions about meds",
+     "days_ago": 26
+    },
+    {
+     "id": "ana-081",
+     "source": "checkin",
+     "context": "Buy the tri-fold board and supplies",
+     "body": "got the tri fold board at dollar tree for like $2?? thought itd be way more. plus glue sticks and letter stickers, so im officially out of budget money lol",
+     "days_ago": 25
+    },
+    {
+     "id": "ana-082",
+     "source": "checkin",
+     "context": "Write a short abstract, 250 words or less",
+     "body": "wrote the abstract, its 212 words total",
+     "days_ago": 24
+    },
+    {
+     "id": "ana-083",
+     "source": "followup",
+     "context": "Write a short abstract, 250 words or less",
+     "body": "the hardest part was fitting the brightness problem in without making the whole project sound bad, so i put it in one sentence at the end",
+     "days_ago": 24
+    },
+    {
+     "id": "ana-084",
+     "source": "chat",
+     "context": "",
+     "body": "can i put the science fair on my college apps even if i dont win anything? its kinda the only big thing ive done outside of class",
+     "days_ago": 24
+    },
+    {
+     "id": "ana-085",
+     "source": "checkin",
+     "context": "Draw the setup diagram for the board",
+     "body": "drew the setup diagram with colored pencils, the 4 boxes with the bulbs and cups inside and labels on everything. honestly its my favorite part of the board",
+     "days_ago": 23
+    },
+    {
+     "id": "ana-086",
+     "source": "checkin",
+     "context": "Write the title and a short summary for the top of the board",
+     "body": "title is 'Seeing Red (and Blue): How Light Color Changes Bean Plant Growth'. my sister sofi helped me pick it and now she thinks shes a scientist lol",
+     "days_ago": 22
+    },
+    {
+     "id": "ana-087",
+     "source": "chat",
+     "context": "",
+     "body": "ok update on the college thing, im definately open to going farther now, even out of state. my cousin said living in the dorms made her grow up a lot, and my mom said if its the right program we'll figure it out",
+     "days_ago": 22
+    },
+    {
+     "id": "ana-088",
+     "source": "checkin",
+     "context": "Pick your best photos and write captions",
+     "body": "picked 6 photos, one from each week, and wrote short captions like 'week 3: green starts leaning toward the bulb'. the popsicle stick one is kinda funny",
+     "days_ago": 21
+    },
+    {
+     "id": "ana-089",
+     "source": "checkin",
+     "context": "Make the graphs easy to read from a few feet away",
+     "body": "made the labels bigger and colored the bars to match the actual light colors. ms okafor looked at them in class and said to add units and error bars, had to google what error bars even are",
+     "days_ago": 20
+    },
+    {
+     "id": "ana-090",
+     "source": "chat",
+     "context": "",
+     "body": "daniela sent me a link about UIC's GPPA program, if you get in as a freshman you get a guaranteed spot in their pharmacy school later as long as you keep your grades up. that sounds way less scary than applying twice",
+     "days_ago": 19
+    },
+    {
+     "id": "ana-091",
+     "source": "checkin",
+     "context": "Print the graphs, photos and title",
+     "body": "printed everything at the library by my house, color is 25 cents a page so it came to $3.75. the librarian helped me fix the sizing. not having a printer at home is so annoying",
+     "days_ago": 18
+    },
+    {
+     "id": "ana-092",
+     "source": "checkin",
+     "context": "Glue everything onto the board",
+     "body": "glued everything on, the board is mostly DONE",
+     "days_ago": 17
+    },
+    {
+     "id": "ana-093",
+     "source": "followup",
+     "context": "Glue everything onto the board",
+     "body": "i drew light pencil lines with a ruler so everything is straight this time, and the letter stickers for the title took forever but they look really clean",
+     "days_ago": 17
+    },
+    {
+     "id": "ana-094",
+     "source": "chat",
+     "context": "",
+     "body": "my english teacher mr brennan wants a personal narrative and i have no idea what to write about. is it wierd to write about translating for my parents at appointments since i was like 10",
+     "days_ago": 16
+    },
+    {
+     "id": "ana-095",
+     "source": "checkin",
+     "context": "Look at the board from across the room and fix what's hard to read",
+     "body": "stood across my room and looked at the board, the graphs are readable but the conclusion font was too small so i rewrote it bigger with a marker",
+     "days_ago": 15
+    },
+    {
+     "id": "ana-096",
+     "source": "checkin",
+     "context": "Write and time a 3 minute talk that follows the board",
+     "body": "wrote my talk on 6 notecards, it goes left to right across the board so i can point at each part. first try was 3:50 so i cut the part about building the boxes and now its 3:05",
+     "days_ago": 13
+    },
+    {
+     "id": "ana-097",
+     "source": "checkin",
+     "context": "Practice answering questions a judge might ask",
+     "body": "my tia lupe pretended to be a judge and asked why bush beans and why only 4 cups per color. i froze on the second one but then pointed at my setup drawing and it came back to me",
+     "days_ago": 12
+    },
+    {
+     "id": "ana-098",
+     "source": "checkin",
+     "context": "Pack everything you need for fair day",
+     "body": "packed the board, my notecards, one plant from each color in a box so people can see the real thing, and tape just in case. cant believe its tommorow",
+     "days_ago": 11
+    },
+    {
+     "id": "ana-099",
+     "source": "checkin",
+     "context": "Present your project at the regional science fair",
+     "body": "FAIR DAY!!! got 2nd place in plant science and the top 2 go to state in april!! my mom cried and kept saying esa es mi hija to random people lol",
+     "days_ago": 10
+    },
+    {
+     "id": "ana-100",
+     "source": "checkin",
+     "context": "Write a reflection on what went well and what you'd change",
+     "body": "reflection: if i did it again id use more cups per color, measure brightness before starting, and start the board a week earlier so im not rushing at the end",
+     "days_ago": 9
+    },
+    {
+     "id": "ana-101",
+     "source": "checkin",
+     "context": "Decide what to change for the state fair",
+     "body": "for state im doing a round 2 with 8 cups per color instead of 4, and matching the brightness in every box before i plant anything",
+     "days_ago": 8
+    },
+    {
+     "id": "ana-102",
+     "source": "chat",
+     "context": "",
+     "body": "now that the fair is done i wanna try science bowl for real. jaz says they meet after school twice a week and theres a big competition in february, i just gotta learn some physics lol",
+     "days_ago": 8
+    },
+    {
+     "id": "ana-103",
+     "source": "checkin",
+     "context": "Make a round 2 materials list that fits your budget",
+     "body": "round 2 list: 32 cups, more soil, a new seed packet and extra foil. i still have the boxes and bulbs so its only like $12 this time, and tia lupe said shell help again",
+     "days_ago": 7
+    },
+    {
+     "id": "ana-104",
+     "source": "chat",
+     "context": "",
+     "body": "honors chem is kicking my butt, everyone seems to get the unit conversions and im so lost. is it bad if i end up with a B in an honors class?",
+     "days_ago": 6
+    },
+    {
+     "id": "ana-105",
+     "source": "checkin",
+     "context": "Match the brightness in all four boxes before planting",
+     "body": "used the light meter again and moved the white bulb higher and the red one lower until all 4 boxes read about the same. took forever but now its actually fair",
+     "days_ago": 5
+    },
+    {
+     "id": "ana-106",
+     "source": "checkin",
+     "context": "Plant round 2 with eight cups per color",
+     "body": "planted all 32 cups for round 2!! took like 2 hours and my back hurts lol. labeled them R1 to R8, B1 to B8 and so on with masking tape again",
+     "days_ago": 4
+    },
+    {
+     "id": "ana-107",
+     "source": "chat",
+     "context": "",
+     "body": "my mom wants to do a little carne asada bc i got 2nd place lol. mateo already told his whole class his sister is a scientist and sofi wants to do a science fair now too",
+     "days_ago": 4
+    },
+    {
+     "id": "ana-108",
+     "source": "checkin",
+     "context": "Keep the round 2 soil damp but not soaked",
+     "body": "checked all 32 cups, only watered a few",
+     "days_ago": 3
+    },
+    {
+     "id": "ana-109",
+     "source": "followup",
+     "context": "Keep the round 2 soil damp but not soaked",
+     "body": "i only watered the ones that looked dry on top, and i turned all the labels to face out becuase i kept having to spin the cups to read them",
+     "days_ago": 3
+    },
+    {
+     "id": "ana-110",
+     "source": "checkin",
+     "context": "Start a new data sheet for round 2",
+     "body": "made a new data sheet on my chromebook for round 2 with all 32 cups, and color coded the rows by light color so its easier to read",
+     "days_ago": 2
+    },
+    {
+     "id": "ana-111",
+     "source": "chat",
+     "context": "",
+     "body": "what should i be doing this year to get ready to apply next fall? is there like a checklist for juniors, bc i dont wanna miss something just bc nobody in my family did this before",
+     "days_ago": 2
+    },
+    {
+     "id": "ana-112",
+     "source": "checkin",
+     "context": "Check the round 2 cups for sprouts",
+     "body": "no sprouts yet but its only been 3 days",
+     "days_ago": 1
+    },
+    {
+     "id": "ana-113",
+     "source": "followup",
+     "context": "Check the round 2 cups for sprouts",
+     "body": "i dug a little in B4 and the bean is swollen with a tiny root, so i think tomorrow or the day after well see the first ones",
+     "days_ago": 1
+    },
+    {
+     "id": "ana-114",
+     "source": "checkin",
+     "context": "Measure the first round 2 sprouts",
+     "body": "first round 2 sprouts!! 5 blue cups and 2 white ones came up, nothing in red or green yet. blue is first again just like last time",
+     "days_ago": 0
+    },
+    {
+     "id": "ana-115",
+     "source": "chat",
+     "context": "",
+     "body": "a college rep from depaul came to our school today, she was really nice but when i asked about pharmacy she said they dont have a pharmacy school, so probably not for me",
+     "days_ago": 0
+    }
+   ],
+   "questions": [
+    {
+     "id": "ana-q01",
+     "kind": "tool",
+     "query": "babysitting her younger siblings",
+     "answers": [
+      "ana-016",
+      "ana-065"
+     ],
+     "note": "016: a summer day she watched her little brother and sister during her mom's extra shift. 065: every Tuesday and Thursday since school started she picks up Mateo and Sofi and watches them until 6. Other mentions of Sofi or Mateo (025, 086, 107) and the church kids program (061) are not about caring for them."
+    },
+    {
+     "id": "ana-q02",
+     "kind": "tool",
+     "query": "staying local for college",
+     "answers": [
+      "ana-087",
+      "ana-010"
+     ],
+     "note": "Changed preference, newer first. 087 (22 days ago): now open to going farther, even out of state. 010 (92 days ago): wanted to stay close to home, like UIC on the pink line. Home Depot and 'got home' mentions are distractors.",
+     "changed": true
+    },
+    {
+     "id": "ana-q03",
+     "kind": "tool",
+     "query": "worried about application fees",
+     "answers": [
+      "ana-041",
+      "ana-076"
+     ],
+     "note": "041: shock that applying costs $50 to $75 per school, about $500 for 8. 076: counselor says she may get fee waivers through free lunch. The $15 science fair entry fee (078), tuition (069) and her dad's cost question (053) are about other money."
+    },
+    {
+     "id": "ana-q04",
+     "kind": "tool",
+     "query": "switching her intended major",
+     "answers": [
+      "ana-057",
+      "ana-080"
+     ],
+     "note": "057: decides on pharmacy instead of nursing after the Walgreens pharmacist explained her dad's medicine. 080: tells her cousin she is going for pharmacy now. 024 and 028 are the earlier nursing interest, 074 and 090 are pharmacy programs, none of them state the change."
+    },
+    {
+     "id": "ana-q05",
+     "kind": "tool",
+     "query": "help from her biology teacher",
+     "answers": [
+      "ana-011",
+      "ana-071",
+      "ana-089"
+     ],
+     "note": "Ms. Okafor, her biology teacher: plan advice by email (011), lent her the light meter that showed brightness was uneven (071), and feedback on the graphs (089). The English teacher (094) and the counselor (013, 076) are distractors."
+    },
+    {
+     "id": "ana-q06",
+     "kind": "checkin",
+     "query": "checked round 2 this morning and a couple cups have like a white cottony layer on top of the dirt, idk what to do",
+     "answers": [
+      "ana-032",
+      "ana-034",
+      "ana-035"
+     ],
+     "note": "The first round's mold: what it looked like and why (032), what causes it and the cinnamon trick (034), and how she fixed it with air holes and watering only dry soil (035)."
+    },
+    {
+     "id": "ana-q07",
+     "kind": "checkin",
+     "query": "finished the round 2 data sheets on my chromebook, now i just need to get them printed somewhere before thursday",
+     "answers": [
+      "ana-018",
+      "ana-091"
+     ],
+     "note": "She has no printer at home and prints at the library: 15 cents a page (018), 25 cents for color, where the librarian helped (091). The chromebook mentions (062, 110) do not say where she prints."
+    },
+    {
+     "id": "ana-q08",
+     "kind": "checkin",
+     "query": "the blue light in round 2 keeps flickering on and off tonight, pretty sure its about to die",
+     "answers": [
+      "ana-051",
+      "ana-052"
+     ],
+     "note": "Last time a bulb died: the red bulb burned out and the box went dark (051), then her dad drove her to buy a replacement and she wrote the gap into her data (052). Moving bulbs to match brightness (105) is not about a failing bulb."
+    },
+    {
+     "id": "ana-q09",
+     "kind": "task",
+     "query": "Get ready for state fair judging: rehearse explaining your project out loud and practice answering questions you don't expect",
+     "answers": [
+      "ana-017",
+      "ana-044",
+      "ana-096",
+      "ana-097"
+     ],
+     "note": "She explains best with a drawing to point at (017), freezes up with judges and adults she does not know (044), her talk is 6 notecards ordered left to right across the board at about 3 minutes (096), and in a practice round she froze on a question then recovered by pointing at her setup drawing (097)."
+    },
+    {
+     "id": "ana-q10",
+     "kind": "task",
+     "query": "Compare the pharmacy programs you already like: how you get in and how many years it takes",
+     "answers": [
+      "ana-074",
+      "ana-090"
+     ],
+     "note": "The two programs she is excited about: Butler's 6 year pharmacy program straight from high school (074) and UIC's GPPA guaranteed pharmacy spot (090). Loyola (069), Northwestern (033) and DePaul (115, no pharmacy school) are distractors."
+    },
+    {
+     "id": "ana-q11",
+     "kind": "task",
+     "query": "Join Science Bowl: find out the practice days and work out which ones fit your weekly schedule",
+     "answers": [
+      "ana-049",
+      "ana-065",
+      "ana-102"
+     ],
+     "note": "049: first interest in Science Bowl, strong in bio and weak in physics. 102: after the fair she wants to join, it meets after school twice a week with a February competition. 065: Tuesdays and Thursdays after school she picks up her siblings, so those practices may not work."
+    },
+    {
+     "id": "ana-q12",
+     "kind": "no_answer",
+     "query": "SAT or PSAT prep",
+     "answers": [],
+     "note": "She never mentions the SAT, PSAT, ACT or any standardized test. Her class load (013) and honors chem grade (104) are not test prep."
+    },
+    {
+     "id": "ana-q13",
+     "kind": "no_answer",
+     "query": "her pet dog or cat",
+     "answers": [],
+     "note": "No animal of any kind appears in her memories."
+    },
+    {
+     "id": "ana-q14",
+     "kind": "no_answer",
+     "query": "plays a musical instrument",
+     "answers": [],
+     "note": "She never mentions music, band, choir or any instrument."
+    }
+   ]
+  }
+ ]
+}

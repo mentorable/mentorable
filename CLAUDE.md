@@ -59,6 +59,7 @@ Roadmap, Research and Scorecard were built for career guidance and need a real r
 - Live pages: `LandingPage`, `AuthPage`, `OnboardingPage`, `QuestPage`, `CollegeListPage`, `ChatPage`, `PortfolioPage`, `ProfilePage`. Parked: `ScorecardPage`, `RoadmapPage`, `ResearchPage`.
 - `components/onboarding/` — `IntakeForm`, `TextInterview`, `IntakeReview`, `RecordPanel`, `intakeTheme.js`.
 - `components/quest/` — the map, check-in sheet, setup flow, panels, `NavStreakChip`, and `questUi.jsx` (tokens and the raised button).
+- `components/profile/MemorySection.jsx` — "What Mentorable remembers" on Profile (see Memory below).
 - `lib/`:
   - `supabase.js` — single client
   - `auth.js` — **`requireUser()` / `getValidUser()`. Always use these, never `getSession()`.** Routing off `getSession()` (unvalidated localStorage) while page guards used `getUser()` (server-validated) caused an infinite `/auth` ↔ `/onboarding` redirect loop. `requireUser()` validates server-side and purges a dead token.
@@ -69,13 +70,14 @@ Roadmap, Research and Scorecard were built for career guidance and need a real r
   - `quest.js` — Quest API client and date helpers. API dates are calendar dates: parse them with `parseDay`, since `new Date("2026-09-23")` lands on the previous evening in US zones
   - `QuestContext.jsx` — the streak/level summary behind the nav chip, mounted in `AppShell`
   - `collegeList.js` — College List reads/writes and the school search; `collegeCategory.js` — the reach/target/likely rule (no imports, so it can be checked with plain Node)
+  - `memory.js` — the student's reads, deletes and on/off switch for long-term memory
   - `usage.js`, `retry.js`, `cache.js`, `onet.js`
 
 ### The student record (the core data model)
 
 Five places hold everything. The Portfolio page and the onboarding intake write **the same rows** — there is no second copy.
 
-`profiles` (scalars): `full_name`, `grade_level`, `graduation_year`, `location_general`, `gpa_unweighted` / `gpa_weighted` (`NUMERIC(6,3)`, wide enough for a 100-point scale), `gpa_scale`, `candidate_majors` (JSONB array), `target_colleges` (JSONB array), `narrative` (JSONB), `intake_channel`, `intake_draft` (JSONB, staging), `chat_signals` (JSONB), `resume_contact` (JSONB), `agent_instructions`, `agent_response_style`.
+`profiles` (scalars): `full_name`, `grade_level`, `graduation_year`, `location_general`, `gpa_unweighted` / `gpa_weighted` (`NUMERIC(6,3)`, wide enough for a 100-point scale), `gpa_scale`, `candidate_majors` (JSONB array), `target_colleges` (JSONB array), `narrative` (JSONB), `intake_channel`, `intake_draft` (JSONB, staging), `chat_signals` (JSONB), `resume_contact` (JSONB), `agent_instructions`, `agent_response_style`, `memory_enabled`, `memory_cleared_at`, `memory_backfilled_at`.
 
 Child tables, all `user_id`-scoped with RLS (`auth.uid() = user_id`):
 
@@ -142,9 +144,24 @@ The advisor. `load_context` → `build_prompt` → streaming tool-use loop in `m
 
 **No volatile fact is hard-coded in the prompt.** Testing policies, aid deadlines and per-school demonstrated-interest weighting change every cycle, so the prompt sends students to the source rather than asserting a policy it cannot check. Keep it that way.
 
-Chat tools (`nodes/chat/tools.py`) are full CRUD over the record: `view_portfolio`, `add_portfolio_item`, `update_portfolio_item`, `delete_portfolio_item`, `update_gpa`, plus `view_quest`, `update_quest` and `retire_quest`. Every write is scoped by `user_id` **as well as** row id — the service role bypasses RLS, so that filter is the only real guard. Model input is whitelisted, clamped and truncated to what each column holds. Record writes emit a `portfolio_changed` SSE event, quest writes a `quest_changed` one; both toast, and the second refreshes the nav streak chip.
+Chat tools (`nodes/chat/tools.py`) are full CRUD over the record: `view_portfolio`, `add_portfolio_item`, `update_portfolio_item`, `delete_portfolio_item`, `update_gpa`, plus `view_quest`, `update_quest` and `retire_quest`, and the read-only `recall_memory` (offered only while memory is on; `tools_for`). Every write is scoped by `user_id` **as well as** row id — the service role bypasses RLS, so that filter is the only real guard. Model input is whitelisted, clamped and truncated to what each column holds. Record writes emit a `portfolio_changed` SSE event, quest writes a `quest_changed` one; both toast, and the second refreshes the nav streak chip.
 
 A tool call splits a reply into multiple model turns; `TURN_SEPARATOR` in `main.py` keeps them from running together in the rendered text.
+
+### Memory (long-term, `app/nodes/recall/`)
+
+What the student said, in their own words, found again months later ("in week 2 you said the data was messy"). The `chat_signals` notes (one sentence per chat, last 10 in the prompt) stay as the always-on core; this is what the notes lose.
+
+- **What is kept.** Their own lines only, verbatim: each chat message, each Quest check-in, and a follow-up answer (the answer, not a thin check-in it rescued). Never the advisor's words. Rows live in `student_memories` with where they were said (`context`: the task title, or `''` for chat) and when; `dedupe_key` (`checkin:<id>`, `followup:<id>`, `chat:<hash>`) makes retries no-ops. At most 1500 per student, newest kept.
+- **What is filtered out.** Lines under 6 words, and serious disclosures. It is a filter, not a guarantee, and the copy says "filtered", never "never saved". Two layers: the calls that already read the text (`extract_signals`, `reply_to_checkin`) return a `sensitive` flag, and **a model that read the text must clear it: a missing flag, no answer at all, or a canned reply (no model read it) all count as sensitive.** Under it, `safety.py`'s keyword screen runs on every path (it straightens curly apostrophes first, since phones type them); it is the only layer on follow-up answers and on the backfill, so it is broad on purpose: a false alarm costs one line, a miss keeps a disclosure. The task title (`context`) is screened too. A check-in the model flagged also gets no follow-up question. Add to the screen whenever a miss turns up, and add the phrasing to `tests/test_memory.py`.
+- **Saving never costs anything, and off means off.** `remember` / `remember_many` run after the check-in or chat turn has landed, in the background via `spawn()` (which keeps a reference: a bare `create_task` can be garbage collected mid-flight), and never raise. The write is `save_student_memories` (notes: `append_chat_signal`), which checks `memory_enabled` and `memory_cleared_at` in the same transaction as the write and takes a share lock on the profile row, so a switch or "Delete everything" that arrives mid-save wins: pass `started=` (when the student said it) from the start of the request, not from when the save begins. The notes are appended in one statement rather than read, edited and written back, or a slow model call would restore notes the student deleted meanwhile.
+- **Where it is read.** The chat tool `recall_memory`; check-in replies and daily tasks recall 3 lines with a 3-second cap (`MEMORY_RECALL_*` in `quest/service.py`), shown as a "THINGS THEY SAID EARLIER" block of quoted data. Every failure is "no memories".
+- **The search is one SQL function**, `recall_memories`: cosine similarity, plus the query's word stems weighted by how rare they are among that student's memories, fused by reciprocal rank, with a small recency nudge applied *inside* each ranking (on the fused score it let any new, loosely related line jump several better ones). Eligible if similar enough or sharing enough words. **`rank.py` mirrors it in Python and `tests/test_memory.py` pins the mirror to real Postgres scores: change the SQL and the mirror together.** The constants live in `rank.SETTINGS` and are tuned with `scripts/eval_memory.py` (synthetic students in `scripts/fixtures/memory_eval.json`, compared with the old "last 10 lines", needs `OPENAI_API_KEY`). No HNSW index on purpose: every search is one student's few hundred rows, where an exact scan is fast and exact.
+- **The student controls it.** Profile, "What Mentorable remembers": every line and note, delete one or everything, and the `profiles.memory_enabled` switch. Off means nothing saved, nothing recalled, and the notes neither written nor shown to the advisor. "Delete everything" is one call, `clear_my_memories()`: it stamps `memory_cleared_at`, empties the notes, deletes every memory and the advisor's saved chat state (the LangGraph checkpoint tables hold copies of the notes inside the prompt). Students can only read and delete their rows (grants and RLS); the save, recall and prune functions are service-role only. Deleting the account cascades to the memories, but **not** to the checkpoint tables (an open gap, filed separately).
+- **No `OPENAI_API_KEY`, no memory.** Embeddings are OpenAI `text-embedding-3-small` at 1536 dimensions (`MEMORY_EMBED_*` in `models.py`); without the key every path quietly does nothing and the rest of the app is unchanged.
+- **The backfill runs once.** `scripts/backfill_memories.py` imports check-ins and chats from before memory shipped (2026-09-29) with their original dates. Later lines were handled live, where the models' flags ran; the script only has the keyword screen (its wider `strict` version), so it never reaches past that date, and it skips whole any check-in or chat where the advisor's own reply was the crisis hand-off (988, a trusted adult): the one place from that time a model had read the student's words. `profiles.memory_backfilled_at` marks a student done, and "Delete everything" sets it too, so nothing deleted can come back. Run `--dry-run` first. Existing students are on by default, so this sends their history to OpenAI to be embedded: consider telling them first.
+- **Tests.** `tests/test_memory.py` (pure rules), `tests/test_memory_flow.py` (the real Quest service, chat summary and chat tool against `tests/fakedb.py`, a scripted model and a fake embedder: what is saved and recalled on each path, every failure mode, and the deletion races) and `tests/test_memory_backfill.py`. The SQL itself has no committed test: the migrations were checked by hand in a rolled-back transaction against the real database (fusion, recency, floors, isolation, grants, and the save guard), so re-do that when changing them.
+- Schema: `supabase/migrations/20260929_student_memories.sql` and `20260929_memory_save_guard.sql`. Plan: `.claude/MEMORY_PLAN.md`.
 
 ### Model routing
 
@@ -156,10 +173,11 @@ A tool call splits a reply into multiple model turns; `TURN_SEPARATOR` in `main.
 | Text interview | `claude-sonnet-5` | Student-facing |
 | Intake extraction | `claude-sonnet-5` | Produces the record everything else reasons from |
 | Portfolio upload | `gpt-5-mini` (fallback Haiku 4.5) | Mechanical extraction |
-| `extract_signals` | `gpt-5-nano` (fallback Haiku 4.5) | One sentence into a JSON blob, never shown as prose |
+| `extract_signals` | `gpt-5-nano` (fallback Haiku 4.5) | One sentence into a JSON blob (plus the `sensitive` flag memory needs), never shown as prose |
 | Quest plan, suggestions, portfolio draft, pre-plan talk | `claude-sonnet-5` | A few calls per quest, and everything after them builds on the result |
 | Quest daily task, check-in reply | `claude-haiku-4-5` | Every active student, every day; short replies |
 | Quest task resources | `claude-haiku-4-5` + web search tool | On request only; the search ($10 per 1,000) costs more than the tokens |
+| Memory embeddings | `text-embedding-3-small` (OpenAI, 1536) | About $0.02 per million tokens; one short call per saved line and per recall |
 
 The Quest calls go through `app/llm.py` → `tool_completion()`, which forces one Anthropic tool call so the reply always arrives as an object (intake extraction uses it too). Callers still type-check every field, and fall back to plain content when the reply is unusable.
 
@@ -221,7 +239,7 @@ SUPABASE_URL
 SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY   # bypasses RLS; scope every query by user_id yourself
 ANTHROPIC_API_KEY
-OPENAI_API_KEY              # optional; absent = Anthropic fallback everywhere
+OPENAI_API_KEY              # optional; absent = Anthropic fallback everywhere, and long-term memory off
 GEMINI_API_KEY              # slot exists, unused
 BRAVE_API_KEY               # parked features only
 DATABASE_URL                # Supabase session pooler (IPv4) for the checkpointer
