@@ -178,6 +178,9 @@ async def main() -> int:
                                        ms_description=ms["description"], day_in_ms=2, ms_days=ms["days"],
                                        catch_up_note="", prior="- List five questions you could test",
                                        recent='- On "List five questions you could test": I picked lead because the county publishes readings',
+                                       # A memory, the way retrieve.prompt_lines shows one.
+                                       earlier=task.EARLIER_BLOCK.format(
+                                           lines='- "i only have my phone at home, the school laptop is lunch only" (in chat, Sep 3)'),
                                        grade="They are in grade 11."),
                                    task.TASK_TOOL, 600)
     cleaned_task = task.clean_task(raw, 30)
@@ -189,7 +192,10 @@ async def main() -> int:
     # Check-in replies
     base = dict(quest_title=quest["title"], ms_title=ms["title"],
                 task_title=(cleaned_task or {}).get("title", "Find the county dataset"),
-                task_detail=(cleaned_task or {}).get("detail", ""), catch_up_line="")
+                task_detail=(cleaned_task or {}).get("detail", ""), catch_up_line="",
+                earlier=checkin.earlier_block(
+                    '- "the county data had two schools missing, idk why" '
+                    '(checking in on "Download the county data", Sep 10)'))
     raw, costs["reply"] = await run(client, "Check-in reply, a real check-in", QUEST_CHECKIN_MODEL,
                                     checkin.CHECKIN_PROMPT.format(
                                         body="Found the state water dataset and saved two years of lead readings "
@@ -201,6 +207,8 @@ async def main() -> int:
         problems.append("reply: fell back to a canned reply")
     if reply.get("thin"):
         problems.append("reply: a detailed check-in was judged thin")
+    if reply.get("sensitive"):
+        problems.append("reply: an ordinary check-in was flagged sensitive, so it would never be remembered")
 
     raw, thin_cost = await run(client, "Check-in reply, a thin check-in", QUEST_CHECKIN_MODEL,
                                checkin.CHECKIN_PROMPT.format(body="did it", **base),

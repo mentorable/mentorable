@@ -71,7 +71,7 @@ async def synthesize_living_profile(user_id: str) -> None:
             supabase.from_("profiles").select(
                 "full_name, onboarding_summary, strengths, weaknesses, interests, "
                 "career_matches, motivations, work_style, axis_scores, "
-                "research_findings, chat_signals, living_profile, living_synced_at"
+                "research_findings, chat_signals, memory_enabled, living_profile, living_synced_at"
             ).eq("id", user_id).maybe_single().execute()
         )
         p = prof_res.data or {}
@@ -114,7 +114,7 @@ async def synthesize_living_profile(user_id: str) -> None:
         rf = p.get("research_findings") or []
         if isinstance(rf, list) and rf:
             activity.append("Recently researched: " + "; ".join(f"{f.get('title','')}" for f in rf[:6] if f.get("title")))
-        cs = p.get("chat_signals") or []
+        cs = (p.get("chat_signals") or []) if p.get("memory_enabled") is not False else []
         if isinstance(cs, list) and cs:
             activity.append("Shared in chat:\n" + "\n".join(f"- {s}" for s in cs[-8:] if isinstance(s, str)))
         if portfolio:

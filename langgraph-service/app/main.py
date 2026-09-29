@@ -18,7 +18,8 @@ from app.db.supabase import get_supabase
 from app.graphs.chat import create_chat_graph
 from app.models import CHAT_MODEL, INTERVIEW_MODEL
 from app.nodes.chat.extract_signals import extract_signals
-from app.nodes.chat.tools import CHAT_TOOLS, execute_chat_tool, WRITE_TOOLS, QUEST_WRITE_TOOLS, TOOL_VERB
+from app.nodes.chat.tools import execute_chat_tool, WRITE_TOOLS, QUEST_WRITE_TOOLS, TOOL_VERB, tools_for
+from app.nodes.recall.store import spawn
 from app.nodes.onboarding.intake import (
     INTERVIEW_SYSTEM,
     commit_intake,
@@ -162,6 +163,9 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
     if not system_prompt:
         raise HTTPException(status_code=500, detail="Failed to build system prompt")
 
+    # recall_memory is only offered while the student has memory on.
+    chat_tools = tools_for(state.get("profile") or {})
+
     async def generate():
         conversation: list[dict] = list(normalized)
         full_text = ""
@@ -181,7 +185,7 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
                         "cache_control": {"type": "ephemeral"},
                     }],
                     messages=conversation,
-                    tools=CHAT_TOOLS,
+                    tools=chat_tools,
                 ) as stream:
                     async for text in stream.text_stream:
                         # First text of a turn that follows a tool call. The client
@@ -239,9 +243,10 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
 
             yield "data: [DONE]\n\n"
 
-            # Fire-and-forget signal extraction. Pass a clean text-only transcript.
+            # Fire-and-forget: the session summary and long-term memory. Pass a
+            # clean text-only transcript. spawn keeps a reference until it ends.
             transcript = normalized + [{"role": "assistant", "content": full_text}]
-            asyncio.create_task(extract_signals(user_id, transcript))
+            spawn(extract_signals(user_id, transcript))
 
             # (The scorecard's Communication award used to fire here. The 5 career
             # axes were dropped in the college pivot, so there is nothing to award.)

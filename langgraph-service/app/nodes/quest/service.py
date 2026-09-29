@@ -32,6 +32,8 @@ from app.nodes.quest.draft import computed_fields, draft_activity
 from app.nodes.quest.plan import plan_quest
 from app.nodes.quest.resources import find_resources
 from app.nodes.quest.talk import FALLBACK_LINE, clean_messages, next_turn, render as render_talk
+from app.nodes.recall.retrieve import prompt_lines, recall
+from app.nodes.recall.store import memory_on, remember, spawn
 from app.nodes.quest.suggest import FALLBACK_SUGGESTIONS, record_key, suggest_quests
 from app.nodes.quest.task import fallback_task, generate_task
 
@@ -52,6 +54,10 @@ BUDGETS = {
     # just ends and they go on to their pace.
     "talk":            ("month", 20),
 }
+
+# Memory in the daily loop: a few of their earlier words, and never a long wait.
+MEMORY_RECALL_LIMIT = 3
+MEMORY_RECALL_TIMEOUT = 3.0
 
 OPEN_STATUSES = ["draft", "active", "paused"]
 RECENT_COMPLETION_DAYS = 7
@@ -847,12 +853,17 @@ async def open_task(user_id: str, tz_hint: Optional[str], slot: int) -> dict:
     minutes = _int(q.get("daily_minutes"), 30)
 
     if _spend(ctx, "task"):
+        # Their earlier words that bear on this milestone: a constraint on time
+        # or tools, how they like to work, an old struggle with the same thing.
+        earlier = await recall(
+            user_id, f"{q.get('title') or ''}. {milestone.get('title') or ''}: {milestone.get('description') or ''}",
+            limit=MEMORY_RECALL_LIMIT, timeout=MEMORY_RECALL_TIMEOUT)
         task = await generate_task(
             quest=q, milestone=milestone, milestone_count=len(ctx.milestones),
             day_in_ms=slot - first + 1,
             prior_titles=[t["title"] for t in ctx.tasks if t.get("milestone_id") == milestone["id"]],
             recent=_recent_checkins(ctx), grade=_grade(user_id),
-            catch_up=stone["state"] == "missed",
+            catch_up=stone["state"] == "missed", earlier=prompt_lines(earlier),
         )
     else:
         task = fallback_task(milestone, minutes)
@@ -936,6 +947,7 @@ async def find_task_resources(user_id: str, tz_hint: Optional[str], slot: int) -
 
 
 async def check_in(user_id: str, tz_hint: Optional[str], slot: int, body_text) -> dict:
+    said_at = datetime.now(timezone.utc)   # when they said it, for a memory that must not outlive a deletion
     body = str(body_text or "").strip()
     if not body:
         raise QuestError(422, "empty", "Write a line about what you did.")
@@ -979,9 +991,15 @@ async def check_in(user_id: str, tz_hint: Optional[str], slot: int, body_text) -
     # still fail, and it does not get to take anything back.
     index = stone["milestone"]
     milestone = ctx.milestones[index]
+    checkin_key = f"checkin:{res['checkin_id']}"
+    mem_on = await asyncio.to_thread(memory_on, user_id)
     if _spend(ctx, "reply"):
+        # A few of their earlier words that may connect to today. Capped in
+        # time: the student is waiting on this reply.
+        earlier = await recall(user_id, f"{task['title']}: {body}", limit=MEMORY_RECALL_LIMIT,
+                               exclude_key=checkin_key, enabled=mem_on, timeout=MEMORY_RECALL_TIMEOUT)
         reply = await reply_to_checkin(quest=ctx.quest, milestone=milestone, task=task,
-                                       body=body, catch_up=not on_time)
+                                       body=body, catch_up=not on_time, earlier=prompt_lines(earlier))
     else:
         reply = canned_reply(body)
     try:
@@ -990,6 +1008,13 @@ async def check_in(user_id: str, tz_hint: Optional[str], slot: int, body_text) -
         }).eq("id", res["checkin_id"]).eq("user_id", user_id).execute()
     except Exception as exc:
         logger.warning(f"[quest] could not store the reply for {user_id}: {exc}")
+
+    # Remember what they did, in the background: a thin line says nothing worth
+    # finding again (its follow-up answer is remembered instead), and a check-in
+    # the reply flagged as a serious disclosure is never kept.
+    if mem_on and not reply["thin"] and not reply.get("sensitive"):
+        spawn(remember(user_id, body=body, source="checkin", dedupe_key=checkin_key,
+                       context=task["title"], quest_id=ctx.quest["id"], enabled=True, started=said_at))
 
     if res.get("quest_completed") and not on_time and not alive:
         # Finished on a catch-up while the streak was already broken: once the
@@ -1026,7 +1051,18 @@ async def check_in(user_id: str, tz_hint: Optional[str], slot: int, body_text) -
     }
 
 
-def answer_followup(user_id: str, tz_hint: Optional[str], checkin_id: str, answer_text) -> dict:
+async def answer_followup(user_id: str, tz_hint: Optional[str], checkin_id: str, answer_text) -> dict:
+    said_at = datetime.now(timezone.utc)
+    result = await asyncio.to_thread(_answer_followup, user_id, tz_hint, checkin_id, answer_text)
+    # A real answer is where a thin check-in's substance ended up, so it is the
+    # line worth remembering. Saved in the background.
+    memory = result.pop("_memory", None)
+    if memory:
+        spawn(remember(user_id, started=said_at, **memory))
+    return result
+
+
+def _answer_followup(user_id: str, tz_hint: Optional[str], checkin_id: str, answer_text) -> dict:
     answer = str(answer_text or "").strip()[:500]
     if not answer:
         raise QuestError(422, "empty", "Write a line first.")
@@ -1040,8 +1076,15 @@ def answer_followup(user_id: str, tz_hint: Optional[str], checkin_id: str, answe
         # A real answer makes the check-in worth using in the portfolio draft.
         _sb().from_("quest_checkins").update({"thin": False}).eq("id", checkin_id) \
             .eq("user_id", user_id).execute()
-    ctx = load(user_id, tz_hint, with_checkins=False)
-    return {"xp_gained": X.FOLLOWUP_XP, "stats": _stats_payload(ctx)}
+    ctx = load(user_id, tz_hint)
+    out = {"xp_gained": X.FOLLOWUP_XP, "stats": _stats_payload(ctx)}
+    checkin = next((c for c in ctx.checkins if c.get("id") == checkin_id), None)
+    task = next((t for t in ctx.tasks if checkin and t["id"] == checkin.get("task_id")), None)
+    if not looks_thin(answer):
+        out["_memory"] = {"body": answer, "source": "followup", "dedupe_key": f"followup:{checkin_id}",
+                          "context": (task or {}).get("title") or "",
+                          "quest_id": (checkin or {}).get("quest_id")}
+    return out
 
 
 # ── Suggestions ───────────────────────────────────────────────────────────────

@@ -17,6 +17,10 @@ Two rules hold everywhere in this module:
     the real Common App limits, so a hallucinated 400-character "description"
     cannot land in a 150-character field.
 
+recall_memory searches what the student has said before, in chat and in their
+Quest check-ins. It is read-only, scoped to the student, and only offered while
+they have memory on (tools_for).
+
 The Quest tools (view_quest, update_quest, retire_quest) can reshape the
 student's daily-streak project, but there is deliberately no tool that completes
 a task, awards XP or touches the streak. Those only move when the student checks
@@ -28,6 +32,8 @@ from datetime import datetime, timezone
 
 from app.db.supabase import get_supabase
 from app.nodes.quest.service import brief_for_chat, retire_from_chat, update_from_chat
+from app.nodes.recall.retrieve import recall, tool_payload
+from app.nodes.recall.store import memory_available
 
 logger = logging.getLogger(__name__)
 
@@ -334,6 +340,27 @@ CHAT_TOOLS = [
         },
     },
     {
+        "name": "recall_memory",
+        "description": (
+            "Search what this student has said before, in past chats and in their daily Quest "
+            "check-ins, by meaning and by exact words. Use it when they refer to something from "
+            "before, ask what you know about them, or when something they said earlier (a "
+            "constraint, a worry, a preference, a past struggle) would change your advice. "
+            "Returns their own words with where and when they said them, most relevant first, "
+            "or nothing when nothing relevant was said. Not for facts about schools."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string",
+                          "description": "What to look for, in a few words, e.g. 'college size', 'money worries', "
+                                         "'problems with the dataset', 'weekend job'."},
+                "limit": {"type": "integer", "description": "How many to return, 1 to 8. Default 5."},
+            },
+            "required": ["query"],
+        },
+    },
+    {
         "name": "update_gpa",
         "description": (
             "Set the student's GPA, which lives on their profile rather than as a record entry. "
@@ -501,6 +528,26 @@ async def _update_quest(user_id: str, args: dict) -> dict:
     return update_from_chat(user_id, None, args or {})
 
 
+# The student is watching a reply stream; a stalled embedding must not hold it up long.
+RECALL_TOOL_TIMEOUT = 6.0
+
+
+async def _recall_memory(user_id: str, args: dict) -> dict:
+    query = str(args.get("query") or "").strip()
+    if not query:
+        return {"success": False, "error": "Say what to look for."}
+    try:
+        limit = int(args.get("limit") or 5)
+    except (TypeError, ValueError):
+        limit = 5
+    memories = await recall(user_id, query, limit=limit, timeout=RECALL_TOOL_TIMEOUT)
+    if not memories:
+        return {"success": True, "memories": [],
+                "note": "Nothing they said before matches this. Say you don't have it rather than guessing."}
+    return {"success": True, "memories": tool_payload(memories),
+            "note": "Their own words, possibly out of date. Quote briefly and say roughly when."}
+
+
 async def _retire_quest(user_id: str, args: dict) -> dict:
     result = retire_from_chat(user_id, None)
     if result.get("success"):
@@ -517,7 +564,16 @@ _HANDLERS = {
     "view_quest":            _view_quest,
     "update_quest":          _update_quest,
     "retire_quest":          _retire_quest,
+    "recall_memory":         _recall_memory,
 }
+
+
+def tools_for(profile: dict) -> list[dict]:
+    """The chat tools for this student: all of them, minus recall_memory when
+    memory is off or unavailable."""
+    if memory_available(profile):
+        return CHAT_TOOLS
+    return [t for t in CHAT_TOOLS if t["name"] != "recall_memory"]
 
 # Which tools changed something the student should see a confirmation for.
 WRITE_TOOLS = {"add_portfolio_item", "update_portfolio_item", "delete_portfolio_item", "update_gpa"}

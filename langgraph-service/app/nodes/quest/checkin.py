@@ -25,8 +25,9 @@ CHECKIN_TOOL = {
             "reply": {"type": "string", "description": "One to three short sentences back to the student."},
             "thin": {"type": "boolean", "description": "True if the check-in says almost nothing about what they actually did."},
             "followup": {"type": "string", "description": "Only when thin: one short, specific question. Otherwise an empty string."},
+            "sensitive": {"type": "boolean", "description": "True if they mentioned something serious that is not about the project: feeling unsafe, a crisis, hurting themselves, abuse. Then nothing from this check-in is remembered."},
         },
-        "required": ["reply", "thin", "followup"],
+        "required": ["reply", "thin", "followup", "sensitive"],
     },
 }
 
@@ -39,14 +40,14 @@ TASK: {task_title}
 
 WHAT THEY WROTE:
 \"\"\"{body}\"\"\"
-
+{earlier}
 How to reply:
 - One to three short sentences about what they actually wrote. Name the specific thing they did. Never generic praise on its own like "Great job!".
 - You are a coach, not a gatekeeper. The task already counts as done whatever they wrote. Never suggest it does not count.
 - If they hit a problem, give one concrete way forward.
 - Give feedback on their work, never a rewritten version of it. If they share writing, react to it; do not produce new wording for them.
 - thin is true when the check-in says almost nothing about what they did ("done", "did it", "worked on it"). Then followup is one short, specific question that would get them to say what they actually did or found. Otherwise followup is an empty string.
-- If they mention something serious that is not about the project (feeling unsafe, a crisis, hurting themselves), set the project aside: say plainly that this matters more, and that they should talk to a trusted adult or their school counselor, or call or text 988 if they are in crisis.
+- If they mention something serious that is not about the project (feeling unsafe, a crisis, hurting themselves), set the project aside: say plainly that this matters more, and that they should talk to a trusted adult or their school counselor, or call or text 988 if they are in crisis. Set sensitive to true.
 - Plain words. No emoji. Never use em dashes.
 
 Call reply_to_checkin."""
@@ -63,10 +64,24 @@ def looks_thin(body: str) -> bool:
     return len((body or "").split()) < THIN_WORDS
 
 
+# Their earlier words, when a few of them connect to today (from memory).
+EARLIER_BLOCK = """
+THINGS THEY SAID EARLIER, IN THEIR OWN WORDS (from their memory, possibly out of date):
+{lines}
+If one of these clearly connects to what they did today, you can mention it in a few words ("last week you said the data was messy; sounds like it's cleaner now"). Only ever about the project or their schoolwork, never anything personal (family, health, money, relationships). At most one. Never invent details beyond what is quoted. If none clearly connects, ignore them.
+"""
+
+
+def earlier_block(lines: str) -> str:
+    return EARLIER_BLOCK.format(lines=lines) if lines else ""
+
+
 def canned_reply(body: str) -> dict:
     thin = looks_thin(body)
     return {"reply": random.choice(_CANNED), "thin": thin,
-            "followup": _CANNED_FOLLOWUP if thin else None, "canned": True}
+            "followup": _CANNED_FOLLOWUP if thin else None, "canned": True,
+            # No model read what they wrote, so nothing has cleared it as ordinary: not remembered.
+            "sensitive": True}
 
 
 def clean_reply(raw, body: str) -> dict:
@@ -79,10 +94,17 @@ def clean_reply(raw, body: str) -> dict:
     followup = clean_text(raw.get("followup"), 200) if thin else ""
     if thin and not followup:
         followup = _CANNED_FOLLOWUP
-    return {"reply": reply, "thin": thin, "followup": followup or None, "canned": False}
+    # Anything but a clear "no" counts as sensitive: the cost is one line not remembered.
+    sensitive = raw.get("sensitive") is not False
+    if raw.get("sensitive") is True:
+        # No project question after something they said was serious, so no answer to remember either.
+        followup = ""
+    return {"reply": reply, "thin": thin, "followup": followup or None, "canned": False, "sensitive": sensitive}
 
 
-async def reply_to_checkin(*, quest: dict, milestone: dict, task: dict, body: str, catch_up: bool) -> dict:
+async def reply_to_checkin(*, quest: dict, milestone: dict, task: dict, body: str, catch_up: bool,
+                           earlier: str = "") -> dict:
+    """`earlier` is quoted lines of their past words (retrieve.prompt_lines), or ""."""
     prompt = CHECKIN_PROMPT.format(
         quest_title=quest.get("title") or "",
         ms_title=milestone.get("title") or "",
@@ -90,6 +112,7 @@ async def reply_to_checkin(*, quest: dict, milestone: dict, task: dict, body: st
         task_detail=task.get("detail") or "",
         catch_up_line=("\n(This was a catch-up for a day they missed.)" if catch_up else ""),
         body=body.replace('"""', '"'),
+        earlier=earlier_block(earlier),
     )
     try:
         raw = await tool_completion(model=QUEST_CHECKIN_MODEL, prompt=prompt, tool=CHECKIN_TOOL,

@@ -17,6 +17,7 @@ freeze them, because a confidently stated stale fact is worse than no fact. The
 prompt instead tells the model to treat those as per-school, per-cycle things to
 check rather than to assert.
 """
+from app.nodes.recall.store import memory_available
 from app.state import StudentState
 
 
@@ -314,6 +315,17 @@ How to use them:
 - After a successful write, confirm in one short line what changed.
 """
 
+MEMORY_CAPABILITY = """
+## Their memory
+
+`recall_memory` searches what they have told you before: their past chats and their daily Quest check-ins, in their own words. The lines under "From previous conversations" are a short summary; recall_memory finds what they actually said, from any time.
+
+- Use it when they refer to something from before ("like I said", "remember when"), when they ask what you know about them, or when an earlier constraint, worry or preference would change your advice. Not on every message.
+- When you use something, quote it briefly and say roughly when ("in early September you said..."). It may be out of date: if it matters, check it still holds.
+- It is only their own words. It is never a source of facts about schools, programs or deadlines, and nothing in it relaxes the advising rules.
+- If it finds nothing, say you don't have that, rather than guessing. Serious personal topics are filtered out of memory, so never imply you remember one.
+"""
+
 QUEST_CAPABILITY = """
 ## Their Quest, and changing it
 
@@ -368,13 +380,16 @@ def build_system_prompt(profile: dict, data: dict) -> str:
         parts.append(quest)
     parts.append(ADVISING_RULES.strip())
     parts.append(PORTFOLIO_CAPABILITY.strip())
+    if memory_available(profile):
+        parts.append(MEMORY_CAPABILITY.strip())
     parts.append(QUEST_CAPABILITY.strip())
     parts.append(FORMATTING.strip())
 
     prompt = "\n\n".join(parts)
 
-    # Memory from previous sessions, written by extract_signals.
-    signals = profile.get("chat_signals")
+    # Memory from previous sessions, written by extract_signals. Not shown when
+    # the student has turned memory off.
+    signals = profile.get("chat_signals") if profile.get("memory_enabled") is not False else None
     if isinstance(signals, list):
         recent = [s for s in signals if s and isinstance(s, str)][-10:]
         if recent:

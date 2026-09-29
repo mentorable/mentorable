@@ -44,7 +44,7 @@ TASKS ALREADY SET IN THIS MILESTONE:
 
 WHAT THEY REPORTED RECENTLY, IN THEIR OWN WORDS:
 {recent}
-
+{earlier}
 ABOUT THEM: {grade}
 
 Write the task. Rules:
@@ -52,6 +52,7 @@ Write the task. Rules:
 - Concrete and checkable. "Sketch three layouts for the home screen on paper" is a task. "Think about the design" is not.
 - Keep today's step pointed where the quest is headed, toward what they said they want at the end. If the current milestone and that direction disagree, the milestone wins: it is the newer plan.
 - Build on what they reported. If they got stuck, today's task is the way unstuck. If they are ahead, move forward.
+- If something they said earlier limits how they can do today's step (the time they have, the tools or access they have, how they like to work), fit the task to it. Never mention it unless it changes the task.
 - Do not repeat a task already set in this milestone.
 - Pace the milestone so it is finished by its last day: the last task of a milestone should complete its stated outcome.
 - Free tools and resources only. Never tell them to pay for anything.
@@ -60,6 +61,13 @@ Write the task. Rules:
 - Talk to them directly ("Write...", "List...", "Email..."). Plain words, no filler. Never use em dashes.
 
 Call set_task."""
+
+
+# Their earlier words that may bear on this milestone (from memory).
+EARLIER_BLOCK = """
+THINGS THEY SAID EARLIER THAT MAY MATTER HERE, IN THEIR OWN WORDS (possibly out of date):
+{lines}
+"""
 
 
 def fallback_task(milestone: dict, minutes: int) -> dict:
@@ -93,8 +101,9 @@ def clean_task(raw, minutes: int) -> Optional[dict]:
 
 async def generate_task(*, quest: dict, milestone: dict, milestone_count: int, day_in_ms: int,
                         prior_titles: list[str], recent: list[dict], grade: str,
-                        catch_up: bool) -> dict:
-    """Always returns a task: a personalised one, or the fallback."""
+                        catch_up: bool, earlier: str = "") -> dict:
+    """Always returns a task: a personalised one, or the fallback. `earlier` is
+    quoted lines of their past words (retrieve.prompt_lines), or ""."""
     minutes = int(quest.get("daily_minutes") or 30)
     recent_text = "\n".join(
         f"- On \"{r.get('task_title')}\": {clean_text(r.get('body'), 300)}"
@@ -115,6 +124,7 @@ async def generate_task(*, quest: dict, milestone: dict, milestone_count: int, d
         catch_up_note=(" This is a catch-up for a day they missed, so keep it tight and useful." if catch_up else ""),
         prior="\n".join(f"- {t}" for t in prior_titles) or "(none yet, this is the first)",
         recent=recent_text,
+        earlier=EARLIER_BLOCK.format(lines=earlier) if earlier else "",
         grade=grade,
     )
     try:

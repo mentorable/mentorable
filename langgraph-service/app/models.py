@@ -52,3 +52,10 @@ QUEST_TASK_MODEL    = HAIKU
 QUEST_CHECKIN_MODEL = HAIKU
 QUEST_RESOURCES_MODEL = HAIKU
 QUEST_TALK_MODEL    = SONNET
+
+# Long-term memory (app/nodes/recall/): the student's own words, embedded and
+# searched. OpenAI embeddings, so without an OpenAI key memory is simply off.
+# The vector size is fixed by the student_memories table: changing either value
+# means re-embedding every memory (each row records the model that made it).
+MEMORY_EMBED_MODEL = "text-embedding-3-small"
+MEMORY_EMBED_DIMS  = 1536
