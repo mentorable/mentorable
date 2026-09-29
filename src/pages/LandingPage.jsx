@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useContext, createContext } from "react";
 import { motion, AnimatePresence, useInView, useScroll, useTransform, useSpring } from "framer-motion";
 import { supabase } from "../lib/supabase";
-import { Flame, TreasureMapIcon } from "../components/quest/questUi.jsx";
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 const SANS = "'Raleway', sans-serif";
@@ -211,69 +210,12 @@ function TypingDots({ color = "#5b6188" }) {
   );
 }
 
-// ─── Visual 1: Laptop showing the Portfolio record ────────────────────────────
-const RECORD_COURSES = ["AP Calculus BC", "AP Computer Science A", "Honors Chemistry", "AP English Language"];
-const RECORD_ACTIVITIES = [
-  { title: "Robotics Team", meta: "Captain · 10 hrs/week · Grades 9–11" },
-  { title: "Peer Math Tutoring", meta: "Founder · 4 hrs/week · Grades 10–11" },
-];
-
-function RecordCard({ title, children, style = {} }) {
-  return (
-    <div style={{ background: "#fff", border: "1px solid #e4e2dd", borderRadius: 7, padding: "7px 9px", ...style }}>
-      <div style={{ fontFamily: SANS, fontSize: 7.5, fontWeight: 700, color: FG, marginBottom: 5 }}>{title}</div>
-      {children}
-    </div>
-  );
-}
-
-function RecordScreen() {
-  return (
-    <div style={{ width: "100%", height: "100%", background: "#F5F5F5", padding: "14px 16px", overflow: "hidden",
-      display: "flex", flexDirection: "column", gap: 7 }}>
-      <div>
-        <div style={{ fontFamily: SANS, fontSize: 15, fontWeight: 700, color: P, letterSpacing: "-0.03em" }}>Portfolio</div>
-        <div style={{ fontFamily: SANS, fontSize: 7.5, color: MUT, marginTop: 2 }}>
-          Your grades, scores, classes, activities and awards, all in one place.
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 7 }}>
-        <RecordCard title="GPA" style={{ flex: 1 }}>
-          <div style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: FG, letterSpacing: "-0.02em" }}>
-            3.86 <span style={{ fontSize: 7, fontWeight: 500, color: MUT, letterSpacing: 0 }}>unweighted</span>
-          </div>
-        </RecordCard>
-        <RecordCard title="Test scores" style={{ flex: 1 }}>
-          <div style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: FG, letterSpacing: "-0.02em" }}>
-            1480 <span style={{ fontSize: 7, fontWeight: 500, color: MUT, letterSpacing: 0 }}>SAT</span>
-          </div>
-        </RecordCard>
-      </div>
-      <RecordCard title="Coursework">
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-          {RECORD_COURSES.map((c) => (
-            <span key={c} style={{ fontFamily: SANS, fontSize: 6.5, fontWeight: 600, color: P,
-              background: "rgba(37,99,235,0.07)", border: `1px solid ${BDR2}`, borderRadius: 99, padding: "2px 6px" }}>{c}</span>
-          ))}
-        </div>
-      </RecordCard>
-      <RecordCard title="Activities">
-        {RECORD_ACTIVITIES.map((a, i) => (
-          <div key={a.title} style={{ paddingTop: i ? 5 : 0, marginTop: i ? 5 : 0, borderTop: i ? "1px solid #efede9" : "none" }}>
-            <div style={{ fontFamily: SANS, fontSize: 7.5, fontWeight: 700, color: FG }}>{a.title}</div>
-            <div style={{ fontFamily: SANS, fontSize: 6.5, color: MUT, marginTop: 1 }}>{a.meta}</div>
-          </div>
-        ))}
-      </RecordCard>
-    </div>
-  );
-}
-
-function LaptopRecord() {
+// ─── Visual 1: Laptop mockup ──────────────────────────────────────────────────
+function VoiceOrb() {
   const ref = useRef(null);
   const iv  = useInView(ref, { once: true, margin: "-80px" });
   return (
-    <div ref={ref} className="lp-laptop" aria-hidden="true" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+    <div ref={ref} className="lp-laptop" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
       padding: "2rem 0", perspective: "900px" }}>
       <motion.div
         initial={{ opacity: 0, y: 60 }}
@@ -283,7 +225,7 @@ function LaptopRecord() {
           y: { duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.8 },
         }}
         style={{ position: "relative", transformStyle: "preserve-3d" }}>
-        {/* Screen lid — kept flat (no rotate) so the screen's small text stays crisp instead of being
+        {/* Screen lid — kept flat (no rotate) so the screenshot stays pixel-crisp instead of being
             resampled/blurred by a CSS 3D transform; only the keyboard deck below tilts into perspective. */}
         <div style={{ width: 420, height: 280, background: "#0e1019",
           borderRadius: "14px 14px 4px 4px",
@@ -296,7 +238,8 @@ function LaptopRecord() {
             width: 5, height: 5, borderRadius: "50%", background: "#2a2a3a", zIndex: 11 }}/>
           <div style={{ position: "absolute", inset: "10px", borderRadius: 8,
             background: "#fafbff", overflow: "hidden" }}>
-            <RecordScreen/>
+            <img src="/onboarding-intro-screen.png" alt="Mentorable onboarding"
+              style={{ width: "100%", height: "100%", objectFit: "contain", objectPosition: "center" }}/>
           </div>
         </div>
         {/* Hinge */}
@@ -350,79 +293,108 @@ function LaptopRecord() {
   );
 }
 
-// ─── Visual 2: College List ───────────────────────────────────────────────────
-// Mirrors the real page: a heading and count per group, then each school with
-// its admit rate in heavy type and the reason it was sorted there.
-const COLLEGE_GROUPS = [
-  { label: "Reach", schools: [
-    { name: "Carnegie Mellon University", admit: 11, reason: "They admit 11%. Under 20% is a reach for everyone, whatever the scores." },
-    { name: "University of Michigan", admit: 18 },
-  ] },
-  { label: "Target", schools: [
-    { name: "University of Illinois Urbana-Champaign", admit: 44, reason: "Your SAT 1480 is in their middle 50%, and they admit 44%." },
-    { name: "University of Wisconsin–Madison", admit: 43 },
-  ] },
-  { label: "Likely", schools: [
-    { name: "Arizona State University", admit: 90, reason: "Your SAT 1480 is above their middle 50%, and they admit 90%." },
-  ] },
-];
+// ─── Visual 2: Skill Radar ────────────────────────────────────────────────────
+const RADAR_AXES = ["Communication","Leadership","Technicality","Resourcefulness","Execution"];
+const RADAR_VALS = [0.88, 0.76, 0.91, 0.64, 0.78];
+const rPt = (a, r, cx, cy) => { const rad = (a - 90) * Math.PI / 180; return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }; };
+const rPoly = (sc, R, cx, cy) => sc.map((s, i) => { const p = rPt(360/sc.length*i, s*R, cx, cy); return `${p.x.toFixed(1)},${p.y.toFixed(1)}`; }).join(" ");
 
-function CollegeListCard() {
+function SkillRadar() {
+  const SIZE = 480, cx = 240, cy = 240, R = 142;
+  const ref = useRef(null);
+  const iv  = useInView(ref, { once: true, margin: "-60px" });
   return (
-    <div aria-hidden="true" style={{ position: "relative", width: "100%", maxWidth: 440, margin: "0 auto" }}>
+    <div ref={ref} style={{ position: "relative", width: "100%", maxWidth: 440, margin: "0 auto" }}>
       <div style={{ position: "absolute", inset: "8%", borderRadius: "50%",
         background: "radial-gradient(circle, rgba(37,99,235,0.16), transparent 66%)",
         filter: "blur(38px)", pointerEvents: "none" }}/>
-      <Stagger style={{ position: "relative", background: "#F5F5F5", borderRadius: 20, border: `1px solid ${BDR}`,
-        boxShadow: SH_LG, padding: "1.3rem 1.2rem 1.1rem", textAlign: "left" }}>
-        <motion.div variants={stagItem} style={{ fontFamily: SANS, fontSize: "1.35rem", fontWeight: 800, color: P, letterSpacing: "-0.03em" }}>
-          College List
-        </motion.div>
-        {COLLEGE_GROUPS.map((g) => (
-          <motion.div key={g.label} variants={stagItem} style={{ marginTop: "0.95rem" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 7, fontFamily: SANS, fontSize: "0.95rem", marginBottom: 6 }}>
-              <span style={{ fontWeight: 700, color: FG }}>{g.label}</span>
-              <span style={{ fontWeight: 500, color: MUT }}>{g.schools.length}</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {g.schools.map((sc) => (
-                <div key={sc.name} style={{ background: "#fff", border: "1px solid #e4e2dd", borderRadius: 12, padding: "0.6rem 0.75rem" }}>
-                  <div style={{ fontFamily: SANS, fontSize: "0.86rem", fontWeight: 700, color: FG, lineHeight: 1.3 }}>{sc.name}</div>
-                  <div style={{ fontFamily: SANS, fontSize: "0.8rem", fontWeight: 800, color: FG, marginTop: 2 }}>{sc.admit}% admitted</div>
-                  {sc.reason && (
-                    <div style={{ fontFamily: SANS, fontSize: "0.74rem", fontWeight: 500, color: FG, lineHeight: 1.45, marginTop: 4 }}>{sc.reason}</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </motion.div>
+      <svg width="100%" viewBox={`0 0 ${SIZE} ${SIZE}`} overflow="visible" style={{ position: "relative", display: "block" }}>
+        <defs>
+          <linearGradient id="radarStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#1d4ed8"/><stop offset="55%" stopColor="#3b82f6"/><stop offset="100%" stopColor="#60a5fa"/>
+          </linearGradient>
+          <radialGradient id="radarFill" cx="50%" cy="50%" r="62%">
+            <stop offset="0%" stopColor="rgba(96,165,250,0.42)"/>
+            <stop offset="60%" stopColor="rgba(37,99,235,0.28)"/>
+            <stop offset="100%" stopColor="rgba(29,78,216,0.14)"/>
+          </radialGradient>
+          <filter id="radarGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        {[1,0.75,0.5,0.25].map((r) => (
+          <polygon key={r} points={rPoly([r,r,r,r,r], R, cx, cy)}
+            fill="none" stroke="rgba(37,99,235,0.12)" strokeWidth={r===1 ? 1.5 : 1}/>
         ))}
-      </Stagger>
+        {RADAR_AXES.map((_,i) => { const p = rPt(360/5*i, R, cx, cy);
+          return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="rgba(37,99,235,0.12)" strokeWidth="1"/>; })}
+        <motion.g style={{ transformOrigin: `${cx}px ${cy}px` }}
+          initial={{ scale: 0, opacity: 0, rotate: -12 }}
+          animate={iv ? { scale: 1, opacity: 1, rotate: 0 } : {}}
+          transition={{ duration: 1.2, delay: 0.2, ease: EASE }}>
+          <polygon points={rPoly(RADAR_VALS, R, cx, cy)}
+            fill="url(#radarFill)" stroke="url(#radarStroke)" strokeWidth="3" strokeLinejoin="round"
+            filter="url(#radarGlow)"/>
+        </motion.g>
+        {RADAR_VALS.map((s, i) => {
+          const p  = rPt(360/5*i, s*R, cx, cy);
+          const lp = rPt(360/5*i, s*R - 22, cx, cy);
+          return (
+            <g key={i}>
+              <motion.circle cx={p.x} cy={p.y} r="5.5" fill="#fff" stroke={P} strokeWidth="3"
+                initial={{ scale: 0 }} animate={iv ? { scale: 1 } : {}}
+                transition={{ duration: 0.4, delay: 0.85 + i * 0.08 }} style={{ transformOrigin: `${p.x}px ${p.y}px` }}/>
+              {iv && (
+                <motion.text x={lp.x} y={lp.y} textAnchor="middle" dominantBaseline="middle"
+                  fontSize="12.5" fontFamily={SANS} fontWeight="700" fill="#1d4ed8"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.05 + i * 0.08 }}>
+                  {Math.round(s * 100)}%
+                </motion.text>
+              )}
+            </g>
+          );
+        })}
+        {RADAR_AXES.map((label, i) => {
+          const p = rPt(360/5*i, R*1.1, cx, cy);
+          const dx = p.x - cx;
+          const anchor = Math.abs(dx) < 8 ? "middle" : dx > 0 ? "start" : "end";
+          return <text key={label} x={p.x} y={p.y} textAnchor={anchor} dominantBaseline="middle"
+            fontSize="12.5" fontFamily={SANS} fontWeight="600" fill="#4b5470">{label}</text>;
+        })}
+      </svg>
     </div>
   );
 }
 
-// ─── Visual 3: Phone showing Quest ────────────────────────────────────────────
-// Stones along a winding path: done, today (larger, ringed), then locked.
-const QUEST_STONES = [
-  { st: "done", x: 60, y: 0 }, { st: "done", x: 118, y: 36 }, { st: "done", x: 150, y: 84 },
-  { st: "today", x: 100, y: 128 }, { st: "locked", x: 48, y: 184 }, { st: "locked", x: 96, y: 228 },
+// ─── Visual 3: Phone Roadmap mockup ────────────────────────────────────────────
+const ROADMAP_PROJECTS = [
+  { date: "Jun 2026", dots: 2, title: "Take a Full Official SAT Practice Test",
+    body: "Sit a complete timed practice test under real conditions to get an honest baseline.", chip: "0/5" },
+  { date: "Jun 2026", dots: 2, title: "Build a Mistake Tracker Spreadsheet",
+    body: "Log every missed question by type and reason so patterns become obvious.", chip: "Open" },
 ];
 
-const PHONE_NAV = [
-  { key: "quest", active: true },
-  { key: "colleges", d: ["M21.42 10.92a1 1 0 0 0-.02-1.84L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.83l8.57 3.91a2 2 0 0 0 1.66 0z", "M22 10v6", "M6 12.5V16a6 3 0 0 0 12 0v-3.5"] },
-  { key: "chat", d: ["M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"] },
-  { key: "portfolio", d: ["M4 7h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z", "M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"] },
-  { key: "profile", d: ["M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2", "M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"] },
+const NAV_ICONS = [
+  { key: "score",   active: false, d: "M4 20V10M12 20V4M20 20v-7" },
+  { key: "quest",   active: false, d: "M12 7v5l3 3", circle: true },
+  { key: "roadmap", active: true,  d: "M5 19l6-6-3-3 7-7M14 3h5v5" },
+  { key: "chat",    active: false, d: "M4 5h16v11H8l-4 4V5z" },
+  { key: "research",active: false, d: "M11 4a7 7 0 100 14 7 7 0 000-14zM21 21l-4.3-4.3" },
+  { key: "profile", active: false, d: "M12 12a4 4 0 100-8 4 4 0 000 8zM4 20c1.5-4 5-6 8-6s6.5 2 8 6" },
+];
+
+const LOCKED_PHASES = [
+  { label: "Phase 2 · 1 mo", title: "Strategy & Timing" },
+  { label: "Phase 3 · 1 mo", title: "Full-Length Practice Tests" },
+  { label: "Phase 4 · 1 mo", title: "Weak-Spot Sprints" },
+  { label: "Phase 5 · 1 mo", title: "Final Review & Confidence" },
 ];
 
 function PhoneQuest() {
   const ref = useRef(null);
   const iv  = useInView(ref, { once: true, margin: "-50px" });
-  const edge = "#1e3a8a";
   return (
-    <div ref={ref} aria-hidden="true" style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", padding: "3rem 0 1rem" }}>
+    <div ref={ref} style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", padding: "3rem 0 1rem" }}>
       <div style={{ position: "absolute", width: 520, height: 400, borderRadius: "50%",
         background: "radial-gradient(ellipse,rgba(29,78,216,0.15),transparent 65%)", pointerEvents: "none", top: "10%", zIndex: 0 }}/>
       <motion.div
@@ -444,74 +416,91 @@ function PhoneQuest() {
               width: 110, height: 28, borderRadius: 999, background: "#000", border: "1px solid rgba(255,255,255,0.07)" }}/>
             <span style={{ position: "absolute", left: 14, top: 15, fontFamily: SANS, fontSize: "0.6rem", fontWeight: 700, color: "rgba(255,255,255,0.9)" }}>9:41</span>
           </div>
-          <div style={{ height: 540, position: "relative", overflow: "hidden", background: "#F5F5F5" }}>
+          <div style={{ height: 540, position: "relative", overflow: "hidden", background: "#f5f1ed" }}>
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}>
-              <div style={{ flex: 1, overflow: "hidden", padding: "16px 16px 6px" }}>
-                <motion.div initial={{ opacity: 0, y: 6 }} animate={iv ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.4, delay: 0.2 }}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                  <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: P, letterSpacing: "-0.03em" }}>Quest</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#fff", border: "1.5px solid #e4e2dd",
-                    borderBottomWidth: 3, borderRadius: 99, padding: "3px 9px 3px 6px" }}>
-                    <Flame size={15} streak={12} animate={iv}/>
-                    <span style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 800, color: FG }}>12</span>
+              {/* Scrollable content */}
+              <div style={{ flex: 1, overflow: "hidden", padding: "14px 12px 4px" }}>
+                <motion.div initial={{ opacity: 0, y: 6 }} animate={iv ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.4, delay: 0.2 }}>
+                  <div style={{ fontFamily: SANS, fontSize: "0.4rem", fontWeight: 700, letterSpacing: "0.06em",
+                    textTransform: "uppercase", color: "#1d4ed8", marginBottom: 3 }}>Your Roadmap · 5 Months</div>
+                  <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.78rem", color: "#141413",
+                    letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: 4 }}>SAT 1550+ Prep Roadmap</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 2, fontFamily: SANS, fontSize: "0.42rem",
+                    fontWeight: 500, color: "#8a8680", marginBottom: 10 }}>
+                    View full plan
+                    <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="#8a8680" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                   </div>
                 </motion.div>
 
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={iv ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.4, delay: 0.32 }}>
-                  <div style={{ fontFamily: SANS, fontSize: "0.56rem", fontWeight: 700, color: MUT }}>Milestone 2 of 4</div>
-                  <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.86rem", color: FG, letterSpacing: "-0.02em", lineHeight: 1.25, margin: "2px 0 12px" }}>
-                    Build a website for my robotics team
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={iv ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.4, delay: 0.32 }}
+                  style={{ background: "#fff", borderRadius: 10, border: "1px solid #e6dfd8", padding: "7px 9px", marginBottom: 8,
+                    boxShadow: "0 1px 4px rgba(15,23,42,0.05)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 13, height: 13, borderRadius: "50%", background: "#059669", flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: SANS, fontSize: "0.34rem", fontWeight: 700, letterSpacing: "0.03em",
+                        textTransform: "uppercase", color: "#8a8680" }}>Phase 1 · 1 mo <span style={{ color: "#059669" }}>Readiness 35</span></div>
+                      <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.48rem", color: "#141413", marginTop: 1 }}>Diagnostic and Fundamentals</div>
+                    </div>
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#8a8680" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                   </div>
                 </motion.div>
 
-                {/* The path of day stones */}
-                <div style={{ position: "relative", height: 266, marginBottom: 12 }}>
-                  {QUEST_STONES.map(({ st, x, y }, i) => {
-                    const today = st === "today";
-                    const size = today ? 44 : 34;
-                    return (
-                      <motion.div key={i} initial={{ opacity: 0, scale: 0.6 }} animate={iv ? { opacity: 1, scale: 1 } : {}}
-                        transition={{ duration: 0.35, delay: 0.45 + i * 0.08, ease: EASE }}
-                        style={{ position: "absolute", left: x, top: y, width: size, height: size, borderRadius: "50%",
-                          background: st === "locked" ? "#e3e3e1" : P,
-                          borderBottom: `4px solid ${st === "locked" ? "#cfcfcc" : edge}`,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          boxShadow: today ? "0 0 0 4px rgba(37,99,235,0.18)" : "none" }}>
-                        {st === "done" && <Check color="#fff" size={13}/>}
-                        {today && <span style={{ fontFamily: SANS, fontSize: "0.7rem", fontWeight: 800, color: "#fff" }}>13</span>}
-                        {st === "locked" && (
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#a9a49a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/>
-                          </svg>
-                        )}
-                      </motion.div>
-                    );
-                  })}
-                </div>
+                <motion.p initial={{ opacity: 0 }} animate={iv ? { opacity: 1 } : {}} transition={{ duration: 0.4, delay: 0.4 }}
+                  style={{ fontFamily: BODY, fontSize: "0.36rem", color: "#6a6760", lineHeight: 1.55, margin: "0 0 9px" }}>
+                  Pinpoint your weak spots with a full practice test, then rebuild the core skills that both sections rely on.
+                </motion.p>
 
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={iv ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.4, delay: 0.95 }}
-                  style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #e4e2dd", borderBottomWidth: 4, padding: "10px 11px 11px" }}>
-                  <div style={{ fontFamily: SANS, fontSize: "0.56rem", fontWeight: 700, color: P }}>Today · 20 min</div>
-                  <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.7rem", color: FG, lineHeight: 1.35, margin: "3px 0 9px" }}>
-                    Draft the About page: who the team is and what you build
-                  </div>
-                  <div style={{ background: P, borderBottom: `4px solid ${edge}`, borderRadius: 11, padding: "6px 0",
-                    textAlign: "center", fontFamily: SANS, fontSize: "0.66rem", fontWeight: 800, color: "#fff" }}>
-                    Check in
-                  </div>
-                </motion.div>
+                {ROADMAP_PROJECTS.map((q, i) => (
+                  <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={iv ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.4, delay: 0.5 + i * 0.15 }}
+                    style={{ background: "#fff", borderRadius: 9, border: "1px solid #e6dfd8", borderLeft: "2.5px solid #1d4ed8",
+                      padding: "7px 9px", marginBottom: 7, boxShadow: "0 1px 4px rgba(15,23,42,0.05)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ fontFamily: SANS, fontSize: "0.32rem", fontWeight: 700, letterSpacing: "0.04em",
+                          textTransform: "uppercase", background: "#f0f5ff", color: "#1d4ed8", borderRadius: 4, padding: "1.5px 5px" }}>Project</span>
+                        <span style={{ fontFamily: SANS, fontSize: "0.32rem", color: "#8a8680" }}>{q.date}</span>
+                      </div>
+                      <span style={{ fontFamily: SANS, fontSize: "0.32rem", fontWeight: 700, color: q.chip === "Open" ? "#6a6760" : "#1d4ed8",
+                        background: q.chip === "Open" ? "#f0ede6" : "#f0f5ff", border: `1px solid ${q.chip === "Open" ? "#e6dfd8" : "#dbeafe"}`,
+                        borderRadius: 4, padding: "1.5px 5px" }}>{q.chip}</span>
+                    </div>
+                    <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.42rem", color: "#141413", lineHeight: 1.3, marginBottom: 3 }}>{q.title}</div>
+                    <div style={{ fontFamily: BODY, fontSize: "0.32rem", color: "#8a8680", lineHeight: 1.5 }}>{q.body}</div>
+                  </motion.div>
+                ))}
+
+                {LOCKED_PHASES.map((ph, i) => (
+                  <motion.div key={ph.title} initial={{ opacity: 0, y: 6 }} animate={iv ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.4, delay: 0.8 + i * 0.1 }}
+                    style={{ background: "rgba(255,255,255,0.6)", borderRadius: 9, border: "1px solid #e6dfd8",
+                      padding: "6px 9px", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#a9a49a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/>
+                    </svg>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontFamily: SANS, fontSize: "0.3rem", fontWeight: 700, letterSpacing: "0.03em",
+                        textTransform: "uppercase", color: "#a9a49a" }}>{ph.label}</div>
+                      <div style={{ fontFamily: SANS, fontWeight: 600, fontSize: "0.38rem", color: "#8a8680", marginTop: 1 }}>{ph.title}</div>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
 
-              {/* Bottom nav, matching the live app */}
-              <div style={{ flexShrink: 0, borderTop: "1px solid #e4e2dd", background: "rgba(255,255,255,0.92)",
-                padding: "7px 6px 6px", display: "flex", justifyContent: "space-around", alignItems: "center", color: "#a9a49a" }}>
-                {PHONE_NAV.map((n) => (
-                  <div key={n.key} style={{ display: "flex", color: n.active ? P : "#a9a49a" }}>
-                    {n.active ? <TreasureMapIcon size={13} strokeWidth={2.4}/> : (
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        {n.d.map((d) => <path key={d} d={d}/>)}
-                      </svg>
-                    )}
+              {/* Bottom nav */}
+              <div style={{ flexShrink: 0, borderTop: "1px solid #e6dfd8", background: "rgba(255,255,255,0.92)",
+                padding: "6px 4px 5px", display: "flex", justifyContent: "space-around", alignItems: "center" }}>
+                {NAV_ICONS.map((n) => (
+                  <div key={n.key} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={n.active ? "#1d4ed8" : "#a9a49a"}
+                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      {n.circle && <circle cx="12" cy="12" r="9"/>}
+                      <path d={n.d}/>
+                    </svg>
                   </div>
                 ))}
               </div>
@@ -591,7 +580,7 @@ function ChatWindow() {
       <div style={{ position: "absolute", inset: -30, borderRadius: 30,
         background: "radial-gradient(ellipse, rgba(37,99,235,0.14), transparent 70%)",
         filter: "blur(40px)", pointerEvents: "none" }}/>
-      <MacFrame title="Mentorable Chat · College Advisor" width={660} style={{ position: "relative" }}>
+      <MacFrame title="Mentorable Chat · AI Career Mentor" width={660} style={{ position: "relative" }}>
         <div style={{ height: 54, flexShrink: 0, padding: "0 18px", display: "flex", alignItems: "center", gap: 10,
           background: "rgba(248,250,255,0.95)", borderBottom: `1px solid ${BDR}` }}>
           <AgentAvatar size={30}/>
@@ -635,7 +624,7 @@ function ChatWindow() {
           <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff",
             border: `1.5px solid ${BDR2}`, borderRadius: 14, padding: "11px 11px 11px 17px",
             boxShadow: "0 2px 12px rgba(29,78,216,0.05)" }}>
-            <span style={{ flex: 1, fontFamily: BODY, fontSize: "0.92rem", color: "#a9b1c2" }}>Ask anything about your applications…</span>
+            <span style={{ flex: 1, fontFamily: BODY, fontSize: "0.92rem", color: "#a9b1c2" }}>Ask anything about your career…</span>
             <div style={{ width: 36, height: 36, borderRadius: 11, background: GRAD,
               display: "flex", alignItems: "center", justifyContent: "center",
               boxShadow: "0 4px 12px rgba(37,99,235,0.3)" }}>
@@ -726,7 +715,7 @@ function Hero() {
         <p style={{ ...enter(0.22), fontFamily: BODY, fontWeight: 500, fontSize: "clamp(1rem,1.5vw,1.2rem)", lineHeight: 1.7,
           color: "#000000", fontWeight: 600, maxWidth: 540, margin: "1.8rem 0 0",
           textShadow: "0 1px 18px rgba(255,255,255,0.7)" }}>
-          Your personal college application advisor. The kind of support that used to cost $300 a session, now free.
+          Your personal college and career advisor. The kind of support that used to cost $300 a session, now free.
         </p>
         <div style={{ ...enter(0.38), display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 14, marginTop: "2.4rem" }}>
           <SolidBtn onClick={() => go("/auth")}>Get Started <ArrowRight/></SolidBtn>
@@ -846,7 +835,7 @@ function Footer() {
         <div style={{ marginBottom: "2.5rem" }}>
           <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", letterSpacing: "-0.03em", marginBottom: "0.8rem" }}>mentorable</div>
           <p style={{ fontFamily: BODY, fontWeight: 300, fontSize: "0.85rem", color: "rgba(255,255,255,0.62)", lineHeight: 1.8, maxWidth: 320, margin: 0 }}>
-            AI-powered college application guidance for high school students.
+            AI-powered career guidance for high school students.
           </p>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -914,22 +903,22 @@ export default function LandingPage() {
 
       <div id="features">
         <FeatureRow
-          label="Step 01" italic="Build" rest="your record."
-          body="Add your grades, test scores, classes and activities once, then tell the story behind them in a short text or voice interview. It all lands in one record you can edit any time."
-          visual={<LaptopRecord/>}
+          label="Step 01" italic="Discover" rest="your strengths."
+          body="Our AI listens to your voice interview and extracts your profile, values, and career instincts automatically."
+          visual={<VoiceOrb/>}
           center
           flip={false}/>
 
         <FeatureRow
-          label="Step 02" italic="Sort" rest="your college list."
-          body="Add the schools you're considering and see their admit rates, score ranges and costs from the U.S. Department of Education. Each one is sorted reach, target or likely against your own scores, with the reason shown."
-          visual={<CollegeListCard/>}
+          label="Step 02" italic="See" rest="your skill profile."
+          body="See your 5-axis skill radar, top career path matches, and personalized strengths, all drawn from your voice data."
+          visual={<SkillRadar/>}
           flip={true}/>
 
         <div style={{ marginTop: "-6.5rem" }}>
           <FeatureRow
-            label="Step 03" italic="Move" rest="forward every day."
-            body="Pick one project and Quest splits it into milestones, then hands you one small task each day. Check in with what you did to keep your streak going."
+            label="Step 03" italic="Your" rest="personalized path."
+            body="AI-generated next steps tailored to where you are right now. Complete them, swap them out, and watch your path take shape."
             visual={<PhoneQuest/>}
             flip={false}/>
         </div>
@@ -943,7 +932,7 @@ export default function LandingPage() {
             <Heading italic="Ask" rest="anything, anytime." size="clamp(2rem,3.6vw,2.9rem)"/>
             <p style={{ fontFamily: BODY, fontWeight: 300, fontSize: "1.02rem", color: MUT,
               lineHeight: 1.85, margin: "1.6rem auto 0", maxWidth: 480 }}>
-              Every answer is grounded in your record, not generic advice.
+              Every answer is grounded in your personal data, not generic advice.
             </p>
           </FadeUp>
           <SpringIn delay={0.1}><ChatWindow/></SpringIn>
