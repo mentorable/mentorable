@@ -6,6 +6,7 @@ import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { useTheme } from "../lib/ThemeContext.jsx";
 import { hexToRgbString } from "../lib/theme.js";
+import MemorySection from "../components/profile/MemorySection.jsx";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -423,6 +424,12 @@ export default function ProfilePage({ navigate }) {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* ── Memory ───────────────────────────────────────────────────── */}
+            <div style={card}>
+              <SectionHeading>What Mentorable remembers</SectionHeading>
+              <MemorySection userId={userId} accent={accent} onToast={showToast} />
             </div>
 
             <div style={{ marginBottom: "2.5rem" }} />
