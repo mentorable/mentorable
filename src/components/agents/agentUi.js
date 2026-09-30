@@ -48,24 +48,15 @@ if (typeof document !== "undefined" && !document.querySelector("style[data-agent
   document.head.appendChild(el);
 }
 
-// A filled button's label when white does not read: the first of these dark
-// greys that reaches 3.5:1 on the fill (bold, 16px and up), which
-// looks softer than near-black. Only if none does, the old rule: near-black at
-// 4.5:1, else white on a darkened fill.
-const LABEL_GREYS = ["#33322f", "#2a2a28"];
-
 /** Every accent-derived color the Agents screens need, all readable.
  *  `text`: the accent as body text on white. `title`: as large text on BG.
- *  `button`: an accent fill with a label that reads (white if it can, else a dark
- *  grey, else near-black, else white on an accent darkened just enough).
+ *  `button`: an accent fill with a label that reads (always white, on the accent darkened just enough).
  *  `soft` / `softer`: tints for tiles and bubbles, where TEXT stays readable.
  *  `onSoft`: the accent as text on `soft`. `ring`: the focus ring (3:1 on white and on the page background). */
 export function inkFor(accent) {
-  const grey = LABEL_GREYS.find((g) => contrastRatio(g, accent) >= 3.5);
-  const button = contrastRatio(WHITE, accent) >= 4.5 ? { bg: accent, fg: WHITE }
-    : grey ? { bg: accent, fg: grey }
-    : contrastRatio(TEXT, accent) >= 4.5 ? { bg: accent, fg: TEXT }
-    : { bg: readableOn(accent, WHITE, 4.5), fg: WHITE };
+  // A filled button is always white on the accent, darkened only as far as it
+  // takes for the white to read (4.5:1). Never a dark label on a colour.
+  const button = { bg: readableOn(accent, WHITE, 4.5), fg: WHITE };
   const soft = lighten(accent, 0.86);
   return {
     accent,
