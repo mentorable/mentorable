@@ -362,7 +362,7 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
       {ideas && ideas.length > 0 && (
         <div style={{ marginTop: 10 }}>
           <TextButton onClick={() => loadIdeas(true)} disabled={ideasBusy || left === 0} style={{ paddingLeft: 0 }}>
-            {ideasBusy ? "Finding new ideas..." : left === 0 ? "No new ideas left this month" : `New ideas${left != null ? ` (${left} left this month)` : ""}`}
+            {ideasBusy ? "Finding new ideas..." : left === 0 ? "No new ideas left" : `New ideas${left != null ? ` (${left} left)` : ""}`}
           </TextButton>
         </div>
       )}

@@ -41,18 +41,18 @@ logger = logging.getLogger(__name__)
 
 # (period, limit). The daily ones degrade to plain content instead of refusing,
 # so a student is never stopped from doing the work; only the personalisation
-# is capped. The monthly ones refuse.
+# is capped. The lifetime ones ("total": for the demo, no monthly reset) refuse.
 BUDGETS = {
     "task":            ("day", 4),
     "reply":           ("day", 4),
-    "plan":            ("month", 3),
-    "suggest_refresh": ("month", 3),
-    "suggest_auto":    ("month", 5),
-    "resources":       ("month", 6),
-    # The questions before planning. A plan is 3 a month and a talk is at most
-    # five turns, so this leaves room for restarts; when it runs out the talk
-    # just ends and they go on to their pace.
-    "talk":            ("month", 20),
+    "plan":            ("total", 3),
+    "suggest_refresh": ("total", 3),
+    "suggest_auto":    ("total", 5),
+    "resources":       ("total", 6),
+    # The questions before planning. Plans are capped at 3 in all and a talk is
+    # at most five turns, so this leaves room for restarts; when it runs out the
+    # talk just ends and they go on to their pace.
+    "talk":            ("total", 20),
 }
 
 # Memory in the daily loop: a few of their earlier words, and never a long wait.
@@ -255,7 +255,7 @@ def _settle_streak(ctx: Ctx) -> None:
 
 def _bucket(ctx: Ctx, kind: str) -> str:
     period, _ = BUDGETS[kind]
-    return ctx.today.isoformat() if period == "day" else ctx.today.strftime("%Y-%m")
+    return ctx.today.isoformat() if period == "day" else "all"
 
 
 def _spend(ctx: Ctx, kind: str) -> bool:
@@ -521,7 +521,7 @@ async def talk(user_id: str, tz_hint: Optional[str], body: dict) -> dict:
     # at "Map my quest" that no plans are left wastes the student's time and ours.
     if await asyncio.to_thread(_left, ctx, "plan") <= 0:
         raise QuestError(429, "QUEST_BUDGET",
-                         "You have planned 3 quests this month. New plans open up on the 1st.")
+                         "You have used all 3 of your quest plans.")
 
     if not await asyncio.to_thread(_spend, ctx, "talk"):
         return {"done": True, "message": FALLBACK_LINE, "fallback": True}
@@ -558,7 +558,7 @@ async def create_plan(user_id: str, tz_hint: Optional[str], body: dict) -> dict:
 
     if not _spend(ctx, "plan"):
         raise QuestError(429, "QUEST_BUDGET",
-                         "You have planned 3 quests this month. New plans open up on the 1st.")
+                         "You have used all 3 of your quest plans.")
 
     record_text, _ = student_context(user_id)
     try:
@@ -894,7 +894,7 @@ async def find_task_resources(user_id: str, tz_hint: Optional[str], slot: int) -
     """Find real links for a task the student has opened, once, on request.
 
     Saved on the task, so asking again returns the same links for free. Costs
-    one of the student's monthly searches; the search is refunded if it fails,
+    one of the student's searches; the search is refunded if it fails,
     but not when it honestly finds nothing, because it still cost money.
     """
     ctx = await asyncio.to_thread(load, user_id, tz_hint)
@@ -915,7 +915,7 @@ async def find_task_resources(user_id: str, tz_hint: Optional[str], slot: int) -
         raise QuestError(409, "busy", "Already looking that up.")
     if not await asyncio.to_thread(_spend, ctx, "resources"):
         raise QuestError(429, "QUEST_BUDGET",
-                         "You have used this month's resource searches. They reset next month.")
+                         "You have used all 6 of your resource searches.")
 
     # From here the search is refunded unless it is saved: on a failed search,
     # any unexpected error, a dropped connection, or losing the race below.
@@ -1112,7 +1112,7 @@ async def suggestions(user_id: str, tz_hint: Optional[str], refresh: bool) -> di
     if not _spend(ctx, kind):
         if refresh:
             raise QuestError(429, "QUEST_BUDGET",
-                             "You have used this month's 3 rounds of new ideas. You can still write your own.")
+                             "You have used all 3 rounds of new ideas. You can still write your own.")
         return reply(cached or FALLBACK_SUGGESTIONS)
 
     try:

@@ -97,7 +97,7 @@ function Resources({ slot, task, find, canSearch }) {
   const [found, setFound] = useState(null);      // { resources, left } from a search made in this sheet
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [spent, setSpent] = useState(false);     // the monthly searches are used up
+  const [spent, setSpent] = useState(false);     // the searches are used up
 
   const list = found ? found.resources : task.resources;   // null: never searched
   const search = async () => {
@@ -171,7 +171,7 @@ function Resources({ slot, task, find, canSearch }) {
 
       {found && found.left !== undefined && (
         <p role="status" style={{ margin: "10px 0 0", fontFamily: SANS, fontSize: "0.85rem", color: MUTED }}>
-          {found.left === 1 ? "1 search left" : `${found.left} searches left`} this month.
+          {found.left === 1 ? "1 search left" : `${found.left} searches left`}.
         </p>
       )}
       <ErrorLine>{error}</ErrorLine>
