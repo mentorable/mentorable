@@ -25,6 +25,7 @@ const TEXT_MUTED = "#494742";
 const TEXT_FAINT = "#6a6760";
 const BORDER     = "#e6dfd8";
 const DANGER     = "#dc2626";
+const DANGER_BG  = "#fef2f2";
 
 // What each group means, said as a comparison, never as odds: the rule only
 // sets scores against a school's range and admit rate. `empty` fills a group
@@ -75,6 +76,14 @@ function facts(s) {
 
 const place = (s) => [s.city, s.state].filter(Boolean).join(", ");
 
+/** Bring a school's card into view and put focus on it. */
+function showSchool(id, reduce) {
+  const el = document.querySelector(`[data-school="${id}"]`);
+  if (!el) return;
+  el.focus({ preventScroll: true });
+  el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+}
+
 const SR_ONLY = { position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden",
   clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0 };
 
@@ -111,6 +120,7 @@ function Facts({ school }) {
  *  toggle buttons, each reachable with Tab. */
 function CategoryPicker({ value, onChange, disabled, label }) {
   const ink = useAccentInk();
+  const isMobile = useIsMobile();
   return (
     <div role="group" aria-label={label}
       style={{ display: "inline-flex", background: "rgba(20,20,19,0.05)", borderRadius: 10, padding: 3, gap: 2 }}>
@@ -122,7 +132,7 @@ function CategoryPicker({ value, onChange, disabled, label }) {
           <button key={s.key} type="button" aria-pressed={on} aria-disabled={disabled || undefined}
             onClick={() => !on && !disabled && onChange(s.key)}
             style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, cursor: disabled ? "default" : "pointer",
-              padding: "6px 11px", borderRadius: 8, border: "none",
+              padding: isMobile ? "0 14px" : "0 12px", minHeight: isMobile ? 44 : 36, borderRadius: 8, border: "none",
               background: on ? ink.button.bg : "transparent", color: on ? ink.button.fg : TEXT_MUTED,
               transition: "background 0.15s, color 0.15s" }}>
             {s.label}
@@ -136,10 +146,11 @@ function CategoryPicker({ value, onChange, disabled, label }) {
 function RemoveButton({ onClick, name }) {
   return (
     <button type="button" onClick={onClick} aria-label={`Remove ${name}`}
-      style={{ flexShrink: 0, border: "none", background: "none", cursor: "pointer", color: TEXT_FAINT,
-        display: "inline-flex", padding: 6, borderRadius: 8, transition: "color 0.15s, background 0.15s" }}
+      style={{ flexShrink: 0, border: "none", background: "none", cursor: "pointer", color: TEXT_MUTED,
+        display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44,
+        borderRadius: 10, transition: "color 0.15s, background 0.15s" }}
       onMouseEnter={(e) => { e.currentTarget.style.color = DANGER; e.currentTarget.style.background = "rgba(220,38,38,0.08)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.color = TEXT_FAINT; e.currentTarget.style.background = "none"; }}>
+      onMouseLeave={(e) => { e.currentTarget.style.color = TEXT_MUTED; e.currentTarget.style.background = "none"; }}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
         <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
       </svg>
@@ -150,16 +161,26 @@ function RemoveButton({ onClick, name }) {
 function ConfirmRemove({ name, onConfirm, onClose }) {
   const [removing, setRemoving] = useState(false);
   const cancelRef = useRef(null);
+  const dialogRef = useRef(null);
 
-  // Focus moves into the dialog, Escape closes it, and focus goes back to the
-  // remove button that opened it.
+  // Focus moves into the dialog, stays there on Tab, Escape closes it, and
+  // focus goes back to the remove button that opened it.
   useEffect(() => {
     const opener = document.activeElement;
     cancelRef.current?.focus();
     return () => { if (opener && document.contains(opener)) opener.focus(); };
   }, []);
   useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape" && !removing) onClose(); };
+    const onKey = (e) => {
+      if (e.key === "Escape" && !removing) onClose();
+      if (e.key !== "Tab" || !dialogRef.current) return;
+      const stops = [...dialogRef.current.querySelectorAll("button:not([disabled])")];
+      if (!stops.length) { e.preventDefault(); return; }
+      const first = stops[0], last = stops[stops.length - 1];
+      const inside = dialogRef.current.contains(document.activeElement);
+      if (e.shiftKey && (document.activeElement === first || !inside)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (document.activeElement === last || !inside)) { e.preventDefault(); first.focus(); }
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [removing, onClose]);
@@ -169,7 +190,7 @@ function ConfirmRemove({ name, onConfirm, onClose }) {
       style={{ position: "fixed", inset: 0, zIndex: 320, background: "rgba(20,20,19,0.45)", backdropFilter: "blur(6px)",
         display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}
       onClick={removing ? undefined : onClose}>
-      <motion.div role="dialog" aria-modal="true" aria-labelledby="remove-title"
+      <motion.div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="remove-title"
         initial={{ opacity: 0, y: 22, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }} onClick={(e) => e.stopPropagation()}
         style={{ width: "100%", maxWidth: 400, background: BG, borderRadius: 20, border: `1px solid ${BORDER}`,
@@ -253,7 +274,7 @@ function SchoolCard({ item, stats, onSetCategory, onRestore, onRemove, isMobile,
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flexDirection: isMobile ? "column" : "row" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: 0, fontFamily: SANS, fontWeight: 700, fontSize: isMobile ? "1.2rem" : "1.3rem", color: TEXT,
-            lineHeight: 1.3, letterSpacing: "-0.01em" }}>
+            lineHeight: 1.3, letterSpacing: "-0.01em", overflowWrap: "anywhere" }}>
             {item.name}
           </p>
           {place(item) && (
@@ -278,12 +299,15 @@ function SchoolCard({ item, stats, onSetCategory, onRestore, onRemove, isMobile,
 function SearchResult({ school, stats, onList, adding, onAdd, first }) {
   const { accent } = useTheme();
   const ink = useAccentInk();
+  const isMobile = useIsMobile();
   const suggestion = suggestCategory(stats, school);
   return (
     <li style={{ listStyle: "none", padding: "12px 14px", borderTop: first ? "none" : `1px solid ${BORDER}`,
       display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
       <div style={{ flex: 1, minWidth: 200 }}>
-        <p style={{ margin: 0, fontFamily: SANS, fontWeight: 700, fontSize: "1.1rem", color: TEXT }}>{school.name}</p>
+        <p style={{ margin: 0, fontFamily: SANS, fontWeight: 700, fontSize: "1.1rem", color: TEXT, overflowWrap: "anywhere" }}>
+          {school.name}
+        </p>
         <p style={{ margin: "3px 0 0", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, color: TEXT_MUTED,
           fontVariantNumeric: "tabular-nums" }}>
           {[place(school), facts(school)[0]?.text].filter(Boolean).join(", ")}
@@ -299,7 +323,8 @@ function SearchResult({ school, stats, onList, adding, onAdd, first }) {
       ) : suggestion ? (
         <button type="button" onClick={() => onAdd(school)}
           style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, color: ink.text, cursor: "pointer",
-            background: "rgba(var(--accent-rgb),0.08)", border: "none", borderRadius: 10, padding: "8px 13px" }}>
+            background: "rgba(var(--accent-rgb),0.08)", border: "none", borderRadius: 10, padding: "0 14px",
+            minHeight: isMobile ? 44 : 38 }}>
           Add as {LABEL[suggestion.category]}
         </button>
       ) : (
@@ -313,7 +338,10 @@ function SearchResult({ school, stats, onList, adding, onAdd, first }) {
 }
 
 function AddSchool({ api, stats, items, onAdded }) {
-  const { accent } = useTheme();
+  const { accent, accentRgb } = useTheme();
+  const ink = useAccentInk();
+  const reduce = useReducedMotion();
+  const [added, setAdded] = useState(null);   // { id, name, category } of the last school added
   const [query, setQuery] = useState("");
   const [results, setResults] = useState(null);   // null: nothing searched yet
   const [searching, setSearching] = useState(false);
@@ -323,6 +351,7 @@ function AddSchool({ api, stats, items, onAdded }) {
 
   useEffect(() => {
     const q = query.trim();
+    setAdded(null);
     if (q.length < 2) {
       latest.current += 1;   // a search still in flight must not refill a cleared box
       setResults(null); setError(null); setSearching(false);
@@ -349,9 +378,10 @@ function AddSchool({ api, stats, items, onAdded }) {
 
   const add = async (school, category) => {
     const id = school.scorecard_id;
-    setAdding((prev) => new Set(prev).add(id)); setError(null);
+    setAdding((prev) => new Set(prev).add(id)); setError(null); setAdded(null);
     try {
-      await onAdded(school, category);
+      const row = await onAdded(school, category);
+      setAdded({ id: row.id, name: row.name, category: row.category });
     } catch (e) {
       setError(e.message);
     } finally {
@@ -376,9 +406,12 @@ function AddSchool({ api, stats, items, onAdded }) {
           placeholder="Search by name, like Michigan or NYU"
           style={{ width: "100%", boxSizing: "border-box", fontFamily: SANS, fontSize: "1rem", color: TEXT,
             border: `1.5px solid ${BORDER}`, borderRadius: 12, padding: "13px 14px 13px 42px", outline: "none",
-            background: WHITE }}
-          onFocus={(e) => (e.target.style.borderColor = accent)}
-          onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+            background: WHITE, transition: "border-color 0.15s, box-shadow 0.15s" }}
+          // The focus ring is the one cue a keyboard user has here, so it
+          // uses the accent darkened to 3:1 against white, plus a soft halo.
+          onFocus={(e) => { e.target.style.borderColor = readableOn(accent, WHITE, 3);
+            e.target.style.boxShadow = `0 0 0 3px rgba(${accentRgb},0.22)`; }}
+          onBlur={(e) => { e.target.style.borderColor = BORDER; e.target.style.boxShadow = "none"; }} />
       </div>
 
       <div aria-live="polite">
@@ -396,6 +429,26 @@ function AddSchool({ api, stats, items, onAdded }) {
         {!searching && results && results.length === 0 && (
           <p style={{ margin: "10px 2px 0", fontFamily: SANS, fontSize: "1rem", color: TEXT_MUTED }}>
             No schools found. Try the full official name, like University of Michigan.
+          </p>
+        )}
+        {!searching && results && results.length > 0 && !added && (
+          <p style={SR_ONLY}>{results.length} {results.length === 1 ? "school" : "schools"} found.</p>
+        )}
+        {added && (
+          <p style={{ display: "flex", alignItems: "flex-start", gap: 8, margin: "10px 2px 0",
+            fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT, lineHeight: 1.5 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={ink.text} strokeWidth="2.6"
+              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: 3 }}>
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span style={{ overflowWrap: "anywhere" }}>
+            Added {added.name} to {LABEL[added.category]}.{" "}
+            <button type="button" onClick={() => { const id = added.id; setQuery(""); showSchool(id, reduce); }}
+              style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 700, color: ink.text, background: "none",
+                border: "none", padding: "4px 2px", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>
+              See it on your list
+            </button>
+            </span>
           </p>
         )}
       </div>
@@ -417,14 +470,14 @@ function AddSchool({ api, stats, items, onAdded }) {
 
 export default function CollegeListPage({ navigate, api = REAL_API }) {
   const isMobile = useIsMobile();
-  const { accent } = useTheme();
+  const { accent, accentRgb } = useTheme();
   const ink = useAccentInk();
   const [phase, setPhase] = useState("loading");
   const [userId, setUserId] = useState(null);
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState({ sat: null, act: null, gpa: null });
   const [onboardingNames, setOnboardingNames] = useState([]);
-  const [notice, setNotice] = useState(null);
+  const [notice, setNotice] = useState(null);   // { text, error }
   const [confirm, setConfirm] = useState(null);
   const [importing, setImporting] = useState(null);   // the name being looked up
   const [importDone, setImportDone] = useState(false);
@@ -452,31 +505,38 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
     return () => clearTimeout(t);
   }, [flash]);
 
-  useEffect(() => {
-    (async () => {
+  const load = useCallback(async () => {
+    setPhase("loading");
+    try {
+      const user = await api.requireUser();
+      if (!user) { navigate?.("/auth"); return; }
+      setUserId(user.id);
+      const data = await api.load(user.id);
+      setStats(data.stats);
+      setOnboardingNames(data.onboardingNames);
+      setImportDone(readFlag(IMPORT_KEY(user.id)));
+      // A new score or GPA can move a suggested school; say so when it does.
+      // If that update fails, the list as saved is still worth showing.
+      let fresh = data.items, moved = 0;
       try {
-        const user = await api.requireUser();
-        if (!user) { navigate?.("/auth"); return; }
-        setUserId(user.id);
-        const data = await api.load(user.id);
-        setStats(data.stats);
-        setOnboardingNames(data.onboardingNames);
-        setImportDone(readFlag(IMPORT_KEY(user.id)));
-        // A new score or GPA can move a suggested school; say so when it does.
-        const { items: fresh, moved } = await api.refresh(data.items, data.stats);
-        setItems(fresh);
-        if (moved) setNotice(`Updated to match your latest scores: ${moved} ${moved === 1 ? "school" : "schools"} moved.`);
-        setPhase("ready");
+        ({ items: fresh, moved } = await api.refresh(data.items, data.stats));
       } catch (e) {
-        console.error("[college list] load failed:", e);
-        setPhase("error");
+        console.warn("[college list] refresh failed:", e);
       }
-    })();
+      setItems(fresh);
+      if (moved) setNotice({ text: `Updated to match your latest scores: ${moved} ${moved === 1 ? "school" : "schools"} moved.` });
+      setPhase("ready");
+    } catch (e) {
+      console.error("[college list] load failed:", e);
+      setPhase("error");
+    }
   }, [api, navigate]);
+  useEffect(() => { load(); }, [load]);
 
   const onAdded = useCallback(async (school, category) => {
     const row = await api.add(userId, school, stats, category);
     setItems((prev) => [...prev, row]);
+    return row;
   }, [api, userId, stats]);
 
   // One save per school at a time, so two quick taps cannot land out of order.
@@ -500,7 +560,7 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
       setItems((prev) => prev.map((i) => (i.id === item.id ? before : i)));
       focusNext.current = `[data-school="${item.id}"] [aria-pressed="true"]`;
       if (moved) setSaid(`${item.name} is still in ${LABEL[before.category]}.`);
-      setNotice(e.message);
+      setNotice({ text: e.message, error: true });
     } finally {
       setSaving((prev) => { const next = new Set(prev); next.delete(item.id); return next; });
     }
@@ -521,7 +581,7 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
       setSaid(`Removed ${item.name}.`);
       focusNext.current = neighbour ? `[data-school="${neighbour.id}"]` : `#sec-${item.category}`;
     } catch (e) {
-      setNotice(e.message);
+      setNotice({ text: e.message, error: true });
     }
     setConfirm(null);
   };
@@ -531,12 +591,12 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
     try {
       const { added, unmatched } = await api.importNames(userId, onboardingNames, stats, setImporting);
       setItems((prev) => [...prev, ...added.filter((a) => !prev.some((p) => p.id === a.id))]);
-      setNotice(unmatched.length
+      setNotice({ text: unmatched.length
         ? `Added ${added.length}. Could not find ${unmatched.join(", ")}. Search for ${unmatched.length === 1 ? "it" : "them"} above.`
-        : `Added ${added.length} ${added.length === 1 ? "school" : "schools"}.`);
+        : `Added ${added.length} ${added.length === 1 ? "school" : "schools"}.` });
       writeFlag(IMPORT_KEY(userId)); setImportDone(true);
     } catch (e) {
-      setNotice(e.message);
+      setNotice({ text: e.message, error: true });
     } finally {
       setImporting(null);
     }
@@ -567,9 +627,9 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
           <p style={{ fontFamily: SANS, fontSize: "0.98rem", color: TEXT_MUTED, lineHeight: 1.6, marginBottom: "1.4rem" }}>
             Nothing has been lost. Give it another go in a moment.
           </p>
-          <button type="button" onClick={() => window.location.reload()}
-            style={{ fontFamily: SANS, fontSize: "0.98rem", fontWeight: 700, cursor: "pointer", padding: "11px 22px",
-              borderRadius: 10, border: "none", background: accent, color: WHITE }}>
+          <button type="button" onClick={load}
+            style={{ fontFamily: SANS, fontSize: "0.98rem", fontWeight: 700, cursor: "pointer", padding: "0 22px",
+              minHeight: 44, borderRadius: 10, border: "none", background: ink.button.bg, color: ink.button.fg }}>
             Try again
           </button>
         </div>
@@ -610,13 +670,13 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <button type="button" onClick={runImport}
                   style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: "pointer",
-                    padding: "11px 18px", borderRadius: 11, border: "none", background: ink.button.bg, color: ink.button.fg }}>
+                    padding: "0 18px", minHeight: 44, borderRadius: 11, border: "none", background: ink.button.bg, color: ink.button.fg }}>
                   Add them to my list
                 </button>
                 <button type="button" onClick={skipImport}
                   style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, cursor: "pointer",
-                    padding: "11px 16px", borderRadius: 11, border: `1.5px solid ${BORDER}`, background: WHITE, color: TEXT_MID }}>
-                  Start fresh
+                    padding: "0 16px", minHeight: 44, borderRadius: 11, border: `1.5px solid ${BORDER}`, background: WHITE, color: TEXT_MID }}>
+                  No thanks
                 </button>
               </div>
             )}
@@ -627,13 +687,27 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
 
         <div aria-live="polite">
           {notice && (
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: WHITE, border: `1px solid ${BORDER}`,
-              borderRadius: 12, padding: "10px 12px 10px 14px", marginBottom: "1.2rem" }}>
-              <p style={{ flex: 1, margin: 0, fontFamily: SANS, fontSize: "1rem", color: TEXT_MID, lineHeight: 1.5 }}>{notice}</p>
-              <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss"
-                style={{ border: "none", background: "none", cursor: "pointer", color: TEXT_FAINT, padding: 2,
-                  fontFamily: SANS, fontSize: "1.1rem", lineHeight: 1 }}>
-                ×
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, borderRadius: 12, padding: "0 0 0 14px",
+              marginBottom: "1.2rem", background: notice.error ? DANGER_BG : WHITE,
+              border: `1px solid ${notice.error ? "rgba(220,38,38,0.35)" : BORDER}` }}>
+              {notice.error && (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={DANGER} strokeWidth="2.4"
+                  strokeLinecap="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: 13 }}>
+                  <circle cx="12" cy="12" r="9.5" /><line x1="12" y1="7.5" x2="12" y2="12.5" /><line x1="12" y1="16.5" x2="12" y2="16.5" />
+                </svg>
+              )}
+              <p style={{ flex: 1, margin: "11px 0", fontFamily: SANS, fontSize: "1rem", lineHeight: 1.5, overflowWrap: "anywhere",
+                color: notice.error ? TEXT : TEXT_MID, fontWeight: notice.error ? 600 : 400 }}>
+                {notice.error && <span style={SR_ONLY}>Error: </span>}{notice.text}
+              </p>
+              <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss this message"
+                style={{ flexShrink: 0, width: 44, height: 44, display: "inline-flex", alignItems: "center",
+                  justifyContent: "center", border: "none", background: "none", cursor: "pointer", color: TEXT_MUTED,
+                  borderRadius: 10 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"
+                  strokeLinecap="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </button>
             </div>
           )}
@@ -657,8 +731,8 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
                 {b.reach} reach, {b.target} target, {b.likely} likely
               </p>
               {b.note && (
-                <p style={{ margin: "10px 0 0", fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT, lineHeight: 1.55,
-                  borderLeft: `3px solid ${accent}`, paddingLeft: 12, maxWidth: 640 }}>
+                <p style={{ margin: "12px 0 0", fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT, lineHeight: 1.55,
+                  background: `rgba(${accentRgb},0.08)`, borderRadius: 12, padding: "10px 14px", maxWidth: 640 }}>
                   {b.note}
                 </p>
               )}
@@ -677,7 +751,9 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
                     {sec.label}
                   </h2>
                   <span style={{ fontFamily: SANS, fontWeight: 500, fontSize: isMobile ? "1.35rem" : "1.5rem", color: TEXT_MUTED,
-                    fontVariantNumeric: "tabular-nums" }}>{list.length}</span>
+                    fontVariantNumeric: "tabular-nums" }}>
+                    {list.length}<span style={SR_ONLY}> {list.length === 1 ? "school" : "schools"}</span>
+                  </span>
                 </div>
                 <p style={{ margin: "0 0 12px", fontFamily: SANS, fontSize: "1.1rem", color: ink.text, lineHeight: 1.5 }}>
                   {sec.hint}
