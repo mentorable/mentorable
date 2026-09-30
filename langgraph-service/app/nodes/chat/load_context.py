@@ -7,8 +7,9 @@ here is cached: the student can edit their record mid-conversation (from the
 Portfolio page or through a chat tool) and the next turn must see it.
 
 The student's Quest (the daily-streak project) is loaded too, so the advisor can
-talk about it and reshape it, and their College List, so it can discuss it (the
-list itself is only edited on its page). Roadmap and research context are not: those
+talk about it and reshape it, their College List, so it can discuss it (the
+list itself is only edited on its page), and their outreach board from the
+Agents page, which it can read and point to but never change. Roadmap and research context are not: those
 features are parked behind FEATURES flags (src/lib/features.js), and loading
 them would mean dead queries and prompt sections about something the student
 cannot reach.
@@ -17,6 +18,7 @@ import logging
 
 from app.state import StudentState
 from app.db.supabase import get_supabase
+from app.nodes.agents.registry import get_agent
 from app.nodes.quest.service import brief_for_chat
 
 logger = logging.getLogger(__name__)
@@ -65,6 +67,29 @@ async def load_context(state: StudentState) -> StudentState:
         logger.warning(f"[chat] college list failed to load for {user_id}: {exc}")
         college_list = []
 
+    # Their outreach board (the Agents page's Beaker), read-only, never fatal,
+    # the 40 most recently touched cards.
+    try:
+        outreach = (
+            supabase.from_("outreach_contacts")
+            .select("name, organization, stage, created_by, purpose, sent_at, last_sent_at, manual_sent_at, "
+                    "follow_up_on, follow_ups_sent")
+            .eq("user_id", user_id).order("updated_at", desc=True).limit(40).execute().data or []
+        )
+    except Exception as exc:
+        logger.warning(f"[chat] outreach board failed to load for {user_id}: {exc}")
+        outreach = []
+    # Beaker's tries left, so the advisor never sends a student to a tool that
+    # cannot start anything for them. None when it cannot be read.
+    try:
+        used = sum(int(r.get("used") or 0) for r in (
+            supabase.from_("agent_usage").select("used").eq("user_id", user_id)
+            .eq("agent", "outreach").eq("kind", "try").execute().data or []))
+        tries_left = max(0, get_agent("outreach").budgets["try"][1] - used)
+    except Exception as exc:
+        logger.warning(f"[chat] outreach tries failed to load for {user_id}: {exc}")
+        tries_left = None
+
     return {
         **state,
         "profile":     profile,
@@ -75,4 +100,6 @@ async def load_context(state: StudentState) -> StudentState:
         # Never raises: a quest that fails to load just leaves the section out.
         "_quest":      brief_for_chat(user_id, profile.get("timezone")),
         "_college_list": college_list,
+        "_outreach": outreach,
+        "_outreach_tries_left": tries_left,
     }

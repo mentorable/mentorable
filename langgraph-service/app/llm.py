@@ -18,10 +18,12 @@ failure that surfaced to the student as lost work. A schema makes that class of
 failure impossible on the OpenAI path.
 """
 import asyncio
+import inspect
 import json
 import logging
 import re
-from typing import Any, Optional
+from typing import Any, Callable, Optional
+from urllib.parse import urlparse
 
 from anthropic import AsyncAnthropic
 
@@ -247,6 +249,28 @@ async def tool_completion(
     return None
 
 
+async def _notify(on_event, event: dict) -> None:
+    if on_event is None:
+        return
+    try:
+        result = on_event(event)
+        if inspect.isawaitable(result):
+            await result
+    except Exception as exc:
+        logger.warning(f"[llm] progress callback failed: {exc}")
+
+
+def _domains(urls: list[str], limit: int = 4) -> list[str]:
+    out: list[str] = []
+    for url in urls:
+        host = (urlparse(url).hostname or "").lower().removeprefix("www.")
+        if host and host not in out:
+            out.append(host)
+        if len(out) == limit:
+            break
+    return out
+
+
 def _field(obj: Any, name: str) -> Any:
     """Read a field from an SDK object or a plain dict."""
     return obj.get(name) if isinstance(obj, dict) else getattr(obj, name, None)
@@ -261,6 +285,7 @@ async def search_completion(
     label: str,
     max_searches: int = 3,
     blocked_domains: Optional[list[str]] = None,
+    on_event: Optional[Callable[[dict], Any]] = None,
 ) -> tuple[Optional[dict], set[str], dict[str, int]]:
     """Let the model search the web, then submit an answer through a tool.
 
@@ -273,6 +298,12 @@ async def search_completion(
 
     Each search is billed on top of tokens. A failed search is not. Raises
     ModelUnavailable when the API cannot be reached at all.
+
+    on_event, if given, is called (and awaited when it returns an awaitable)
+    for what really happened, in order, as each model turn comes back:
+    {"type": "search", "query": str} for each search the model ran, then
+    {"type": "results", "count": n, "domains": [...]} or {"type": "search_error"}.
+    For progress screens; an exception it raises is logged and ignored.
     """
     search_tool: dict[str, Any] = {"type": "web_search_20250305", "name": "web_search", "max_uses": max_searches}
     if blocked_domains:
@@ -303,14 +334,20 @@ async def search_completion(
             if kind == "web_search_tool_result":
                 results = _field(block, "content")
                 if isinstance(results, list):
+                    urls = []
                     for r in results:
                         url = _field(r, "url")
                         if isinstance(url, str):
                             found.add(url)
+                            urls.append(url)
+                    await _notify(on_event, {"type": "results", "count": len(urls), "domains": _domains(urls)})
                 else:                              # a failed search comes back as one error object
                     stats["errors"] += 1
+                    await _notify(on_event, {"type": "search_error"})
             elif kind == "server_tool_use":
                 stats["searches"] += 1
+                query = (_field(block, "input") or {}).get("query") if isinstance(_field(block, "input"), dict) else None
+                await _notify(on_event, {"type": "search", "query": query if isinstance(query, str) else ""})
             elif kind == "tool_use" and _field(block, "name") == submit_tool["name"]:
                 submitted = _field(block, "input")
                 logger.info(f"[llm] {label}: {stats['searches']} search(es), {stats['errors']} error(s), "

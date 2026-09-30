@@ -53,6 +53,15 @@ QUEST_CHECKIN_MODEL = HAIKU
 QUEST_RESOURCES_MODEL = HAIKU
 QUEST_TALK_MODEL    = SONNET
 
+# Agents. Beaker (outreach): the research runs web searches, so it gets the
+# cheap tier, the same as Quest resources (each search is $0.01 on top of
+# tokens). The draft and the tone rewrites are what a professor reads, so they
+# get the stronger model. A follow-up is two or three sentences.
+OUTREACH_RESEARCH_MODEL = HAIKU
+OUTREACH_DRAFT_MODEL    = SONNET
+OUTREACH_REWRITE_MODEL  = SONNET
+OUTREACH_FOLLOWUP_MODEL = HAIKU
+
 # Long-term memory (app/nodes/recall/): the student's own words, embedded and
 # searched. OpenAI embeddings, so without an OpenAI key memory is simply off.
 # The vector size is fixed by the student_memories table: changing either value

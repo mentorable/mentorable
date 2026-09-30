@@ -37,6 +37,7 @@ from app.nodes.roadmap.reflect import reflect_on_phase
 from app.nodes.roadmap.expand import expand_node
 from app.nodes.roadmap.intake import generate_intake_questions
 from app.rate_limit import check_rate_limit, refund_usage
+from app.routers.agents import router as agents_router
 from app.routers.quest import router as quest_router
 
 logger = logging.getLogger(__name__)
@@ -67,7 +68,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Mentorable LangGraph Service",
-    description="Agentic backend for Mentorable: the advisor chat, onboarding, portfolio and Quest",
+    description="Agentic backend for Mentorable: the advisor chat, onboarding, portfolio, Quest and the Agents",
     version="0.2.0",
     lifespan=lifespan,
 )
@@ -84,6 +85,7 @@ app.add_middleware(
 # Quest: the daily streak loop. Its endpoints live in their own router because
 # this file was already long enough to hide a missing variable.
 app.include_router(quest_router)
+app.include_router(agents_router)
 
 
 # ── Health ─────────────────────────────────────────────────────────────────────

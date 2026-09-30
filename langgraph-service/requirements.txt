@@ -19,3 +19,5 @@ posthog>=3.0.0
 # reads the system zone database, and falls back to this package when a slim
 # server image has none.
 tzdata>=2024.1
+# Encrypts each student's Gmail refresh token at rest (Fernet), for the outreach agent.
+cryptography>=42.0.0

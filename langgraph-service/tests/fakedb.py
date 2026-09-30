@@ -2,9 +2,12 @@
 
 Implements the query-builder subset the code uses, the unique constraints that
 matter (one open quest, one task per slot, one check-in per task, one memory per
-dedupe key), ON DELETE CASCADE for quests, and Python mirrors of the Quest SQL
-functions and of the memory ones (recall_memories through rank.py, and the
-guarded saves). These are mirrors: they let the Python around the database be
+dedupe key, one first email per address, per canonical recipient and per
+sending Gmail address, and the primary keys in KEYS), the
+outreach tables' CHECK constraints, ON DELETE CASCADE for quests (SET NULL for
+an outreach card), and
+Python mirrors of the Quest SQL functions, of the memory ones (recall_memories
+through rank.py, and the guarded saves) and of the agents' budget ones. These are mirrors: they let the Python around the database be
 tested, and say nothing about the SQL itself.
 """
 import copy
@@ -24,9 +27,86 @@ DEFAULTS = {
                        "on_time": False, "xp_awarded": 0},
     "quest_stats": {"xp": 0, "streak": 0, "streak_date": None, "best_streak": 0},
     "student_activities": {},
+    # 20260930_agents_outreach.sql
+    "outreach_contacts": {"stage": "to_contact", "created_by": "student", "title": "", "organization": "",
+                          "email": None, "email_source_url": None, "purpose": None, "voice": None, "length": None,
+                          "student_note": "", "why": "", "subject": "", "body": "", "claims": [], "sources": [],
+                          "research": {}, "facts_to_verify": [], "followup_body": "", "notes": "",
+                          "follow_up_on": None, "position": 0, "rewrites_used": 0, "followup_drafts_used": 0,
+                          "follow_ups_sent": 0, "sent_via": None, "sent_at": None, "last_sent_at": None,
+                          "manual_sent_at": None, "gmail_thread_id": None, "message_id_header": None},
+    "outreach_tries": {"status": "open", "goal": "", "candidates": [], "pending_question": None, "contact_id": None},
+    "outreach_sends": {"contact_id": None, "status": "sending", "gmail_message_id": None, "gmail_thread_id": None,
+                       "from_email": None, "to_key": None},
+}
+# Columns whose SQL default is now().
+NOW_DEFAULTS = {
+    "outreach_contacts": ("updated_at",),
+    "outreach_tries": ("updated_at",),
+    "outreach_sends": ("sent_at",),
 }
 OPEN = {"draft", "active", "paused"}
 DEV_EMAILS = {"app.mentora.ai@gmail.com"}
+# agent_bump_usage's own list (20260930_agents_outreach.sql).
+AGENT_DEV_EMAILS = {"app.mentora.ai@gmail.com", "kwu.1600@gmail.com"}
+# Tables whose primary key is not an id column: a duplicate insert is refused,
+# and an upsert (without ignore_duplicates) updates the row it conflicts with.
+KEYS = {
+    "agent_usage": ("user_id", "agent", "kind", "bucket"),
+    "google_connections": ("user_id",),
+}
+
+
+def _within(lo, hi):
+    return lambda v: isinstance(v, str) and lo <= len(v) <= hi
+
+
+def _at_most(n):
+    return lambda v: v is None or (isinstance(v, str) and len(v) <= n)
+
+
+def _one_of(*values, nullable=False):
+    return lambda v: (nullable and v is None) or v in values
+
+
+def _email_ok(v):
+    import re
+    return v is None or (isinstance(v, str) and 3 <= len(v) <= 254
+                         and re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", v) is not None)
+
+
+# The CHECK constraints of the outreach tables that a service write could break.
+OUTREACH_CHECKS = {
+    "outreach_contacts": {
+        "stage": _one_of("to_contact", "drafted", "sent", "heard_back", "meeting", "closed"),
+        "created_by": _one_of("agent", "student"),
+        "name": _within(1, 120), "title": _within(0, 160), "organization": _within(0, 160),
+        "email": _email_ok, "email_source_url": _at_most(2000),
+        "purpose": _one_of("research", "informational", "internship", "mentorship", nullable=True),
+        "voice": _one_of("formal", "warm", "direct", "humble", nullable=True),
+        "length": _one_of("brief", "fuller", nullable=True),
+        "student_note": _within(0, 300), "why": _within(0, 600), "subject": _within(0, 200),
+        "body": _within(0, 4000), "followup_body": _within(0, 1500), "notes": _within(0, 2000),
+        "claims": lambda v: isinstance(v, list), "sources": lambda v: isinstance(v, list),
+        "research": lambda v: isinstance(v, dict), "facts_to_verify": lambda v: isinstance(v, list),
+        "rewrites_used": lambda v: isinstance(v, int) and v >= 0,
+        "followup_drafts_used": lambda v: isinstance(v, int) and v >= 0,
+        "follow_ups_sent": lambda v: isinstance(v, int) and v >= 0,
+        "sent_via": _one_of("gmail", "manual", nullable=True),
+        "gmail_thread_id": _at_most(200), "message_id_header": _at_most(300),
+    },
+    "outreach_tries": {
+        "status": _one_of("open", "drafted", "refunded"), "mode": _one_of("person", "goal"),
+        "goal": _within(0, 400), "candidates": lambda v: isinstance(v, list), "pending_question": _at_most(300),
+    },
+    "outreach_sends": {
+        "to_email": _within(3, 254), "kind": _one_of("first", "followup"), "status": _one_of("sending", "sent"),
+        "gmail_message_id": _at_most(200), "gmail_thread_id": _at_most(200),
+        # 20260930_outreach_sends_from.sql
+        "from_email": lambda v: v is None or (isinstance(v, str) and 3 <= len(v) <= 254 and v == v.lower()),
+        "to_key": lambda v: v is None or (isinstance(v, str) and 3 <= len(v) <= 254),
+    },
+}
 
 
 def _instant(value):
@@ -65,7 +145,8 @@ class FakeDB:
         self.t = {k: [] for k in ["profiles", "quests", "quest_milestones", "quest_tasks", "quest_checkins",
                                   "quest_stats", "quest_usage", "student_activities", "student_awards",
                                   "student_courses", "student_test_scores", "student_memories",
-                                  "chat_sessions"]}
+                                  "chat_sessions", "agent_usage", "google_connections",
+                                  "outreach_contacts", "outreach_tries", "outreach_sends"]}
         self.emails = {}
         self.calls = []
 
@@ -75,9 +156,20 @@ class FakeDB:
     def rpc(self, fn, params):
         return RPC(self, fn, params)
 
+    def same_key(self, table, row):
+        """The row that shares row's primary key, for the tables in KEYS."""
+        cols = KEYS.get(table)
+        if not cols:
+            return None
+        return next((r for r in self.t[table] if all(str(r.get(c)) == str(row.get(c)) for c in cols)), None)
+
     # constraint checks
     def check(self, table, row, ignore_id=None):
         rows = [r for r in self.t[table] if r.get("id") != ignore_id]
+        if table in KEYS:
+            cols = KEYS[table]
+            if any(all(str(r.get(c)) == str(row.get(c)) for c in cols) for r in rows):
+                raise Violation(f"duplicate key value violates unique constraint {table}_pkey")
         if table == "quests" and row.get("status") in OPEN:
             if any(r["user_id"] == row["user_id"] and r["status"] in OPEN for r in rows):
                 raise Violation("duplicate key value violates unique constraint quests_one_open_per_user")
@@ -97,8 +189,33 @@ class FakeDB:
         if table == "quest_milestones":
             if any(r["quest_id"] == row["quest_id"] and r["position"] == row["position"] for r in rows):
                 raise Violation("duplicate key quest_milestones_quest_id_position_key")
+        if table in OUTREACH_CHECKS:
+            for col, ok in OUTREACH_CHECKS[table].items():
+                if not ok(row.get(col)):
+                    raise Violation(f"new row for relation {table} violates check constraint on {col}")
+        if table == "outreach_sends" and row.get("kind") == "first":
+            firsts = [r for r in rows if r.get("kind") == "first"]
+            key = str(row.get("to_email") or "").lower()
+            if any(r["user_id"] == row["user_id"] and str(r.get("to_email") or "").lower() == key for r in firsts):
+                raise Violation("duplicate key value violates unique constraint outreach_sends_one_first_email")
+            to_key = row.get("to_key")
+            if to_key is not None:
+                if any(r["user_id"] == row["user_id"] and r.get("to_key") == to_key for r in firsts):
+                    raise Violation("duplicate key value violates unique constraint outreach_sends_one_first_email_key")
+                sender = str(row.get("from_email") or "").lower()
+                if sender and any(str(r.get("from_email") or "").lower() == sender and r.get("to_key") == to_key
+                                  for r in firsts):
+                    raise Violation("duplicate key value violates unique constraint "
+                                    "outreach_sends_one_first_email_per_sender")
 
     def cascade(self, table, deleted):
+        if table == "outreach_contacts":
+            # ON DELETE SET NULL: the ledgers keep their rows.
+            ids = {r["id"] for r in deleted}
+            for child in ("outreach_tries", "outreach_sends"):
+                for r in self.t[child]:
+                    if r.get("contact_id") in ids:
+                        r["contact_id"] = None
         if table == "quests":
             ids = {r["id"] for r in deleted}
             for child in ("quest_milestones", "quest_tasks", "quest_checkins"):
@@ -199,12 +316,20 @@ class Query:
             return NS(data=rows)
         if self.action in ("insert", "upsert"):
             items = self.payload if isinstance(self.payload, list) else [self.payload]
-            out = []
+            merged = []
             staged = []
             for item in items:
+                if self.action == "upsert" and not self.opts.get("ignore"):
+                    existing = db.same_key(t, item)
+                    if existing is not None:
+                        existing.update(copy.deepcopy(item))
+                        merged.append(existing)
+                        continue
                 row = {**DEFAULTS.get(t, {}), **copy.deepcopy(item)}
                 row.setdefault("id", str(uuid.uuid4()))
                 row.setdefault("created_at", datetime.now(timezone.utc).isoformat())
+                for col in NOW_DEFAULTS.get(t, ()):
+                    row.setdefault(col, datetime.now(timezone.utc).isoformat())
                 if t == "student_memories":
                     row.setdefault("context", "")
                     row["lexemes"] = crude_lexemes(row.get("context", "") + " " + row.get("body", ""))
@@ -216,7 +341,7 @@ class Query:
                     raise
                 staged.append(row)
             db.t[t].extend(staged)
-            out = copy.deepcopy(staged)
+            out = copy.deepcopy(merged + staged)
             return NS(data=out)
         if self.action == "update":
             rows = self._rows()
@@ -315,6 +440,26 @@ class RPC:
     def _quest_refund_usage(self, p_user_id, p_kind, p_bucket):
         for r in self.db.t["quest_usage"]:
             if r["user_id"] == p_user_id and r["kind"] == p_kind and r["bucket"] == p_bucket:
+                r["used"] = max(0, r["used"] - 1)
+        return None
+
+    def _agent_bump_usage(self, p_user_id, p_agent, p_kind, p_bucket, p_limit):
+        if self.db.emails.get(p_user_id) in AGENT_DEV_EMAILS:
+            return {"allowed": True, "used": 0, "limit": p_limit}
+        rows = self.db.t["agent_usage"]
+        row = next((r for r in rows if r["user_id"] == p_user_id and r["agent"] == p_agent
+                    and r["kind"] == p_kind and r["bucket"] == p_bucket), None)
+        if row is None:
+            row = {"user_id": p_user_id, "agent": p_agent, "kind": p_kind, "bucket": p_bucket, "used": 0}
+            rows.append(row)
+        if row["used"] >= p_limit:
+            return {"allowed": False, "used": row["used"], "limit": p_limit}
+        row["used"] += 1
+        return {"allowed": True, "used": row["used"], "limit": p_limit}
+
+    def _agent_refund_usage(self, p_user_id, p_agent, p_kind, p_bucket):
+        for r in self.db.t["agent_usage"]:
+            if r["user_id"] == p_user_id and r["agent"] == p_agent and r["kind"] == p_kind and r["bucket"] == p_bucket:
                 r["used"] = max(0, r["used"] - 1)
         return None
 
