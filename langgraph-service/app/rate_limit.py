@@ -2,7 +2,6 @@ import logging
 
 from fastapi import HTTPException
 from app.db.supabase import get_supabase
-from app.config import DEV_BYPASS_EMAILS
 from app.posthog_client import posthog_client
 
 logger = logging.getLogger(__name__)

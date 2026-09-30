@@ -92,7 +92,6 @@ def _salvage_results(text: str) -> list[dict]:
 async def _brave_search(query: str, count: int = 10) -> list[dict]:
     if not BRAVE_API_KEY:
         return []
-    url = f"https://api.search.brave.com/res/v1/web/search?q={httpx.URL(query).path}&count={count}&search_lang=en&safesearch=moderate"
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             res = await client.get(

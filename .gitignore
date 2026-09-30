@@ -11,6 +11,9 @@ supabase/.temp/
 # AI development artifacts
 .claude/
 claude/
+CLAUDE.md
+.agents/
+skills-lock.json
 sample_screenshots/
 
 .playwright-mcp
