@@ -5,6 +5,7 @@ import { useTheme } from "../../lib/ThemeContext.jsx";
 import { isEnabled } from "../../lib/features.js";
 import { useQuest } from "../../lib/QuestContext.jsx";
 import { Flame, TreasureMapIcon } from "../quest/questUi.jsx";
+import { PixelBeakIcon } from "../agents/PixelIcons.jsx";
 
 const FONT = "'Raleway', sans-serif";
 
@@ -66,6 +67,12 @@ const NAV_ITEMS = [
         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
       </svg>
     ),
+  },
+  {
+    key: "agents",
+    label: "Agents",
+    path: "/agents",
+    icon: () => <PixelBeakIcon size={22} />,
   },
   {
     key: "profile",

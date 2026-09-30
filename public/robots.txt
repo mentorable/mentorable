@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /auth
+Disallow: /agents
 Disallow: /onboarding
 Disallow: /scorecard
 Disallow: /chat

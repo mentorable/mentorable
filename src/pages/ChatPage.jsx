@@ -580,7 +580,7 @@ function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, resear
       )}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
         <p style={{ fontFamily: SG, fontSize: 11, color: NAVY, margin: 0 }}>
-          Mentorable Agent can make mistakes. Verify decisions on your own accord.
+          Your advisor can make mistakes. Check important decisions yourself.
         </p>
         {(() => {
           const left = researchMode

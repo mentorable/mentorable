@@ -15,6 +15,10 @@ import CollegeListPage from "./pages/CollegeListPage.jsx";
 import RoadmapPage from "./pages/RoadmapPage.jsx";
 import RoadmapNodePage from "./pages/RoadmapNodePage.jsx";
 import PortfolioPage from "./pages/PortfolioPage.jsx";
+import AgentsHubPage from "./pages/AgentsHubPage.jsx";
+import OutreachBoardPage from "./pages/OutreachBoardPage.jsx";
+import OutreachNewPage from "./pages/OutreachNewPage.jsx";
+import OutreachReviewPage from "./pages/OutreachReviewPage.jsx";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage.jsx";
 import TermsOfServicePage from "./pages/TermsOfServicePage.jsx";
 import Sidebar from "./components/common/Sidebar.jsx";
@@ -25,7 +29,7 @@ import { HOME_PATH, isEnabled } from "./lib/features.js";
 import { getValidUser } from "./lib/auth.js";
 
 // Routes that show the persistent sidebar
-const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/quest", "/college-list", "/roadmap", "/portfolio"];
+const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/quest", "/college-list", "/roadmap", "/portfolio", "/agents"];
 
 // Captured at module load, before the Supabase client strips the URL hash.
 // After clicking the email-confirmation link the user lands here with auth
@@ -146,6 +150,39 @@ function PortfolioRoute() {
   return <PortfolioPage navigate={navigate} />;
 }
 
+function AgentsHubRoute() {
+  const navigate = useNavigate();
+  return <AgentsHubPage navigate={navigate} />;
+}
+
+function OutreachBoardRoute() {
+  const navigate = useNavigate();
+  return <OutreachBoardPage navigate={navigate} />;
+}
+
+// The flow's prefill fields. Only these key the page: the Gmail return
+// parameters (?gmail=, &code=) are stripped by the page itself, and remounting
+// on that would drop the notice and the flow it restores.
+function prefillKey(search) {
+  let q;
+  try { q = new URLSearchParams(search); } catch { return ""; }
+  return ["goal", "name", "org", "url", "try"].map((k) => q.get(k) || "").join("|");
+}
+
+function OutreachNewRoute() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  // Opening the flow from another prefilled link (a goal, a person) starts it
+  // fresh instead of keeping the last one's state.
+  return <OutreachNewPage key={prefillKey(location.search)} navigate={navigate} />;
+}
+
+function OutreachReviewRoute() {
+  const navigate = useNavigate();
+  const { contactId } = useParams();
+  return <OutreachReviewPage navigate={navigate} contactId={contactId} />;
+}
+
 // True if a Supabase session is stored — checked synchronously so we never flash
 // the landing page to a logged-in user who's about to be redirected.
 function hasStoredSession() {
@@ -187,6 +224,10 @@ export default function App() {
         <Route path="/roadmap" element={<ErrorBoundary><RoadmapRoute /></ErrorBoundary>} />
         <Route path="/roadmap/node/:nodeId" element={<ErrorBoundary><RoadmapNodeRoute /></ErrorBoundary>} />
         <Route path="/portfolio" element={<ErrorBoundary><PortfolioRoute /></ErrorBoundary>} />
+        <Route path="/agents" element={<ErrorBoundary><AgentsHubRoute /></ErrorBoundary>} />
+        <Route path="/agents/outreach" element={<ErrorBoundary><OutreachBoardRoute /></ErrorBoundary>} />
+        <Route path="/agents/outreach/new" element={<ErrorBoundary><OutreachNewRoute /></ErrorBoundary>} />
+        <Route path="/agents/outreach/:contactId" element={<ErrorBoundary><OutreachReviewRoute /></ErrorBoundary>} />
         <Route path="/privacy" element={<PrivacyPolicyRoute />} />
         <Route path="/terms" element={<TermsOfServiceRoute />} />
         <Route path="/" element={<RootRoute />} />

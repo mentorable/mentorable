@@ -25,6 +25,9 @@ export const FEATURES = {
   scorecard: false,
   chat:      true,
   portfolio: true,
+  // The Agents page: playful specialists, one registry entry each
+  // (src/lib/agents/registry.js). The first is Beaker, the outreach pelican.
+  agents:    true,
 };
 
 export const isEnabled = (key) => FEATURES[key] !== false;

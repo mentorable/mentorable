@@ -7,6 +7,9 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 import { useTheme } from "../lib/ThemeContext.jsx";
 import { hexToRgbString } from "../lib/theme.js";
 import MemorySection from "../components/profile/MemorySection.jsx";
+import ConnectedAccounts from "../components/profile/ConnectedAccounts.jsx";
+import { isEnabled } from "../lib/features.js";
+import { agentsApi } from "../lib/agentsApi.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -230,6 +233,9 @@ export default function ProfilePage({ navigate }) {
     setDeleting(true);
     setDeleteError(null);
     try {
+      // Take back Beaker's Gmail permission at Google before the account goes
+      // (best effort: a failure must not stop the deletion).
+      try { await agentsApi.googleDisconnect(); } catch { /* not connected, or the backend is asleep */ }
       const { data: deleteData, error } = await supabase.functions.invoke("delete-account");
       if (error) throw error;
       if (deleteData?.error) throw new Error(deleteData.error);
@@ -341,7 +347,7 @@ export default function ProfilePage({ navigate }) {
                   placeholder="What should we call you?"
                   maxLength={80}
                 />
-                <Hint>Used by the Mentorable Agent when addressing you.</Hint>
+                <Hint>Used by your advisor when addressing you.</Hint>
               </div>
 
               <div style={{ marginBottom: "1.25rem" }}>
@@ -389,7 +395,7 @@ export default function ProfilePage({ navigate }) {
 
             {/* ── Agent behavior ───────────────────────────────────────────── */}
             <div style={card}>
-              <SectionHeading>Mentorable Agent</SectionHeading>
+              <SectionHeading>Your advisor</SectionHeading>
 
               <div style={{ marginBottom: "1.25rem" }}>
                 <Label>Response style</Label>
@@ -431,6 +437,14 @@ export default function ProfilePage({ navigate }) {
               <SectionHeading>What Mentorable remembers</SectionHeading>
               <MemorySection userId={userId} accent={accent} onToast={showToast} />
             </div>
+
+            {/* ── Connected accounts ───────────────────────────────────────── */}
+            {isEnabled("agents") && (
+              <div style={card}>
+                <SectionHeading>Connected accounts</SectionHeading>
+                <ConnectedAccounts onToast={showToast} navigate={nav} />
+              </div>
+            )}
 
             <div style={{ marginBottom: "2.5rem" }} />
 
