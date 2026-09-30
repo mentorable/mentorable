@@ -1,7 +1,7 @@
 """
 Resources for one Quest task: one to three real links the student can ask for.
 
-Found with the web search tool (Haiku 4.5), never written from memory: a model
+Found with a web search (Brave when a key is set, otherwise Anthropic's web search tool; Haiku 4.5 reads the results), never written from memory: a model
 asked for links makes up plausible ones. So every link the model submits is
 checked against the URLs the search really returned, and the rest are dropped.
 Sites unsuitable for a high school student, and homework-answer sites, are
@@ -11,7 +11,8 @@ import logging
 from typing import Optional
 from urllib.parse import urlparse
 
-from app.llm import ModelUnavailable, search_completion
+from app import search_pool
+from app.llm import ModelUnavailable, search_completion, tool_completion
 from app.models import QUEST_RESOURCES_MODEL
 from app.nodes.quest.common import clean_text
 
@@ -110,6 +111,31 @@ def clean_resources(raw, returned: set[str]) -> Optional[list[dict]]:
     return out
 
 
+async def _search_and_pick(prompt: str, task: dict, quest: dict):
+    """(what the model submitted, the URLs the search returned, {"searches",
+    "errors"}). With a Brave key (Brave's API, one plain model call over the
+    results) about a tenth of the price; otherwise, or if Brave cannot answer,
+    Anthropic's own web search tool."""
+    if search_pool.brave.configured():
+        title = " ".join(str(task.get("title") or "").split())
+        topic = " ".join(str(quest.get("title") or "").split())
+        queries = [f"{title} {topic} guide OR tutorial OR explainer".strip()[:200]]
+        try:
+            results = []
+            for q in queries:
+                results += await search_pool.brave.web_search(q, blocked=BLOCKED_DOMAINS)
+            raw = await tool_completion(model=QUEST_RESOURCES_MODEL,
+                                        prompt=prompt + "\n\n" + search_pool.results_block(results[:10]),
+                                        tool=SUBMIT_TOOL, max_tokens=1500, label="quest_resources")
+            return raw, {r["url"] for r in results}, {"searches": len(queries), "errors": 0}
+        except search_pool.SearchUnavailable:
+            logger.warning("[quest_resources] Brave could not answer; using Anthropic's web search instead")
+    return await search_completion(
+        model=QUEST_RESOURCES_MODEL, prompt=prompt, submit_tool=SUBMIT_TOOL, max_tokens=1500,
+        label="quest_resources", max_searches=3, blocked_domains=BLOCKED_DOMAINS,
+    )
+
+
 async def find_resources(*, quest: dict, task: dict, grade: str) -> Optional[list[dict]]:
     """Real, checked links for a task. None when the model or search failed
     (the caller refunds the student's search); [] when nothing solid turned up."""
@@ -121,10 +147,7 @@ async def find_resources(*, quest: dict, task: dict, grade: str) -> Optional[lis
         grade=grade,
     )
     try:
-        raw, returned, stats = await search_completion(
-            model=QUEST_RESOURCES_MODEL, prompt=prompt, submit_tool=SUBMIT_TOOL, max_tokens=1500,
-            label="quest_resources", max_searches=3, blocked_domains=BLOCKED_DOMAINS,
-        )
+        raw, returned, stats = await _search_and_pick(prompt, task, quest)
     except ModelUnavailable as exc:
         logger.warning(f"[quest_resources] search unavailable: {exc}")
         return None

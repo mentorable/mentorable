@@ -24,6 +24,9 @@ services:
         sync: false
       - key: BRAVE_API_KEY
         sync: false
+      # Beaker's web search: one key or several, separated by commas. See app/search_pool.py.
+      - key: TAVILY_API_KEYS
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: CORS_ORIGIN

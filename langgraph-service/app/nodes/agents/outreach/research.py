@@ -1,8 +1,12 @@
 """
 Beaker's research: who to write to, and what their work is about.
 
-Two calls, both Haiku 4.5 with the web search tool (llm.search_completion),
-each submitting its answer through a tool:
+Two calls, both Haiku 4.5, each submitting its answer through a tool. The web
+search behind them is a search API (Tavily, through search_pool.py) when a key is set: the
+searches run here, and the model reads a short list of results in one plain
+call, which is what keeps a try cheap. With no key, or when no key can answer,
+they use Anthropic's web search tool (llm.search_completion), which costs many
+times more:
 - find_people: a goal becomes a shortlist of three to five real people.
 - research_person: a named person becomes a few facts about their work, each
   with the page that states it, plus an email address if one is published.
@@ -29,8 +33,11 @@ import re
 import unicodedata
 from typing import Awaitable, Callable, Optional
 
-from app.llm import ModelUnavailable, search_completion
+import asyncio
+
+from app.llm import ModelUnavailable, search_completion, tool_completion
 from app.models import OUTREACH_RESEARCH_MODEL
+from app import search_pool
 from app.nodes.agents.outreach import pages, prompts
 from app.nodes.quest.common import clean_text
 from app.nodes.quest.resources import BLOCKED_DOMAINS
@@ -150,6 +157,114 @@ class _SearchLines:
         for line in self.open:
             await progress_line(self.emit, line, "That search did not come back", "failed")
         self.open = []
+
+
+# ── Searching ────────────────────────────────────────────────────────────────
+
+QUERIES_TOOL = {
+    "name": "submit_queries",
+    "description": "Submit the web search queries.",
+    "input_schema": {
+        "type": "object",
+        "properties": {"queries": {"type": "array", "items": {"type": "string"},
+                                   "description": "Two queries, four to ten words each, from different angles."}},
+        "required": ["queries"],
+    },
+}
+
+QUERIES_PROMPT = """A US high school student wants to email someone who could help with a goal. Write two short web search queries (four to ten words each) that would find official pages of the right people: faculty profiles, lab pages, university outreach programs, or a professional's work bio. Use different angles: one on the field and the kind of person, one on the kind of page (a lab, a program, a directory). Keep the student's own name and personal details out.
+
+THE GOAL, IN THEIR WORDS:
+{goal}"""
+
+READ_PAGES = 2                  # pages read in full when researching a named person
+READ_PAGE_CHARS = 3500
+
+
+async def _write_queries(goal: str) -> list[str]:
+    """Two search queries for a goal, from a tiny model call. The goal itself
+    is the fallback: a student's own words search well enough."""
+    try:
+        got = await tool_completion(model=OUTREACH_RESEARCH_MODEL, prompt=QUERIES_PROMPT.format(goal=goal),
+                                    tool=QUERIES_TOOL, max_tokens=200, label="outreach_queries")
+    except ModelUnavailable:
+        got = None
+    queries = []
+    for q in (got or {}).get("queries", []) if isinstance(got, dict) else []:
+        q = clean_text(q, 120)
+        if 3 <= len(q) and q.lower() not in [x.lower() for x in queries]:
+            queries.append(q)
+    return queries[:2] or [clean_text(goal, 200)]
+
+
+async def _search_answer(*, label: str, prompt: str, tool: dict, max_tokens: int, queries, lines: "_SearchLines",
+                         anthropic_searches: int, read_pages: int = 0, fetched: Optional[dict] = None,
+                         emit: Optional[Emit] = None):
+    """(what the model submitted, the URLs the search returned, {"searches", "errors"}).
+
+    With Tavily: run the queries, optionally read the top pages, and put the
+    results in front of the model in one plain call. If no Tavily key can
+    answer, or none is set, the model searches with Anthropic's own tool."""
+    if search_pool.tavily.configured():
+        try:
+            return await _pooled_answer(label=label, prompt=prompt, tool=tool, max_tokens=max_tokens,
+                                       queries=list(queries), lines=lines, read_pages=read_pages,
+                                       fetched=fetched if fetched is not None else {}, emit=emit)
+        except search_pool.SearchUnavailable:
+            logger.warning(f"[{label}] Tavily could not answer; using Anthropic's web search instead")
+    return await search_completion(
+        model=OUTREACH_RESEARCH_MODEL, prompt=prompt, submit_tool=tool, max_tokens=max_tokens, label=label,
+        max_searches=anthropic_searches, blocked_domains=OUTREACH_BLOCKED, on_event=lines.on_event)
+
+
+async def _pooled_answer(*, label, prompt, tool, max_tokens, queries, lines, read_pages, fetched, emit):
+    results: list[dict] = []
+    seen: set[str] = set()
+    ran = errors = 0
+    for query in queries:
+        await lines.on_event({"type": "search", "query": query})
+        try:
+            got = await search_pool.tavily.web_search(query, blocked=OUTREACH_BLOCKED)
+        except search_pool.SearchUnavailable:
+            await lines.on_event({"type": "search_error"})
+            if not ran:
+                raise                                   # nothing worked: let the caller fall back
+            errors += 1
+            continue
+        ran += 1
+        await lines.on_event({"type": "results", "count": len(got), "domains": _domains_of(got)})
+        for r in got:
+            if r["url"] not in seen and len(results) < 12:
+                seen.add(r["url"])
+                results.append(r)
+
+    texts: dict[str, str] = {}
+    extra: set[str] = set()
+    if read_pages and results:
+        picks = results[:read_pages]
+        await progress_line(emit, "read", f"Reading their page on {pages.domain_of(picks[0]['url'])}", "active")
+        got_pages = await asyncio.gather(*[_fetch_cached(r["url"], fetched) for r in picks])
+        for r, page in zip(picks, got_pages):
+            if page is not None and page.text:
+                texts[r["url"]] = page.text[:READ_PAGE_CHARS]
+                extra |= {r["url"], page.final_url}
+        await progress_line(emit, "read", f"Read {len(texts)} page{'s' if len(texts) != 1 else ''}" if texts
+                            else "Could not open their pages, using the search results", "done" if texts else "failed")
+
+    raw = await tool_completion(model=OUTREACH_RESEARCH_MODEL, prompt=prompt + "\n\n" + search_pool.results_block(results, texts),
+                                tool=tool, max_tokens=max_tokens, label=label)
+    return raw, {r["url"] for r in results} | extra, {"searches": ran, "errors": errors}
+
+
+def _domains_of(results: list[dict], limit: int = 4) -> list[str]:
+    out: list[str] = []
+    for r in results:
+        host = pages.domain_of(r["url"])
+        if host and host not in out:
+            out.append(host)
+        if len(out) == limit:
+            break
+    return out
 
 
 # ── Links, names and people ──────────────────────────────────────────────────
@@ -374,11 +489,10 @@ async def find_people(goal: str, *, record_text: str, emit: Emit) -> Optional[li
     await lines.start()
     prompt = prompts.find_people_prompt(goal=goal, record_text=research_record(record_text))
     try:
-        raw, returned, stats = await search_completion(
-            model=OUTREACH_RESEARCH_MODEL, prompt=prompt, submit_tool=prompts.PEOPLE_TOOL, max_tokens=2500,
-            label="outreach_people", max_searches=SHORTLIST_SEARCHES, blocked_domains=OUTREACH_BLOCKED,
-            on_event=lines.on_event,
-        )
+        queries = await _write_queries(goal) if search_pool.tavily.configured() else []
+        raw, returned, stats = await _search_answer(
+            label="outreach_people", prompt=prompt, tool=prompts.PEOPLE_TOOL, max_tokens=2500, queries=queries,
+            lines=lines, anthropic_searches=SHORTLIST_SEARCHES, emit=emit)
     except ModelUnavailable as exc:
         logger.warning(f"[outreach_people] search unavailable: {exc}")
         await lines.finish()
@@ -638,13 +752,14 @@ async def research_person(target: dict, *, emit: Emit) -> Optional[dict]:
         name=name, organization=organization, given_url=given if given and not _blocked(given) else "",
         page_title=page.title if page else "", page_text=page.text[:PAGE_PROMPT_CHARS] if page else "",
     )
+    who = f"{name} {organization}".strip()
+    queries = ([f"{who} publications OR research OR project"] if page
+               else [f'"{name}" {organization}'.strip(), f"{who} faculty OR lab OR profile"])
     try:
-        raw, returned, stats = await search_completion(
-            model=OUTREACH_RESEARCH_MODEL, prompt=prompt, submit_tool=prompts.RESEARCH_TOOL, max_tokens=3000,
-            label="outreach_research", max_searches=PERSON_SEARCHES_PAGE_READ if page else PERSON_SEARCHES,
-            blocked_domains=OUTREACH_BLOCKED,
-            on_event=lines.on_event,
-        )
+        raw, returned, stats = await _search_answer(
+            label="outreach_research", prompt=prompt, tool=prompts.RESEARCH_TOOL, max_tokens=3000, queries=queries,
+            lines=lines, anthropic_searches=PERSON_SEARCHES_PAGE_READ if page else PERSON_SEARCHES,
+            read_pages=0 if page else READ_PAGES, fetched=fetched, emit=emit)
     except ModelUnavailable as exc:
         logger.warning(f"[outreach_research] search unavailable: {exc}")
         await lines.finish()

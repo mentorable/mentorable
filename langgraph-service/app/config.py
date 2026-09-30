@@ -1,4 +1,5 @@
 import os
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,7 +12,18 @@ ANTHROPIC_API_KEY: str = os.environ["ANTHROPIC_API_KEY"]
 # is only needed once something is actually routed to that provider.
 GEMINI_API_KEY: str = os.environ.get("GEMINI_API_KEY", "")
 OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
+# Web search for the cheaper paths (app/search_pool.py). Each is optional; with
+# none set, the feature falls back to Anthropic's own web search tool, which
+# costs many times more.
+#   BRAVE_API_KEY   one key: Quest's "Find resources".
+#   TAVILY_API_KEYS one key or several (commas, spaces or new lines; the single
+#   TAVILY_API_KEY works too): Beaker, the outreach agent. Keys are tried in
+#   order, and one that is out of quota or rejected is skipped for a while.
 BRAVE_API_KEY: str = os.environ.get("BRAVE_API_KEY", "")
+BRAVE_API_KEYS: list[str] = [BRAVE_API_KEY] if BRAVE_API_KEY else []
+TAVILY_API_KEYS: list[str] = list(dict.fromkeys(
+    k for k in re.split(r"[,\s]+", os.environ.get("TAVILY_API_KEYS", "") + "," + os.environ.get("TAVILY_API_KEY", "")) if k
+))
 DATABASE_URL: str = os.environ["DATABASE_URL"]  # direct Postgres connection for checkpointer
 CORS_ORIGIN: str = os.environ.get("CORS_ORIGIN", "*")
 # Gmail sending for the outreach agent (Beaker). All optional: without the
