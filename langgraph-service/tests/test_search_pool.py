@@ -272,3 +272,38 @@ def test_quest_resources_fall_back_when_brave_cannot_answer(monkeypatch):
     monkeypatch.setattr(resources, "search_completion", fallback)
     got = run(resources.find_resources(quest={"title": "q", "summary": ""}, task={"title": "t", "detail": ""}, grade=""))
     assert [r["url"] for r in got] == ["https://www.khanacademy.org/x"]
+
+
+# ── The reading jobs run on OpenAI's small models, with Haiku behind them ────
+
+def test_the_reading_jobs_use_openai_first_and_haiku_when_it_gives_nothing(monkeypatch):
+    seen = []
+
+    async def fake_json(**kw):
+        seen.append((kw["schema_name"], kw["openai_model"], kw["schema"]["additionalProperties"]))
+        return seen and {"queries": ["marine biology professor Florida"]}
+
+    async def haiku(**kw):
+        seen.append(("haiku", kw["label"]))
+        return {"queries": ["from haiku"]}
+
+    monkeypatch.setattr(research, "openai_enabled", lambda: True)
+    monkeypatch.setattr(research, "json_completion", fake_json)
+    monkeypatch.setattr(research, "tool_completion", haiku)
+    from app.models import OUTREACH_QUERIES_MODEL
+    assert run(research._write_queries("a marine biology professor")) == ["marine biology professor Florida"]
+    assert seen == [("outreach_queries", OUTREACH_QUERIES_MODEL, False)]
+
+    async def nothing(**kw):
+        return None
+    monkeypatch.setattr(research, "json_completion", nothing)
+    assert run(research._write_queries("a marine biology professor")) == ["from haiku"]
+
+
+def test_the_strict_schema_requires_every_property_all_the_way_down():
+    from app.nodes.agents.outreach import prompts
+    strict = research._strict(prompts.RESEARCH_TOOL["input_schema"])
+    assert strict["additionalProperties"] is False and set(strict["required"]) == set(strict["properties"])
+    email = strict["properties"]["email"]
+    assert email["additionalProperties"] is False and set(email["required"]) == set(email["properties"])
+    assert "additionalProperties" not in prompts.RESEARCH_TOOL["input_schema"]           # the original is untouched

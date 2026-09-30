@@ -35,8 +35,8 @@ from typing import Awaitable, Callable, Optional
 
 import asyncio
 
-from app.llm import ModelUnavailable, search_completion, tool_completion
-from app.models import OUTREACH_RESEARCH_MODEL
+from app.llm import ModelUnavailable, json_completion, openai_enabled, search_completion, tool_completion
+from app.models import OUTREACH_FACTS_MODEL, OUTREACH_PEOPLE_MODEL, OUTREACH_QUERIES_MODEL, OUTREACH_RESEARCH_MODEL
 from app import search_pool
 from app.nodes.agents.outreach import pages, prompts
 from app.nodes.quest.common import clean_text
@@ -181,12 +181,42 @@ READ_PAGES = 2                  # pages read in full when researching a named pe
 READ_PAGE_CHARS = 3500
 
 
+def _strict(schema):
+    """A tool's input schema as OpenAI's strict mode wants it: every property
+    required and no extras, all the way down."""
+    if isinstance(schema, dict):
+        out = {k: _strict(v) for k, v in schema.items()}
+        if out.get("type") == "object" and isinstance(out.get("properties"), dict):
+            out["required"] = list(out["properties"])
+            out["additionalProperties"] = False
+        return out
+    if isinstance(schema, list):
+        return [_strict(v) for v in schema]
+    return schema
+
+
+async def _extract(*, label: str, prompt: str, tool: dict, max_tokens: int, openai_model: str) -> Optional[dict]:
+    """One reading job: the model's answer as a dict, or None. OpenAI's small
+    model first (strict JSON schema, several times cheaper), and Haiku through
+    a forced tool when there is no OpenAI key or that call gave nothing.
+    Raises ModelUnavailable only when Haiku cannot be reached either."""
+    if openai_enabled():
+        out = await json_completion(prompt=prompt, schema=_strict(tool["input_schema"]), schema_name=label,
+                                    openai_model=openai_model, anthropic_model=OUTREACH_RESEARCH_MODEL,
+                                    max_tokens=max_tokens)
+        if isinstance(out, dict):
+            return out
+        logger.warning(f"[{label}] {openai_model} gave no usable answer; asking Haiku")
+    return await tool_completion(model=OUTREACH_RESEARCH_MODEL, prompt=prompt, tool=tool, max_tokens=max_tokens,
+                                 label=label)
+
+
 async def _write_queries(goal: str) -> list[str]:
     """Two search queries for a goal, from a tiny model call. The goal itself
     is the fallback: a student's own words search well enough."""
     try:
-        got = await tool_completion(model=OUTREACH_RESEARCH_MODEL, prompt=QUERIES_PROMPT.format(goal=goal),
-                                    tool=QUERIES_TOOL, max_tokens=200, label="outreach_queries")
+        got = await _extract(label="outreach_queries", prompt=QUERIES_PROMPT.format(goal=goal), tool=QUERIES_TOOL,
+                             max_tokens=200, openai_model=OUTREACH_QUERIES_MODEL)
     except ModelUnavailable:
         got = None
     queries = []
@@ -198,8 +228,8 @@ async def _write_queries(goal: str) -> list[str]:
 
 
 async def _search_answer(*, label: str, prompt: str, tool: dict, max_tokens: int, queries, lines: "_SearchLines",
-                         anthropic_searches: int, read_pages: int = 0, fetched: Optional[dict] = None,
-                         emit: Optional[Emit] = None):
+                         anthropic_searches: int, extract_model: str, read_pages: int = 0,
+                         fetched: Optional[dict] = None, emit: Optional[Emit] = None):
     """(what the model submitted, the URLs the search returned, {"searches", "errors"}).
 
     With Tavily: run the queries, optionally read the top pages, and put the
@@ -209,7 +239,8 @@ async def _search_answer(*, label: str, prompt: str, tool: dict, max_tokens: int
         try:
             return await _pooled_answer(label=label, prompt=prompt, tool=tool, max_tokens=max_tokens,
                                        queries=list(queries), lines=lines, read_pages=read_pages,
-                                       fetched=fetched if fetched is not None else {}, emit=emit)
+                                       fetched=fetched if fetched is not None else {}, emit=emit,
+                                       extract_model=extract_model)
         except search_pool.SearchUnavailable:
             logger.warning(f"[{label}] Tavily could not answer; using Anthropic's web search instead")
     return await search_completion(
@@ -217,7 +248,8 @@ async def _search_answer(*, label: str, prompt: str, tool: dict, max_tokens: int
         max_searches=anthropic_searches, blocked_domains=OUTREACH_BLOCKED, on_event=lines.on_event)
 
 
-async def _pooled_answer(*, label, prompt, tool, max_tokens, queries, lines, read_pages, fetched, emit):
+async def _pooled_answer(*, label, prompt, tool, max_tokens, queries, lines, read_pages, fetched, emit,
+                         extract_model):
     results: list[dict] = []
     seen: set[str] = set()
     ran = errors = 0
@@ -251,8 +283,8 @@ async def _pooled_answer(*, label, prompt, tool, max_tokens, queries, lines, rea
         await progress_line(emit, "read", f"Read {len(texts)} page{'s' if len(texts) != 1 else ''}" if texts
                             else "Could not open their pages, using the search results", "done" if texts else "failed")
 
-    raw = await tool_completion(model=OUTREACH_RESEARCH_MODEL, prompt=prompt + "\n\n" + search_pool.results_block(results, texts),
-                                tool=tool, max_tokens=max_tokens, label=label)
+    raw = await _extract(label=label, prompt=prompt + "\n\n" + search_pool.results_block(results, texts), tool=tool,
+                         max_tokens=max_tokens, openai_model=extract_model)
     return raw, {r["url"] for r in results} | extra, {"searches": ran, "errors": errors}
 
 
@@ -492,7 +524,7 @@ async def find_people(goal: str, *, record_text: str, emit: Emit) -> Optional[li
         queries = await _write_queries(goal) if search_pool.tavily.configured() else []
         raw, returned, stats = await _search_answer(
             label="outreach_people", prompt=prompt, tool=prompts.PEOPLE_TOOL, max_tokens=2500, queries=queries,
-            lines=lines, anthropic_searches=SHORTLIST_SEARCHES, emit=emit)
+            lines=lines, anthropic_searches=SHORTLIST_SEARCHES, emit=emit, extract_model=OUTREACH_PEOPLE_MODEL)
     except ModelUnavailable as exc:
         logger.warning(f"[outreach_people] search unavailable: {exc}")
         await lines.finish()
@@ -759,7 +791,7 @@ async def research_person(target: dict, *, emit: Emit) -> Optional[dict]:
         raw, returned, stats = await _search_answer(
             label="outreach_research", prompt=prompt, tool=prompts.RESEARCH_TOOL, max_tokens=3000, queries=queries,
             lines=lines, anthropic_searches=PERSON_SEARCHES_PAGE_READ if page else PERSON_SEARCHES,
-            read_pages=0 if page else READ_PAGES, fetched=fetched, emit=emit)
+            read_pages=0 if page else READ_PAGES, fetched=fetched, emit=emit, extract_model=OUTREACH_FACTS_MODEL)
     except ModelUnavailable as exc:
         logger.warning(f"[outreach_research] search unavailable: {exc}")
         await lines.finish()
