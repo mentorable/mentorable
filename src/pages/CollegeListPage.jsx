@@ -58,6 +58,20 @@ function writeFlag(key) {
 
 // ─── Formatting ───────────────────────────────────────────────────────────────
 
+// Touch sizing follows the input, not the width: a tablet held in landscape is
+// wider than the mobile breakpoint but still tapped with a finger.
+const COARSE = "(pointer: coarse)";
+function useCoarsePointer() {
+  const [coarse, setCoarse] = useState(() => typeof window !== "undefined" && window.matchMedia(COARSE).matches);
+  useEffect(() => {
+    const mql = window.matchMedia(COARSE);
+    const on = (e) => setCoarse(e.matches);
+    mql.addEventListener("change", on);
+    return () => mql.removeEventListener("change", on);
+  }, []);
+  return coarse;
+}
+
 const money = (n) => `$${Number(n).toLocaleString("en-US")}`;
 
 /** The school's facts, admit rate first. `lead` marks the one that sorts it,
@@ -120,7 +134,9 @@ function Facts({ school }) {
  *  toggle buttons, each reachable with Tab. */
 function CategoryPicker({ value, onChange, disabled, label }) {
   const ink = useAccentInk();
-  const isMobile = useIsMobile();
+  const coarse = useCoarsePointer();
+  const narrow = useIsMobile();
+  const touch = coarse || narrow;
   return (
     <div role="group" aria-label={label}
       style={{ display: "inline-flex", background: "rgba(20,20,19,0.05)", borderRadius: 10, padding: 3, gap: 2 }}>
@@ -132,7 +148,7 @@ function CategoryPicker({ value, onChange, disabled, label }) {
           <button key={s.key} type="button" aria-pressed={on} aria-disabled={disabled || undefined}
             onClick={() => !on && !disabled && onChange(s.key)}
             style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, cursor: disabled ? "default" : "pointer",
-              padding: isMobile ? "0 14px" : "0 12px", minHeight: isMobile ? 44 : 36, borderRadius: 8, border: "none",
+              padding: touch ? "0 14px" : "0 12px", minHeight: touch ? 44 : 36, borderRadius: 8, border: "none",
               background: on ? ink.button.bg : "transparent", color: on ? ink.button.fg : TEXT_MUTED,
               transition: "background 0.15s, color 0.15s" }}>
             {s.label}
@@ -273,10 +289,10 @@ function SchoolCard({ item, stats, onSetCategory, onRestore, onRemove, isMobile,
         listStyle: "none" }}>
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flexDirection: isMobile ? "column" : "row" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontFamily: SANS, fontWeight: 700, fontSize: isMobile ? "1.2rem" : "1.3rem", color: TEXT,
+          <h3 style={{ margin: 0, fontFamily: SANS, fontWeight: 700, fontSize: isMobile ? "1.2rem" : "1.3rem", color: TEXT,
             lineHeight: 1.3, letterSpacing: "-0.01em", overflowWrap: "anywhere" }}>
             {item.name}
-          </p>
+          </h3>
           {place(item) && (
             <p style={{ margin: "3px 0 0", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, color: TEXT_MUTED }}>{place(item)}</p>
           )}
@@ -299,7 +315,9 @@ function SchoolCard({ item, stats, onSetCategory, onRestore, onRemove, isMobile,
 function SearchResult({ school, stats, onList, adding, onAdd, first }) {
   const { accent } = useTheme();
   const ink = useAccentInk();
-  const isMobile = useIsMobile();
+  const coarse = useCoarsePointer();
+  const narrow = useIsMobile();
+  const touch = coarse || narrow;
   const suggestion = suggestCategory(stats, school);
   return (
     <li style={{ listStyle: "none", padding: "12px 14px", borderTop: first ? "none" : `1px solid ${BORDER}`,
@@ -319,12 +337,14 @@ function SearchResult({ school, stats, onList, adding, onAdd, first }) {
       {onList ? (
         <span style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, color: TEXT_MUTED }}>On your list</span>
       ) : adding ? (
-        <Spinner size={18} color={accent} />
+        <span role="status" style={{ display: "inline-flex", alignItems: "center", minHeight: 38 }}>
+          <Spinner size={18} color={accent} /><span style={SR_ONLY}>Adding {school.name}</span>
+        </span>
       ) : suggestion ? (
         <button type="button" onClick={() => onAdd(school)}
           style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, color: ink.text, cursor: "pointer",
             background: "rgba(var(--accent-rgb),0.08)", border: "none", borderRadius: 10, padding: "0 14px",
-            minHeight: isMobile ? 44 : 38 }}>
+            minHeight: touch ? 44 : 38 }}>
           Add as {LABEL[suggestion.category]}
         </button>
       ) : (
@@ -612,8 +632,9 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
 
   if (phase === "loading") {
     return (
-      <div data-sidebar-offset style={{ ...pagePad, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div data-sidebar-offset role="status" style={{ ...pagePad, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Spinner size={26} color={accent} />
+        <span style={SR_ONLY}>Loading your college list</span>
       </div>
     );
   }
@@ -621,9 +642,9 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
     return (
       <div data-sidebar-offset style={{ ...pagePad, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center", maxWidth: 420 }}>
-          <p style={{ fontFamily: SANS, fontSize: "1.05rem", fontWeight: 700, color: TEXT, marginBottom: 8 }}>
+          <h1 style={{ fontFamily: SANS, fontSize: "1.05rem", fontWeight: 700, color: TEXT, margin: "0 0 8px" }}>
             We could not load your college list
-          </p>
+          </h1>
           <p style={{ fontFamily: SANS, fontSize: "0.98rem", color: TEXT_MUTED, lineHeight: 1.6, marginBottom: "1.4rem" }}>
             Nothing has been lost. Give it another go in a moment.
           </p>
@@ -783,7 +804,7 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
           {navigate && items.length > 0 && (
             <button type="button" onClick={() => navigate("/chat")}
               style={{ fontFamily: SANS, fontSize: "0.95rem", color: ink.text, fontWeight: 700, background: "none",
-                border: "none", padding: 0, cursor: "pointer", textDecoration: "underline" }}>
+                border: "none", padding: 0, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>
               Talk your list over in Chat.
             </button>
           )}
