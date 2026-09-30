@@ -175,11 +175,11 @@ export function balance(items) {
   const total = n.reach + n.target + n.likely;
   let note = null;
   if (total >= 3 && n.likely === 0) {
-    note = "Add a likely school or two: places you would be glad to attend that should admit you.";
+    note = "Add a likely school or two: places you would be glad to attend that admit most students with scores like yours.";
   } else if (total >= 4 && n.reach > n.target + n.likely) {
     note = "Most of this list is reaches. A few more targets would give you real choices in the spring.";
   } else if (total >= 4 && n.target < 2) {
-    note = "Consider a couple more targets, schools where your record fits the students they admit.";
+    note = "Consider a couple more targets, schools where your scores fit the students they admit.";
   } else if (total >= 5 && n.reach === 0) {
     note = "No reaches yet. If your record is strong, a reach or two can be worth it, and selective schools with good aid sometimes cost less than you would expect.";
   }

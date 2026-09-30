@@ -86,6 +86,15 @@ export async function setCategory(id, category) {
   return data;
 }
 
+/** Hand a school back to the rule: its suggestion, and the app keeps it current again. */
+export async function restoreSuggestion(id, suggestion) {
+  const { data, error } = await supabase.from("college_list_items")
+    .update({ category: suggestion.category, category_source: suggestion.source, updated_at: new Date().toISOString() })
+    .eq("id", id).select(COLUMNS).single();
+  if (error) throw new CollegeListError("Could not change that. Try again.", "save");
+  return data;
+}
+
 export async function removeSchool(id) {
   const { error } = await supabase.from("college_list_items").delete().eq("id", id);
   if (error) throw new CollegeListError("Could not remove that school. Try again.", "save");

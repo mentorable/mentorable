@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { requireUser } from "../lib/auth.js";
 import {
   addSchool, importOnboardingNames, loadCollegeList, refreshSuggestions, removeSchool,
-  searchSchools, setCategory,
+  restoreSuggestion, searchSchools, setCategory,
 } from "../lib/collegeList.js";
 import { balance, explainItem, suggestCategory } from "../lib/collegeCategory.js";
 import Spinner from "../components/common/Spinner.jsx";
@@ -26,10 +26,16 @@ const TEXT_FAINT = "#6a6760";
 const BORDER     = "#e6dfd8";
 const DANGER     = "#dc2626";
 
+// What each group means, said as a comparison, never as odds: the rule only
+// sets scores against a school's range and admit rate. `empty` fills a group
+// with nothing in it yet, so an empty list still shows its shape.
 const SECTIONS = [
-  { key: "reach",  label: "Reach",  hint: "Getting in would be a stretch. Worth applying to a few." },
-  { key: "target", label: "Target", hint: "Your record looks like the students they admit." },
-  { key: "likely", label: "Likely", hint: "You should get in. Choose ones you would be glad to attend." },
+  { key: "reach",  label: "Reach",  hint: "Few applicants get in, or your scores sit below their usual range.",
+    empty: "None yet. A few schools you would love to attend belong here." },
+  { key: "target", label: "Target", hint: "Your scores fit, but they turn many applicants away.",
+    empty: "None yet. Most of a strong list sits here." },
+  { key: "likely", label: "Likely", hint: "Most applicants with scores like yours get in.",
+    empty: "None yet. Add a couple you would be glad to attend." },
 ];
 const LABEL = { reach: "Reach", target: "Target", likely: "Likely" };
 
@@ -37,7 +43,8 @@ const LABEL = { reach: "Reach", target: "Target", likely: "Likely" };
 // component can be driven with made-up data when checking it by hand.
 const REAL_API = {
   requireUser, load: loadCollegeList, search: searchSchools, add: addSchool,
-  setCategory, remove: removeSchool, refresh: refreshSuggestions, importNames: importOnboardingNames,
+  setCategory, restore: restoreSuggestion, remove: removeSchool, refresh: refreshSuggestions,
+  importNames: importOnboardingNames,
 };
 
 const IMPORT_KEY = (uid) => `mentorable.collegeImportDone.${uid}`;
@@ -52,7 +59,8 @@ function writeFlag(key) {
 
 const money = (n) => `$${Number(n).toLocaleString("en-US")}`;
 
-/** The school's facts, admit rate first. `lead` marks the one that sorts it. */
+/** The school's facts, admit rate first. `lead` marks the one that sorts it,
+ *  set bolder than the rest but below the reason, which leads the card. */
 function facts(s) {
   const out = [];
   if (s.admission_rate !== null && s.admission_rate !== undefined) {
@@ -66,6 +74,9 @@ function facts(s) {
 }
 
 const place = (s) => [s.city, s.state].filter(Boolean).join(", ");
+
+const SR_ONLY = { position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden",
+  clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0 };
 
 // ─── Small pieces ─────────────────────────────────────────────────────────────
 
@@ -85,10 +96,10 @@ function Facts({ school }) {
   const list = facts(school);
   if (!list.length) return null;
   return (
-    <p style={{ margin: "10px 0 0", fontFamily: SANS, color: TEXT, lineHeight: 1.5, fontVariantNumeric: "tabular-nums",
+    <p style={{ margin: "8px 0 0", fontFamily: SANS, color: TEXT, lineHeight: 1.5, fontVariantNumeric: "tabular-nums",
       display: "flex", flexWrap: "wrap", alignItems: "baseline", columnGap: 16, rowGap: 2 }}>
       {list.map((f) => (
-        <span key={f.text} style={f.lead ? { fontSize: "1.15rem", fontWeight: 800 } : { fontSize: "0.95rem", fontWeight: 500 }}>
+        <span key={f.text} style={f.lead ? { fontSize: "1rem", fontWeight: 800 } : { fontSize: "0.95rem", fontWeight: 500 }}>
           {f.text}
         </span>
       ))}
@@ -106,8 +117,10 @@ function CategoryPicker({ value, onChange, disabled, label }) {
       {SECTIONS.map((s) => {
         const on = value === s.key;
         return (
-          <button key={s.key} type="button" aria-pressed={on} disabled={disabled}
-            onClick={() => !on && onChange(s.key)}
+          // aria-disabled, not disabled: a disabled button cannot hold focus,
+          // and focus moves here while the save that disables it runs.
+          <button key={s.key} type="button" aria-pressed={on} aria-disabled={disabled || undefined}
+            onClick={() => !on && !disabled && onChange(s.key)}
             style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, cursor: disabled ? "default" : "pointer",
               padding: "6px 11px", borderRadius: 8, border: "none",
               background: on ? ink.button.bg : "transparent", color: on ? ink.button.fg : TEXT_MUTED,
@@ -188,12 +201,55 @@ function ConfirmRemove({ name, onConfirm, onClose }) {
 
 // ─── A school on the list ─────────────────────────────────────────────────────
 
-function SchoolCard({ item, stats, onSetCategory, onRemove, isMobile, saving }) {
-  const why = explainItem(item, stats);
-  const rough = item.category_source === "rough";
+/** Why the school sits where it does, and the card's lead line. A school the
+ *  student sorted keeps the rule's view beside theirs, with a way back to it. */
+function Reason({ item, stats, onRestore, saving }) {
+  const ink = useAccentInk();
+  const lead = { margin: "10px 0 0", fontFamily: SANS, lineHeight: 1.5, fontWeight: 600, fontSize: "1.1rem", color: TEXT };
+  if (item.category_source !== "student") {
+    const why = explainItem(item, stats);
+    if (!why) return null;
+    const rough = item.category_source === "rough";
+    return (
+      <p style={rough ? { ...lead, fontWeight: 500, fontSize: "1.05rem", color: TEXT_MUTED, fontStyle: "italic" } : lead}>
+        {why}
+      </p>
+    );
+  }
+  const rule = suggestCategory(stats, item);
+  const agrees = rule?.category === item.category;
   return (
-    <li style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "1rem 1.1rem",
-      listStyle: "none" }}>
+    <>
+      <p style={lead}>You put this in {LABEL[item.category]}{agrees ? ", and the rule agrees." : "."}</p>
+      {rule && !agrees && (
+        <p style={{ margin: "4px 0 0", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 500, color: TEXT_MUTED,
+          lineHeight: 1.5, fontStyle: rule.source === "rough" ? "italic" : "normal" }}>
+          The rule would say {LABEL[rule.category]}. {rule.reason.replace(/^Rough guess\. /, "")}{" "}
+          <button type="button" onClick={() => !saving && onRestore(item, rule)} aria-disabled={saving || undefined}
+            style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, fontStyle: "normal", color: ink.text,
+              background: "none", border: "none", padding: "4px 0", cursor: saving ? "default" : "pointer",
+              textDecoration: "underline", textUnderlineOffset: 3 }}>
+            Move it to {LABEL[rule.category]}
+          </button>
+        </p>
+      )}
+    </>
+  );
+}
+
+function SchoolCard({ item, stats, onSetCategory, onRestore, onRemove, isMobile, saving, flash }) {
+  const { accentRgb } = useTheme();
+  const reduce = useReducedMotion();
+  return (
+    // layoutId carries the card from its old group to its new one when the
+    // category changes, so the student sees where it went.
+    <motion.li data-school={item.id} tabIndex={-1}
+      layoutId={reduce ? undefined : `school-${item.id}`}
+      initial={flash ? { backgroundColor: `rgba(${accentRgb},0.14)` } : false}
+      animate={{ backgroundColor: "rgba(255,255,255,1)" }}
+      transition={{ layout: { duration: 0.45, ease: [0.22, 1, 0.36, 1] }, backgroundColor: { duration: 1.6, ease: "easeOut" } }}
+      style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "1rem 1.1rem",
+        listStyle: "none" }}>
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flexDirection: isMobile ? "column" : "row" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: 0, fontFamily: SANS, fontWeight: 700, fontSize: isMobile ? "1.2rem" : "1.3rem", color: TEXT,
@@ -203,13 +259,8 @@ function SchoolCard({ item, stats, onSetCategory, onRemove, isMobile, saving }) 
           {place(item) && (
             <p style={{ margin: "3px 0 0", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, color: TEXT_MUTED }}>{place(item)}</p>
           )}
+          <Reason item={item} stats={stats} onRestore={onRestore} saving={saving} />
           <Facts school={item} />
-          {why && (
-            <p style={{ margin: "10px 0 0", fontFamily: SANS, lineHeight: 1.55, fontWeight: 500,
-              fontSize: rough ? "1rem" : "1.05rem", color: rough ? TEXT_MUTED : TEXT, fontStyle: rough ? "italic" : "normal" }}>
-              {why}
-            </p>
-          )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
           width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "space-between" : "flex-end" }}>
@@ -218,7 +269,7 @@ function SchoolCard({ item, stats, onSetCategory, onRemove, isMobile, saving }) 
           <RemoveButton name={item.name} onClick={() => onRemove(item)} />
         </div>
       </div>
-    </li>
+    </motion.li>
   );
 }
 
@@ -378,6 +429,28 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
   const [importing, setImporting] = useState(null);   // the name being looked up
   const [importDone, setImportDone] = useState(false);
   const [saving, setSaving] = useState(() => new Set());   // ids whose category is being saved
+  const [flash, setFlash] = useState(null);   // id of the card that just moved
+  const [said, setSaid] = useState("");       // read out by screen readers only
+  const focusNext = useRef(null);             // a CSS selector to focus after the next render
+  const reduce = useReducedMotion();
+
+  // A card that changes group unmounts from one list and mounts in another, and
+  // a removed card is gone, so focus would fall back to <body>. Put it where the
+  // student can carry on from, and bring that into view.
+  useEffect(() => {
+    const target = focusNext.current;
+    if (!target) return;
+    focusNext.current = null;
+    const el = document.querySelector(target);
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    el.closest("li, section")?.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
+  });
+  useEffect(() => {
+    if (!flash) return undefined;
+    const t = setTimeout(() => setFlash(null), 1800);
+    return () => clearTimeout(t);
+  }, [flash]);
 
   useEffect(() => {
     (async () => {
@@ -407,27 +480,46 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
   }, [api, userId, stats]);
 
   // One save per school at a time, so two quick taps cannot land out of order.
-  const onSetCategory = async (item, category) => {
+  // `rule` set means handing the school back to the rule's suggestion.
+  const move = async (item, category, rule = null) => {
     if (saving.has(item.id)) return;
     const before = item;
+    const moved = category !== item.category;
     setSaving((prev) => new Set(prev).add(item.id));
-    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, category, category_source: "student" } : i)));
+    setItems((prev) => prev.map((i) => (i.id === item.id
+      ? { ...i, category, category_source: rule ? rule.source : "student" } : i)));
+    if (moved) {
+      setFlash(item.id);
+      setSaid(`Moved ${item.name} to ${LABEL[category]}.`);
+    }
+    focusNext.current = `[data-school="${item.id}"] [aria-pressed="true"]`;
     try {
-      const saved = await api.setCategory(item.id, category);
+      const saved = rule ? await api.restore(item.id, rule) : await api.setCategory(item.id, category);
       setItems((prev) => prev.map((i) => (i.id === item.id ? saved : i)));
     } catch (e) {
       setItems((prev) => prev.map((i) => (i.id === item.id ? before : i)));
+      focusNext.current = `[data-school="${item.id}"] [aria-pressed="true"]`;
+      if (moved) setSaid(`${item.name} is still in ${LABEL[before.category]}.`);
       setNotice(e.message);
     } finally {
       setSaving((prev) => { const next = new Set(prev); next.delete(item.id); return next; });
     }
   };
+  const onSetCategory = (item, category) => move(item, category);
+  const onRestore = (item, rule) => move(item, rule.category, rule);
 
   const onRemove = async () => {
     const item = confirm;
+    // Focus lands on the next school in the same group, or the one before,
+    // or the group's heading when it was the last.
+    const group = items.filter((i) => i.category === item.category);
+    const at = group.findIndex((i) => i.id === item.id);
+    const neighbour = group[at + 1] || group[at - 1];
     try {
       await api.remove(item.id);
       setItems((prev) => prev.filter((i) => i.id !== item.id));
+      setSaid(`Removed ${item.name}.`);
+      focusNext.current = neighbour ? `[data-school="${neighbour.id}"]` : `#sec-${item.category}`;
     } catch (e) {
       setNotice(e.message);
     }
@@ -496,8 +588,8 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
           College List
         </h1>
         <p style={{ fontFamily: SANS, fontSize: "1.15rem", color: TEXT_MUTED, lineHeight: 1.6, margin: "0 0 1.9rem", maxWidth: 640 }}>
-          The schools you are applying to, sorted by how likely you are to get in. Admit rates, score ranges and
-          costs come from the U.S. Department of Education.
+          The schools you are applying to, grouped by how your scores compare with the students each one admits.
+          Admit rates, score ranges and costs come from the U.S. Department of Education.
         </p>
 
         {offerImport && (
@@ -547,19 +639,19 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
           )}
         </div>
 
-        {items.length === 0 ? (
-          <div style={{ background: WHITE, border: `1px dashed ${BORDER}`, borderRadius: 16, padding: "1.6rem 1.4rem" }}>
-            <p style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", color: TEXT, margin: "0 0 6px" }}>
-              Your list is empty
+        <div role="status" style={SR_ONLY}>{said}</div>
+
+        {/* Empty or not, the three groups are always there: an empty list
+            shows the shape a list should take before the first search. */}
+        <div style={{ marginBottom: "1.8rem" }}>
+          {items.length === 0 ? (
+            <p style={{ margin: 0, fontFamily: SANS, fontSize: "1.1rem", fontWeight: 500, color: TEXT_MID, lineHeight: 1.6,
+              maxWidth: 640 }}>
+              A strong list has a few of each. Search for a school above and it lands in one of these three groups,
+              with the reason why. You can move it any time.
             </p>
-            <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT_MUTED, lineHeight: 1.6, margin: 0, maxWidth: 560 }}>
-              Search for a school above. Each one is sorted into reach, target or likely for you, and you can change
-              that any time. A strong list has a few of each.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div style={{ marginBottom: "1.8rem" }}>
+          ) : (
+            <>
               <p style={{ margin: 0, fontFamily: SANS, fontSize: "1.2rem", fontWeight: 600, color: TEXT,
                 fontVariantNumeric: "tabular-nums" }}>
                 {b.reach} reach, {b.target} target, {b.likely} likely
@@ -570,54 +662,56 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
                   {b.note}
                 </p>
               )}
-            </div>
+            </>
+          )}
+        </div>
 
-            {SECTIONS.map((sec) => {
-              const list = items.filter((i) => i.category === sec.key);
-              return (
-                <section key={sec.key} aria-labelledby={`sec-${sec.key}`} style={{ marginBottom: "1.8rem" }}>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
-                    <h2 id={`sec-${sec.key}`} style={{ margin: 0, fontFamily: SANS, fontWeight: 700, color: TEXT,
-                      fontSize: isMobile ? "1.35rem" : "1.5rem", letterSpacing: "-0.01em" }}>
-                      {sec.label}
-                    </h2>
-                    <span style={{ fontFamily: SANS, fontWeight: 500, fontSize: isMobile ? "1.35rem" : "1.5rem", color: TEXT_MUTED,
-                      fontVariantNumeric: "tabular-nums" }}>{list.length}</span>
-                  </div>
-                  <p style={{ margin: "0 0 12px", fontFamily: SANS, fontSize: "1.1rem", color: ink.text, lineHeight: 1.5 }}>
-                    {sec.hint}
+        <LayoutGroup>
+          {SECTIONS.map((sec) => {
+            const list = items.filter((i) => i.category === sec.key);
+            return (
+              <section key={sec.key} aria-labelledby={`sec-${sec.key}`} style={{ marginBottom: "1.8rem" }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
+                  <h2 id={`sec-${sec.key}`} tabIndex={-1} style={{ margin: 0, fontFamily: SANS, fontWeight: 700, color: TEXT,
+                    fontSize: isMobile ? "1.35rem" : "1.5rem", letterSpacing: "-0.01em" }}>
+                    {sec.label}
+                  </h2>
+                  <span style={{ fontFamily: SANS, fontWeight: 500, fontSize: isMobile ? "1.35rem" : "1.5rem", color: TEXT_MUTED,
+                    fontVariantNumeric: "tabular-nums" }}>{list.length}</span>
+                </div>
+                <p style={{ margin: "0 0 12px", fontFamily: SANS, fontSize: "1.1rem", color: ink.text, lineHeight: 1.5 }}>
+                  {sec.hint}
+                </p>
+                {list.length === 0 ? (
+                  <p style={{ margin: 0, fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.5,
+                    border: `1px dashed ${BORDER}`, borderRadius: 14, padding: "12px 14px" }}>
+                    {sec.empty}
                   </p>
-                  {list.length === 0 ? (
-                    <p style={{ margin: 0, fontFamily: SANS, fontSize: "1rem", fontWeight: 700, color: TEXT_MUTED,
-                      border: `1px dashed ${BORDER}`, borderRadius: 14, padding: "12px 14px" }}>
-                      None yet.
-                    </p>
-                  ) : (
-                    <ul style={{ margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-                      {list.map((it) => (
-                        <SchoolCard key={it.id} item={it} stats={stats} isMobile={isMobile} saving={saving.has(it.id)}
-                          onSetCategory={onSetCategory} onRemove={setConfirm} />
-                      ))}
-                    </ul>
-                  )}
-                </section>
-              );
-            })}
+                ) : (
+                  <ul style={{ margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+                    {list.map((it) => (
+                      <SchoolCard key={it.id} item={it} stats={stats} isMobile={isMobile} saving={saving.has(it.id)}
+                        flash={flash === it.id} onSetCategory={onSetCategory} onRestore={onRestore} onRemove={setConfirm} />
+                    ))}
+                  </ul>
+                )}
+              </section>
+            );
+          })}
+        </LayoutGroup>
 
-            <p style={{ margin: "0.4rem 0 0", fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.6, maxWidth: 660 }}>
-              Figures are from the College Scorecard. Score ranges are the middle 50% of admitted students, and average
-              net price is what students who got financial aid paid in a year, which is often far below the listed price.
-              A category is a starting point, not a prediction.{" "}
-              {navigate && (
-                <button type="button" onClick={() => navigate("/chat")}
-                  style={{ fontFamily: SANS, fontSize: "0.95rem", color: ink.text, fontWeight: 700, background: "none",
-                    border: "none", padding: 0, cursor: "pointer", textDecoration: "underline" }}>
-                  Talk your list over in Chat.
-                </button>
-              )}
-            </p>
-          </>
-        )}
+        <p style={{ margin: "0.4rem 0 0", fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.6, maxWidth: 660 }}>
+          Figures are from the College Scorecard. Score ranges are the middle 50% of admitted students, and average
+          net price is what students who got financial aid paid in a year, which is often far below the listed price.
+          A category is a starting point, not a prediction.{" "}
+          {navigate && items.length > 0 && (
+            <button type="button" onClick={() => navigate("/chat")}
+              style={{ fontFamily: SANS, fontSize: "0.95rem", color: ink.text, fontWeight: 700, background: "none",
+                border: "none", padding: 0, cursor: "pointer", textDecoration: "underline" }}>
+              Talk your list over in Chat.
+            </button>
+          )}
+        </p>
       </div>
 
       <AnimatePresence>
