@@ -39,7 +39,15 @@ logger = logging.getLogger(__name__)
 
 Emit = Callable[[dict], Awaitable[None]]
 
-MAX_SEARCHES = 4
+# Every search costs $0.01 and feeds its results back through the model, which
+# costs more than the search itself, so the counts are as low as still finds
+# someone: the shortlist needs breadth (2), a named person needs their page and
+# one piece of work (3), and with their page already read (a shortlist pick, or
+# a link the student gave) one more search is enough (1).
+SHORTLIST_SEARCHES = 2
+PERSON_SEARCHES = 3
+PERSON_SEARCHES_PAGE_READ = 1
+MAX_SEARCHES = SHORTLIST_SEARCHES      # kept for the tests that import it
 MAX_CANDIDATES = 5
 MAX_AMBIGUOUS = 3
 MAX_FACTS = 6
@@ -368,7 +376,7 @@ async def find_people(goal: str, *, record_text: str, emit: Emit) -> Optional[li
     try:
         raw, returned, stats = await search_completion(
             model=OUTREACH_RESEARCH_MODEL, prompt=prompt, submit_tool=prompts.PEOPLE_TOOL, max_tokens=2500,
-            label="outreach_people", max_searches=MAX_SEARCHES, blocked_domains=OUTREACH_BLOCKED,
+            label="outreach_people", max_searches=SHORTLIST_SEARCHES, blocked_domains=OUTREACH_BLOCKED,
             on_event=lines.on_event,
         )
     except ModelUnavailable as exc:
@@ -633,7 +641,8 @@ async def research_person(target: dict, *, emit: Emit) -> Optional[dict]:
     try:
         raw, returned, stats = await search_completion(
             model=OUTREACH_RESEARCH_MODEL, prompt=prompt, submit_tool=prompts.RESEARCH_TOOL, max_tokens=3000,
-            label="outreach_research", max_searches=MAX_SEARCHES, blocked_domains=OUTREACH_BLOCKED,
+            label="outreach_research", max_searches=PERSON_SEARCHES_PAGE_READ if page else PERSON_SEARCHES,
+            blocked_domains=OUTREACH_BLOCKED,
             on_event=lines.on_event,
         )
     except ModelUnavailable as exc:

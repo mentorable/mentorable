@@ -64,7 +64,7 @@ Who fits best, in this order, because these are the people most likely to answer
 4. Professionals with a public work bio (a company, museum, agency or nonprofit page) whose job matches the goal.
 
 How to work:
-- Search first, then call submit_people. Use at most four searches.
+- Search first, then call submit_people. Use at most two searches, and make each one count.
 - Search for the field, the topic and the kind of page: a lab page, a faculty directory, an outreach program. If the goal or the record names a general area (a city or a state), prefer people near it. Search only for the goal and the field: the student's name, school and details stay out of every query.
 - Include only people named on a page the search returned, and give that page's exact URL as source_url. Copy URLs from the results; write none from memory, and include only real people you saw on those pages.
 - Use official pages: a university, lab, company, museum, agency or nonprofit site. Leave out social media, forums, people-search and contact-list sites, and news stories that only mention someone in passing.
@@ -164,7 +164,7 @@ Who Beaker helps students write to: adults in a professional or public role, suc
 For either one, use status "not_found", leave person, facts, email and candidates empty, and stop there. Otherwise set recipient_kind to "professional".
 
 How to work:
-- Search first, then call submit_research. Use at most four searches. Start with their name and where they work, find their official profile or lab page, and if it helps, one recent piece of their own work (a paper, a project page, a program they run).
+- Search first, then call submit_research. Use at most the searches you are allowed (the tool enforces it), and read any page text given below first: if it already shows who they are and what they work on, one search for a recent piece of their work is enough. Start with their name and where they work, find their official profile or lab page, and if it helps, one recent piece of their own work (a paper, a project page, a program they run).
 - Use only pages the search returned{or_given}, with their exact URLs copied from the results. Write no URL from memory.
 - status "found" only when you are confident which person this is. If two or more different people match the name and nothing tells you which one the student means, use "ambiguous" and list up to three in candidates, each with the URL of a page that shows them, and in why one plain sentence on what tells them apart (their field or where they work). If no reliable page turned up, use "not_found".
 - person: their name, current role and organization as their page states them, and the URL and title of their official profile or lab page if you found one (empty strings if not).

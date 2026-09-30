@@ -688,7 +688,7 @@ def test_the_search_never_sees_the_students_name(monkeypatch):
     run(research.find_people("coral reefs", record_text=record, emit=Events()))
     call = calls[0]
     assert "Samira" not in call["prompt"] and "Marine Science Club" in call["prompt"]
-    assert call["model"] == OUTREACH_RESEARCH_MODEL and call["max_searches"] == 4
+    assert call["model"] == OUTREACH_RESEARCH_MODEL and call["max_searches"] == 2
     assert "reddit.com" in call["blocked_domains"] and "rocketreach.co" in call["blocked_domains"]
     assert call["submit_tool"]["name"] == "submit_people"
 
@@ -1415,3 +1415,8 @@ def test_the_drafting_prompt_keeps_its_core_rules():
                  "phone number", "safety_stop", "claims", "Program coordinator", "not asking for a job",
                  "renowned", "facts_to_verify", "never an em dash", "parent or teacher"):
         assert rule in system, rule
+
+
+def test_a_person_whose_page_was_read_needs_only_one_search():
+    from app.nodes.agents.outreach import research as r
+    assert r.SHORTLIST_SEARCHES == 2 and r.PERSON_SEARCHES == 3 and r.PERSON_SEARCHES_PAGE_READ == 1

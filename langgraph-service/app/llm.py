@@ -241,12 +241,30 @@ async def tool_completion(
 
     if getattr(message, "stop_reason", None) == "max_tokens":
         logger.warning(f"[llm] {label}: tool reply truncated at max_tokens")
+    u = getattr(message, "usage", None)
+    if u is not None:
+        spent = {"in": int(getattr(u, "input_tokens", 0) or 0), "out": int(getattr(u, "output_tokens", 0) or 0)}
+        logger.info(f"[llm] {label}: {spent['in']} in / {spent['out']} out tokens{_cost_note(model, spent, 0)}")
 
     for block in message.content or []:
         if getattr(block, "type", None) == "tool_use" and isinstance(getattr(block, "input", None), dict):
             return block.input
     logger.warning(f"[llm] {label}: no usable tool call in the reply")
     return None
+
+
+# List prices per million tokens (input, output), for the log line only. Not
+# used for any decision; app/models.py stays the source of which model runs.
+_PRICE = {"claude-haiku-4-5-20251001": (1.00, 5.00), "claude-sonnet-5": (2.00, 10.00)}
+
+
+def _cost_note(model: str, spent: dict, searches: int) -> str:
+    """" (about $0.031)": tokens at list price plus $0.01 a search."""
+    inp, out = _PRICE.get(model, (0.0, 0.0))
+    if not (inp or out):
+        return ""
+    dollars = (spent["in"] * inp + spent["out"] * out) / 1_000_000 + searches * 0.01
+    return f" (about ${dollars:.3f})"
 
 
 async def _notify(on_event, event: dict) -> None:
@@ -312,6 +330,7 @@ async def search_completion(
     messages: list[Any] = [{"role": "user", "content": prompt}]
     found: set[str] = set()
     stats = {"searches": 0, "errors": 0}
+    spent = {"in": 0, "out": 0}
 
     for _turn in range(3):
         message = None
@@ -328,6 +347,9 @@ async def search_completion(
                     await asyncio.sleep(0.8)
         if message is None:
             raise ModelUnavailable(str(last)) from last
+        u = getattr(message, "usage", None)
+        spent["in"] += int(getattr(u, "input_tokens", 0) or 0)
+        spent["out"] += int(getattr(u, "output_tokens", 0) or 0)
 
         for block in message.content or []:
             kind = _field(block, "type")
@@ -351,7 +373,8 @@ async def search_completion(
             elif kind == "tool_use" and _field(block, "name") == submit_tool["name"]:
                 submitted = _field(block, "input")
                 logger.info(f"[llm] {label}: {stats['searches']} search(es), {stats['errors']} error(s), "
-                            f"{len(found)} result url(s)")
+                            f"{len(found)} result url(s), {spent['in']} in / {spent['out']} out tokens"
+                            f"{_cost_note(model, spent, stats['searches'])}")
                 return (submitted if isinstance(submitted, dict) else None), found, stats
 
         if getattr(message, "stop_reason", None) != "pause_turn":
