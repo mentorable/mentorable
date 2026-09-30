@@ -110,7 +110,7 @@ export function SpeechBubble({ children, side = "left", tone = "default", style,
       {name && (
         <span aria-hidden="true" style={{ position: "absolute", top: -11, ...tabSide, maxWidth: "calc(100% - 36px)",
           padding: "2px 8px", background: accent ? WHITE : ink.soft, color: accent ? ink.text : ink.onSoft,
-          fontFamily: SANS, fontSize: "0.9rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
+          fontFamily: SANS, fontSize: "0.9rem", fontWeight: 800, letterSpacing: "0.01em",
           lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", boxSizing: "border-box",
           boxShadow: `0 -2px 0 ${INK}, 0 2px 0 ${INK}, -2px 0 0 ${INK}, 2px 0 0 ${INK}` }}>
           {name}
