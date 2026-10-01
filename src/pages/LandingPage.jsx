@@ -274,7 +274,7 @@ function LaptopRecord() {
   const iv  = useInView(ref, { once: true, margin: "-80px" });
   return (
     <div ref={ref} className="lp-laptop" aria-hidden="true" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
-      padding: "2rem 0", perspective: "900px" }}>
+      padding: "2rem 0" }}>
       <motion.div
         initial={{ opacity: 0, y: 60 }}
         animate={iv ? { opacity: 1, y: [0,-12,0] } : {}}
@@ -282,7 +282,7 @@ function LaptopRecord() {
           opacity: { duration: 0.8, ease: EASE },
           y: { duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.8 },
         }}
-        style={{ position: "relative", transformStyle: "preserve-3d" }}>
+        style={{ position: "relative" }}>
         {/* Screen lid — kept flat (no rotate) so the screen's small text stays crisp instead of being
             resampled/blurred by a CSS 3D transform; only the keyboard deck below tilts into perspective. */}
         <div style={{ width: 420, height: 280, background: "#0e1019",
@@ -308,7 +308,10 @@ function LaptopRecord() {
         <div style={{ width: 420, height: 200,
           background: "linear-gradient(180deg, #c8ccd6 0%, #b0b5c2 50%, #9ca1ae 100%)",
           borderRadius: "0 0 14px 14px",
-          transform: "rotateX(58deg)",
+          // The perspective lives on the deck itself. Inherited 3D (perspective + preserve-3d on the
+          // parents) is flattened by the browser whenever an ancestor's opacity is below 1, so the
+          // deck showed as a flat rectangle during the fade-in and snapped to its real shape after.
+          transform: "perspective(750px) rotateX(58deg)",
           transformOrigin: "top center",
           boxShadow: "0 22px 44px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.12)",
           marginTop: -4, overflow: "hidden", padding: "14px 18px 12px",
