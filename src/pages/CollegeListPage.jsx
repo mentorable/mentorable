@@ -20,7 +20,7 @@ import { PixelStamp } from "../components/ui/PixelIcons.jsx";
 // College List: the schools a student is applying to, grouped reach, target
 // and likely. Built on the app's shared kit (the calm shell the Agents pages
 // started), with its character in pixel stamps and the guide bubble: each
-// group fills toward a goal, and a balanced list earns its badge.
+// group fills toward a goal.
 
 const INK = TEXT;
 const MID = TEXT_MID;
@@ -297,7 +297,7 @@ function Banner({ error, children, action, onDismiss }) {
 // ─── The scoreboard ───────────────────────────────────────────────────────────
 
 /** The three groups as raised tiles, each filling toward its goal and each a
- *  jump to its group, and the badge a balanced list earns. */
+ *  jump to its group. */
 function Scoreboard({ counts, isMobile, reduce }) {
   const ink = useAccentInk();
   return (
@@ -333,42 +333,7 @@ function Scoreboard({ counts, isMobile, reduce }) {
           );
         })}
       </nav>
-      <BalanceBanner counts={counts} reduce={reduce} />
     </div>
-  );
-}
-
-/** The list's goal as plain text: a countdown of what is missing
- *  while it is locked, then the badge once every group has reached it. */
-function BalanceBanner({ counts, reduce }) {
-  const earned = counts.balanced;
-  const was = useRef(earned);
-  const earning = earned && !was.current;
-  useEffect(() => { was.current = earned; }, [earned]);
-  const missing = SECTIONS.map((s) => ({ ...s, n: Math.max(0, LIST_GOAL[s.key] - counts[s.key]) })).filter((s) => s.n);
-  const left = missing.reduce((sum, s) => sum + s.n, 0);
-  const plural = (key, n) => (n === 1 ? key : { reach: "reaches", target: "targets", likely: "likelies" }[key]);
-  const shape = SECTIONS.map((s) => `${LIST_GOAL[s.key]} ${plural(s.key, LIST_GOAL[s.key])}`);
-  const title = earned ? "Balanced list unlocked!"
-    : counts.total === 0 ? `Aim for ${shape[0]}, ${shape[1]} and ${shape[2]}.`
-    : left ? `${left} more to unlock the Balanced list badge.` : "Almost balanced.";
-  const detail = earned
-    ? "A couple of reaches, a few targets and a couple of likelies. Keep every one a school you would be glad to attend."
-    : counts.total === 0
-      ? "That shape earns the Balanced list badge. Every one should be a school you would be glad to attend."
-      : left
-        ? `Add ${missing.map((s) => `${s.n} more ${plural(s.key, s.n)}`).join(" and ")}, each a school you would be glad to attend.`
-        : counts.note;
-  return (
-    <motion.div key={earned ? "earned" : "locked"}
-      initial={earning && !reduce ? { scale: 0.94 } : false}
-      animate={earning && !reduce ? { scale: [0.94, 1.03, 1] } : { scale: 1 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
-      <p style={{ margin: 0, fontFamily: SANS, lineHeight: 1.5, color: INK }}>
-        <span style={{ display: "block", fontWeight: 800, fontSize: "1.05rem" }}>{title}</span>
-        {detail && <span style={{ display: "block", marginTop: 2, color: MID }}>{detail}</span>}
-      </p>
-    </motion.div>
   );
 }
 
@@ -806,7 +771,6 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
   const [importDone, setImportDone] = useState(false);
   const [saving, setSaving] = useState(() => new Set());   // ids whose category is being saved
   const [flash, setFlash] = useState(null);   // id of the card that just moved or arrived
-  const [said, setSaid] = useState("");       // read out by screen readers only: the badge being earned
   const [sort, setSort] = useState(() => readPref(SORT_KEY, "added"));
   const [view, setView] = useState(() => readPref(VIEW_KEY, ""));   // "" until the student picks
   const focusNext = useRef(null);             // a CSS selector to focus after the next render
@@ -825,14 +789,6 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
     // Centered, so the bottom toast that follows a move never covers it.
     el.closest("li, section")?.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
   });
-  // Earning the balanced-list badge is the list's big moment; say it aloud too.
-  const balancedNow = balance(items).balanced;
-  const wasBalanced = useRef(null);   // null until the list has loaded, so a list that loads balanced is not announced
-  useEffect(() => {
-    if (phase !== "ready") return;
-    if (wasBalanced.current === false && balancedNow) setSaid("Balanced list unlocked.");
-    wasBalanced.current = balancedNow;
-  }, [balancedNow, phase]);
   useEffect(() => {
     if (!flash) return undefined;
     const t = setTimeout(() => setFlash(null), 1800);
@@ -1083,7 +1039,6 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
           )}
         </div>
 
-        <div role="status" style={SR_ONLY}>{said}</div>
 
         {items.length > 1 && (
           <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", flexWrap: "wrap",

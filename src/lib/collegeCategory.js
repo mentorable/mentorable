@@ -188,7 +188,5 @@ export function balance(items) {
   } else if (total >= 5 && n.reach === 0) {
     note = "No reaches yet. If your record is strong, a reach or two can be worth it, and selective schools with good aid sometimes cost less than you would expect.";
   }
-  // Balanced once every group has reached its goal and nothing needs saying.
-  const balanced = !note && CATEGORIES.every((c) => n[c] >= LIST_GOAL[c]);
-  return { ...n, total, note, balanced };
+  return { ...n, total, note };
 }
