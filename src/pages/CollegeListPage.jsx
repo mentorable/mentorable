@@ -338,7 +338,7 @@ function Scoreboard({ counts, isMobile, reduce }) {
   );
 }
 
-/** The list's goal in the guide bubble: a countdown of what is missing
+/** The list's goal as plain text: a countdown of what is missing
  *  while it is locked, then the badge once every group has reached it. */
 function BalanceBanner({ counts, reduce }) {
   const earned = counts.balanced;
@@ -364,11 +364,10 @@ function BalanceBanner({ counts, reduce }) {
       initial={earning && !reduce ? { scale: 0.94 } : false}
       animate={earning && !reduce ? { scale: [0.94, 1.03, 1] } : { scale: 1 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
-      <Tip name={earned ? "Badge earned" : "Goal"} stamp={earned ? "star" : "lock"} tone={earned ? "accent" : "default"}
-        style={{ paddingTop: 0 }}>
+      <p style={{ margin: 0, fontFamily: SANS, lineHeight: 1.5, color: INK }}>
         <span style={{ display: "block", fontWeight: 800, fontSize: "1.05rem" }}>{title}</span>
         {detail && <span style={{ display: "block", marginTop: 2, color: MID }}>{detail}</span>}
-      </Tip>
+      </p>
     </motion.div>
   );
 }
