@@ -167,6 +167,11 @@ export function explainItem(item, stats) {
 
 // ── The list as a whole ─────────────────────────────────────────────────────
 
+// What a balanced list looks like, as the page's goal for each group: the
+// common counseling shape of a couple of reaches, a few targets and a couple
+// of likelies. A floor to work toward, not a cap; more is fine.
+export const LIST_GOAL = { reach: 2, target: 3, likely: 2 };
+
 /** Counts by category, and at most one plain note about the balance. A list
  *  too low is as much a problem as one too high, so both directions count. */
 export function balance(items) {
@@ -175,7 +180,7 @@ export function balance(items) {
   const total = n.reach + n.target + n.likely;
   let note = null;
   if (total >= 3 && n.likely === 0) {
-    note = "Add a likely school or two: places you would be glad to attend that admit most students with scores like yours.";
+    note = "Add a likely school or two: places you would be glad to attend that admit most of the students who apply.";
   } else if (total >= 4 && n.reach > n.target + n.likely) {
     note = "Most of this list is reaches. A few more targets would give you real choices in the spring.";
   } else if (total >= 4 && n.target < 2) {
@@ -183,5 +188,7 @@ export function balance(items) {
   } else if (total >= 5 && n.reach === 0) {
     note = "No reaches yet. If your record is strong, a reach or two can be worth it, and selective schools with good aid sometimes cost less than you would expect.";
   }
-  return { ...n, total, note };
+  // Balanced once every group has reached its goal and nothing needs saying.
+  const balanced = !note && CATEGORIES.every((c) => n[c] >= LIST_GOAL[c]);
+  return { ...n, total, note, balanced };
 }
