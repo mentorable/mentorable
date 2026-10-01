@@ -100,15 +100,15 @@ function Heading({ italic, rest, size = "clamp(2.4rem,4.4vw,3.5rem)" }) {
   );
 }
 
-function SolidBtn({ children, onClick, style = {}, disabled = false, type }) {
+function SolidBtn({ children, onClick, style = {}, disabled = false, type, className }) {
   return (
-    <motion.button onClick={onClick} disabled={disabled} type={type}
+    <motion.button className={className} onClick={onClick} disabled={disabled} type={type}
       whileHover={disabled ? {} : { scale: 1.04, boxShadow: "0 14px 40px rgba(37,99,235,0.45)" }}
       whileTap={disabled ? {} : { scale: 0.97 }}
       style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: "#fff",
         background: P, border: "none", borderRadius: 999, padding: "0.9rem 1.9rem",
         cursor: disabled ? "not-allowed" : "pointer",
-        display: "inline-flex", alignItems: "center", gap: 8,
+        display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap",
         boxShadow: "0 6px 24px rgba(37,99,235,0.35)", transition: "background .3s", ...style }}>
       {children}
     </motion.button>
@@ -587,7 +587,7 @@ function ChatWindow() {
   useEffect(() => { const el = scRef.current; if (el) el.scrollTop = el.scrollHeight; });
 
   return (
-    <div ref={ref} style={{ position: "relative", width: "100%", maxWidth: 660, margin: "0 auto" }}>
+    <div ref={ref} style={{ position: "relative", width: "100%", maxWidth: 660, margin: "0 auto", textAlign: "left" }}>
       <div style={{ position: "absolute", inset: -30, borderRadius: 30,
         background: "radial-gradient(ellipse, rgba(37,99,235,0.14), transparent 70%)",
         filter: "blur(40px)", pointerEvents: "none" }}/>
@@ -661,7 +661,7 @@ function Navbar() {
     return () => window.removeEventListener("scroll", h);
   }, []);
   return (
-    <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
+    <nav className="lp-nav" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
       padding: "1.05rem clamp(1.25rem,4vw,3rem)",
       display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1.5rem",
       background: sc ? "rgba(250,249,245,0.9)" : "transparent",
@@ -670,11 +670,11 @@ function Navbar() {
       boxShadow: sc ? "0 2px 30px rgba(37,99,235,0.08)" : "none",
       transition: "background .4s, box-shadow .4s, border-color .4s" }}>
       <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", letterSpacing: "-0.03em", color: P, transition: "color .4s" }}>mentorable</div>
-      <div style={{ display: "flex", alignItems: "center", gap: "1.1rem" }}>
+      <div className="lp-nav-actions" style={{ display: "flex", alignItems: "center", gap: "1.1rem" }}>
         <button onClick={() => go("/auth")} style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 500,
           color: "#1a1a1a", background: "transparent", border: "none", cursor: "pointer",
           whiteSpace: "nowrap", transition: "color .2s" }}>Log In</button>
-        <SolidBtn onClick={() => go("/auth")} style={{ padding: "0.7rem 1.4rem", fontSize: "0.85rem" }}>Get Started <ArrowRight/></SolidBtn>
+        <SolidBtn className="lp-nav-cta" onClick={() => go("/auth")} style={{ padding: "0.7rem 1.4rem", fontSize: "0.85rem" }}>Get Started <ArrowRight/></SolidBtn>
       </div>
     </nav>
   );
@@ -802,7 +802,7 @@ function Newsletter() {
     <section style={{ padding: "6rem clamp(1.25rem,4vw,2.5rem)", background: BG }}>
       <div style={{ maxWidth: 540, margin: "0 auto", textAlign: "center" }}>
         <FadeUp>
-          <h3 style={{ fontFamily: SANS, fontWeight: 300, fontSize: "clamp(1.8rem,3.5vw,2.4rem)",
+          <h3 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "clamp(1.8rem,3.5vw,2.4rem)",
             color: FG, margin: 0, letterSpacing: "-0.02em" }}>Interested in a full, paid version?</h3>
           <p style={{ fontFamily: BODY, fontWeight: 300, fontSize: "0.98rem", color: MUT,
             lineHeight: 1.8, margin: "0.9rem 0 1.9rem" }}>
@@ -845,31 +845,28 @@ function Footer() {
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
         <div style={{ marginBottom: "2.5rem" }}>
           <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", letterSpacing: "-0.03em", marginBottom: "0.8rem" }}>mentorable</div>
-          <p style={{ fontFamily: BODY, fontWeight: 300, fontSize: "0.85rem", color: "rgba(255,255,255,0.62)", lineHeight: 1.8, maxWidth: 320, margin: 0 }}>
+          <p style={{ fontFamily: BODY, fontWeight: 400, fontSize: "0.88rem", color: "#fff", lineHeight: 1.8, maxWidth: 320, margin: 0 }}>
             AI-powered college application guidance for high school students.
           </p>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-          flexWrap: "wrap", gap: 14, paddingTop: "1.8rem", borderTop: "1px solid rgba(255,255,255,0.18)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "1.4rem", flexWrap: "wrap" }}>
-            <div style={{ fontFamily: SANS, fontSize: "0.78rem", color: "rgba(255,255,255,0.55)" }}>© 2026 Mentorable Inc. All rights reserved.</div>
-            <button onClick={() => go("/privacy")} style={{ fontFamily: SANS, fontSize: "0.78rem", color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "none" }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}>Privacy Policy</button>
-            <button onClick={() => go("/terms")} style={{ fontFamily: SANS, fontSize: "0.78rem", color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "none" }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}>Terms of Service</button>
-          </div>
-          <div style={{ display: "flex", gap: "1.5rem" }}>
+          flexWrap: "wrap", gap: "1rem 2rem", paddingTop: "1.8rem", borderTop: "1px solid rgba(255,255,255,0.3)" }}>
+          <div style={{ fontFamily: SANS, fontSize: "0.82rem", color: "#fff" }}>© 2026 Mentorable Inc. All rights reserved.</div>
+          <div className="lp-foot-links" style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem 1.5rem" }}>
             {[
+              { label: "Privacy Policy", to: "/privacy" },
+              { label: "Terms of Service", to: "/terms" },
               { label: "X", href: "https://x.com/MentorableAI" },
               { label: "Instagram", href: "https://www.instagram.com/mentorable.ai/" },
-            ].map((s) => (
-              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
-                style={{ fontFamily: SANS, fontSize: "0.78rem", color: "rgba(255,255,255,0.6)", textDecoration: "none", transition: "color .2s" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}>{s.label}</a>
-            ))}
+            ].map((l) => {
+              const style = { fontFamily: SANS, fontSize: "0.82rem", color: "#fff", background: "none", border: "none",
+                cursor: "pointer", padding: 0, textDecoration: "none", whiteSpace: "nowrap" };
+              const hover = { onMouseEnter: (e) => (e.currentTarget.style.textDecoration = "underline"),
+                onMouseLeave: (e) => (e.currentTarget.style.textDecoration = "none") };
+              return l.to
+                ? <button key={l.label} onClick={() => go(l.to)} style={style} {...hover}>{l.label}</button>
+                : <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer" style={style} {...hover}>{l.label}</a>;
+            })}
           </div>
         </div>
       </div>
@@ -902,6 +899,16 @@ export default function LandingPage() {
         }
         @media (max-width: 400px) {
           .lp-laptop { zoom: 0.72; }
+        }
+        @media (max-width: 480px) {
+          /* Two even rows of two instead of three links and an orphan. */
+          .lp-foot-links { display: grid !important; grid-template-columns: 1fr 1fr; width: 100%; gap: 0.9rem 1.5rem !important; }
+          .lp-foot-links > * { justify-self: start; }
+        }
+        @media (max-width: 420px) {
+          .lp-nav { gap: 0.75rem !important; }
+          .lp-nav-actions { gap: 0.75rem !important; }
+          .lp-nav-cta { padding: 0.62rem 1.05rem !important; font-size: 0.82rem !important; gap: 6px !important; }
         }
       `}</style>
 

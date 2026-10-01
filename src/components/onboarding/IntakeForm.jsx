@@ -44,6 +44,41 @@ function splitEntries(raw) {
     .filter(Boolean);
 }
 
+/**
+ * What a list holds once the text still sitting in its box is counted. A student
+ * who types an entry and goes straight to Next has still told us about it, so
+ * the + is a shortcut and never a requirement. Each returns `items` untouched
+ * when the box is empty.
+ */
+function addNames(items, draft, max) {
+  const merged = [...items];
+  for (const e of splitEntries(draft)) {
+    if (max != null && merged.length >= max) break;
+    if (!merged.some((i) => i.toLowerCase() === e.toLowerCase())) merged.push(e);
+  }
+  return merged;
+}
+const addCourses = (items, draft) => [...items, ...splitEntries(draft).map((name) => ({ name, level: null }))];
+const addAps = (items, draft) => [...items, ...splitEntries(draft).map((subject) => ({ subject, score: null }))];
+
+// What each box feeds: the field it fills and how its text joins the list.
+const DRAFT_FIELDS = {
+  courses:    (items, draft) => addCourses(items, draft),
+  aps:        (items, draft) => addAps(items, draft),
+  activities: (items, draft) => addNames(items, draft, 15),
+  awards:     (items, draft) => addNames(items, draft, 15),
+  majors:     (items, draft) => addNames(items, draft, 6),
+  colleges:   (items, draft) => addNames(items, draft, 20),
+};
+
+function withDrafts(values, drafts) {
+  const patch = {};
+  for (const [field, join] of Object.entries(DRAFT_FIELDS)) {
+    if (splitEntries(drafts[field]).length) patch[field] = join(values[field] || [], drafts[field]);
+  }
+  return { ...values, ...patch };
+}
+
 // ─── Shared bits ──────────────────────────────────────────────────────────────
 
 function Field({ label, hint, children }) {
@@ -100,10 +135,11 @@ function RemoveButton({ onClick, label }) {
   );
 }
 
-/** Input with a visible + button. Enter also works, but nothing depends on knowing that. */
+/** Input with a visible + button. Enter also works, and so does Next: nothing depends on knowing any of them. */
 function AddRow({ value, onChange, onAdd, placeholder, disabled }) {
   const canAdd = !disabled && value.trim().length > 0;
   return (
+    <>
     <div style={{ position: "relative" }}>
       <input
         value={value}
@@ -130,6 +166,12 @@ function AddRow({ value, onChange, onAdd, placeholder, disabled }) {
         </svg>
       </button>
     </div>
+    {canAdd && (
+      <p style={{ fontFamily: SANS, fontSize: "0.88rem", fontWeight: 600, color: ACCENT, margin: "8px 0 0" }}>
+        Press + to add it to your list. Next adds it too.
+      </p>
+    )}
+    </>
   );
 }
 
@@ -150,19 +192,12 @@ function ItemRow({ children, onRemove, label }) {
 }
 
 /** Name-only list: type, hit +, item appears as its own removable row. */
-function ItemList({ items, onChange, placeholder, max }) {
-  const [draft, setDraft] = useState("");
+function ItemList({ items, onChange, placeholder, max, draft, setDraft }) {
   const atMax = max != null && items.length >= max;
 
   const add = () => {
-    const entries = splitEntries(draft);
-    if (!entries.length || atMax) return;
-    const merged = [...items];
-    for (const e of entries) {
-      if (max != null && merged.length >= max) break;
-      if (!merged.some((i) => i.toLowerCase() === e.toLowerCase())) merged.push(e);
-    }
-    onChange(merged);
+    if (!splitEntries(draft).length || atMax) return;
+    onChange(addNames(items, draft, max));
     setDraft("");
   };
 
@@ -189,12 +224,10 @@ function ItemList({ items, onChange, placeholder, max }) {
 }
 
 /** Courses carry a level, because course rigor is a primary academic signal. */
-function CourseList({ items, onChange }) {
-  const [draft, setDraft] = useState("");
+function CourseList({ items, onChange, draft, setDraft }) {
   const add = () => {
-    const entries = splitEntries(draft);
-    if (!entries.length) return;
-    onChange([...items, ...entries.map((name) => ({ name, level: null }))]);
+    if (!splitEntries(draft).length) return;
+    onChange(addCourses(items, draft));
     setDraft("");
   };
   return (
@@ -231,12 +264,10 @@ function CourseList({ items, onChange }) {
 }
 
 /** AP exams as subject + score. */
-function ApList({ items, onChange }) {
-  const [draft, setDraft] = useState("");
+function ApList({ items, onChange, draft, setDraft }) {
   const add = () => {
-    const entries = splitEntries(draft);
-    if (!entries.length) return;
-    onChange([...items, ...entries.map((subject) => ({ subject, score: null }))]);
+    if (!splitEntries(draft).length) return;
+    onChange(addAps(items, draft));
     setDraft("");
   };
   return (
@@ -333,6 +364,9 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
   });
   const [v, setV] = useState(() => ({ ...EMPTY_INTAKE, ...(initial || {}), ...(restored?.values || {}) }));
   const set = (patch) => setV((prev) => ({ ...prev, ...patch }));
+  // The text in each list's box, kept here (not in the list) so Next can count it.
+  const [drafts, setDrafts] = useState({});
+  const draftOf = (field) => ({ draft: drafts[field] || "", setDraft: (text) => setDrafts((d) => ({ ...d, [field]: text })) });
 
   // Persist on every change. The payload is a few hundred bytes, so there's no
   // need to debounce.
@@ -350,7 +384,15 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
   // Only the first step gates progress; everything after it is legitimately skippable.
   const canAdvance = step > 0 || (v.fullName.trim() && v.graduationYear);
 
-  const next = () => (isLast ? onComplete(v) : setStep((s) => s + 1));
+  // Whatever is still typed in a box joins its list before the form moves on.
+  const next = () => {
+    const merged = withDrafts(v, drafts);
+    if (Object.keys(DRAFT_FIELDS).some((f) => merged[f] !== v[f])) {
+      setV(merged);
+      setDrafts({});
+    }
+    return isLast ? onComplete(merged) : setStep((s) => s + 1);
+  };
 
   return (
     // Three columns: an empty spacer, the form, then the record panel. The spacer
@@ -440,7 +482,7 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
                   )}
                   <Field label="Courses you're taking or plan to take"
                     hint="Add them one at a time, or paste a comma separated list and we'll split it for you.">
-                    <CourseList items={v.courses} onChange={(courses) => set({ courses })} />
+                    <CourseList items={v.courses} onChange={(courses) => set({ courses })} {...draftOf("courses")} />
                   </Field>
                 </>
               )}
@@ -483,7 +525,7 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
                     </Field>
                   )}
                   <Field label="AP exams you've taken" hint="Optional. Add the subject, then tap the score you got.">
-                    <ApList items={v.aps} onChange={(aps) => set({ aps })} />
+                    <ApList items={v.aps} onChange={(aps) => set({ aps })} {...draftOf("aps")} />
                   </Field>
                 </>
               )}
@@ -493,11 +535,11 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
                   <Field label="Activities"
                     hint="Clubs, sports, jobs, projects, volunteering, research. One per entry, or paste a list and we'll split it.">
                     <ItemList items={v.activities} onChange={(activities) => set({ activities })}
-                      placeholder="e.g. Science Olympiad" max={15} />
+                      placeholder="e.g. Science Olympiad" max={15} {...draftOf("activities")} />
                   </Field>
                   <Field label="Awards and honors" hint="Anything you were recognised for, at any level.">
                     <ItemList items={v.awards} onChange={(awards) => set({ awards })}
-                      placeholder="e.g. State finalist" max={15} />
+                      placeholder="e.g. State finalist" max={15} {...draftOf("awards")} />
                   </Field>
                 </>
               )}
@@ -506,12 +548,12 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
                 <>
                   <Field label="Majors you're considering" hint="Even if you're not sure. Two or three guesses is plenty.">
                     <ItemList items={v.majors} onChange={(majors) => set({ majors })}
-                      placeholder="e.g. Computer Science" max={6} />
+                      placeholder="e.g. Computer Science" max={6} {...draftOf("majors")} />
                   </Field>
                   <Field label="Colleges you're thinking about"
                     hint="Skip it if you have no idea yet. We'll help you build a real list later.">
                     <ItemList items={v.colleges} onChange={(colleges) => set({ colleges })}
-                      placeholder="e.g. Georgia Tech" max={20} />
+                      placeholder="e.g. Georgia Tech" max={20} {...draftOf("colleges")} />
                   </Field>
                 </>
               )}
