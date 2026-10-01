@@ -216,7 +216,7 @@ export function MilestoneCard({ milestone, next, onClose }) {
           <p style={{ margin: 0, fontFamily: SANS, fontWeight: 700, fontSize: "0.9rem", color: MUTED }}>What you did, in your words:</p>
           {milestone.lines.map((l, i) => (
             <p key={i} style={{ margin: 0, fontFamily: SANS, fontSize: "0.98rem", color: MID, lineHeight: 1.5,
-              borderLeft: `3px solid ${c.soft}`, paddingLeft: 10 }}>{l}</p>
+              background: SURFACE, border: `1px solid ${LINE}`, borderRadius: 12, padding: "8px 12px" }}>{l}</p>
           ))}
         </div>
       )}

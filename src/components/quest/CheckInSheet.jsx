@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { formatDay } from "../../lib/quest.js";
 import Spinner from "../common/Spinner.jsx";
-import { FOCUS_CLASS, RADIUS } from "../ui/tokens.js";
+import { FOCUS_CLASS, RADIUS, SURFACE } from "../ui/tokens.js";
 import { INPUT_CLASS, Tip } from "../ui/kit.jsx";
 import {
   SANS, INK, MID, MUTED, LINE, AMBER,
@@ -45,7 +45,7 @@ function Bubble({ children }) {
 
 function TheirWords({ children }) {
   return (
-    <div style={{ borderLeft: `3px solid ${LINE}`, padding: "2px 0 2px 12px", fontFamily: SANS,
+    <div style={{ background: SURFACE, border: `1px solid ${LINE}`, borderRadius: 12, padding: "8px 12px", fontFamily: SANS,
       fontSize: "0.98rem", color: MID, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>
       {children}
     </div>
