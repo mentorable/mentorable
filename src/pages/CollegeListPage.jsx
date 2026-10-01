@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { requireUser } from "../lib/auth.js";
 import {
@@ -41,6 +41,15 @@ const SORTS = [
   { key: "cost",      label: "Lowest price" },
 ];
 const SORT_KEY = "mentorable.collegeSort";
+
+// Card size. Past COMPACT_AFTER schools the list switches to one line per
+// school unless the student has picked a size themselves.
+const VIEWS = [
+  { key: "cards",   label: "Full cards" },
+  { key: "compact", label: "Compact" },
+];
+const VIEW_KEY = "mentorable.collegeView";
+const COMPACT_AFTER = 8;
 const byNull = (v) => (v === null || v === undefined ? Infinity : v);
 function sortList(list, how) {
   if (how === "selective") return [...list].sort((a, b) => byNull(a.admission_rate) - byNull(b.admission_rate));
@@ -239,20 +248,42 @@ const card = (border = LINE, edge = border) => ({
   background: WHITE, borderRadius: 18, border: `2px solid ${border}`, boxShadow: `0 4px 0 ${edge}`,
 });
 
-function Facts({ school }) {
+/** The school's facts as chips. Each one is a button that shows what it
+ *  means underneath, so the definitions work on touch and from the keyboard,
+ *  not only on hover. `only` limits the chips (the compact card shows fewer). */
+function Facts({ school, only }) {
   const ink = useAccentInk();
-  const list = facts(school);
+  const touch = useTouch();
+  const base = useId();
+  const [open, setOpen] = useState(null);
+  const list = facts(school).filter((f, i) => !only || only.includes(i));
   if (!list.length) return null;
+  const shown = list.find((f) => f.text === open);
   return (
-    <ul aria-label="Facts" style={{ listStyle: "none", margin: "12px 0 0", padding: 0, display: "flex", flexWrap: "wrap", gap: 6 }}>
-      {list.map((f) => (
-        <li key={f.text} title={f.means} style={{ fontFamily: SANS, fontVariantNumeric: "tabular-nums", lineHeight: 1.3,
-          borderRadius: 99, padding: "5px 11px", fontSize: f.lead ? "0.95rem" : "0.92rem", fontWeight: f.lead ? 800 : 600,
-          color: f.lead ? ink.text : MID, background: f.lead ? ink.wash : "#f1f1ef" }}>
-          {f.text}<span style={SR_ONLY}>: {f.means}</span>
-        </li>
-      ))}
-    </ul>
+    <div style={{ marginTop: 12 }}>
+      <ul aria-label="Facts" style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {list.map((f) => {
+          const on = open === f.text;
+          return (
+            <li key={f.text}>
+              <button type="button" aria-expanded={on} aria-controls={`${base}-def`}
+                onClick={() => setOpen(on ? null : f.text)}
+                style={{ fontFamily: SANS, fontVariantNumeric: "tabular-nums", lineHeight: 1.3, cursor: "pointer",
+                  borderRadius: 99, padding: "5px 11px", minHeight: touch ? 36 : 30, fontSize: f.lead ? "0.95rem" : "0.92rem",
+                  fontWeight: f.lead ? 800 : 600, color: f.lead ? ink.text : MID,
+                  background: f.lead ? ink.wash : "#f1f1ef", border: `2px solid ${on ? (f.lead ? ink.text : STONE_EDGE) : "transparent"}` }}
+                aria-label={`${f.text}. ${on ? "Hide" : "Show"} what this means.`}>
+                {f.text}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <p id={`${base}-def`} aria-live="polite" style={{ margin: shown ? "8px 2px 0" : 0, fontFamily: SANS, fontSize: "0.95rem",
+        fontWeight: 600, color: MID, lineHeight: 1.5 }}>
+        {shown && <><span style={{ fontWeight: 800, color: INK }}>{shown.text}:</span> {shown.means}.</>}
+      </p>
+    </div>
   );
 }
 
@@ -477,20 +508,84 @@ function Reason({ item, stats, onRestore, saving }) {
   );
 }
 
-function SchoolCard({ item, stats, onSetCategory, onRestore, onRemove, isMobile, saving, flash }) {
+function SchoolCard({ item, stats, onSetCategory, onRestore, onRemove, isMobile, saving, flash, compact }) {
   const ink = useAccentInk();
   const reduce = useReducedMotion();
   const touch = useTouch();
   const size = touch ? 44 : 38;
+  const [why, setWhy] = useState(false);
+  const whyId = useId();
+  const motionProps = {
+    layoutId: reduce ? undefined : `school-${item.id}`,
+    initial: flash ? { backgroundColor: `rgba(${ink.accentRgb},0.16)`, ...(reduce ? {} : { scale: 0.97 }) } : false,
+    animate: { backgroundColor: "rgba(255,255,255,1)", scale: 1 },
+    transition: { layout: { duration: 0.45, ease: [0.22, 1, 0.36, 1] }, backgroundColor: { duration: 1.6, ease: "easeOut" },
+      scale: { type: "spring", damping: 16, stiffness: 300 } },
+  };
+  const remove = (
+    <button type="button" onClick={() => onRemove(item)} aria-label={`Remove ${item.name}`}
+      style={{ flexShrink: 0, height: size, minWidth: size, padding: isMobile || compact ? 0 : "0 10px",
+        marginTop: compact ? 0 : -4, marginRight: -6, borderRadius: 12, border: "none", background: "none", cursor: "pointer",
+        color: MID, fontFamily: SANS, fontWeight: 800, fontSize: "0.92rem",
+        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = DANGER; e.currentTarget.style.background = "#f6f6f4"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = MID; e.currentTarget.style.background = "none"; }}>
+      <Icon name="x" size={15} />{!isMobile && !compact && "Remove"}
+    </button>
+  );
+  const picker = (
+    <CategoryPicker value={item.category} onChange={(c) => onSetCategory(item, c)} saving={saving} stretch={isMobile}
+      label={`Category for ${item.name}`} />
+  );
+
+  // The compact card, for long lists: one line per school with the admit rate
+  // and the category, and the reason and facts one tap away under "Why?".
+  if (compact) {
+    const lead = facts(item)[0];
+    return (
+      <motion.li data-school={item.id} tabIndex={-1} {...motionProps}
+        style={{ ...card(), padding: isMobile ? "10px 12px 12px" : "10px 12px 10px 16px", listStyle: "none" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "1.05rem", color: INK, lineHeight: 1.3,
+              overflowWrap: "anywhere" }}>
+              {item.name}
+            </h3>
+            <p style={{ margin: "1px 0 0", fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: TEXT_MUTED,
+              fontVariantNumeric: "tabular-nums" }}>
+              {[place(item), lead?.lead ? lead.text : null].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+          {!isMobile && picker}
+          <button type="button" aria-expanded={why} aria-controls={whyId} onClick={() => setWhy((w) => !w)}
+            style={{ flexShrink: 0, minHeight: size, padding: "0 8px", borderRadius: 12, border: "none", background: "none",
+              cursor: "pointer", fontFamily: SANS, fontWeight: 800, fontSize: "0.92rem", color: ink.text,
+              display: "inline-flex", alignItems: "center", gap: 2 }}>
+            <span style={{ display: "inline-flex", transform: why ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>
+              <Icon name="caret" color={ink.text} size={14} />
+            </span>
+            Why<span style={SR_ONLY}> {item.name} is in {LABEL[item.category]}</span>
+          </button>
+          {remove}
+        </div>
+        {isMobile && <div style={{ display: "flex", marginTop: 10 }}>{picker}</div>}
+        <div id={whyId} hidden={!why} style={{ borderTop: why ? `2px solid ${LINE}` : "none", marginTop: why ? 10 : 0,
+          paddingBottom: why ? 4 : 0 }}>
+          {why && (
+            <>
+              <Reason item={item} stats={stats} onRestore={onRestore} saving={saving} />
+              <Facts school={item} />
+            </>
+          )}
+        </div>
+      </motion.li>
+    );
+  }
+
   return (
     // layoutId carries the card from its old group to its new one when the
     // category changes, so the student sees where it went.
-    <motion.li data-school={item.id} tabIndex={-1}
-      layoutId={reduce ? undefined : `school-${item.id}`}
-      initial={flash ? { backgroundColor: `rgba(${ink.accentRgb},0.16)`, ...(reduce ? {} : { scale: 0.97 }) } : false}
-      animate={{ backgroundColor: "rgba(255,255,255,1)", scale: 1 }}
-      transition={{ layout: { duration: 0.45, ease: [0.22, 1, 0.36, 1] }, backgroundColor: { duration: 1.6, ease: "easeOut" },
-        scale: { type: "spring", damping: 16, stiffness: 300 } }}
+    <motion.li data-school={item.id} tabIndex={-1} {...motionProps}
       style={{ ...card(), padding: isMobile ? "14px 14px 12px" : "16px 18px 14px", listStyle: "none" }}>
       {/* Remove sits at the top, apart from the category tiles, so a slip
           on Likely cannot take a school off the list. */}
@@ -504,22 +599,11 @@ function SchoolCard({ item, stats, onSetCategory, onRestore, onRemove, isMobile,
             <p style={{ margin: "3px 0 0", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, color: TEXT_MUTED }}>{place(item)}</p>
           )}
         </div>
-        <button type="button" onClick={() => onRemove(item)} aria-label={`Remove ${item.name}`}
-          style={{ flexShrink: 0, height: size, minWidth: size, padding: isMobile ? 0 : "0 10px", marginTop: -4, marginRight: -6,
-            borderRadius: 12, border: "none", background: "none", cursor: "pointer", color: MID,
-            fontFamily: SANS, fontWeight: 800, fontSize: "0.92rem",
-            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = DANGER; e.currentTarget.style.background = "#f6f6f4"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = MID; e.currentTarget.style.background = "none"; }}>
-          <Icon name="x" size={15} />{!isMobile && "Remove"}
-        </button>
+        {remove}
       </div>
       <Reason item={item} stats={stats} onRestore={onRestore} saving={saving} />
       <Facts school={item} />
-      <div style={{ display: "flex", marginTop: 14, paddingTop: 12, borderTop: `2px solid ${LINE}` }}>
-        <CategoryPicker value={item.category} onChange={(c) => onSetCategory(item, c)} saving={saving} stretch={isMobile}
-          label={`Category for ${item.name}`} />
-      </div>
+      <div style={{ display: "flex", marginTop: 14, paddingTop: 12, borderTop: `2px solid ${LINE}` }}>{picker}</div>
     </motion.li>
   );
 }
@@ -731,16 +815,18 @@ function AddSchool({ api, stats, items, counts, onAdded, intro }) {
   );
 }
 
-function SortControl({ value, onChange }) {
+/** A labelled row of raised chips, one of them chosen: the order within
+ *  groups, and the card size. On a phone the chips share the row evenly. */
+function ChipChoice({ label, options, value, onChange }) {
   const ink = useAccentInk();
   const touch = useTouch();
   const isMobile = useIsMobile();
   return (
-    <div role="group" aria-label="Order within each group"
-      style={isMobile ? { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }
+    <div role="group" aria-label={label}
+      style={isMobile ? { display: "grid", gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`, gap: 8 }
         : { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-      <span style={isMobile ? SR_ONLY : { fontFamily: SANS, fontWeight: 800, fontSize: "0.95rem", color: MID }}>Order</span>
-      {SORTS.map((s) => {
+      <span style={isMobile ? SR_ONLY : { fontFamily: SANS, fontWeight: 800, fontSize: "0.95rem", color: MID }}>{label}</span>
+      {options.map((s) => {
         const on = value === s.key;
         return (
           <button key={s.key} type="button" aria-pressed={on} onClick={() => onChange(s.key)}
@@ -787,6 +873,7 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
   const [flash, setFlash] = useState(null);   // id of the card that just moved or arrived
   const [said, setSaid] = useState("");       // read out by screen readers only: the badge being earned
   const [sort, setSort] = useState(() => readPref(SORT_KEY, "added"));
+  const [view, setView] = useState(() => readPref(VIEW_KEY, ""));   // "" until the student picks
   const focusNext = useRef(null);             // a CSS selector to focus after the next render
   const reduce = useReducedMotion();
 
@@ -943,6 +1030,8 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
 
   const skipImport = () => { writeFlag(IMPORT_KEY(userId)); setImportDone(true); };
   const chooseSort = (key) => { setSort(key); writePref(SORT_KEY, key); };
+  const chooseView = (key) => { setView(key); writePref(VIEW_KEY, key); };
+  const compact = view ? view === "compact" : items.length > COMPACT_AFTER;
 
   // Undo is a toast away from the card that changed, so it has a shortcut:
   // Ctrl+Z (Cmd+Z on a Mac) while the toast offers it, outside text fields.
@@ -1068,7 +1157,13 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
 
         <div role="status" style={SR_ONLY}>{said}</div>
 
-        {items.length > 1 && <SortControl value={sort} onChange={chooseSort} />}
+        {items.length > 1 && (
+          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", flexWrap: "wrap",
+            justifyContent: "space-between", gap: isMobile ? 10 : 14 }}>
+            <ChipChoice label="Order" options={SORTS} value={sort} onChange={chooseSort} />
+            <ChipChoice label="Cards" options={VIEWS} value={compact ? "compact" : "cards"} onChange={chooseView} />
+          </div>
+        )}
 
         <LayoutGroup>
           {SECTIONS.map((sec) => {
@@ -1093,9 +1188,9 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
                     {sec.empty}
                   </p>
                 ) : (
-                  <ul style={{ margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 14 }}>
+                  <ul style={{ margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: compact ? 10 : 14 }}>
                     {list.map((it) => (
-                      <SchoolCard key={it.id} item={it} stats={stats} isMobile={isMobile} saving={saving.has(it.id)}
+                      <SchoolCard key={it.id} item={it} stats={stats} isMobile={isMobile} saving={saving.has(it.id)} compact={compact}
                         flash={flash === it.id} onSetCategory={onSetCategory} onRestore={onRestore} onRemove={onRemove} />
                     ))}
                   </ul>

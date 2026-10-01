@@ -46,9 +46,11 @@ html, body { overflow-x: hidden; overflow-x: clip; }
 }
 
 /* ── Very small phones ── */
+/* Keep the standard 16px gutter: text at 12px from the glass reads as cramped,
+   and the pages already lay out to fit 320px inside a 16px gutter. */
 @media (max-width: 390px) {
   [data-sidebar-offset] {
-    padding-left: 0.75rem !important;
-    padding-right: 0.75rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
   }
 }
