@@ -1,9 +1,10 @@
 import { useQuest } from "../../lib/QuestContext.jsx";
-import { SANS, WHITE, FAINT, Flame, useQuestColors } from "./questUi.jsx";
+import { FOCUS_CLASS, RADIUS } from "../ui/tokens.js";
+import { SANS, WHITE, MUTED, LINE, Flame, useQuestColors } from "./questUi.jsx";
 
 /** The streak in the sidebar: lit once today's task is done (or it is a rest
- *  day), dim while it is still open. The one bold Quest element that shows up
- *  on every page. */
+ *  day), dim while it is still open. A calm chip like the rest of the shell;
+ *  the flame is what carries it. */
 export default function NavStreakChip({ onClick }) {
   const { summary } = useQuest();
   const c = useQuestColors();
@@ -14,19 +15,19 @@ export default function NavStreakChip({ onClick }) {
   const label = `${summary.streak} day streak, level ${summary.level}.${open ? " Today's task is still open." : ""} Open Quest`;
 
   return (
-    <button type="button" onClick={onClick} aria-label={label} title={label}
+    <button type="button" onClick={onClick} aria-label={label} title={label} className={FOCUS_CLASS}
       style={{
         marginTop: 12, display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", whiteSpace: "nowrap",
-        background: WHITE, borderRadius: 12, padding: "7px 10px",
-        border: `2px solid ${lit ? c.accent : "#e4e2dd"}`, boxShadow: `0 3px 0 ${lit ? c.edge : "#e4e2dd"}`,
+        background: lit ? c.softer : WHITE, borderRadius: RADIUS.control, padding: "6px 10px", minHeight: 40,
+        border: `1px solid ${lit ? c.soft : LINE}`, boxSizing: "border-box",
       }}>
       <Flame size={20} lit={lit} animate={lit} streak={summary.streak} />
-      <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: "0.98rem", color: lit ? c.accent : FAINT,
+      <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: "0.98rem", color: lit ? c.onSoft : MUTED,
         fontVariantNumeric: "tabular-nums" }}>
         {summary.streak}
       </span>
-      <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: "0.78rem", color: WHITE, background: c.accent,
-        borderRadius: 7, padding: "2px 7px", marginLeft: 2, whiteSpace: "nowrap" }}>
+      <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: "0.9rem", color: c.button.fg, background: c.button.bg,
+        borderRadius: 7, padding: "1px 7px", marginLeft: 2, whiteSpace: "nowrap", lineHeight: 1.35 }}>
         Lv {summary.level}
       </span>
     </button>

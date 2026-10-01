@@ -1,48 +1,50 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useTheme } from "../../lib/ThemeContext.jsx";
-import { darken, lighten } from "../../lib/theme.js";
+import {
+  AMBER_BG, AMBER_TEXT, BG as UI_BG, BORDER, DANGER as UI_DANGER, FOCUS_CLASS, RADIUS, SANS as UI_SANS, TEXT, TEXT_MID,
+  TEXT_MUTED, TEXT_FAINT, WHITE as UI_WHITE, useAgentInk,
+} from "../ui/tokens.js";
+import { Button, inputStyle, textOnPage } from "../ui/kit.jsx";
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
-// The Quest page is the one place the app gets bold: raised buttons and stones
-// with a solid bottom edge, all derived from the student's own accent. Amber
-// is reserved for "behind", and it is never red: behind is a thing to fix,
-// not a failure.
+// Quest sits on the app's shared kit (src/components/ui): a calm shell of white
+// cards with a 1px warm border, flat buttons, and the student's accent through
+// useAgentInk. Quest keeps its game pieces (the stones, the streak flame, the
+// level chip), but they sit flat now: no solid bottom edges. Amber is reserved
+// for "behind", and it is never red: behind is a thing to fix, not a failure.
 
-export const SANS   = "'Raleway', sans-serif";
-export const BG     = "#F5F5F5";
-export const WHITE  = "#ffffff";
-export const INK    = "#141413";
-export const MID    = "#3d3d3a";
-export const MUTED  = "#5d5b55";
-export const FAINT  = "#8a877f";
-export const LINE   = "#e4e2dd";
-export const STONE      = "#e3e3e1";
-export const STONE_EDGE = "#cfcfcc";
-export const AMBER      = "#b45309";
-export const AMBER_EDGE = "#f59e0b";
-export const AMBER_WASH = "#fff7e6";
-export const DANGER     = "#b42318";
+export const SANS   = UI_SANS;
+export const BG     = UI_BG;
+export const WHITE  = UI_WHITE;
+export const INK    = TEXT;
+export const MID    = TEXT_MID;
+export const MUTED  = TEXT_MUTED;   // the lightest text colour on the page
+export const FAINT  = TEXT_FAINT;   // icons and decoration only, never text
+export const LINE   = BORDER;
+export const STONE      = "#e6e3de";
+export const STONE_EDGE = "#cfcac2";
+export const AMBER      = AMBER_TEXT;   // amber as text
+export const AMBER_EDGE = "#d97706";    // amber as a line or a dashed stone edge (3:1 on white)
+export const AMBER_WASH = AMBER_BG;
+export const AMBER_LINE = "#f3d9a4";    // the soft amber border of a banner
+export const DANGER     = UI_DANGER;
 
 export const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
 export const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-/** Accent-derived colors for the raised style. */
+/** The kit's accent colours (useAgentInk), plus the names older Quest code
+ *  used: `wash` is the soft tint, `edge` the accent as a readable line. */
 export function useQuestColors() {
-  const { accent, accentRgb } = useTheme();
-  return {
-    accent,
-    accentRgb,
-    edge: darken(accent, 0.28),
-    soft: lighten(accent, 0.55),
-    wash: `rgba(${accentRgb},0.08)`,
-  };
+  const { accentRgb } = useTheme();
+  const ink = useAgentInk();
+  return useMemo(() => ({ ...ink, accentRgb, edge: ink.text, wash: ink.softer, page: textOnPage(ink) }), [ink, accentRgb]);
 }
 
 // ─── Flame ────────────────────────────────────────────────────────────────────
 // Real fire colors, never the accent: a blue flame reads as a drop. Below a
-// week the flame is a sticker (one tongue, a dark outline and solid bottom
-// edge like the raised Quest buttons); from FLAME_GROWS_AT on it becomes a
+// week the flame is a sticker (one tongue, with a dark outline and a darker
+// shadow layer under it); from FLAME_GROWS_AT on it becomes a
 // three-tongue campfire, so a long streak looks like one.
 
 export const FLAME_GROWS_AT = 7;
@@ -161,50 +163,31 @@ export function GrowingFlame({ size = 22, streak }) {
 
 // ─── Buttons ──────────────────────────────────────────────────────────────────
 
-/** The raised Quest button. `tone` picks accent, amber or quiet white. */
+/** Quest's button, drawn as the kit Button. `tone`: accent (the primary
+ *  fill), quiet (outlined), amber (flat amber, for catching up) or danger. */
 export function Chunky({ children, onClick, disabled, tone = "accent", full, small, type = "button", style, ...rest }) {
-  const c = useQuestColors();
-  const palette = {
-    accent: { bg: c.accent, fg: WHITE, edge: c.edge },
-    amber:  { bg: AMBER_EDGE, fg: "#3b2503", edge: "#c27c05" },
-    quiet:  { bg: WHITE, fg: INK, edge: "#d6d4cf" },
-  }[tone];
-  const off = disabled;
+  const kind = { accent: "primary", quiet: "secondary", danger: "danger", amber: "secondary" }[tone] || "primary";
+  const amber = tone === "amber"
+    ? { background: AMBER_BG, color: AMBER_TEXT, border: `1px solid ${AMBER_TEXT}` }
+    : null;
   return (
-    <button
-      type={type}
-      onClick={off ? undefined : onClick}
-      disabled={off}
-      className="quest-chunky"
-      style={{
-        fontFamily: SANS, fontWeight: 800, letterSpacing: "0.01em",
-        fontSize: small ? "0.9rem" : "1rem",
-        padding: small ? "9px 16px" : "13px 22px",
-        width: full ? "100%" : undefined,
-        borderRadius: 14,
-        border: tone === "quiet" ? `2px solid ${palette.edge}` : "none",
-        background: off ? "#e6e6e4" : palette.bg,
-        color: off ? "#9a9892" : palette.fg,
-        boxShadow: off ? "0 4px 0 #d2d2cf" : `0 4px 0 ${palette.edge}`,
-        cursor: off ? "not-allowed" : "pointer",
-        transform: "translateY(0)",
-        transition: "transform 0.08s, box-shadow 0.08s",
-        ...style,
-      }}
-      {...rest}
-    >
+    <Button kind={kind} type={type} onClick={disabled ? undefined : onClick} disabled={disabled}
+      style={{ width: full ? "100%" : undefined, fontSize: small ? "0.95rem" : "1rem",
+        padding: small ? "8px 16px" : "10px 20px", ...amber, ...style }}
+      {...rest}>
       {children}
-    </button>
+    </Button>
   );
 }
 
-/** A plain text button for secondary actions. */
-export function TextButton({ children, onClick, color, style, ...rest }) {
+/** A plain text button for secondary actions, at least 44px tall. */
+export function TextButton({ children, onClick, color, style, disabled, ...rest }) {
   const c = useQuestColors();
   return (
-    <button type="button" onClick={onClick}
-      style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.92rem", color: color || c.accent,
-        background: "none", border: "none", padding: "6px 4px", cursor: "pointer", ...style }}
+    <button type="button" onClick={onClick} disabled={disabled} className={FOCUS_CLASS}
+      style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", color: color || c.page,
+        background: "none", border: "none", padding: "6px 8px", minHeight: 44, borderRadius: RADIUS.control,
+        cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.55 : 1, ...style }}
       {...rest}>
       {children}
     </button>
@@ -221,9 +204,9 @@ export function LevelChip({ stats, compact }) {
     <div title={`${stats.into_level} of ${stats.level_span} XP to level ${stats.level + 1}`}
       style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <span style={{
-        fontFamily: SANS, fontWeight: 800, fontSize: compact ? "0.78rem" : "0.86rem", color: WHITE,
-        background: c.accent, borderRadius: 8, padding: compact ? "2px 7px" : "3px 8px",
-        boxShadow: `0 2px 0 ${c.edge}`, fontVariantNumeric: "tabular-nums",
+        fontFamily: SANS, fontWeight: 800, fontSize: "0.9rem", color: c.button.fg, whiteSpace: "nowrap",
+        background: c.button.bg, borderRadius: 8, padding: compact ? "2px 7px" : "3px 9px", lineHeight: 1.35,
+        fontVariantNumeric: "tabular-nums",
       }}>
         Lv {stats.level}
       </span>
@@ -233,7 +216,7 @@ export function LevelChip({ stats, compact }) {
             initial={false}
             animate={{ width: `${pct}%` }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            style={{ display: "block", height: "100%", background: c.accent, borderRadius: 99 }}
+            style={{ display: "block", height: "100%", background: c.button.bg, borderRadius: 99 }}
           />
         </span>
       )}
@@ -272,12 +255,13 @@ export function Sheet({ children, onClose, locked, label }) {
         exit={reduce ? { opacity: 0 } : { y: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 320 }}
         onClick={(e) => e.stopPropagation()}
-        style={{ width: "100%", maxWidth: 560, maxHeight: "88vh", overflowY: "auto", outline: "none",
-          background: WHITE, borderRadius: "24px 24px 0 0", padding: "10px 22px 28px",
+        style={{ width: "100%", maxWidth: 560, maxHeight: "88vh", overflowY: "auto", outline: "none", boxSizing: "border-box",
+          background: WHITE, borderRadius: `${RADIUS.card + 4}px ${RADIUS.card + 4}px 0 0`, padding: "10px 22px 28px",
+          border: `1px solid ${BORDER}`, borderBottom: "none",
           paddingBottom: "calc(28px + env(safe-area-inset-bottom, 0px))",
-          boxShadow: "0 -12px 40px rgba(0,0,0,0.18)" }}
+          boxShadow: "0 -12px 40px rgba(20,20,19,0.14)" }}
       >
-        <div aria-hidden="true" style={{ width: 44, height: 5, borderRadius: 99, background: LINE, margin: "0 auto 16px" }} />
+        <div aria-hidden="true" style={{ width: 44, height: 5, borderRadius: 99, background: BORDER, margin: "0 auto 16px" }} />
         {children}
       </motion.div>
     </motion.div>
@@ -294,7 +278,7 @@ export function Modal({ children, onClose, locked, label, width = 440 }) {
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onClick={locked ? undefined : onClose}
       style={{ position: "fixed", inset: 0, zIndex: 420, background: "rgba(20,20,19,0.45)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: "1.25rem" }}
+        display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
     >
       <motion.div
         ref={panel} tabIndex={-1} role="dialog" aria-modal="true" aria-label={label}
@@ -302,8 +286,9 @@ export function Modal({ children, onClose, locked, label, width = 440 }) {
         exit={{ opacity: 0, y: 10, scale: 0.98 }}
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         onClick={(e) => e.stopPropagation()}
-        style={{ width: "100%", maxWidth: width, maxHeight: "88vh", overflowY: "auto", outline: "none",
-          background: WHITE, borderRadius: 22, padding: "1.6rem", boxShadow: "0 30px 80px rgba(0,0,0,0.28)" }}
+        style={{ width: "100%", maxWidth: width, maxHeight: "88vh", overflowY: "auto", outline: "none", boxSizing: "border-box",
+          background: WHITE, borderRadius: RADIUS.card, border: `1px solid ${BORDER}`, padding: "1.5rem",
+          boxShadow: "0 24px 60px rgba(20,20,19,0.18)" }}
       >
         {children}
       </motion.div>
@@ -313,6 +298,15 @@ export function Modal({ children, onClose, locked, label, width = 440 }) {
 
 // ─── Inputs ───────────────────────────────────────────────────────────────────
 
+/** A pill control's look, chosen or not, as the kit's ChoiceChips draw it. */
+export function choiceLook(c, on) {
+  return {
+    fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", boxSizing: "border-box",
+    minHeight: 44, borderRadius: RADIUS.control, border: `1.5px solid ${on ? c.text : BORDER}`,
+    background: on ? c.softer : WHITE, color: on ? c.onSoft : TEXT_MID,
+  };
+}
+
 export function Segmented({ options, value, onChange, label }) {
   const c = useQuestColors();
   return (
@@ -321,12 +315,7 @@ export function Segmented({ options, value, onChange, label }) {
         const on = o.value === value;
         return (
           <button key={o.value} type="button" role="radio" aria-checked={on} onClick={() => onChange(o.value)}
-            style={{
-              fontFamily: SANS, fontWeight: 800, fontSize: "0.98rem", cursor: "pointer",
-              padding: "12px 18px", borderRadius: 14, minWidth: 92,
-              border: `2px solid ${on ? c.accent : LINE}`, background: on ? c.wash : WHITE,
-              color: on ? c.accent : MID, boxShadow: `0 3px 0 ${on ? c.edge : LINE}`,
-            }}>
+            className={FOCUS_CLASS} style={{ ...choiceLook(c, on), padding: "10px 18px", minWidth: 92 }}>
             {o.label}
           </button>
         );
@@ -345,18 +334,15 @@ export function DayToggles({ value, onChange }) {
     onChange([...next].sort());
   };
   return (
-    <div style={{ display: "flex", gap: 6 }}>
+    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
       {DAY_LETTERS.map((l, d) => {
         const rest = set.has(d);
         return (
           <button key={d} type="button" onClick={() => toggle(d)} aria-pressed={rest}
-            aria-label={`${DAY_NAMES[d]}${rest ? ", rest day" : ""}`}
+            aria-label={`${DAY_NAMES[d]}${rest ? ", rest day" : ""}`} className={FOCUS_CLASS}
             style={{
-              width: 42, height: 42, borderRadius: 12, cursor: "pointer",
-              fontFamily: SANS, fontWeight: 800, fontSize: "0.95rem",
-              border: `2px solid ${rest ? LINE : c.accent}`,
-              background: rest ? "#f1f1ef" : c.wash,
-              color: rest ? FAINT : c.accent,
+              ...choiceLook(c, !rest), width: 44, height: 44, padding: 0,
+              ...(rest ? { background: "#f3f1ed", color: TEXT_MUTED } : null),
               textDecoration: rest ? "line-through" : "none",
             }}>
             {l}
@@ -367,27 +353,25 @@ export function DayToggles({ value, onChange }) {
   );
 }
 
-export const fieldStyle = {
-  width: "100%", boxSizing: "border-box", fontFamily: SANS, fontSize: "1rem", color: INK,
-  padding: "12px 14px", borderRadius: 12, border: `2px solid ${LINE}`, background: WHITE,
-  outline: "none", lineHeight: 1.5,
-};
+/** The kit's field look. Pair it with the kit's INPUT_CLASS for the focus ring. */
+export const fieldStyle = { ...inputStyle };
 
 export function ErrorLine({ children }) {
   if (!children) return null;
   return (
-    <p role="alert" style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, color: DANGER, margin: "10px 0 0" }}>
+    <p role="alert" style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, color: DANGER, margin: "10px 0 0" }}>
       {children}
     </p>
   );
 }
 
-/** Keyframes the Quest page needs, mounted once. */
+/** Styles the Quest page needs, mounted once: the stones' focus ring, in the
+ *  page's ring colour (set by ringVar on the page root). */
 export function QuestStyles() {
   return (
     <style>{`
-      .quest-chunky:not(:disabled):active { transform: translateY(3px) !important; box-shadow: 0 1px 0 transparent !important; }
-      .quest-chunky:focus-visible, .quest-stone:focus-visible { outline: 3px solid rgba(var(--accent-rgb),0.45); outline-offset: 3px; }
+      .quest-chunky:focus-visible, .quest-stone:focus-visible { outline: 3px solid var(--ag-ring, #1d4ed8); outline-offset: 3px; }
+      .quest-stone:focus:not(:focus-visible) { outline: none; }
     `}</style>
   );
 }

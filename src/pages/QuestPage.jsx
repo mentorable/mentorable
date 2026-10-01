@@ -13,7 +13,9 @@ import {
   TopBar, StickyHeader, CatchUpBanner, WelcomeBack, DeadlineNotice, RestNote, PausedCard, Notice,
   MilestoneCard, FinishCard, ConfirmModal, PaceModal, PortfolioDraftModal,
 } from "../components/quest/QuestPanels.jsx";
-import { BG, SANS, INK, MID, Chunky, QuestStyles, useQuestColors } from "../components/quest/questUi.jsx";
+import { BG, SANS, INK, MUTED, Chunky, QuestStyles, useQuestColors } from "../components/quest/questUi.jsx";
+import { ringVar } from "../components/ui/tokens.js";
+import { Card } from "../components/ui/kit.jsx";
 
 // Quest: one project, a small step every day. The page is a thin shell around
 // the server's state: every rule about days, streaks and gates is decided by
@@ -39,7 +41,7 @@ export default function QuestPage({ navigate }) {
   const [justDone, setJustDone] = useState(null);
   const [glow, setGlow] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState(null);
+  const [notice, setNotice] = useState(null);   // { text, tone }: "error", or "lock" (amber: a locked day is not a failure)
   const [confirmRetire, setConfirmRetire] = useState(false);
   const [paceOpen, setPaceOpen] = useState(false);
   const [portfolio, setPortfolio] = useState(null);      // { draft, loading, error }
@@ -114,7 +116,7 @@ export default function QuestPage({ navigate }) {
       else if (reload) await load();
       return s;
     } catch (e) {
-      setNotice(e.message);
+      setNotice({ text: e.message, tone: "error" });
       return null;
     } finally {
       setBusy(false);
@@ -129,7 +131,7 @@ export default function QuestPage({ navigate }) {
     if (!reviewing && state.view !== "active") return;
     if (!stone.doable && (stone.state === "missed" || stone.state === "today")) {
       if (stone.state === "today") { catchUp(); return; }
-      setNotice(currentMilestone ? `Finish Milestone ${currentMilestone.position} to unlock that day.` : "That day is locked.");
+      setNotice({ text: currentMilestone ? `Finish Milestone ${currentMilestone.position} to unlock that day.` : "That day is locked.", tone: "lock" });
       return;
     }
     const cached = stone.slot === state.today_slot && state.today_task ? state.today_task : null;
@@ -224,28 +226,29 @@ export default function QuestPage({ navigate }) {
     minHeight: "100vh", background: BG, fontFamily: SANS, boxSizing: "border-box",
     padding: isMobile ? "0 1rem 6.5rem" : "0 2rem 4rem",
     paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH}px + 2rem)`,
+    ...ringVar(c),
   };
 
   if (phase === "loading") {
     return (
-      <div data-sidebar-offset style={{ ...pagePad, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Spinner size={26} color={c.accent} />
+      <div data-sidebar-offset className="ui-page" style={{ ...pagePad, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Spinner size={26} color={c.page} />
       </div>
     );
   }
 
   if (phase === "error") {
     return (
-      <div data-sidebar-offset style={{ ...pagePad, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center", maxWidth: 420 }}>
-          <p style={{ fontFamily: SANS, fontSize: "1.1rem", fontWeight: 800, color: INK, marginBottom: 8 }}>
+      <div data-sidebar-offset className="ui-page" style={{ ...pagePad, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Card style={{ textAlign: "center", maxWidth: 420, width: "100%", padding: "1.6rem 1.4rem" }}>
+          <p style={{ fontFamily: SANS, fontSize: "1.1rem", fontWeight: 800, color: INK, margin: "0 0 8px" }}>
             We could not load your quest
           </p>
-          <p style={{ fontFamily: SANS, fontSize: "1rem", color: MID, lineHeight: 1.6, marginBottom: 18 }}>
+          <p style={{ fontFamily: SANS, fontSize: "1rem", color: MUTED, lineHeight: 1.6, margin: "0 0 18px" }}>
             Your progress is saved. Try again in a moment.
           </p>
           <Chunky onClick={() => { setPhase("loading"); load(); }}>Try again</Chunky>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -256,9 +259,9 @@ export default function QuestPage({ navigate }) {
   const streakLit = ["done", "rest"].includes(state.today_state);
 
   return (
-    <div data-sidebar-offset style={pagePad}>
+    <div data-sidebar-offset className="ui-page" style={pagePad}>
       <QuestStyles />
-      <div style={{ maxWidth: 560, margin: "0 auto", width: "100%" }}>
+      <div style={{ maxWidth: 880, margin: "0 auto", width: "100%" }}>
 
         {showMap && (
           <StickyHeader>
@@ -267,7 +270,7 @@ export default function QuestPage({ navigate }) {
           </StickyHeader>
         )}
 
-        <Notice tone="error">{notice}</Notice>
+        <Notice tone={notice?.tone}>{notice?.text}</Notice>
 
         {showSetup && (
           <div style={{ paddingTop: isMobile ? 24 : 48 }}>

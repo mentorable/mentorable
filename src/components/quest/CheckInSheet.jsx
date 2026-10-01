@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { formatDay } from "../../lib/quest.js";
 import Spinner from "../common/Spinner.jsx";
+import { FOCUS_CLASS, RADIUS } from "../ui/tokens.js";
+import { INPUT_CLASS, Tip } from "../ui/kit.jsx";
 import {
-  SANS, WHITE, INK, MID, MUTED, FAINT, LINE, AMBER,
+  SANS, INK, MID, MUTED, LINE, AMBER,
   Chunky, ErrorLine, FLAME_GROWS_AT, Flame, GrowingFlame, Sheet, TextButton, fieldStyle, useQuestColors,
 } from "./questUi.jsx";
 
@@ -27,14 +29,14 @@ function useCountUp(target, run) {
 
 function Label({ children, color }) {
   return (
-    <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.86rem", fontWeight: 800, color }}>{children}</p>
+    <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 800, color }}>{children}</p>
   );
 }
 
 function Bubble({ children }) {
   const c = useQuestColors();
   return (
-    <div style={{ background: c.wash, borderRadius: "16px 16px 16px 4px", padding: "12px 14px",
+    <div style={{ background: c.softer, border: `1px solid ${c.soft}`, borderRadius: "16px 16px 16px 4px", padding: "12px 14px",
       fontFamily: SANS, fontSize: "1rem", color: INK, lineHeight: 1.55 }}>
       {children}
     </div>
@@ -60,8 +62,8 @@ function Reward({ result, streak }) {
       <motion.span
         initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 420, damping: 18 }}
-        style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.1rem", color: WHITE, background: c.accent,
-          borderRadius: 12, padding: "6px 12px", boxShadow: `0 3px 0 ${c.edge}`, fontVariantNumeric: "tabular-nums" }}>
+        style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.1rem", color: c.button.fg, background: c.button.bg,
+          borderRadius: RADIUS.control, padding: "6px 12px", fontVariantNumeric: "tabular-nums" }}>
         +{xp} XP
       </motion.span>
       {result.on_time ? (
@@ -77,8 +79,8 @@ function Reward({ result, streak }) {
         <motion.span
           initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: [0.4, 1.2, 1], opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.25 }}
-          style={{ fontFamily: SANS, fontWeight: 800, fontSize: "0.95rem", color: c.accent,
-            border: `2px solid ${c.accent}`, borderRadius: 10, padding: "4px 10px" }}>
+          style={{ fontFamily: SANS, fontWeight: 800, fontSize: "0.95rem", color: c.onSoft, background: c.softer,
+            border: `1.5px solid ${c.text}`, borderRadius: RADIUS.control, padding: "4px 10px" }}>
           Level {result.level_after}
         </motion.span>
       )}
@@ -117,9 +119,9 @@ function Resources({ slot, task, find, canSearch }) {
   if (list === null && !canSearch) return null;
 
   return (
-    <section aria-label="Resources" style={{ marginTop: 22, paddingTop: 16, borderTop: `2px solid ${LINE}` }}>
+    <section aria-label="Resources" style={{ marginTop: 22, paddingTop: 16, borderTop: `1px solid ${LINE}` }}>
       <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 800, color: INK }}>
-        Resources <span style={{ fontWeight: 600, color: FAINT }}>(optional)</span>
+        Resources <span style={{ fontWeight: 600, color: MUTED }}>(optional)</span>
       </p>
 
       {list === null && !spent && (
@@ -129,7 +131,7 @@ function Resources({ slot, task, find, canSearch }) {
           </p>
           {busy ? (
             <div role="status" style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-              <Spinner size={18} color={c.accent} />
+              <Spinner size={18} color={c.text} />
               <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.92rem", color: MID }}>
                 Looking for good pages. This takes a few seconds.
               </span>
@@ -141,9 +143,9 @@ function Resources({ slot, task, find, canSearch }) {
       )}
 
       {list !== null && list.length === 0 && (
-        <p style={{ margin: "6px 0 0", fontFamily: SANS, fontSize: "0.92rem", color: MUTED, lineHeight: 1.5 }}>
+        <Tip name="Resources" stamp="question" tone="default" style={{ marginTop: 4 }}>
           Nothing solid turned up for this one. Your advisor in Chat can help you find a starting point.
-        </p>
+        </Tip>
       )}
 
       {list !== null && list.length > 0 && (
@@ -151,16 +153,17 @@ function Resources({ slot, task, find, canSearch }) {
           {list.filter((r) => typeof r.url === "string" && r.url.startsWith("https://")).map((r) => (
             <li key={r.url}>
               <a href={r.url} target="_blank" rel="noopener noreferrer" aria-label={`${r.title}, opens in a new tab`}
-                style={{ display: "block", textDecoration: "none", border: `2px solid ${LINE}`, borderRadius: 14, padding: "10px 12px" }}>
-                <span style={{ display: "block", fontFamily: SANS, fontWeight: 800, fontSize: "0.98rem", color: c.accent, lineHeight: 1.35 }}>
+                className={FOCUS_CLASS}
+                style={{ display: "block", textDecoration: "none", border: `1px solid ${LINE}`, borderRadius: RADIUS.control, padding: "10px 12px" }}>
+                <span style={{ display: "block", fontFamily: SANS, fontWeight: 800, fontSize: "0.98rem", color: c.text, lineHeight: 1.35 }}>
                   {r.title}
                 </span>
                 {r.note && (
-                  <span style={{ display: "block", marginTop: 3, fontFamily: SANS, fontSize: "0.9rem", color: MID, lineHeight: 1.5 }}>
+                  <span style={{ display: "block", marginTop: 3, fontFamily: SANS, fontSize: "0.92rem", color: MID, lineHeight: 1.5 }}>
                     {r.note}
                   </span>
                 )}
-                <span style={{ display: "block", marginTop: 4, fontFamily: SANS, fontWeight: 700, fontSize: "0.82rem", color: MUTED }}>
+                <span style={{ display: "block", marginTop: 4, fontFamily: SANS, fontWeight: 700, fontSize: "0.9rem", color: MUTED }}>
                   {r.domain}
                 </span>
               </a>
@@ -170,7 +173,7 @@ function Resources({ slot, task, find, canSearch }) {
       )}
 
       {found && found.left !== undefined && (
-        <p role="status" style={{ margin: "10px 0 0", fontFamily: SANS, fontSize: "0.85rem", color: MUTED }}>
+        <p role="status" style={{ margin: "10px 0 0", fontFamily: SANS, fontSize: "0.9rem", color: MUTED }}>
           {found.left === 1 ? "1 search left" : `${found.left} searches left`}.
         </p>
       )}
@@ -239,7 +242,7 @@ export default function CheckInSheet({
     <Sheet onClose={close} locked={busy} label={task ? task.title : "Task"}>
       {loading && (
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "28px 4px" }}>
-          <Spinner size={22} color={c.accent} />
+          <Spinner size={22} color={c.text} />
           <span style={{ fontFamily: SANS, fontWeight: 700, color: MID }}>Setting up your task...</span>
         </div>
       )}
@@ -256,7 +259,7 @@ export default function CheckInSheet({
 
       {!loading && task && (
         <>
-          <Label color={catchUp ? AMBER : c.accent}>
+          <Label color={catchUp ? AMBER : c.text}>
             {heading}{!review && !outcome ? `, about ${task.est_minutes} min` : ""}
           </Label>
           <h2 style={{ margin: "6px 0 8px", fontFamily: SANS, fontSize: "1.35rem", fontWeight: 800, color: INK, lineHeight: 1.3 }}>
@@ -268,7 +271,7 @@ export default function CheckInSheet({
             </p>
           )}
           {task.fallback && !review && !outcome && (
-            <p style={{ margin: "-6px 0 16px", fontFamily: SANS, fontSize: "0.88rem", color: FAINT }}>
+            <p style={{ margin: "-6px 0 16px", fontFamily: SANS, fontSize: "0.92rem", color: MUTED }}>
               A simple task this time. The next ones will be tailored to you again.
             </p>
           )}
@@ -299,7 +302,7 @@ export default function CheckInSheet({
                 onChange={(e) => setBody(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit(); }}
                 placeholder="One or two lines is plenty."
-                style={{ ...fieldStyle, resize: "vertical", minHeight: 88 }}
+                className={INPUT_CLASS} style={{ ...fieldStyle, resize: "vertical", minHeight: 88 }}
               />
               <ErrorLine>{error}</ErrorLine>
               <div style={{ marginTop: 16 }}>
@@ -328,7 +331,7 @@ export default function CheckInSheet({
                     rows={2} value={answer} maxLength={500} onChange={(e) => setAnswer(e.target.value)}
                     placeholder="Answer for +5 XP, or skip it."
                     aria-label="Your answer"
-                    style={{ ...fieldStyle, marginTop: 10, resize: "vertical" }}
+                    className={INPUT_CLASS} style={{ ...fieldStyle, marginTop: 10, resize: "vertical" }}
                   />
                   <ErrorLine>{error}</ErrorLine>
                   <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center" }}>
@@ -340,7 +343,7 @@ export default function CheckInSheet({
                 </div>
               )}
               {answered !== null && (
-                <p style={{ fontFamily: SANS, fontWeight: 800, color: c.accent, margin: "12px 0 0" }}>
+                <p style={{ fontFamily: SANS, fontWeight: 800, color: c.text, margin: "12px 0 0" }}>
                   +{answered} XP. Noted.
                 </p>
               )}

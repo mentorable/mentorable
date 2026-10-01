@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { formatDay, relativeDay } from "../../lib/quest.js";
+import { PixelStamp } from "../ui/PixelIcons.jsx";
+import { FOCUS_CLASS, RADIUS, SURFACE } from "../ui/tokens.js";
+import { INPUT_CLASS, StampTile, Tip } from "../ui/kit.jsx";
 import {
-  SANS, WHITE, INK, MID, MUTED, FAINT, LINE, AMBER, AMBER_EDGE, AMBER_WASH,
+  SANS, WHITE, INK, MID, MUTED, LINE, AMBER, AMBER_LINE, AMBER_WASH, DANGER,
   Chunky, DayToggles, ErrorLine, Flame, LevelChip, Modal, Segmented, TextButton,
-  fieldStyle, useQuestColors,
+  choiceLook, fieldStyle, useQuestColors,
 } from "./questUi.jsx";
 
 export const MINUTE_OPTIONS = [
@@ -27,38 +30,40 @@ export function TopBar({ title, stats, streakLit, menu, isMobile }) {
   }, [open]);
 
   return (
-    <div style={{ padding: isMobile ? "12px 0 10px" : "18px 0 12px", borderBottom: `2px solid ${LINE}` }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <h1 style={{ flex: 1, minWidth: 0, margin: 0, fontFamily: SANS, fontWeight: 800,
-          fontSize: isMobile ? "1.15rem" : "1.45rem", color: INK, letterSpacing: "-0.01em",
-          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+    <div style={{ padding: isMobile ? "16px 0 12px" : "28px 0 14px", borderBottom: `1px solid ${LINE}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 14 }}>
+        <h1 title={title} style={{ flex: 1, minWidth: 0, margin: 0, fontFamily: SANS, fontWeight: 800,
+          fontSize: isMobile ? "1.5rem" : "2.1rem", color: c.title, letterSpacing: "-0.03em", lineHeight: 1.15,
+          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+          overflowWrap: "anywhere" }}>
           {title}
         </h1>
         <span title={`${stats?.streak || 0} day streak`}
           style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: SANS, fontWeight: 800,
-            fontSize: "1.1rem", color: streakLit ? c.accent : FAINT, fontVariantNumeric: "tabular-nums" }}>
+            fontSize: "1.1rem", color: streakLit ? c.page : MUTED, fontVariantNumeric: "tabular-nums" }}>
           <Flame size={24} lit={streakLit} animate={streakLit} streak={stats?.streak || 0} /> {stats?.streak || 0}
         </span>
         <LevelChip stats={stats} compact={isMobile} />
         {menu && menu.length > 0 && (
           <div ref={ref} style={{ position: "relative" }}>
             <button type="button" aria-label="Quest options" aria-expanded={open} onClick={() => setOpen((o) => !o)}
-              style={{ width: 38, height: 38, borderRadius: 12, border: `2px solid ${LINE}`, background: WHITE,
+              className={FOCUS_CLASS}
+              style={{ width: 44, height: 44, borderRadius: RADIUS.control, border: `1.5px solid ${LINE}`, background: WHITE,
                 cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill={MID} aria-hidden="true">
                 <circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" />
               </svg>
             </button>
             {open && (
-              <div role="menu" style={{ position: "absolute", right: 0, top: 46, minWidth: 190, background: WHITE,
-                borderRadius: 14, border: `2px solid ${LINE}`, boxShadow: "0 12px 30px rgba(0,0,0,0.12)", padding: 6, zIndex: 30 }}>
+              <div role="menu" style={{ position: "absolute", right: 0, top: 50, minWidth: 200, background: WHITE,
+                borderRadius: RADIUS.control, border: `1px solid ${LINE}`, boxShadow: "0 12px 30px rgba(20,20,19,0.12)", padding: 6, zIndex: 30 }}>
                 {menu.map((m) => (
-                  <button key={m.label} type="button" role="menuitem"
+                  <button key={m.label} type="button" role="menuitem" className={FOCUS_CLASS}
                     onClick={() => { setOpen(false); m.onClick(); }}
                     style={{ display: "block", width: "100%", textAlign: "left", fontFamily: SANS, fontWeight: 700,
-                      fontSize: "0.95rem", color: m.danger ? "#b42318" : INK, background: "none", border: "none",
-                      borderRadius: 10, padding: "10px 12px", cursor: "pointer" }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "#f3f3f1"; }}
+                      fontSize: "0.95rem", color: m.danger ? DANGER : INK, background: "none", border: "none",
+                      borderRadius: 10, padding: "10px 12px", minHeight: 44, cursor: "pointer" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = SURFACE; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}>
                     {m.label}
                   </button>
@@ -84,14 +89,14 @@ export function StickyHeader({ children }) {
 
 // ─── Banners ──────────────────────────────────────────────────────────────────
 
+/** A banner: soft amber for being behind, a white card otherwise. */
 function Strip({ tone = "amber", children, action }) {
-  const c = useQuestColors();
   const amber = tone === "amber";
   return (
     <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
       style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 14,
-        background: amber ? AMBER_WASH : WHITE, borderRadius: 16, padding: "14px 16px",
-        border: `2px solid ${amber ? AMBER_EDGE : c.accent}` }}>
+        background: amber ? AMBER_WASH : WHITE, borderRadius: RADIUS.card, padding: "14px 16px", boxSizing: "border-box",
+        border: `1px solid ${amber ? AMBER_LINE : LINE}` }}>
       <div style={{ flex: "1 1 220px", fontFamily: SANS, fontSize: "0.98rem", color: INK, lineHeight: 1.5 }}>
         {children}
       </div>
@@ -110,7 +115,7 @@ export function CatchUpBanner({ state, onCatchUp }) {
     <Strip action={b.oldest_doable_slot ? <Chunky small tone="amber" onClick={onCatchUp}>Catch up</Chunky> : null}>
       <strong>You're {b.count} task{b.count === 1 ? "" : "s"} behind.</strong>{gate}
       {b.catch_up_by && (
-        <span style={{ display: "block", color: MUTED, fontSize: "0.9rem", marginTop: 2 }}>
+        <span style={{ display: "block", color: MUTED, fontSize: "0.92rem", marginTop: 2 }}>
           Two a day clears it by {relativeDay(b.catch_up_by, state.today)}.
         </span>
       )}
@@ -164,9 +169,9 @@ export function DeadlineNotice({ state, onAskAdvisor }) {
 export function RestNote({ state }) {
   if (state.today_state !== "rest") return null;
   return (
-    <p style={{ margin: "14px 0 0", fontFamily: SANS, fontSize: "0.98rem", fontWeight: 600, color: MUTED }}>
+    <Tip name="Rest day" stamp="clock" tone="default" style={{ marginTop: 14 }}>
       Rest day today.{state.next_work_date ? ` Your next task opens ${relativeDay(state.next_work_date, state.today)}.` : ""}
-    </p>
+    </Tip>
   );
 }
 
@@ -193,13 +198,13 @@ export function MilestoneCard({ milestone, next, onClose }) {
       <div style={{ textAlign: "center" }}>
         <motion.div initial={{ scale: 0.4, rotate: -12 }} animate={{ scale: 1, rotate: 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 14 }}
-          style={{ width: 76, height: 76, borderRadius: 22, margin: "0 auto 14px", background: c.accent,
-            boxShadow: `0 6px 0 ${c.edge}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={WHITE} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M5 21V4" /><path d="M5 4h11l-2 4 2 4H5" />
-          </svg>
+          aria-hidden="true"
+          style={{ width: 76, height: 76, borderRadius: RADIUS.card, margin: "0 auto 14px", background: c.softer,
+            border: `1px solid ${c.soft}`, color: c.onSoft, boxSizing: "border-box",
+            display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <PixelStamp kind="flag" size={40} />
         </motion.div>
-        <p style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "0.9rem", color: c.accent }}>
+        <p style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "0.95rem", color: c.text }}>
           Milestone {milestone.position} complete, +50 XP
         </p>
         <h2 style={{ margin: "6px 0 14px", fontFamily: SANS, fontWeight: 800, fontSize: "1.45rem", color: INK, lineHeight: 1.25 }}>
@@ -232,9 +237,12 @@ export function FinishCard({ state, onAddToPortfolio, onDismissPortfolio, onNewQ
   const offer = q.add_to_portfolio && !q.portfolio_activity_id;
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-      style={{ marginTop: 16, background: WHITE, borderRadius: 22, padding: "22px 20px",
-        border: `2px solid ${c.accent}`, boxShadow: `0 5px 0 ${c.edge}` }}>
-      <p style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "0.92rem", color: c.accent }}>Quest complete</p>
+      style={{ marginTop: 16, background: WHITE, borderRadius: RADIUS.card, padding: "22px 20px", boxSizing: "border-box",
+        border: `1px solid ${LINE}` }}>
+      <p style={{ margin: 0, display: "flex", alignItems: "center", gap: 10, fontFamily: SANS, fontWeight: 800,
+        fontSize: "0.95rem", color: c.text }}>
+        <StampTile kind="star" size={32} /> Quest complete
+      </p>
       <h2 style={{ margin: "6px 0 10px", fontFamily: SANS, fontWeight: 800, fontSize: "1.5rem", color: INK, lineHeight: 1.25 }}>
         {q.title}
       </h2>
@@ -243,7 +251,8 @@ export function FinishCard({ state, onAddToPortfolio, onDismissPortfolio, onNewQ
         for {done.xp_earned} XP.
       </p>
       {offer && (
-        <div style={{ background: c.wash, borderRadius: 16, padding: "14px 16px", marginBottom: 16 }}>
+        <div style={{ background: c.softer, border: `1px solid ${c.soft}`, borderRadius: RADIUS.control,
+          padding: "14px 16px", marginBottom: 16 }}>
           <p style={{ margin: "0 0 10px", fontFamily: SANS, fontSize: "0.98rem", color: INK, lineHeight: 1.5 }}>
             This is real work. Add it to your activities so your applications can use it.
           </p>
@@ -254,7 +263,7 @@ export function FinishCard({ state, onAddToPortfolio, onDismissPortfolio, onNewQ
         </div>
       )}
       {q.portfolio_activity_id && (
-        <p style={{ margin: "0 0 16px", fontFamily: SANS, fontWeight: 700, color: c.accent }}>In your activities.</p>
+        <p style={{ margin: "0 0 16px", fontFamily: SANS, fontWeight: 700, color: c.text }}>In your activities.</p>
       )}
       <Chunky full onClick={onNewQuest}>Start a new quest</Chunky>
     </motion.div>
@@ -270,7 +279,7 @@ export function ConfirmModal({ title, body, confirm, onConfirm, onClose, busy, d
       <p style={{ margin: "0 0 20px", fontFamily: SANS, fontSize: "0.98rem", color: MID, lineHeight: 1.6 }}>{body}</p>
       <div style={{ display: "flex", gap: 10 }}>
         <Chunky tone="quiet" onClick={onClose} disabled={busy} style={{ flex: 1 }}>Keep going</Chunky>
-        <Chunky onClick={onConfirm} disabled={busy} style={{ flex: 1, ...(danger ? { background: "#b42318", boxShadow: "0 4px 0 #7a1a12" } : {}) }}>
+        <Chunky tone={danger ? "danger" : "accent"} onClick={onConfirm} disabled={busy} style={{ flex: 1 }}>
           {busy ? "One moment..." : confirm}
         </Chunky>
       </div>
@@ -295,7 +304,7 @@ export function PaceModal({ quest, onSave, onClose }) {
       <Segmented options={MINUTE_OPTIONS} value={minutes} onChange={setMinutes} label="Time a day" />
       <p style={{ margin: "18px 0 8px", fontFamily: SANS, fontWeight: 800, fontSize: "0.95rem", color: INK }}>Rest days</p>
       <DayToggles value={rest} onChange={setRest} />
-      <p style={{ margin: "8px 0 0", fontFamily: SANS, fontSize: "0.88rem", color: MUTED, lineHeight: 1.5 }}>
+      <p style={{ margin: "8px 0 0", fontFamily: SANS, fontSize: "0.92rem", color: MUTED, lineHeight: 1.5 }}>
         Crossed-out days are off. Days that already happened stay as they were.
       </p>
       <ErrorLine>{error}</ErrorLine>
@@ -320,8 +329,8 @@ function Field({ label, hint, children }) {
   return (
     <label style={{ display: "block", marginBottom: 14 }}>
       <span style={{ display: "flex", justifyContent: "space-between", fontFamily: SANS, fontWeight: 800,
-        fontSize: "0.9rem", color: INK, marginBottom: 6 }}>
-        {label}{hint && <span style={{ fontWeight: 600, color: FAINT }}>{hint}</span>}
+        fontSize: "0.95rem", color: INK, marginBottom: 6 }}>
+        {label}{hint && <span style={{ fontWeight: 600, color: MUTED }}>{hint}</span>}
       </span>
       {children}
     </label>
@@ -361,28 +370,28 @@ export function PortfolioDraftModal({ draft, loading, error, onSave, onClose }) 
       {!loading && error && <ErrorLine>{error}</ErrorLine>}
       {!loading && f && (
         <>
-          <Field label="Activity name"><input value={f.title || ""} onChange={set("title")} maxLength={120} style={fieldStyle} /></Field>
+          <Field label="Activity name"><input value={f.title || ""} onChange={set("title")} maxLength={120} className={INPUT_CLASS} style={fieldStyle} /></Field>
           <Field label="Category">
-            <select value={f.category || "Other"} onChange={set("category")} style={fieldStyle}>
+            <select value={f.category || "Other"} onChange={set("category")} className={INPUT_CLASS} style={fieldStyle}>
               {CATEGORIES.map((x) => <option key={x} value={x}>{x}</option>)}
             </select>
           </Field>
           <Field label="Your role" hint={`${(f.position || "").length}/50`}>
-            <input value={f.position || ""} onChange={set("position")} maxLength={50} style={fieldStyle} />
+            <input value={f.position || ""} onChange={set("position")} maxLength={50} className={INPUT_CLASS} style={fieldStyle} />
           </Field>
           <Field label="Organization" hint={`${(f.organization || "").length}/100`}>
-            <input value={f.organization || ""} onChange={set("organization")} maxLength={100} style={fieldStyle} />
+            <input value={f.organization || ""} onChange={set("organization")} maxLength={100} className={INPUT_CLASS} style={fieldStyle} />
           </Field>
           <Field label="Description" hint={`${(f.description || "").length}/150`}>
             <textarea value={f.description || ""} onChange={set("description")} maxLength={150} rows={3}
-              style={{ ...fieldStyle, resize: "vertical" }} />
+              className={INPUT_CLASS} style={{ ...fieldStyle, resize: "vertical" }} />
           </Field>
           <div style={{ display: "flex", gap: 12 }}>
             <Field label="Hours a week">
-              <input type="number" min="0" step="0.5" value={f.hours_per_week ?? ""} onChange={set("hours_per_week")} style={fieldStyle} />
+              <input type="number" min="0" step="0.5" value={f.hours_per_week ?? ""} onChange={set("hours_per_week")} className={INPUT_CLASS} style={fieldStyle} />
             </Field>
             <Field label="Weeks a year">
-              <input type="number" min="0" max="52" value={f.weeks_per_year ?? ""} onChange={set("weeks_per_year")} style={fieldStyle} />
+              <input type="number" min="0" max="52" value={f.weeks_per_year ?? ""} onChange={set("weeks_per_year")} className={INPUT_CLASS} style={fieldStyle} />
             </Field>
           </div>
           <Field label="Grades you did this in">
@@ -390,10 +399,8 @@ export function PortfolioDraftModal({ draft, loading, error, onSave, onClose }) 
               {[9, 10, 11, 12].map((g) => {
                 const on = f.grade_levels.includes(g);
                 return (
-                  <button key={g} type="button" aria-pressed={on} onClick={() => toggleGrade(g)}
-                    style={{ fontFamily: SANS, fontWeight: 800, fontSize: "0.95rem", cursor: "pointer",
-                      padding: "9px 14px", borderRadius: 12, border: `2px solid ${on ? c.accent : LINE}`,
-                      background: on ? c.wash : WHITE, color: on ? c.accent : MID }}>
+                  <button key={g} type="button" aria-pressed={on} onClick={() => toggleGrade(g)} className={FOCUS_CLASS}
+                    style={{ ...choiceLook(c, on), padding: "8px 16px", minWidth: 52 }}>
                     {g}
                   </button>
                 );
@@ -414,8 +421,11 @@ export function PortfolioDraftModal({ draft, loading, error, onSave, onClose }) 
 export function Notice({ children, tone }) {
   if (!children) return null;
   return (
-    <p role="status" style={{ margin: "14px 0 0", fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem",
-      color: tone === "error" ? "#b42318" : AMBER }}>
+    <p role="status" style={{ margin: "14px 0 0", fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", lineHeight: 1.5,
+      borderRadius: RADIUS.control, padding: "10px 14px",
+      ...(tone === "error"
+        ? { color: DANGER, background: "#fdf1f0", border: "1px solid #f4c7c2" }
+        : { color: AMBER, background: AMBER_WASH, border: `1px solid ${AMBER_LINE}` }) }}>
       {children}
     </p>
   );

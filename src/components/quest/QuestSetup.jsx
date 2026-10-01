@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { questApi, formatDay } from "../../lib/quest.js";
 import Spinner from "../common/Spinner.jsx";
+import { FOCUS_CLASS, RADIUS } from "../ui/tokens.js";
+import { INPUT_CLASS, Tip } from "../ui/kit.jsx";
 import {
-  SANS, WHITE, INK, MID, MUTED, FAINT, LINE,
+  SANS, WHITE, INK, MID, MUTED, LINE,
   Chunky, DayToggles, ErrorLine, Segmented, TextButton, fieldStyle, useQuestColors,
 } from "./questUi.jsx";
 import { MINUTE_OPTIONS } from "./QuestPanels.jsx";
@@ -13,8 +15,8 @@ const STARTERS = ["Start a passion project", "Prep for a competition", "Start a 
 function Title({ children }) {
   const c = useQuestColors();
   return (
-    <h1 style={{ margin: "0 0 8px", fontFamily: SANS, fontWeight: 800, fontSize: "2rem", color: c.accent,
-      letterSpacing: "-0.02em", lineHeight: 1.15 }}>
+    <h1 style={{ margin: "0 0 0.5rem", fontFamily: SANS, fontWeight: 800, fontSize: "clamp(2.1rem, 5vw, 2.5rem)",
+      color: c.title, letterSpacing: "-0.03em", lineHeight: 1.1, overflowWrap: "anywhere" }}>
       {children}
     </h1>
   );
@@ -22,7 +24,7 @@ function Title({ children }) {
 
 function Lead({ children }) {
   return (
-    <p style={{ margin: "0 0 22px", fontFamily: SANS, fontSize: "1.05rem", color: MID, lineHeight: 1.6, maxWidth: 520 }}>
+    <p style={{ margin: "0 0 24px", fontFamily: SANS, fontSize: "1.1rem", color: MUTED, lineHeight: 1.6, maxWidth: "62ch" }}>
       {children}
     </p>
   );
@@ -40,10 +42,10 @@ function Question({ children, hint }) {
 function Choice({ selected, onClick, children }) {
   const c = useQuestColors();
   return (
-    <button type="button" onClick={onClick} aria-pressed={selected}
+    <button type="button" onClick={onClick} aria-pressed={selected} className={FOCUS_CLASS}
       style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", boxSizing: "border-box",
-        background: selected ? c.wash : WHITE, borderRadius: 18, padding: "16px 18px",
-        border: `2px solid ${selected ? c.accent : LINE}`, boxShadow: `0 4px 0 ${selected ? c.edge : LINE}` }}>
+        background: selected ? c.softer : WHITE, borderRadius: RADIUS.card, padding: "16px 18px",
+        border: selected ? `1.5px solid ${c.text}` : `1px solid ${LINE}` }}>
       {children}
     </button>
   );
@@ -62,8 +64,8 @@ function Mapping() {
             initial={reduce ? false : { scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: reduce ? 0 : i * 0.35, repeat: reduce ? 0 : Infinity, repeatDelay: 1.4, duration: 0.35 }}
-            style={{ width: 46, height: 46, borderRadius: "50%", background: i === 4 ? WHITE : c.accent,
-              border: i === 4 ? `4px solid ${c.accent}` : "none", boxShadow: `0 4px 0 ${c.edge}`,
+            style={{ width: 46, height: 46, borderRadius: "50%", background: i === 4 ? WHITE : c.button.bg,
+              border: i === 4 ? `1.5px solid ${c.text}` : "none", boxShadow: i === 4 ? `0 0 0 5px ${c.soft}` : "none",
               x: Math.round(Math.sin(i * 0.9) * 62), boxSizing: "border-box" }} />
         ))}
       </div>
@@ -149,8 +151,8 @@ function Talk({ goal, title, talk, setTalk, onContinue, onBack }) {
             <p style={{ margin: 0, maxWidth: "85%", minWidth: 0, fontFamily: SANS, fontSize: "1rem", lineHeight: 1.55, color: INK,
               padding: "11px 14px", whiteSpace: "pre-wrap", overflowWrap: "anywhere",
               ...(m.role === "advisor"
-                ? { background: c.wash, borderRadius: "16px 16px 16px 4px", fontWeight: 600 }
-                : { background: WHITE, border: `2px solid ${LINE}`, borderRadius: "16px 16px 4px 16px" }) }}>
+                ? { background: c.softer, border: `1px solid ${c.soft}`, borderRadius: "16px 16px 16px 4px", fontWeight: 600 }
+                : { background: WHITE, border: `1px solid ${LINE}`, borderRadius: "16px 16px 4px 16px" }) }}>
               {m.content}
             </p>
           </div>
@@ -158,7 +160,7 @@ function Talk({ goal, title, talk, setTalk, onContinue, onBack }) {
         {busy && (
           <p role="status" style={{ display: "flex", alignItems: "center", gap: 8, margin: "2px 0 0", fontFamily: SANS,
             fontSize: "0.95rem", fontWeight: 700, color: MUTED }}>
-            <Spinner size={16} color={c.accent} /> Thinking...
+            <Spinner size={16} color={c.text} /> Thinking...
           </p>
         )}
         <div ref={end} />
@@ -170,7 +172,7 @@ function Talk({ goal, title, talk, setTalk, onContinue, onBack }) {
             onChange={(e) => setAnswer(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder="A sentence is plenty."
-            style={{ ...fieldStyle, resize: "vertical" }} />
+            className={INPUT_CLASS} style={{ ...fieldStyle, resize: "vertical" }} />
         </div>
       )}
       <ErrorLine>{talk.error}</ErrorLine>
@@ -282,7 +284,7 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
               <Question hint="The plan will be sized to finish before it.">Fixed deadline</Question>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)}
-                  aria-label="Fixed deadline" style={{ ...fieldStyle, width: "auto" }} />
+                  aria-label="Fixed deadline" className={INPUT_CLASS} style={{ ...fieldStyle, width: "auto" }} />
                 <TextButton onClick={() => { setHasDeadline(false); setDeadline(""); }} color={MUTED}>Remove</TextButton>
               </div>
             </>
@@ -291,7 +293,7 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
         <label style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 20, cursor: "pointer",
           fontFamily: SANS, fontSize: "0.98rem", color: INK }}>
           <input type="checkbox" checked={addToPortfolio} onChange={(e) => setAddToPortfolio(e.target.checked)}
-            style={{ width: 18, height: 18, accentColor: c.accent }} />
+            className={FOCUS_CLASS} style={{ width: 20, height: 20, accentColor: c.button.bg }} />
           Offer to add it to my activities when I finish
         </label>
         <ErrorLine>{error}</ErrorLine>
@@ -313,7 +315,7 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
 
       {ideas === null ? (
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "20px 0" }}>
-          <Spinner size={20} color={c.accent} />
+          <Spinner size={20} color={c.text} />
           <span style={{ fontFamily: SANS, fontWeight: 700, color: MID }}>Finding ideas that fit you...</span>
         </div>
       ) : (
@@ -326,15 +328,16 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
               <span style={{ display: "block", fontFamily: SANS, fontSize: "0.95rem", color: MID, lineHeight: 1.5, marginTop: 4 }}>
                 {s.why}
               </span>
-              <span style={{ display: "block", fontFamily: SANS, fontSize: "0.85rem", fontWeight: 700, color: FAINT, marginTop: 8 }}>
+              <span style={{ display: "block", fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, color: MUTED, marginTop: 8 }}>
                 About {s.weeks} weeks
               </span>
             </Choice>
           ))}
-          <div style={{ background: pick === "own" ? c.wash : WHITE, borderRadius: 18,
-            border: `2px solid ${pick === "own" ? c.accent : LINE}`, boxShadow: `0 4px 0 ${pick === "own" ? c.edge : LINE}` }}>
-            <button type="button" onClick={() => setPick("own")} aria-pressed={pick === "own"}
+          <div style={{ background: pick === "own" ? c.softer : WHITE, borderRadius: RADIUS.card,
+            border: pick === "own" ? `1.5px solid ${c.text}` : `1px solid ${LINE}` }}>
+            <button type="button" onClick={() => setPick("own")} aria-pressed={pick === "own"} className={FOCUS_CLASS}
               style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", background: "none",
+                borderRadius: RADIUS.card,
                 border: "none", padding: "16px 18px", fontFamily: SANS, fontWeight: 800, fontSize: "1.05rem", color: INK }}>
               Write your own
             </button>
@@ -343,12 +346,13 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
                 <textarea autoFocus rows={3} value={own} maxLength={600} onChange={(e) => setOwn(e.target.value)}
                   placeholder="What do you want to build, prepare for or investigate?"
                   aria-label="Your quest"
-                  style={{ ...fieldStyle, resize: "vertical" }} />
+                  className={INPUT_CLASS} style={{ ...fieldStyle, resize: "vertical" }} />
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
                   {STARTERS.map((s) => (
-                    <button key={s} type="button" onClick={() => setOwn(s + ": ")}
-                      style={{ fontFamily: SANS, fontSize: "0.85rem", fontWeight: 700, color: c.accent, cursor: "pointer",
-                        background: WHITE, border: `2px solid ${LINE}`, borderRadius: 99, padding: "5px 11px" }}>
+                    <button key={s} type="button" onClick={() => setOwn(s + ": ")} className={FOCUS_CLASS}
+                      style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, color: c.text, cursor: "pointer",
+                        background: WHITE, border: `1.5px solid ${LINE}`, borderRadius: RADIUS.pill, padding: "6px 13px",
+                        minHeight: 40 }}>
                       {s}
                     </button>
                   ))}
@@ -393,7 +397,8 @@ export function DraftReview({ state, onStart, onDiscard, busy, error }) {
       <Title>{q.title}</Title>
       {q.summary && <Lead>{q.summary}</Lead>}
       {q.direction && (
-        <div style={{ background: c.wash, borderRadius: 14, padding: "12px 15px", margin: "0 0 18px", maxWidth: 560 }}>
+        <div style={{ background: c.softer, border: `1px solid ${c.soft}`, borderRadius: RADIUS.control,
+          padding: "12px 15px", margin: "0 0 18px", maxWidth: 640 }}>
           <p style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "0.95rem", color: INK }}>Where this is headed</p>
           <p style={{ margin: "4px 0 0", fontFamily: SANS, fontSize: "1rem", color: INK, lineHeight: 1.55 }}>{q.direction}</p>
         </div>
@@ -406,9 +411,10 @@ export function DraftReview({ state, onStart, onDiscard, busy, error }) {
       <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
         {state.milestones.map((m) => (
           <li key={m.id} style={{ display: "flex", gap: 14, alignItems: "flex-start", background: WHITE,
-            borderRadius: 16, padding: "14px 16px", border: `2px solid ${LINE}` }}>
-            <span style={{ width: 32, height: 32, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center",
-              justifyContent: "center", background: c.wash, color: c.accent, fontFamily: SANS, fontWeight: 800 }}>
+            borderRadius: RADIUS.card, padding: "14px 16px", border: `1px solid ${LINE}` }}>
+            <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center",
+              justifyContent: "center", background: c.softer, border: `1px solid ${c.soft}`, color: c.onSoft,
+              fontFamily: SANS, fontWeight: 800, boxSizing: "border-box" }}>
               {m.position}
             </span>
             <span style={{ flex: 1, minWidth: 0 }}>
@@ -421,7 +427,7 @@ export function DraftReview({ state, onStart, onDiscard, busy, error }) {
                 </span>
               )}
             </span>
-            <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.88rem", color: FAINT, whiteSpace: "nowrap" }}>
+            <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.9rem", color: MUTED, whiteSpace: "nowrap" }}>
               {m.expected_days} day{m.expected_days === 1 ? "" : "s"}
             </span>
           </li>
@@ -432,9 +438,9 @@ export function DraftReview({ state, onStart, onDiscard, busy, error }) {
         <Chunky onClick={onStart} disabled={busy}>{busy ? "Starting..." : "Start quest"}</Chunky>
         <TextButton onClick={onDiscard} color={MUTED} disabled={busy}>Pick something else</TextButton>
       </div>
-      <p style={{ margin: "14px 0 0", fontFamily: SANS, fontSize: "0.88rem", color: c.accent, lineHeight: 1.5 }}>
+      <Tip name="Tip" stamp="chat" tone="default" style={{ marginTop: 14 }}>
         Your advisor can reshape milestones later if the plan stops fitting.
-      </p>
+      </Tip>
     </div>
   );
 }
