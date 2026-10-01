@@ -5,15 +5,18 @@ import { getCache, setCache, invalidateCache, getKnownUserId, setKnownUserId } f
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { useTheme } from "../lib/ThemeContext.jsx";
-import { hexToRgbString } from "../lib/theme.js";
 import MemorySection from "../components/profile/MemorySection.jsx";
 import ConnectedAccounts from "../components/profile/ConnectedAccounts.jsx";
 import { isEnabled } from "../lib/features.js";
 import { agentsApi } from "../lib/agentsApi.js";
+import {
+  AMBER_TEXT, BORDER, DANGER, FOCUS_CLASS, RADIUS, SANS, TEXT, TEXT_MUTED, WHITE, useAgentInk,
+} from "../components/ui/tokens.js";
+import {
+  Button, Card, ChoiceChips, FieldLabel, Heading, INPUT_CLASS, Notice, PageHeader, StampTile, inputStyle, pageStyle,
+} from "../components/ui/kit.jsx";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const ACCENT = "#3b82f6";
 
 const PROFILE_COLORS = [
   { hex: "#3b82f6", label: "Blue" },
@@ -26,91 +29,68 @@ const PROFILE_COLORS = [
   { hex: "#6366f1", label: "Indigo" },
 ];
 
+// The saved value when a student has never picked one (the first swatch).
+// Data only: every control on the page takes its colour from useAgentInk.
+const DEFAULT_COLOR = PROFILE_COLORS[0].hex;
+
 const RESPONSE_STYLES = [
   { value: "encouraging", label: "Encouraging", desc: "Warm, motivational, celebrates wins" },
   { value: "balanced",    label: "Balanced",    desc: "Mix of support and directness" },
   { value: "direct",      label: "Direct",      desc: "Straight to the point, no filler" },
   { value: "concise",     label: "Concise",     desc: "Short replies unless detail is needed" },
 ];
+const STYLE_CHOICES = RESPONSE_STYLES.map((s) => ({ key: s.value, label: s.label }));
 
 // ─── Atom components ──────────────────────────────────────────────────────────
 
-const SG = "'Raleway', sans-serif";
-const JK = "'Raleway', sans-serif";
+const TEXT_SM = { fontFamily: SANS, fontSize: "0.92rem", color: TEXT_MUTED, lineHeight: 1.5, margin: 0 };
 
-function Label({ children }) {
+function Hint({ children, style }) {
+  return <p style={{ ...TEXT_SM, marginTop: "0.4rem", ...style }}>{children}</p>;
+}
+
+/** A label for something that is not a single input (a group of buttons). */
+function GroupLabel({ id, children }) {
   return (
-    <p style={{ fontFamily: SG, fontSize: "0.9375rem", fontWeight: 700, color: "#141413", marginBottom: "0.5rem" }}>
+    <p id={id} style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: TEXT, margin: "0 0 8px" }}>
       {children}
     </p>
   );
 }
 
-function Hint({ children }) {
+/** A character count under a field: amber once it is close to the limit. */
+function Count({ value, max, warnAt }) {
+  const near = value > warnAt;
   return (
-    <p style={{ fontFamily: SG, fontSize: "0.75rem", color: "#6a6760", marginTop: "0.35rem", lineHeight: 1.5 }}>
+    <span style={{ ...TEXT_SM, flexShrink: 0, marginLeft: "0.75rem", marginTop: "0.4rem", fontWeight: near ? 700 : 500,
+      color: near ? AMBER_TEXT : TEXT_MUTED, fontVariantNumeric: "tabular-nums" }}>
+      {value}/{max}
+    </span>
+  );
+}
+
+/** One settings section: a white card with a pixel mark beside its heading. */
+function Section({ stamp, title, id, children, style }) {
+  return (
+    <Card as="section" aria-labelledby={id} style={{ padding: "1.25rem 1.3rem 1.4rem", ...style }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: "1.25rem" }}>
+        <StampTile kind={stamp} />
+        <Heading id={id}>{title}</Heading>
+      </div>
       {children}
-    </p>
+    </Card>
   );
 }
 
-function SectionHeading({ children }) {
+/** A label and line on the left, an action on the right (wraps on a phone). */
+function ActionRow({ title, line, titleColor = TEXT, children }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: "1.25rem" }}>
-      <p style={{ fontFamily: SG, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.02em", color: "var(--accent)", margin: 0 }}>
-        {children}
-      </p>
-      <div style={{ flex: 1, height: 1, background: "#e6dfd8" }} />
-    </div>
-  );
-}
-
-function Divider() {
-  return <div style={{ height: 1, background: "#f5f0e8", margin: "1.25rem 0" }} />;
-}
-
-const inputStyle = {
-  width: "100%",
-  padding: "0.875rem 1rem",
-  border: "1.5px solid #e2e8f0",
-  borderRadius: "0.75rem",
-  fontSize: "1rem",
-  fontFamily: "'Raleway', sans-serif",
-  color: "#141413",
-  background: "#faf9f5",
-  outline: "none",
-  transition: "border-color 0.15s, box-shadow 0.15s",
-  boxSizing: "border-box",
-};
-
-function PillSelector({ options, value, onChange, accent = ACCENT }) {
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-      {options.map((opt) => {
-        const active = value === opt.value;
-        return (
-          <button
-            key={opt.value}
-            onClick={() => onChange(opt.value)}
-            title={opt.desc}
-            style={{
-              padding: "0.55rem 1.125rem",
-              borderRadius: "2rem",
-              border: active ? `2px solid ${accent}` : "1.5px solid #e2e8f0",
-              background: active ? `${accent}12` : "#fafbff",
-              color: active ? accent : "#3d3d3a",
-              fontSize: "0.9rem",
-              fontWeight: active ? 700 : 500,
-              cursor: "pointer",
-              fontFamily: "'Raleway', sans-serif",
-              transition: "all 0.14s",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem 1rem", flexWrap: "wrap" }}>
+      <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+        <p style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 700, color: titleColor, margin: 0 }}>{title}</p>
+        <Hint style={{ marginTop: "0.2rem" }}>{line}</Hint>
+      </div>
+      {children}
     </div>
   );
 }
@@ -119,6 +99,7 @@ function PillSelector({ options, value, onChange, accent = ACCENT }) {
 
 export default function ProfilePage({ navigate }) {
   const isMobile = useIsMobile();
+  const ink = useAgentInk();
   const [loading, setLoading] = useState(() => !getCache(`profile:${getKnownUserId()}`));
   const [userId, setUserId]   = useState(getKnownUserId);
   const [userEmail, setUserEmail] = useState("");
@@ -129,7 +110,7 @@ export default function ProfilePage({ navigate }) {
   // Identity
   const [preferredName, setPreferredName] = useState(_cp?.full_name || "");
   const [bio, setBio] = useState(_cp?.bio || "");
-  const [profileColor, setProfileColor] = useState(_cp?.profile_color || ACCENT);
+  const [profileColor, setProfileColor] = useState(_cp?.profile_color || DEFAULT_COLOR);
   const { setAccent: setGlobalAccent } = useTheme();
 
   // Agent behavior
@@ -160,7 +141,7 @@ export default function ProfilePage({ navigate }) {
     const applyProfile = (p) => {
       setPreferredName(p.full_name || "");
       setBio(p.bio || "");
-      setProfileColor(p.profile_color || ACCENT);
+      setProfileColor(p.profile_color || DEFAULT_COLOR);
       setAgentResponseStyle(p.agent_response_style || "balanced");
       setAgentInstructions(p.agent_instructions || "");
       if (p.profile_color) localStorage.setItem("profileColor", p.profile_color);
@@ -193,7 +174,7 @@ export default function ProfilePage({ navigate }) {
     if (saving || !userId) return;
     setSaving(true);
     try {
-      // Save core identity fields first — these columns always exist
+      // Save core identity fields first: these columns always exist
       const { error: coreErr } = await supabase.from("profiles").update({
         full_name: preferredName.trim() || null,
       }).eq("id", userId);
@@ -207,7 +188,7 @@ export default function ProfilePage({ navigate }) {
       };
       const { error: extErr } = await supabase.from("profiles").update(extendedPayload).eq("id", userId);
       if (extErr) {
-        // Migration likely not applied — name still saved, warn user
+        // Migration likely not applied: name still saved, warn user
         showToast("Name saved. Run the migration to save all settings.", "warn");
       } else {
         localStorage.setItem("profileColor", profileColor);
@@ -248,99 +229,50 @@ export default function ProfilePage({ navigate }) {
     }
   };
 
-  // Active accent for this page = chosen profile color
-  const accent = profileColor || ACCENT;
-  const accentRgb = hexToRgbString(accent);
-
-  const card = {
-    background: "#faf9f5",
-    border: `1px solid rgba(${accentRgb},0.1)`,
-    borderTop: `3px solid ${accent}`,
-    borderRadius: "1rem",
-    padding: "1.5rem",
-    marginBottom: "1rem",
-    boxShadow: `0 4px 20px rgba(${accentRgb},0.07), 0 1px 4px rgba(15,23,42,0.04), 0 0 0 0 ${accent}`,
-  };
+  // The chosen profile colour, handed to the memory switch (the rest of the
+  // page reads the live accent through useAgentInk, which the swatches set).
+  const accent = profileColor || DEFAULT_COLOR;
+  const confirmed = deleteConfirmText.trim().toLowerCase() === "delete my account";
+  const styleDesc = RESPONSE_STYLES.find((s) => s.value === agentResponseStyle)?.desc;
+  const initial = (preferredName || userEmail || "?").charAt(0).toUpperCase();
+  // The fixed save button and the toast clear the 60px MobileNav on a phone.
+  const floatBottom = isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : "2rem";
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div data-sidebar-offset style={{
-      minHeight: "100vh",
-      background: "#F5F5F5",
-      backgroundImage: `radial-gradient(circle, rgba(${accentRgb},0.06) 1px, transparent 1px)`,
-      backgroundSize: "28px 28px",
-      fontFamily: "'Raleway', sans-serif",
-      paddingLeft: isMobile ? 0 : SIDEBAR_WIDTH,
-      paddingBottom: isMobile ? 96 : 0,
-      position: "relative",
-    }}>
-
-      <style>{`
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        .pf-input:focus  { border-color: ${accent} !important; box-shadow: 0 0 0 4px ${accent}18, 0 2px 12px ${accent}20 !important; }
-        .pf-ta:focus     { border-color: ${accent} !important; box-shadow: 0 0 0 4px ${accent}18, 0 2px 12px ${accent}20 !important; }
-        .pf-del:focus    { border-color: #ef4444 !important; box-shadow: 0 0 0 4px rgba(239,68,68,0.15) !important; }
-        .pf-pill-btn:hover { border-color: #94a3b8 !important; }
-        @keyframes pf-shimmer { 0% { background-position: -400px 0 } 100% { background-position: 400px 0 } }
-        @keyframes spinner-rotate { to { transform: rotate(360deg); } }
-      `}</style>
-
-      <div style={{ maxWidth: 620, margin: "0 auto", padding: "3rem 1.5rem 6rem", position: "relative" }}>
+    <div data-sidebar-offset className="ui-page" style={pageStyle({ isMobile, sidebar: SIDEBAR_WIDTH, ink })}>
+      <div style={{ maxWidth: 880, margin: "0 auto", width: "100%", paddingBottom: isMobile ? "3rem" : "4rem" }}>
 
         {/* Header */}
-        <div style={{ marginBottom: "2rem" }}>
-          {!loading && (
-            <div style={{ display: "flex", alignItems: "center", gap: "1.25rem", marginBottom: "0.5rem" }}>
-              {/* Avatar with glow halo */}
-              <div style={{ position: "relative", flexShrink: 0 }}>
-                <div style={{
-                  position: "absolute", inset: -6, borderRadius: "50%",
-                  background: `radial-gradient(circle, ${accent}30, transparent 70%)`,
-                  filter: "blur(8px)",
-                }} />
-                <div style={{
-                  position: "relative",
-                  width: 58, height: 58, borderRadius: "50%",
-                  background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: `0 0 0 2px ${accent}22, 0 6px 24px ${accent}40`,
-                  fontFamily: "'Raleway', sans-serif",
-                  fontWeight: 700, fontSize: "1.35rem", color: "white",
-                }}>
-                  {(preferredName || userEmail || "?").charAt(0).toUpperCase()}
-                </div>
-              </div>
-              <div>
-                <h1 style={{ fontFamily: "'Raleway', sans-serif", fontSize: "1.9rem", fontWeight: 600, color: "#141413", letterSpacing: "-0.01em", lineHeight: 1.15 }}>
-                  {preferredName || "Your Profile"}
-                </h1>
-                {userEmail && <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "0.82rem", color: "#6a6760", marginTop: "0.25rem" }}>{userEmail}</p>}
-              </div>
-            </div>
-          )}
-          {loading && (
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-              <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#e6dfd8" }} />
-              <div>
-                <div style={{ width: 140, height: 20, background: "#e6dfd8", borderRadius: "0.4rem", marginBottom: 6 }} />
-                <div style={{ width: 180, height: 12, background: "#e6dfd8", borderRadius: "0.4rem" }} />
-              </div>
-            </div>
-          )}
-        </div>
+        {loading ? (
+          <div aria-hidden="true" style={{ margin: "0 0 1.6rem" }}>
+            <div style={{ width: 220, maxWidth: "70%", height: 40, background: BORDER, borderRadius: 10, marginBottom: 12 }} />
+            <div style={{ width: 180, height: 16, background: BORDER, borderRadius: 6 }} />
+          </div>
+        ) : (
+          <PageHeader title={preferredName || "Your Profile"} isMobile={isMobile}
+            action={(
+              <span aria-hidden="true" style={{ flexShrink: 0, width: 56, height: 56, borderRadius: RADIUS.card,
+                background: ink.softer, border: `1px solid ${ink.soft}`, color: ink.onSoft, display: "inline-flex",
+                alignItems: "center", justifyContent: "center", fontFamily: SANS, fontWeight: 800, fontSize: "1.5rem" }}>
+                {initial}
+              </span>
+            )}>
+            {userEmail && <p style={{ margin: 0, overflowWrap: "anywhere" }}>{userEmail}</p>}
+          </PageHeader>
+        )}
 
         {loading ? (
           <SkeletonCards />
         ) : (
-          <>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             {/* ── Identity ─────────────────────────────────────────────────── */}
-            <div style={card}>
-              <SectionHeading>Identity</SectionHeading>
-
-              <div style={{ marginBottom: "1.25rem" }}>
-                <Label>Preferred name</Label>
+            <Section stamp="person" title="Identity" id="pf-identity">
+              <div style={{ marginBottom: "1.4rem" }}>
+                <FieldLabel htmlFor="pf-name">Preferred name</FieldLabel>
                 <input
-                  className="pf-input"
+                  id="pf-name"
+                  className={INPUT_CLASS}
                   style={inputStyle}
                   value={preferredName}
                   onChange={(e) => setPreferredName(e.target.value)}
@@ -350,157 +282,114 @@ export default function ProfilePage({ navigate }) {
                 <Hint>Used by your advisor when addressing you.</Hint>
               </div>
 
-              <div style={{ marginBottom: "1.25rem" }}>
-                <Label>Bio</Label>
+              <div style={{ marginBottom: "1.4rem" }}>
+                <FieldLabel htmlFor="pf-bio">Bio</FieldLabel>
                 <textarea
-                  className="pf-ta"
-                  style={{ ...inputStyle, minHeight: 72, resize: "vertical", lineHeight: 1.6 }}
+                  id="pf-bio"
+                  className={INPUT_CLASS}
+                  style={{ ...inputStyle, minHeight: 84, resize: "vertical", lineHeight: 1.6 }}
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="A sentence or two about yourself, your goals, or what you're working toward…"
                   maxLength={280}
                 />
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.3rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <Hint>Optional. Shown on your profile.</Hint>
-                  <span style={{ fontSize: "0.72rem", color: bio.length > 240 ? "#f59e0b" : "#d4ccbf" }}>{bio.length}/280</span>
+                  <Count value={bio.length} max={280} warnAt={240} />
                 </div>
               </div>
 
               <div>
-                <Label>Profile color</Label>
-                <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
-                  {PROFILE_COLORS.map((c) => (
-                    <button
-                      key={c.hex}
-                      title={c.label}
-                      onClick={() => { setProfileColor(c.hex); setGlobalAccent(c.hex); }}
-                      style={{
-                        width: 28, height: 28, borderRadius: "50%",
-                        background: c.hex, border: "none",
-                        cursor: "pointer", padding: 0, flexShrink: 0,
-                        boxShadow: profileColor === c.hex
-                          ? `0 0 0 2.5px #f8faff, 0 0 0 4.5px ${c.hex}`
-                          : "none",
-                        transform: profileColor === c.hex ? "scale(1.18)" : "scale(1)",
-                        transition: "transform 0.14s, box-shadow 0.14s",
-                      }}
-                    />
-                  ))}
+                <GroupLabel id="pf-color-label">Profile color</GroupLabel>
+                <div role="group" aria-labelledby="pf-color-label" style={{ display: "flex", gap: 4, flexWrap: "wrap", margin: "0 -8px" }}>
+                  {PROFILE_COLORS.map((c) => {
+                    const on = profileColor === c.hex;
+                    return (
+                      <button
+                        key={c.hex}
+                        type="button"
+                        title={c.label}
+                        aria-label={c.label}
+                        aria-pressed={on}
+                        className={FOCUS_CLASS}
+                        onClick={() => { setProfileColor(c.hex); setGlobalAccent(c.hex); }}
+                        style={{ width: 44, height: 44, padding: 0, border: "none", background: "transparent",
+                          borderRadius: RADIUS.control, cursor: "pointer", display: "inline-flex", alignItems: "center",
+                          justifyContent: "center", flexShrink: 0 }}
+                      >
+                        <span aria-hidden="true" style={{ width: 30, height: 30, borderRadius: "50%", background: c.hex,
+                          display: "inline-flex", alignItems: "center", justifyContent: "center", color: WHITE,
+                          boxShadow: on ? `0 0 0 2px ${WHITE}, 0 0 0 4px ${c.hex}` : "none", transition: "box-shadow 0.14s" }}>
+                          {on && (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2"
+                              strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                          )}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-                <div style={{ marginTop: "0.5rem" }}>
-                  <Hint>Sets the accent color across Mentorable: your avatar, nav, and highlights everywhere.</Hint>
-                </div>
+                <Hint>Sets the accent color across Mentorable: your avatar, nav, and highlights everywhere.</Hint>
               </div>
-            </div>
+            </Section>
 
             {/* ── Agent behavior ───────────────────────────────────────────── */}
-            <div style={card}>
-              <SectionHeading>Your advisor</SectionHeading>
-
-              <div style={{ marginBottom: "1.25rem" }}>
-                <Label>Response style</Label>
-                <div style={{ marginTop: "0.5rem" }}>
-                  <PillSelector
-                    options={RESPONSE_STYLES}
-                    value={agentResponseStyle}
-                    onChange={setAgentResponseStyle}
-                    accent={accent}
-                  />
-                </div>
-                {(() => {
-                  const style = RESPONSE_STYLES.find((s) => s.value === agentResponseStyle);
-                  return style ? <Hint>{style.desc}</Hint> : null;
-                })()}
+            <Section stamp="chat" title="Your advisor" id="pf-advisor">
+              <div style={{ marginBottom: "1.4rem" }}>
+                <GroupLabel>Response style</GroupLabel>
+                <ChoiceChips label="Response style" hideLabel options={STYLE_CHOICES} value={agentResponseStyle}
+                  onChange={setAgentResponseStyle} />
+                {styleDesc ? <Hint>{styleDesc}</Hint> : null}
               </div>
 
               <div>
-                <Label>Custom instructions</Label>
+                <FieldLabel htmlFor="pf-instructions">Custom instructions</FieldLabel>
                 <textarea
-                  className="pf-ta"
-                  style={{ ...inputStyle, minHeight: 110, resize: "vertical", lineHeight: 1.6 }}
+                  id="pf-instructions"
+                  className={INPUT_CLASS}
+                  style={{ ...inputStyle, minHeight: 130, resize: "vertical", lineHeight: 1.6 }}
                   value={agentInstructions}
                   onChange={(e) => setAgentInstructions(e.target.value)}
                   placeholder={`Anything the agent should always keep in mind.\n\nExamples:\n• Always suggest free or low-cost resources.\n• I want to go pre-med, keep advice focused there.\n• I have very limited time after 5pm on weekdays.`}
                   maxLength={1000}
                 />
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: "0.3rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <Hint>Applied to every conversation. Max 1000 characters.</Hint>
-                  <span style={{ fontSize: "0.72rem", color: agentInstructions.length > 900 ? "#f59e0b" : "#d4ccbf", flexShrink: 0, marginLeft: "0.5rem" }}>
-                    {agentInstructions.length}/1000
-                  </span>
+                  <Count value={agentInstructions.length} max={1000} warnAt={900} />
                 </div>
               </div>
-            </div>
+            </Section>
 
             {/* ── Memory ───────────────────────────────────────────────────── */}
-            <div style={card}>
-              <SectionHeading>What Mentorable remembers</SectionHeading>
+            <Section stamp="sparkle" title="What Mentorable remembers" id="pf-memory">
               <MemorySection userId={userId} accent={accent} onToast={showToast} />
-            </div>
+            </Section>
 
             {/* ── Connected accounts ───────────────────────────────────────── */}
             {isEnabled("agents") && (
-              <div style={card}>
-                <SectionHeading>Connected accounts</SectionHeading>
+              <Section stamp="letter" title="Connected accounts" id="pf-accounts">
                 <ConnectedAccounts onToast={showToast} navigate={nav} />
-              </div>
+              </Section>
             )}
 
-            <div style={{ marginBottom: "2.5rem" }} />
-
             {/* ── Danger zone ──────────────────────────────────────────────── */}
-            <div style={{ ...card, border: "1px solid #fecaca" }}>
-              <SectionHeading>Account</SectionHeading>
-
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
-                <div>
-                  <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "#141413" }}>Log out</p>
-                  <p style={{ fontSize: "0.78rem", color: "#6a6760", marginTop: "0.15rem" }}>Sign out on this device.</p>
-                </div>
-                <button
-                  className="pf-pill-btn"
-                  onClick={handleLogout}
-                  disabled={loggingOut}
-                  style={{
-                    padding: "0.55rem 1.1rem",
-                    background: "transparent", border: "1.5px solid #e2e8f0",
-                    borderRadius: "0.5rem", fontSize: "0.85rem", fontWeight: 600,
-                    color: "#3d3d3a", fontFamily: "'Raleway', sans-serif",
-                    cursor: loggingOut ? "not-allowed" : "pointer",
-                    opacity: loggingOut ? 0.6 : 1, whiteSpace: "nowrap",
-                    flexShrink: 0, marginLeft: "1rem",
-                    transition: "border-color 0.15s, background 0.15s",
-                  }}
-                >
+            <Section stamp="lock" title="Account" id="pf-account" style={{ marginTop: "1.5rem" }}>
+              <ActionRow title="Log out" line="Sign out on this device.">
+                <Button onClick={handleLogout} disabled={loggingOut} style={{ whiteSpace: "nowrap" }}>
                   {loggingOut ? "Logging out…" : "Log out"}
-                </button>
-              </div>
+                </Button>
+              </ActionRow>
 
-              <Divider />
+              <div style={{ height: 1, background: BORDER, margin: "1.25rem 0" }} />
 
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "#ef4444" }}>Delete account</p>
-                  <p style={{ fontSize: "0.78rem", color: "#6a6760", marginTop: "0.15rem" }}>Permanently deletes all your data.</p>
-                </div>
-                <button
-                  onClick={() => { setDeleteModal(true); setDeleteConfirmText(""); setDeleteError(null); }}
-                  style={{
-                    padding: "0.55rem 1.1rem", background: "transparent",
-                    border: "1.5px solid #fca5a5", borderRadius: "0.5rem",
-                    fontSize: "0.85rem", fontWeight: 600, color: "#ef4444",
-                    fontFamily: "'Raleway', sans-serif", cursor: "pointer",
-                    whiteSpace: "nowrap", flexShrink: 0, marginLeft: "1rem",
-                    transition: "border-color 0.15s, background 0.15s",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.borderColor = "#ef4444"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "#fca5a5"; }}
-                >
+              <ActionRow title="Delete account" line="Permanently deletes all your data." titleColor={DANGER}>
+                <Button kind="danger" style={{ whiteSpace: "nowrap" }}
+                  onClick={() => { setDeleteModal(true); setDeleteConfirmText(""); setDeleteError(null); }}>
                   Delete account
-                </button>
-              </div>
-            </div>
-          </>
+                </Button>
+              </ActionRow>
+            </Section>
+          </div>
         )}
       </div>
 
@@ -510,25 +399,28 @@ export default function ProfilePage({ navigate }) {
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(15,23,42,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}
+            style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(20,20,19,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
             onClick={(e) => { if (e.target === e.currentTarget && !deleting) setDeleteModal(false); }}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              role="dialog" aria-modal="true" aria-labelledby="pf-delete-title"
+              initial={{ scale: 0.97, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.97, opacity: 0 }}
               transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-              style={{ background: "#fff", borderRadius: "1rem", padding: "2rem", width: "100%", maxWidth: 440, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}
+              style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: RADIUS.card, padding: "1.5rem",
+                width: "100%", maxWidth: 460, boxSizing: "border-box", boxShadow: "0 18px 48px rgba(20,20,19,0.18)" }}
             >
-              <p style={{ fontSize: "1.05rem", fontWeight: 700, color: "#141413", marginBottom: "0.5rem" }}>Delete your account?</p>
-              <p style={{ fontSize: "0.875rem", color: "#494742", lineHeight: 1.6, marginBottom: "1.25rem" }}>
+              <Heading id="pf-delete-title" style={{ marginBottom: "0.5rem" }}>Delete your account?</Heading>
+              <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT_MUTED, lineHeight: 1.6, margin: "0 0 1.25rem" }}>
                 This permanently deletes your account, profile, and chat history. This cannot be undone.
               </p>
 
               <div style={{ marginBottom: "1.25rem" }}>
-                <Label>Type <strong>delete my account</strong> to confirm</Label>
+                <FieldLabel htmlFor="pf-delete-confirm">Type <strong>delete my account</strong> to confirm</FieldLabel>
                 <input
-                  className="pf-del"
-                  style={{ ...inputStyle, border: "1.5px solid #fca5a5" }}
+                  id="pf-delete-confirm"
+                  className={INPUT_CLASS}
+                  style={{ ...inputStyle, borderColor: "#f4c7c2" }}
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder="delete my account"
@@ -536,30 +428,16 @@ export default function ProfilePage({ navigate }) {
                 />
               </div>
 
-              {deleteError && <p style={{ fontSize: "0.82rem", color: "#ef4444", fontWeight: 500, marginBottom: "1rem" }}>{deleteError}</p>}
+              {deleteError && <Notice tone="error" style={{ marginBottom: "1rem" }}>{deleteError}</Notice>}
 
-              <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end" }}>
-                <button
-                  onClick={() => setDeleteModal(false)}
-                  disabled={deleting}
-                  style={{ padding: "0.6rem 1.1rem", background: "transparent", border: "1.5px solid #e2e8f0", borderRadius: "0.5rem", fontSize: "0.875rem", fontWeight: 600, color: "#3d3d3a", cursor: "pointer", fontFamily: "'Raleway', sans-serif" }}
-                >
+              <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                <Button onClick={() => setDeleteModal(false)} disabled={deleting}>
                   Cancel
-                </button>
-                <button
-                  onClick={handleDeleteAccount}
-                  disabled={deleteConfirmText.trim().toLowerCase() !== "delete my account" || deleting}
-                  style={{
-                    padding: "0.6rem 1.1rem",
-                    background: deleteConfirmText.trim().toLowerCase() === "delete my account" && !deleting ? "#ef4444" : "#fca5a5",
-                    border: "none", borderRadius: "0.5rem",
-                    fontSize: "0.875rem", fontWeight: 700, color: "white",
-                    cursor: deleteConfirmText.trim().toLowerCase() === "delete my account" && !deleting ? "pointer" : "not-allowed",
-                    fontFamily: "'Raleway', sans-serif", transition: "background 0.15s",
-                  }}
-                >
+                </Button>
+                <Button kind="danger" onClick={handleDeleteAccount} disabled={!confirmed || deleting}
+                  style={{ background: DANGER, color: WHITE }}>
                   {deleting ? "Deleting…" : "Delete account"}
-                </button>
+                </Button>
               </div>
             </motion.div>
           </motion.div>
@@ -573,63 +451,30 @@ export default function ProfilePage({ navigate }) {
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            style={{ position: "fixed", bottom: isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : "2rem", left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 600 }}
+            style={{ position: "fixed", bottom: floatBottom, left: isMobile ? 12 : SIDEBAR_WIDTH + 16, right: 12, display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 600 }}
           >
-            <div style={{
-              background: toast.type === "error" ? "#fef2f2" : toast.type === "warn" ? "#fffbeb" : "#141413",
-              color: toast.type === "error" ? "#dc2626" : toast.type === "warn" ? "#92400e" : "white",
-              border: toast.type === "success" ? "none" : `1px solid ${toast.type === "error" ? "#fca5a5" : "#fcd34d"}`,
-              padding: "0.9rem 1.5rem", borderRadius: "0.75rem",
-              fontSize: "0.9375rem", fontWeight: 600,
-              boxShadow: "0 8px 28px rgba(0,0,0,0.14)",
-              display: "flex", alignItems: "center", gap: "0.5rem",
-            }}>
-              {toast.type === "success" && (
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-              )}
-              {toast.message}
+            <div style={{ maxWidth: 480, borderRadius: RADIUS.control, boxShadow: "0 14px 36px rgba(20,20,19,0.16)" }}>
+              <Notice tone={toast.type === "error" ? "error" : toast.type === "warn" ? "warn" : "info"}
+                style={toast.type === "success" ? { background: WHITE } : undefined}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  {toast.type === "success" && (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={ink.text} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12" /></svg>
+                  )}
+                  {toast.message}
+                </span>
+              </Notice>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* ── Sticky save button ─────────────────────────────────────────────── */}
-      <motion.button
-        onClick={handleSave}
-        disabled={saving}
-        initial={{ opacity: 0, x: 16 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.4, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        style={{
-          position: "fixed",
-          right: isMobile ? "1rem" : "1.5rem",
-          // Clear the fixed 60px MobileNav on mobile.
-          bottom: isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : "2rem",
-          zIndex: 110,
-          padding: "0.9rem 1.75rem",
-          background: saving ? `${accent}99` : accent,
-          color: "white",
-          border: "none",
-          borderRadius: "0.875rem",
-          fontSize: "1rem",
-          fontWeight: 700,
-          fontFamily: "'Raleway', sans-serif",
-          cursor: saving ? "not-allowed" : "pointer",
-          boxShadow: saving ? "none" : `0 6px 24px ${accent}55, 0 2px 8px rgba(0,0,0,0.12)`,
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          transition: "background 0.15s, box-shadow 0.15s",
-        }}
-      >
-        {saving ? (
+      <Button kind="primary" busy={saving} onClick={handleSave}
+        style={{ position: "fixed", right: isMobile ? "1rem" : "1.5rem", bottom: floatBottom, zIndex: 110,
+          padding: "12px 22px", boxShadow: "0 8px 24px rgba(20,20,19,0.14)" }}>
+        {saving ? "Saving…" : (
           <>
-            <div style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "white", borderRadius: "50%", animation: "spinner-rotate 0.7s linear infinite", flexShrink: 0 }} />
-            Saving…
-          </>
-        ) : (
-          <>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
               <polyline points="17 21 17 13 7 13 7 21" />
               <polyline points="7 3 7 8 15 8" />
@@ -637,7 +482,7 @@ export default function ProfilePage({ navigate }) {
             Save changes
           </>
         )}
-      </motion.button>
+      </Button>
     </div>
   );
 }
@@ -645,25 +490,26 @@ export default function ProfilePage({ navigate }) {
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 function SkeletonCards() {
   const shimmer = {
-    background: "linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)",
+    background: "linear-gradient(90deg, #ece6de 25%, #f5f1ec 50%, #ece6de 75%)",
     backgroundSize: "400px 100%",
     animation: "pf-shimmer 1.5s infinite",
-    borderRadius: "0.4rem",
+    borderRadius: 8,
   };
   return (
-    <>
-      <style>{`@keyframes pf-shimmer { 0% { background-position: -400px 0 } 100% { background-position: 400px 0 } }`}</style>
+    <div aria-busy="true" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <style>{`@keyframes pf-shimmer { 0% { background-position: -400px 0 } 100% { background-position: 400px 0 } }
+        @media (prefers-reduced-motion: reduce) { .pf-skel { animation: none !important; } }`}</style>
       {[
         [60, 10, 38, 72, 10, 32],
         [80, 10, 120, 10, 28, 28, 28],
         [90, 10, 28, 28, 28, 10, 28, 28],
       ].map((heights, ci) => (
-        <div key={ci} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "0.875rem", padding: "1.5rem", marginBottom: "1rem" }}>
+        <Card key={ci} style={{ padding: "1.25rem 1.3rem" }}>
           {heights.map((h, i) => (
-            <div key={i} style={{ ...shimmer, width: i === 0 ? 80 : "100%", height: h, marginBottom: i < heights.length - 1 ? 10 : 0 }} />
+            <div key={i} className="pf-skel" style={{ ...shimmer, width: i === 0 ? 80 : "100%", height: h, marginBottom: i < heights.length - 1 ? 10 : 0 }} />
           ))}
-        </div>
+        </Card>
       ))}
-    </>
+    </div>
   );
 }

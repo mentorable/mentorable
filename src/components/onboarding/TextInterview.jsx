@@ -2,9 +2,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "../../lib/supabase.js";
 import RecordPanel, { sectionsFromRecord } from "./RecordPanel.jsx";
+import { Button, Notice, Tip } from "../ui/kit.jsx";
 import {
-  SANS, TEXT, TEXT2, TEXT3, ACCENT, ACCENT2, BORDER,
-  eyebrowStyle, titleStyle,
+  INPUT_CLASS, RADIUS, SANS, TEXT, TEXT_MID, TEXT_MUTED, inputStyle, subtitleStyle, titleStyle, useIntakeInk,
 } from "./intakeTheme.js";
 
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
@@ -13,26 +13,21 @@ const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 const MAX_EXCHANGES = 12;
 
 function Logo() {
+  const ink = useIntakeInk();
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: "1.5rem" }}>
       <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.1rem", color: TEXT, letterSpacing: "-0.04em" }}>
         mentorable
       </span>
-      <motion.span
-        animate={{ scale: [1, 1.35, 1], opacity: [1, 0.7, 1] }}
-        transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-        style={{
-          width: 7, height: 7, borderRadius: "50%",
-          background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
-          display: "inline-block", flexShrink: 0,
-          boxShadow: `0 0 10px ${ACCENT}60`,
-        }}
-      />
+      <span aria-hidden="true" style={{
+        width: 7, height: 7, borderRadius: "50%", background: ink.accent, display: "inline-block", flexShrink: 0,
+      }} />
     </div>
   );
 }
 
 export default function TextInterview({ onFinish, record, isMobile }) {
+  const ink = useIntakeInk();
   const [messages, setMessages] = useState([]);   // {role, content}
   const [draft, setDraft] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -134,7 +129,7 @@ export default function TextInterview({ onFinish, record, isMobile }) {
   return (
     <div style={{
       display: "flex", gap: "2.5rem", alignItems: "stretch",
-      width: "100%", maxWidth: 1240, margin: "0 auto", padding: "0 1.5rem",
+      width: "100%", maxWidth: 1240, margin: "0 auto", padding: isMobile ? "0 1rem" : "0 1.5rem", boxSizing: "border-box",
       flexDirection: isMobile ? "column" : "row",
       minHeight: 0, flex: 1,
     }}>
@@ -144,65 +139,56 @@ export default function TextInterview({ onFinish, record, isMobile }) {
         style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
 
         <Logo />
-        <p style={eyebrowStyle}>A quick chat</p>
-        <h1 style={{ ...titleStyle, fontSize: "2.3rem", marginBottom: "0.5rem" }}>
+        <h1 style={{ ...titleStyle(ink, isMobile), fontSize: isMobile ? "1.9rem" : "2.3rem" }}>
           Tell us more about what you do
         </h1>
-        <p style={{ fontFamily: SANS, fontSize: "1.05rem", color: TEXT2, lineHeight: 1.6, marginBottom: "1.6rem" }}>
+        <p style={{ ...subtitleStyle(isMobile), marginBottom: "1.4rem" }}>
           Quick questions about the activities and awards you listed. Short answers are fine.
         </p>
 
         <div style={{ flex: 1, overflowY: "auto", minHeight: 160, paddingRight: 4 }}>
-          {messages.map((m, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", marginBottom: 16 }}>
+          {/* The interviewer speaks in the kit's dialog box, the student's own
+              answers sit on the right in a soft tint of their accent. */}
+          {messages.map((m, i) => m.role === "user" ? (
+            <div key={i} style={{ display: "flex", justifyContent: "flex-end", margin: "4px 0 16px" }}>
               <div style={{
-                maxWidth: "85%", fontFamily: SANS, fontSize: "1.05rem", lineHeight: 1.6,
-                padding: "14px 18px", borderRadius: 18,
-                background: m.role === "user" ? ACCENT : "#fff",
-                color: m.role === "user" ? "#fff" : TEXT,
-                border: m.role === "user" ? "none" : `1px solid ${BORDER}`,
-                boxShadow: m.role === "user" ? "0 4px 16px rgba(29,78,216,0.25)" : "0 1px 6px rgba(15,23,42,0.05)",
-                whiteSpace: "pre-wrap",
+                maxWidth: "85%", fontFamily: SANS, fontSize: "1.05rem", fontWeight: 500, lineHeight: 1.6,
+                padding: "12px 16px", borderRadius: RADIUS.card, background: ink.soft, color: TEXT,
+                border: `1px solid ${ink.soft}`, whiteSpace: "pre-wrap", overflowWrap: "anywhere",
               }}>
-                {m.content || (
-                  <span style={{ display: "inline-flex", gap: 5 }}>
-                    {[0, 1, 2].map((d) => (
-                      <motion.span key={d}
-                        animate={{ opacity: [0.25, 1, 0.25] }}
-                        transition={{ duration: 1.1, repeat: Infinity, delay: d * 0.18 }}
-                        style={{ width: 7, height: 7, borderRadius: "50%", background: TEXT3 }} />
-                    ))}
-                  </span>
-                )}
+                {m.content}
               </div>
             </div>
+          ) : (
+            <Tip key={i} name="Mentorable" stamp="chat" tone="default" style={{ marginBottom: 12, paddingRight: isMobile ? 0 : "10%" }}>
+              {m.content ? <span style={{ whiteSpace: "pre-wrap" }}>{m.content}</span> : (
+                <span style={{ display: "inline-flex", gap: 5, padding: "6px 0" }}>
+                  {[0, 1, 2].map((d) => (
+                    <motion.span key={d}
+                      animate={{ opacity: [0.25, 1, 0.25] }}
+                      transition={{ duration: 1.1, repeat: Infinity, delay: d * 0.18 }}
+                      style={{ width: 7, height: 7, borderRadius: "50%", background: TEXT_MUTED }} />
+                  ))}
+                </span>
+              )}
+            </Tip>
           ))}
           <div ref={endRef} />
         </div>
 
         <div style={{ paddingTop: 14 }}>
           {sendError && (
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
-              background: "#fff", border: `1.5px solid ${BORDER}`, borderRadius: 12,
-              padding: "11px 14px", marginBottom: 12,
-            }}>
-              <span style={{ fontFamily: SANS, fontSize: "0.92rem", color: TEXT2, lineHeight: 1.5 }}>
-                {sendError} Your answers are still here.
-              </span>
-              <button type="button" onClick={() => send(lastHistoryRef.current)} disabled={streaming}
-                style={{
-                  fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, flexShrink: 0,
-                  cursor: streaming ? "default" : "pointer", padding: "8px 16px",
-                  borderRadius: 9, border: "none", background: ACCENT, color: "#fff",
-                  opacity: streaming ? 0.6 : 1,
-                }}>
-                Try again
-              </button>
-            </div>
+            <Notice tone="error" style={{ marginBottom: 12 }}
+              action={(
+                <Button kind="secondary" onClick={() => send(lastHistoryRef.current)} disabled={streaming}>
+                  Try again
+                </Button>
+              )}>
+              {sendError} Your answers are still here.
+            </Notice>
           )}
           {atLimit ? (
-            <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT2, textAlign: "center", marginBottom: 13 }}>
+            <p style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT_MID, textAlign: "center", marginBottom: 13 }}>
               That's everything we need.
             </p>
           ) : (
@@ -214,42 +200,26 @@ export default function TextInterview({ onFinish, record, isMobile }) {
                 placeholder="Type your answer…"
                 rows={1}
                 disabled={streaming}
+                className={INPUT_CLASS}
                 style={{
-                  flex: 1, fontFamily: SANS, fontSize: "1.05rem", color: TEXT, lineHeight: 1.5,
-                  border: `1.5px solid ${BORDER}`, borderRadius: 14, padding: "14px 16px",
-                  outline: "none", resize: "none", background: "#fff", maxHeight: 160,
+                  ...inputStyle, flex: 1, width: "auto", minWidth: 0, fontSize: "1.05rem",
+                  padding: "12px 14px", minHeight: 50, resize: "none", maxHeight: 160,
                 }}
-                onFocus={(e) => (e.target.style.borderColor = ACCENT)}
-                onBlur={(e) => (e.target.style.borderColor = BORDER)}
               />
-              <button type="button" onClick={submit} disabled={!draft.trim() || streaming}
-                style={{
-                  fontFamily: SANS, fontSize: "1.02rem", fontWeight: 700,
-                  cursor: draft.trim() && !streaming ? "pointer" : "not-allowed",
-                  padding: "15px 24px", borderRadius: 14, border: "none",
-                  background: draft.trim() && !streaming ? ACCENT : "#c7d2e8", color: "#fff",
-                }}>
+              <Button kind="primary" onClick={submit} disabled={!draft.trim() || streaming}
+                style={{ minHeight: 50, padding: "10px 22px", flexShrink: 0 }}>
                 Send
-              </button>
+              </Button>
             </div>
           )}
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 13, gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT3 }}>
+            <span style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, color: TEXT_MUTED, fontVariantNumeric: "tabular-nums" }}>
               {exchanges} of {MAX_EXCHANGES} answers
             </span>
-            <button type="button" onClick={finish} disabled={streaming || exchanges === 0}
-              style={{
-                fontFamily: SANS, fontSize: "0.98rem", fontWeight: 700,
-                cursor: streaming || exchanges === 0 ? "not-allowed" : "pointer",
-                background: atLimit ? ACCENT : "none",
-                color: atLimit ? "#fff" : TEXT2,
-                border: atLimit ? "none" : `1.5px solid ${BORDER}`,
-                padding: "11px 22px", borderRadius: 12,
-                opacity: exchanges === 0 ? 0.5 : 1,
-              }}>
+            <Button kind={atLimit ? "primary" : "secondary"} onClick={finish} disabled={streaming || exchanges === 0}>
               {atLimit ? "See what we found" : "I'm done, wrap up"}
-            </button>
+            </Button>
           </div>
         </div>
       </motion.div>

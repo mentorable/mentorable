@@ -9,15 +9,19 @@ import LimitModal from "../components/common/LimitModal.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import Drawer from "../components/common/Drawer.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
-import { useTheme } from "../lib/ThemeContext.jsx";
 import { useQuest } from "../lib/QuestContext.jsx";
 import { runResearch, summarizeResearchForHistory, ResearchLimitError } from "../lib/research.js";
-import { readableOn } from "../lib/theme.js";
 import { ResultCard, SourcesSection } from "../components/common/ResearchResults.jsx";
+import {
+  AMBER_TEXT, BG, BORDER, DANGER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, ringVar, useAgentInk,
+} from "../components/ui/tokens.js";
+import { Button, INPUT_CLASS, Notice, SR_ONLY, StampTile, Tip, Toast, inputStyle } from "../components/ui/kit.jsx";
+import { PixelStamp } from "../components/ui/PixelIcons.jsx";
 
-const NAVY    = "#141413";
-const SG      = "'Raleway', sans-serif";
-const JK      = "'Raleway', sans-serif";
+// The advisor, on the app's shared kit: a calm shell (white cards, 1px warm
+// borders, flat kit buttons) with its character in the pixel chat stamp, the
+// dialog-box name tab on each reply, and the guide bubble on the welcome.
+
 const HISTORY_W = 252;
 
 const SUGGESTIONS = [
@@ -105,38 +109,30 @@ const IconSearch = ({ size = 13, color = "currentColor" }) => (
 
 // ─── Streaming visualization ──────────────────────────────────────────────────
 
+// A thin accent line sweeps the top of a reply while it is still arriving, in
+// its own clipped track so the card itself can let its name tab poke out.
+// The colour comes in through --chat-accent, set from useAgentInk on the card.
 const STREAMING_CSS = `
-@keyframes streamPulse {
-  0%, 100% { box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 0 0 1.5px rgba(var(--accent-rgb),0.15); }
-  50%       { box-shadow: 0 2px 16px rgba(var(--accent-rgb),0.1),  0 0 0 1.5px rgba(var(--accent-rgb),0.4); }
-}
 @keyframes streamSweep {
   0%   { transform: translateX(-100%); opacity: 0.6; }
   60%  { transform: translateX(0%);    opacity: 1; }
   100% { transform: translateX(100%);  opacity: 0; }
 }
-.streaming-bubble {
-  animation: streamPulse 2s ease-in-out infinite;
-  position: relative; overflow: hidden;
-}
-.streaming-bubble::before {
-  content: "";
-  position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent-light), var(--accent), transparent);
-  animation: streamSweep 1.8s ease-in-out infinite;
-  border-radius: 2px 2px 0 0;
-}
+.stream-sweep-track { position: absolute; top: 0; left: ${RADIUS.card}px; right: ${RADIUS.card}px; height: 2px; overflow: hidden; pointer-events: none; }
+.stream-sweep { display: block; height: 100%; background: linear-gradient(90deg, transparent, var(--chat-accent), transparent);
+  animation: streamSweep 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .stream-sweep { animation: none; opacity: 0.6; } }
 `;
 
 function TypingIndicator() {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "2px 0" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 0" }}>
       {[0, 1, 2].map((i) => (
         <motion.div
           key={i}
-          animate={{ y: [0, -4, 0], opacity: [0.3, 0.8, 0.3] }}
+          animate={{ y: [0, -4, 0], opacity: [0.35, 0.9, 0.35] }}
           transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.16, ease: "easeInOut" }}
-          style={{ width: 6, height: 6, borderRadius: "50%", background: "#6a6760", flexShrink: 0 }}
+          style={{ width: 6, height: 6, borderRadius: "50%", background: TEXT_MUTED, flexShrink: 0 }}
         />
       ))}
     </div>
@@ -145,28 +141,32 @@ function TypingIndicator() {
 
 // ─── Agent avatar ─────────────────────────────────────────────────────────────
 
-function AgentAvatar({ size = 28 }) {
+function AgentAvatar({ size = 32 }) {
+  return <StampTile kind="chat" size={size} />;
+}
+
+// The pixel name tab the game dialog box carries ("Advisor", "Research"),
+// sitting on the top edge of a calm message card. Read out to screen readers
+// as "Advisor says:" the way SpeechBubble does.
+function NameTab({ name, icon }) {
+  const ink = useAgentInk();
   return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%",
-      background: "linear-gradient(135deg, var(--accent), var(--accent-light))",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      flexShrink: 0,
-      boxShadow: "0 2px 8px rgba(var(--accent-rgb),0.27)",
-    }}>
-      <span style={{
-        fontFamily: JK, fontWeight: 700,
-        fontSize: size * 0.42, color: "#fff",
-        letterSpacing: "-0.04em", lineHeight: 1,
-        userSelect: "none",
-      }}>m</span>
-    </div>
+    <>
+      <span style={SR_ONLY}>{name} says: </span>
+      <span aria-hidden="true" style={{ position: "absolute", top: -11, left: 16, display: "inline-flex", alignItems: "center",
+        gap: 5, padding: "2px 8px", background: ink.soft, color: ink.onSoft, fontFamily: SANS, fontSize: "0.9rem",
+        fontWeight: 800, letterSpacing: "0.01em", lineHeight: 1.3, whiteSpace: "nowrap",
+        boxShadow: `0 -2px 0 ${TEXT}, 0 2px 0 ${TEXT}, -2px 0 0 ${TEXT}, 2px 0 0 ${TEXT}` }}>
+        {icon}
+        {name}
+      </span>
+    </>
   );
 }
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
 
-function Inline({ text, color = NAVY }) {
+function Inline({ text, color = TEXT }) {
   const tokens = [];
   const re = /(\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`)/g;
   let last = 0, m;
@@ -183,7 +183,7 @@ function Inline({ text, color = NAVY }) {
       {tokens.map((tok, i) => {
         if (tok.t === "bold")   return <strong key={i} style={{ fontWeight: 700, color }}>{tok.v}</strong>;
         if (tok.t === "italic") return <em key={i} style={{ fontStyle: "italic" }}>{tok.v}</em>;
-        if (tok.t === "code")   return <code key={i} style={{ fontFamily: "monospace", fontSize: 12.5, background: "#f5f0e8", border: "1px solid #e2e8f0", borderRadius: 4, padding: "1px 5px", color: "#334155" }}>{tok.v}</code>;
+        if (tok.t === "code")   return <code key={i} style={{ fontFamily: "monospace", fontSize: "0.9rem", background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 6, padding: "1px 5px", color: TEXT_MID }}>{tok.v}</code>;
         return <span key={i}>{tok.v}</span>;
       })}
     </>
@@ -203,7 +203,10 @@ function splitTableRow(line) {
   return trimmed.split("|").map((c) => c.trim());
 }
 
+const BODY = { fontFamily: SANS, fontSize: "1rem", color: TEXT, lineHeight: 1.7 };
+
 function MarkdownRenderer({ text, streaming = false }) {
+  const ink = useAgentInk();
   const lines = text.split("\n");
   const blocks = [];
   let i = 0;
@@ -237,7 +240,7 @@ function MarkdownRenderer({ text, streaming = false }) {
   const lastBlockIdx = blocks.length - 1;
   const cursor = streaming ? (
     <motion.span animate={{ opacity: [1, 0, 1] }} transition={{ duration: 0.7, repeat: Infinity }}
-      style={{ display: "inline-block", width: 2, height: "0.9em", background: "var(--accent)", marginLeft: 2, borderRadius: 1, verticalAlign: "text-bottom" }} />
+      style={{ display: "inline-block", width: 2, height: "0.9em", background: ink.text, marginLeft: 2, borderRadius: 1, verticalAlign: "text-bottom" }} />
   ) : null;
 
   return (
@@ -247,23 +250,23 @@ function MarkdownRenderer({ text, streaming = false }) {
         const cur = isLast ? cursor : null;
 
         if (block.type === "spacer") return <div key={bi} style={{ height: 6 }} />;
-        if (block.type === "hr")     return <hr key={bi} style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "8px 0" }} />;
-        if (block.type === "h1")     return <p key={bi} style={{ fontFamily: JK, fontWeight: 700, fontSize: 17, color: NAVY, lineHeight: 1.35, margin: "10px 0 4px" }}><Inline text={block.text}/>{cur}</p>;
-        if (block.type === "h2")     return <p key={bi} style={{ fontFamily: JK, fontWeight: 700, fontSize: 15, color: NAVY, lineHeight: 1.4,  margin: "8px 0 3px"  }}><Inline text={block.text}/>{cur}</p>;
-        if (block.type === "h3")     return <p key={bi} style={{ fontFamily: SG, fontWeight: 700, fontSize: 12.5, color: "#3d3d3a", lineHeight: 1.4, margin: "6px 0 2px", textTransform: "uppercase", letterSpacing: "0.05em" }}><Inline text={block.text} color="#3d3d3a"/>{cur}</p>;
+        if (block.type === "hr")     return <hr key={bi} style={{ border: "none", borderTop: `1px solid ${BORDER}`, margin: "10px 0" }} />;
+        if (block.type === "h1")     return <p key={bi} style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.2rem", color: TEXT, lineHeight: 1.35, margin: "10px 0 4px" }}><Inline text={block.text}/>{cur}</p>;
+        if (block.type === "h2")     return <p key={bi} style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.08rem", color: TEXT, lineHeight: 1.4,  margin: "8px 0 3px"  }}><Inline text={block.text}/>{cur}</p>;
+        if (block.type === "h3")     return <p key={bi} style={{ fontFamily: SANS, fontWeight: 800, fontSize: "0.92rem", color: TEXT_MID, lineHeight: 1.4, margin: "8px 0 2px", textTransform: "uppercase", letterSpacing: "0.05em" }}><Inline text={block.text} color={TEXT_MID}/>{cur}</p>;
         if (block.type === "ul")     return (
-          <ul key={bi} style={{ paddingLeft: 18, margin: "4px 0", display: "flex", flexDirection: "column", gap: 3 }}>
+          <ul key={bi} style={{ paddingLeft: 20, margin: "4px 0", display: "flex", flexDirection: "column", gap: 3 }}>
             {block.items.map((item, ii) => (
-              <li key={ii} style={{ fontFamily: SG, fontSize: 14, color: NAVY, lineHeight: 1.65, listStyleType: "disc" }}>
+              <li key={ii} style={{ ...BODY, lineHeight: 1.65, listStyleType: "disc" }}>
                 <Inline text={item}/>{isLast && ii === block.items.length - 1 ? cursor : null}
               </li>
             ))}
           </ul>
         );
         if (block.type === "ol") return (
-          <ol key={bi} style={{ paddingLeft: 18, margin: "4px 0", display: "flex", flexDirection: "column", gap: 3 }}>
+          <ol key={bi} style={{ paddingLeft: 20, margin: "4px 0", display: "flex", flexDirection: "column", gap: 3 }}>
             {block.items.map((item, ii) => (
-              <li key={ii} style={{ fontFamily: SG, fontSize: 14, color: NAVY, lineHeight: 1.65 }}>
+              <li key={ii} style={{ ...BODY, lineHeight: 1.65 }}>
                 <Inline text={item}/>{isLast && ii === block.items.length - 1 ? cursor : null}
               </li>
             ))}
@@ -271,11 +274,11 @@ function MarkdownRenderer({ text, streaming = false }) {
         );
         if (block.type === "table") return (
           <div key={bi} style={{ overflowX: "auto", margin: "8px 0" }}>
-            <table style={{ borderCollapse: "collapse", width: "100%", fontFamily: SG, fontSize: 13.5 }}>
+            <table style={{ borderCollapse: "collapse", width: "100%", fontFamily: SANS, fontSize: "0.95rem" }}>
               <thead>
                 <tr>
                   {block.header.map((cell, ci) => (
-                    <th key={ci} style={{ textAlign: "left", padding: "7px 12px", borderBottom: "1.5px solid #e2e8f0", color: NAVY, fontWeight: 700, whiteSpace: "nowrap" }}>
+                    <th key={ci} style={{ textAlign: "left", padding: "8px 12px", borderBottom: `1.5px solid ${BORDER}`, color: TEXT, fontWeight: 800, whiteSpace: "nowrap" }}>
                       <Inline text={cell}/>
                     </th>
                   ))}
@@ -285,7 +288,7 @@ function MarkdownRenderer({ text, streaming = false }) {
                 {block.rows.map((row, ri) => (
                   <tr key={ri}>
                     {row.map((cell, ci) => (
-                      <td key={ci} style={{ textAlign: "left", padding: "7px 12px", borderBottom: "1px solid #eef0f2", color: NAVY, lineHeight: 1.55, verticalAlign: "top" }}>
+                      <td key={ci} style={{ textAlign: "left", padding: "8px 12px", borderBottom: `1px solid ${BORDER}`, color: TEXT, lineHeight: 1.55, verticalAlign: "top" }}>
                         <Inline text={cell}/>
                       </td>
                     ))}
@@ -295,7 +298,7 @@ function MarkdownRenderer({ text, streaming = false }) {
             </table>
           </div>
         );
-        return <p key={bi} style={{ fontFamily: SG, fontSize: 14, color: NAVY, lineHeight: 1.7, margin: 0 }}><Inline text={block.text}/>{cur}</p>;
+        return <p key={bi} style={{ ...BODY, margin: 0 }}><Inline text={block.text}/>{cur}</p>;
       })}
     </div>
   );
@@ -339,7 +342,15 @@ function useTypewriter(targetText, active) {
 
 const RESEARCHING_STEPS = ["Searching the web…", "Reading sources…", "Putting it together…"];
 
+// The advisor's card: white, 1px warm border, the card radius with the corner
+// nearest the avatar squared off, and room above it for the name tab.
+const ADVISOR_CARD = {
+  position: "relative", background: WHITE, border: `1px solid ${BORDER}`, borderRadius: `4px ${RADIUS.card}px ${RADIUS.card}px ${RADIUS.card}px`,
+  padding: "20px 18px 14px", boxSizing: "border-box", minWidth: 0,
+};
+
 function ResearchingIndicator() {
+  const ink = useAgentInk();
   const [step, setStep] = useState(0);
   useEffect(() => {
     const iv = setInterval(() => setStep((s) => (s + 1) % RESEARCHING_STEPS.length), 2200);
@@ -347,10 +358,10 @@ function ResearchingIndicator() {
   }, []);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ width: 14, height: 14, border: "2px solid rgba(var(--accent-rgb),0.25)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spinner-rotate 0.8s linear infinite", flexShrink: 0 }} />
+      <span style={{ width: 14, height: 14, border: `2px solid ${ink.soft}`, borderTopColor: ink.text, borderRadius: "50%", animation: "spinner-rotate 0.8s linear infinite", flexShrink: 0 }} />
       <AnimatePresence mode="wait">
         <motion.span key={step} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }}
-          style={{ fontFamily: SG, fontSize: 13.5, color: "#1d1b18" }}>
+          style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, color: TEXT_MID }}>
           {RESEARCHING_STEPS[step]}
         </motion.span>
       </AnimatePresence>
@@ -359,27 +370,18 @@ function ResearchingIndicator() {
 }
 
 function ResearchMessage({ msg, isMobile = false }) {
+  const ink = useAgentInk();
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      style={{ display: "flex", gap: 11, marginBottom: 20, paddingRight: isMobile ? 24 : 40, alignItems: "flex-start" }}
+      style={{ display: "flex", gap: 11, marginBottom: 22, paddingTop: 12, paddingRight: isMobile ? 0 : 40, alignItems: "flex-start" }}
     >
-      <AgentAvatar size={30} />
+      {!isMobile && <AgentAvatar size={32} />}
       <div style={{ flex: 1, minWidth: 0, maxWidth: 640 }}>
-        <div style={{
-          background: "rgba(var(--accent-rgb),0.05)",
-          border: "1.5px solid rgba(var(--accent-rgb),0.22)",
-          borderRadius: "3px 16px 16px 16px",
-          padding: "16px 18px",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: msg.researching ? 0 : 14 }}>
-            <IconSearch size={13} color="color-mix(in srgb, var(--accent) 100%, black 42%)" />
-            <span style={{ fontFamily: SG, fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "color-mix(in srgb, var(--accent) 100%, black 42%)" }}>
-              Research
-            </span>
-          </div>
+        <div style={{ ...ADVISOR_CARD, background: ink.softer, borderColor: ink.soft }}>
+          <NameTab name="Research" icon={<IconSearch size={12} color={ink.onSoft} />} />
           {msg.researching ? (
             <ResearchingIndicator />
           ) : (
@@ -397,6 +399,7 @@ function ResearchMessage({ msg, isMobile = false }) {
 }
 
 function Message({ msg, isMobile = false }) {
+  const ink = useAgentInk();
   const [copied, setCopied] = useState(false);
   const isUser      = msg.role === "user";
   const isStreaming  = Boolean(msg.streaming);
@@ -414,17 +417,18 @@ function Message({ msg, isMobile = false }) {
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20, paddingLeft: isMobile ? 32 : 80 }}
+        style={{ display: "flex", justifyContent: "flex-end", marginBottom: 22, paddingLeft: isMobile ? 32 : 80 }}
       >
         <div style={{
-          background: "var(--accent)",
-          borderRadius: "16px 16px 3px 16px",
-          padding: "13px 18px",
+          background: ink.softer,
+          border: `1px solid ${ink.soft}`,
+          borderRadius: `${RADIUS.card}px ${RADIUS.card}px 4px ${RADIUS.card}px`,
+          padding: "12px 16px",
           maxWidth: 520,
-          boxShadow: "0 2px 10px rgba(var(--accent-rgb),0.2)",
+          minWidth: 0,
         }}>
-          <p style={{ fontFamily: SG, fontSize: 15.5, color: "#fff", lineHeight: 1.65, margin: 0 }}>{msg.content}</p>
-          <p style={{ fontFamily: SG, fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 5, textAlign: "right" }}>{msg.time}</p>
+          <p style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: TEXT, lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{msg.content}</p>
+          {msg.time && <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_MUTED, margin: "4px 0 0", textAlign: "right" }}>{msg.time}</p>}
         </div>
       </motion.div>
     );
@@ -439,39 +443,32 @@ function Message({ msg, isMobile = false }) {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      style={{ display: "flex", gap: 11, marginBottom: 20, paddingRight: isMobile ? 24 : 80, alignItems: "flex-start" }}
+      style={{ display: "flex", gap: 11, marginBottom: 22, paddingTop: 12, paddingRight: isMobile ? 0 : 80, alignItems: "flex-start" }}
     >
-      <AgentAvatar size={30} />
+      {!isMobile && <AgentAvatar size={32} />}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
-          className={isStreaming ? "streaming-bubble" : undefined}
           style={{
-            background: "#fff",
-            borderRadius: "3px 16px 16px 16px",
-            padding: "16px 18px",
-            border: isStreaming
-              ? "1px solid rgba(var(--accent-rgb),0.25)"
-              : "1px solid rgba(var(--accent-rgb),0.1)",
-            boxShadow: isStreaming
-              ? "0 0 0 1px rgba(var(--accent-rgb),0.08), 0 4px 20px rgba(var(--accent-rgb),0.1)"
-              : "0 2px 12px rgba(var(--accent-rgb),0.06), 0 1px 4px rgba(15,23,42,0.04)",
-            maxWidth: 600,
+            ...ADVISOR_CARD,
+            "--chat-accent": ink.accent,
+            borderColor: isStreaming ? ink.soft : BORDER,
+            maxWidth: 640,
           }}
         >
+          {isStreaming && <span className="stream-sweep-track" aria-hidden="true"><span className="stream-sweep" /></span>}
+          <NameTab name="Advisor" icon={<PixelStamp kind="chat" size={12} />} />
           {displayedText
             ? <MarkdownRenderer text={displayedText} streaming={isStreaming} />
             : <TypingIndicator />
           }
           {!isStreaming && msg.content && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
-              <p style={{ fontFamily: SG, fontSize: 10, color: "#6a6760" }}>{msg.time}</p>
-              <button
-                onClick={handleCopy}
-                style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 5, border: "1px solid #f1f5f9", background: copied ? "#f0fdf4" : "transparent", color: copied ? "#10b981" : "#6a6760", fontFamily: SG, fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}
-              >
-                <IconCopy size={11} color={copied ? "#10b981" : "#6a6760"} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 10, paddingTop: 4, borderTop: `1px solid ${BORDER}` }}>
+              <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_MUTED, margin: 0 }}>{msg.time}</p>
+              <Button kind="quiet" onClick={handleCopy}
+                style={{ fontSize: "0.9rem", padding: "6px 10px", marginRight: -10, color: copied ? ink.text : TEXT_MUTED }}>
+                {copied ? <IconCheck size={13} color={ink.text} /> : <IconCopy size={13} color={TEXT_MUTED} />}
                 {copied ? "Copied" : "Copy"}
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -490,6 +487,7 @@ function sanitizeChatInput(text) {
 }
 
 function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, researchMode, onToggleResearch, isMobile = false, chatUsed = 0, researchUsed = 0 }) {
+  const ink = useAgentInk();
   const [value, setValue] = useState("");
   const taRef = useRef(null);
 
@@ -513,73 +511,56 @@ function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, resear
 
   const canSend = value.trim() && !disabled && value.length <= MAX_INPUT;
   const nearLimit = value.length > MAX_INPUT * 0.85;
+  const over = value.length > MAX_INPUT;
 
   return (
-    <div style={{ padding: isMobile ? "12px 14px 14px" : "16px 28px 24px", flexShrink: 0 }}>
-      <div style={{
-        background: "#fff",
-        border: `1.5px solid ${value.length > MAX_INPUT ? "#ef4444" : value ? "rgba(var(--accent-rgb),0.38)" : "rgba(var(--accent-rgb),0.12)"}`,
-        borderRadius: 16,
-        boxShadow: value
-          ? "0 0 0 3px rgba(var(--accent-rgb),0.08), 0 4px 20px rgba(var(--accent-rgb),0.1)"
-          : "0 2px 12px rgba(var(--accent-rgb),0.06)",
-        transition: "border-color 0.18s, box-shadow 0.18s",
-        padding: "14px 14px 14px 20px",
-        display: "flex", alignItems: "center", gap: 10,
-      }}>
+    <div style={{ padding: isMobile ? "10px 16px 14px" : "14px 28px 22px", flexShrink: 0, maxWidth: 880, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
         <textarea
           ref={taRef}
+          className={INPUT_CLASS}
           value={value}
           onChange={(e) => { if (e.target.value.length <= MAX_INPUT + 50) setValue(e.target.value); autoResize(); }}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
           placeholder={researchMode ? "Find scholarships, internships, programs…" : "Ask anything about your career…"}
           rows={1}
-          style={{ flex: 1, border: "none", background: "transparent", resize: "none", fontFamily: SG, fontSize: 16, color: NAVY, lineHeight: 1.6, padding: 0, outline: "none", maxHeight: 160, minHeight: 26 }}
+          style={{ ...inputStyle, flex: 1, minWidth: 0, resize: "none", maxHeight: 160, display: "block",
+            borderColor: over ? DANGER : researchMode ? ink.text : BORDER }}
         />
         <button
+          type="button"
+          className={FOCUS_CLASS}
           onClick={onToggleResearch}
           disabled={researchLimitReached}
+          aria-pressed={researchMode}
+          aria-label={isMobile ? "Research" : undefined}
           title={researchLimitReached ? "No research queries remaining" : researchMode ? "Research mode on" : "Search the web for this"}
           style={{
-            display: "flex", alignItems: "center", gap: 5, flexShrink: 0,
-            height: 40, padding: "0 12px", borderRadius: 12,
-            border: researchMode ? "1.5px solid var(--accent)" : "1.5px solid #e2e8f0",
-            background: researchMode ? "rgba(var(--accent-rgb),0.1)" : "transparent",
-            color: researchLimitReached ? "#b0bac6" : researchMode ? "var(--accent)" : "#6a6760",
+            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, flexShrink: 0,
+            minHeight: 46, minWidth: 46, padding: isMobile ? "0 12px" : "0 14px", borderRadius: RADIUS.pill, boxSizing: "border-box",
+            border: `1.5px solid ${researchMode ? ink.text : BORDER}`,
+            background: researchMode ? ink.softer : WHITE,
+            color: researchMode ? ink.onSoft : TEXT_MID,
             cursor: researchLimitReached ? "not-allowed" : "pointer",
-            opacity: researchLimitReached ? 0.6 : 1,
-            fontFamily: SG, fontSize: 13, fontWeight: 600,
-            transition: "background 0.15s, border-color 0.15s, color 0.15s",
+            opacity: researchLimitReached ? 0.55 : 1,
+            fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700,
           }}
         >
-          <IconSearch size={13} color={researchLimitReached ? "#b0bac6" : researchMode ? "var(--accent)" : "#6a6760"} />
+          <IconSearch size={14} color={researchMode ? ink.onSoft : TEXT_MID} />
           {!isMobile && "Research"}
         </button>
-        <button
-          onClick={handleSend}
-          disabled={!canSend}
-          style={{
-            width: 40, height: 40, borderRadius: 12, border: "none", flexShrink: 0,
-            background: canSend ? "linear-gradient(135deg, var(--accent), var(--accent-light))" : "#e6dfd8",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: canSend ? "pointer" : "not-allowed",
-            transition: "background 0.18s, transform 0.12s",
-          }}
-          onMouseEnter={(e) => { if (canSend) e.currentTarget.style.transform = "scale(1.05)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-          onMouseDown={(e)  => { if (canSend) e.currentTarget.style.transform = "scale(0.95)"; }}
-          onMouseUp={(e)    => { if (canSend) e.currentTarget.style.transform = "scale(1)"; }}
-        >
-          <IconSend size={15} color={canSend ? "#fff" : "#6a6760"} />
-        </button>
+        <Button kind="primary" onClick={handleSend} disabled={!canSend} aria-label="Send"
+          style={{ width: 46, minHeight: 46, padding: 0, flexShrink: 0 }}>
+          <IconSend size={16} color={ink.button.fg} />
+        </Button>
       </div>
       {nearLimit && (
-        <p style={{ fontFamily: SG, fontSize: 11, color: value.length > MAX_INPUT ? "#ef4444" : "#f59e0b", textAlign: "right", marginTop: 4 }}>
+        <p style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 600, color: over ? DANGER : AMBER_TEXT, textAlign: "right", margin: "4px 0 0" }}>
           {value.length}/{MAX_INPUT}
         </p>
       )}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
-        <p style={{ fontFamily: SG, fontSize: 11, color: NAVY, margin: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "4px 12px", marginTop: 8, flexWrap: "wrap" }}>
+        <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_MUTED, margin: 0, lineHeight: 1.45 }}>
           Your advisor can make mistakes. Check important decisions yourself.
         </p>
         {(() => {
@@ -590,8 +571,8 @@ function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, resear
             ? (left === 0 ? "No research queries remaining" : `${left} research quer${left === 1 ? "y" : "ies"} remaining`)
             : (left === 0 ? "No messages remaining" : `${left} message${left === 1 ? "" : "s"} remaining`);
           return (
-            <span style={{ fontFamily: SG, fontSize: 13.5, fontWeight: 500, whiteSpace: "nowrap",
-              color: left <= (researchMode ? 0 : 3) ? "#dc2626" : "#6a6760" }}>
+            <span style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, whiteSpace: "nowrap",
+              color: left <= (researchMode ? 0 : 3) ? DANGER : TEXT_MUTED }}>
               {label}
             </span>
           );
@@ -607,87 +588,58 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
   const firstName = userName?.split(" ")[0];
-  const { accent } = useTheme();
-  // Matches the Portfolio/College List page titles: darkened just enough to
-  // stay readable with a light accent like amber or sky. #faf9f5 is this
-  // page's actual background (html, body in index.css), not those pages' BG.
-  const titleColor = readableOn(accent, "#faf9f5", 3);
+  const ink = useAgentInk();
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 32px 24px" }}>
-
-      {/* Wordmark */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        style={{ marginBottom: 28, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-          <span style={{ fontFamily: JK, fontWeight: 700, fontSize: 22, color: NAVY, letterSpacing: "-0.04em" }}>
-            mentorable
-          </span>
-          <motion.span
-            animate={{ boxShadow: [`0 0 6px ${accent}80`, `0 0 12px ${accent}`, `0 0 6px ${accent}80`] }}
-            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-            style={{ width: 7, height: 7, borderRadius: "50%", background: accent, display: "inline-block", marginBottom: 2 }}
-          />
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 28, height: 1, background: "#e6dfd8" }} />
-          <span style={{ fontFamily: SG, fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: "#6a6760" }}>Your AI Mentor</span>
-          <div style={{ width: 28, height: 1, background: "#e6dfd8" }} />
-        </div>
-      </motion.div>
-
-      {/* Greeting */}
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.38, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-        style={{ textAlign: "center", marginBottom: 32 }}
-      >
-        <h2 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 800, fontSize: isMobile ? "2.1rem" : "2.5rem",
-          color: titleColor, letterSpacing: "-0.03em", marginBottom: 14, lineHeight: 1.1 }}>
-          Good {timeOfDay}{firstName ? `, ${firstName}` : ""}.
-        </h2>
-        <p style={{ fontFamily: SG, fontSize: 19, color: "#494742", fontWeight: 500, maxWidth: 460, lineHeight: 1.65 }}>
-          What's on your mind? Ask about your applications, your quest, or anything you're working through.
-        </p>
-      </motion.div>
-
-      {/* Prompt starters */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.38, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-        style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10, width: "100%", maxWidth: 620 }}
-      >
-        {SUGGESTIONS.map((s, i) => (
-          <motion.button
-            key={i}
-            onClick={() => onSend(s.label)}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28, delay: 0.18 + i * 0.06 }}
-            whileHover={{ y: -2, boxShadow: `0 4px 20px ${accent}14` }}
-            whileTap={{ scale: 0.97 }}
-            style={{
-              background: "#fff", border: "1.5px solid #e8edf2",
-              borderRadius: 16, padding: "20px 22px",
-              textAlign: "left", cursor: "pointer",
-              boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
-              transition: "border-color 0.15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${accent}55`; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e6dfd8"; }}
-          >
-            <span style={{ fontFamily: SG, fontSize: 17, color: "#334155", fontWeight: 600, lineHeight: 1.5 }}>
-              {s.label}
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "100%",
+      padding: isMobile ? "28px 16px 24px" : "40px 32px 24px", boxSizing: "border-box" }}>
+      <div style={{ width: "100%", maxWidth: 680, margin: "0 auto" }}>
+        {/* Greeting */}
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <h1 style={{ fontFamily: SANS, fontWeight: 800, fontSize: isMobile ? "2.1rem" : "2.5rem",
+            color: ink.title, letterSpacing: "-0.03em", margin: "0 0 0.4rem", lineHeight: 1.1 }}>
+            Good {timeOfDay}{firstName ? `, ${firstName}` : ""}.
+          </h1>
+          <Tip name="Your AI Mentor" stamp="chat" tone="default" style={{ marginBottom: 24 }}>
+            <span style={{ fontSize: isMobile ? "1rem" : "1.05rem", lineHeight: 1.6 }}>
+              What's on your mind? Ask about your applications, your quest, or anything you're working through.
             </span>
-          </motion.button>
-        ))}
-      </motion.div>
+          </Tip>
+        </motion.div>
+
+        {/* Prompt starters */}
+        <motion.div
+          role="group"
+          aria-label="Suggested questions"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.38, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+          style={{ display: "flex", flexWrap: "wrap", gap: 10, paddingLeft: isMobile ? 0 : 54 }}
+        >
+          {SUGGESTIONS.map((s, i) => (
+            <button
+              key={i}
+              type="button"
+              className={FOCUS_CLASS}
+              onClick={() => onSend(s.label)}
+              style={{
+                fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", color: TEXT_MID, lineHeight: 1.3,
+                background: WHITE, border: `1.5px solid ${BORDER}`, borderRadius: RADIUS.pill,
+                minHeight: 44, padding: "8px 16px", textAlign: "left", cursor: "pointer", boxSizing: "border-box",
+                maxWidth: "100%", transition: "border-color 0.15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = ink.text; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </motion.div>
+      </div>
     </div>
   );
 }
@@ -696,20 +648,25 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
 
 function RenameInput({ initial, onSave, onCancel }) {
   const [val, setVal] = useState(initial);
-  const { accent } = useTheme();
+  const ink = useAgentInk();
   const inputRef = useRef(null);
   useEffect(() => { inputRef.current?.focus(); inputRef.current?.select(); }, []);
   return (
     <form onSubmit={(e) => { e.preventDefault(); if (val.trim()) onSave(val.trim()); }} style={{ display: "flex", gap: 4, width: "100%" }}>
       <input
         ref={inputRef} value={val}
+        className={INPUT_CLASS}
+        aria-label="Conversation name"
         onChange={(e) => setVal(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}
         onBlur={onCancel}
-        style={{ flex: 1, fontFamily: SG, fontSize: 12, fontWeight: 600, color: NAVY, border: "1.5px solid rgba(var(--accent-rgb),0.31)", borderRadius: 5, padding: "2px 7px", outline: "none", background: "#fff" }}
+        style={{ ...inputStyle, flex: 1, minWidth: 0, minHeight: 36, padding: "4px 8px", fontSize: "0.95rem", fontWeight: 600,
+          borderRadius: 8, borderColor: ink.text }}
       />
-      <button type="submit" onMouseDown={(e) => e.preventDefault()} style={{ padding: "2px 6px", borderRadius: 5, border: "none", background: "rgba(var(--accent-rgb),0.08)", cursor: "pointer" }}>
-        <IconCheck size={11} color={accent} />
+      <button type="submit" aria-label="Save name" className={FOCUS_CLASS} onMouseDown={(e) => e.preventDefault()}
+        style={{ width: 36, minHeight: 36, borderRadius: 8, border: `1px solid ${ink.soft}`, background: ink.softer, cursor: "pointer",
+          display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <IconCheck size={13} color={ink.onSoft} />
       </button>
     </form>
   );
@@ -718,6 +675,7 @@ function RenameInput({ initial, onSave, onCancel }) {
 // ─── HistoryPanel ─────────────────────────────────────────────────────────────
 
 function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDeleteChat, onRenameChat, fullWidth = false }) {
+  const ink = useAgentInk();
   const grouped = groupChatsByDate(sessions);
   const ORDER   = ["Today", "Yesterday", "This Week", "This Month", "Older"];
   const [renamingId, setRenamingId] = useState(null);
@@ -735,12 +693,12 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{
-          position: "relative", padding: "7px 10px", borderRadius: 8,
+          position: "relative", padding: "8px 10px", borderRadius: 10,
           cursor: isRenaming ? "default" : "pointer",
           display: "flex", alignItems: "center", gap: 8,
-          background: isActive ? "#fff" : hovered ? "#F5F5F5" : "transparent",
-          borderLeft: isActive ? "2px solid var(--accent)" : "2px solid transparent",
-          marginBottom: 1, transition: "background 0.12s",
+          background: isActive ? ink.softer : hovered ? BG : "transparent",
+          boxShadow: isActive ? `inset 3px 0 0 ${ink.text}` : "none",
+          marginBottom: 2, transition: "background 0.12s",
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -752,27 +710,27 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
             />
           ) : (
             <>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
-                {hasResearch && <span style={{ flexShrink: 0, display: "flex" }}><IconSearch size={10} color="var(--accent)" /></span>}
-                <p style={{ fontFamily: SG, fontSize: 12.5, fontWeight: isActive ? 700 : 500, color: isActive ? NAVY : "#3d3d3a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                {hasResearch && <span style={{ flexShrink: 0, display: "flex" }}><IconSearch size={12} color={ink.text} /></span>}
+                <p style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: isActive ? 800 : 600, color: isActive ? TEXT : TEXT_MID, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.4, margin: 0 }}>
                   {title}
                 </p>
               </div>
-              <p style={{ fontFamily: SG, fontSize: 10.5, color: "#6a6760", marginTop: 1 }}>
+              <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT_MUTED, margin: "1px 0 0" }}>
                 {timeAgo(session.updated_at)}
               </p>
             </>
           )}
         </div>
         {hovered && !isRenaming && (
-          <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
-            <button onClick={(e) => { e.stopPropagation(); setRenamingId(session.id); }}
-              style={{ padding: "3px 5px", borderRadius: 5, border: "none", background: "#f5f0e8", cursor: "pointer" }} title="Rename">
-              <IconEdit size={12} color="#494742" />
+          <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+            <button type="button" aria-label="Rename" className={FOCUS_CLASS} onClick={(e) => { e.stopPropagation(); setRenamingId(session.id); }}
+              style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${BORDER}`, background: WHITE, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }} title="Rename">
+              <IconEdit size={13} color={TEXT_MUTED} />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onDeleteChat(session.id); }}
-              style={{ padding: "3px 5px", borderRadius: 5, border: "none", background: "#fef2f2", cursor: "pointer" }} title="Delete">
-              <IconTrash size={12} color="#ef4444" />
+            <button type="button" aria-label="Delete" className={FOCUS_CLASS} onClick={(e) => { e.stopPropagation(); onDeleteChat(session.id); }}
+              style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid #f4c7c2", background: "#fdf1f0", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }} title="Delete">
+              <IconTrash size={13} color={DANGER} />
             </button>
           </div>
         )}
@@ -783,35 +741,25 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
   return (
     <div style={{
       width: fullWidth ? "100%" : HISTORY_W, height: "100%", flexShrink: 0,
-      background: "#fff",
-      borderLeft: fullWidth ? "none" : "1.5px solid #e2e8f0",
+      background: WHITE,
+      borderLeft: fullWidth ? "none" : `1px solid ${BORDER}`,
       display: "flex", flexDirection: "column", overflow: "hidden",
       flex: fullWidth ? 1 : undefined,
+      fontFamily: SANS,
     }}>
       {/* Header */}
-      <div style={{ padding: "16px 14px 12px", borderBottom: "1px solid #e8edf2", flexShrink: 0 }}>
+      <div style={{ padding: "16px 14px 12px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <span style={{ fontFamily: JK, fontWeight: 700, fontSize: 12.5, color: NAVY, letterSpacing: "-0.01em" }}>
+          <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1rem", color: TEXT, letterSpacing: "-0.01em" }}>
             Conversations
           </span>
-          <span style={{ fontFamily: SG, fontSize: 10.5, color: "#6a6760" }}>
+          <span style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 600, color: TEXT_MUTED }}>
             {sessions.length > 0 ? `${sessions.length}` : ""}
           </span>
         </div>
-        <button
-          onClick={onNewChat}
-          style={{
-            width: "100%", padding: "8px 12px", borderRadius: 8,
-            border: `1.5px solid #e2e8f0`, background: "#fff",
-            display: "flex", alignItems: "center", gap: 6,
-            fontFamily: SG, fontWeight: 600, fontSize: 12.5, color: "#3d3d3a",
-            cursor: "pointer", transition: "border-color 0.15s, background 0.15s",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(var(--accent-rgb),0.31)"; e.currentTarget.style.background = "#fff"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e6dfd8"; }}
-        >
-          <IconPlus size={13} color="#3d3d3a" /> New conversation
-        </button>
+        <Button onClick={onNewChat} style={{ width: "100%", justifyContent: "flex-start", fontSize: "0.95rem", padding: "8px 12px" }}>
+          <IconPlus size={14} color={TEXT_MID} /> New conversation
+        </Button>
       </div>
 
       {/* List */}
@@ -819,7 +767,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
         {ORDER.map((group) =>
           grouped[group]?.length > 0 ? (
             <div key={group} style={{ marginBottom: 14 }}>
-              <p style={{ fontFamily: SG, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "#b0bac6", padding: "3px 4px 5px", marginBottom: 2 }}>
+              <p style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, letterSpacing: "0.02em", color: TEXT_MUTED, padding: "3px 6px 5px", margin: "0 0 2px" }}>
                 {group}
               </p>
               {grouped[group].map((s) => <ChatItem key={s.id} session={s} />)}
@@ -827,7 +775,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
           ) : null
         )}
         {sessions.length === 0 && (
-          <p style={{ fontFamily: SG, fontSize: 12, color: "#7a7f88", textAlign: "center", marginTop: 32, padding: "0 12px", lineHeight: 1.6 }}>
+          <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, textAlign: "center", marginTop: 32, padding: "0 12px", lineHeight: 1.6 }}>
             No conversations yet.
           </p>
         )}
@@ -847,76 +795,65 @@ function ChatMain({ activeChatId, messages, busy, onSend, userName, error, onOpe
   }, [messages]);
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: "#F5F5F5", overflow: "hidden", backgroundImage: "radial-gradient(circle, rgba(var(--accent-rgb),0.05) 1px, transparent 1px)", backgroundSize: "32px 32px", position: "relative" }}>
-
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: BG, overflow: "hidden", position: "relative" }}>
 
       {/* Top bar */}
       <div style={{
-        height: 54, flexShrink: 0, paddingLeft: 24, paddingRight: 16,
-        background: "rgba(248,250,255,0.92)",
-        backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-        borderBottom: "1px solid rgba(var(--accent-rgb),0.1)",
-        boxShadow: "0 1px 0 0 rgba(var(--accent-rgb),0.05), 0 4px 24px rgba(var(--accent-rgb),0.03)",
+        height: 60, flexShrink: 0, paddingLeft: isMobile ? 16 : 24, paddingRight: isMobile ? 12 : 16,
+        background: WHITE,
+        borderBottom: `1px solid ${BORDER}`,
         display: "flex", alignItems: "center", gap: 10, zIndex: 5,
       }}>
-        <AgentAvatar size={28} />
-        <div>
-          <span style={{ fontFamily: JK, fontWeight: 700, fontSize: 14, color: NAVY, letterSpacing: "-0.03em" }}>
-            Mentorable Chat
-          </span>
-        </div>
+        <AgentAvatar size={32} />
+        <h2 style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.05rem", color: TEXT, letterSpacing: "-0.01em", margin: 0 }}>
+          Mentorable Chat
+        </h2>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
           {onOpenHistory && (
-            <button
+            <Button
               onClick={onOpenHistory}
-              style={{
-                marginLeft: 4, width: 34, height: 34, borderRadius: 8,
-                border: "1.5px solid #e2e8f0", background: "transparent",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer",
-              }}
+              aria-label="Chat history"
               title="Chat history"
+              style={{ width: 44, padding: 0 }}
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#494742" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={TEXT_MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M3 3v5h5"/>
                 <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/>
                 <path d="M12 7v5l4 2"/>
               </svg>
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", padding: isNew ? (isMobile ? "0 0 110px" : "0 0 130px") : isMobile ? "16px 14px 110px" : "28px 28px 130px", position: "relative", zIndex: 1 }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: isNew ? (isMobile ? "0 0 150px" : "0 0 150px") : isMobile ? "16px 16px 150px" : "28px 28px 150px", position: "relative", zIndex: 1, display: isNew ? "flex" : "block", flexDirection: "column" }}>
         {isNew ? (
           <WelcomeScreen onSend={onSend} userName={userName} isMobile={isMobile} />
         ) : (
-          <>
+          <div style={{ maxWidth: 880, margin: "0 auto" }}>
             <AnimatePresence initial={false}>
               {messages.map((msg) => <Message key={msg.id} msg={msg} isMobile={isMobile} />)}
             </AnimatePresence>
             {error && (
               <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                style={{ display: "flex", gap: 11, marginBottom: 20, paddingRight: isMobile ? 24 : 80, alignItems: "flex-start" }}
+                style={{ display: "flex", gap: 11, marginBottom: 20, paddingRight: isMobile ? 0 : 80, alignItems: "flex-start" }}
               >
-                <AgentAvatar size={30} />
-                <div style={{ background: "#fef2f2", borderRadius: "3px 16px 16px 16px", padding: "12px 16px", border: "1px solid #fecaca", maxWidth: 500 }}>
-                  <p style={{ fontFamily: SG, fontSize: 13, color: "#dc2626", margin: 0, lineHeight: 1.55 }}>{error}</p>
-                </div>
+                {!isMobile && <AgentAvatar size={32} />}
+                <Notice tone="error" style={{ maxWidth: 520, flex: "0 1 auto" }}>{error}</Notice>
               </motion.div>
             )}
             <div ref={bottomRef} style={{ height: 24 }} />
-          </>
+          </div>
         )}
       </div>
 
-      {/* Bottom input area — floats over the message list with a fade above it
+      {/* Bottom input area: floats over the message list with a fade above it
           so scrolled content softens into it instead of hitting a hard edge */}
       <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 10 }}>
-        <div style={{ height: 48, background: "linear-gradient(to bottom, rgba(245,245,245,0), rgba(245,245,245,0.94) 70%, #F5F5F5)", pointerEvents: "none" }} />
-        <div style={{ background: "#F5F5F5" }}>
+        <div style={{ height: 40, background: "linear-gradient(to bottom, rgba(245,245,245,0), rgba(245,245,245,0.94) 70%, #F5F5F5)", pointerEvents: "none" }} />
+        <div style={{ background: BG }}>
           <InputBar
             onSend={onSend}
             busy={busy}
@@ -968,6 +905,7 @@ export default function ChatPage({ navigate, seedNode }) {
   const recordToastTimer = useRef(null);
   const { refresh: refreshQuest } = useQuest();
   const isMobile = useIsMobile();
+  const ink = useAgentInk();
 
   const skipHydrationRef = useRef(false);
   const seedConsumedRef = useRef(false);
@@ -1258,45 +1196,36 @@ export default function ChatPage({ navigate, seedNode }) {
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb),0.15); border-radius: 99px; }
+        ::-webkit-scrollbar-thumb { background: rgba(20,20,19,0.18); border-radius: 99px; }
         ${STREAMING_CSS}
-        @keyframes recordToastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes spinner-rotate { to { transform: rotate(360deg); } }
       `}</style>
 
-      {recordToast && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : 24,
-            right: isMobile ? 12 : 24,
-            zIndex: 1000,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            maxWidth: isMobile ? "calc(100vw - 24px)" : 340,
-            padding: "12px 16px",
-            background: "var(--accent)",
-            color: "#fff",
-            borderRadius: 12,
-            boxShadow: "0 8px 24px rgba(var(--accent-rgb),0.32)",
-            fontFamily: "'Raleway', sans-serif",
-            fontSize: 14,
-            animation: "recordToastIn 0.25s ease",
-          }}
-        >
-          <span style={{ fontSize: 16 }}>✓</span>
-          <span>
-            {recordToast.where === "quest"
-              ? <>{recordToast.verb} your quest <strong>{recordToast.title}</strong></>
-              : <>{recordToast.verb} <strong>{recordToast.title}</strong> in your Portfolio</>}
-          </span>
-        </div>
-      )}
+      <Toast
+        isMobile={isMobile}
+        sidebar={SIDEBAR_WIDTH}
+        onDismiss={() => setRecordToast(null)}
+        notice={recordToast ? {
+          text: (
+            <span style={{ display: "inline-flex", alignItems: "flex-start", gap: 8 }}>
+              <span style={{ flexShrink: 0, marginTop: 4, display: "inline-flex" }}><IconCheck size={14} color={ink.text} /></span>
+              <span>
+                {recordToast.where === "quest"
+                  ? <>{recordToast.verb} your quest <strong>{recordToast.title}</strong></>
+                  : <>{recordToast.verb} <strong>{recordToast.title}</strong> in your Portfolio</>}
+              </span>
+            </span>
+          ),
+        } : null}
+      />
 
       <div
         data-sidebar-offset
+        className="ui-page"
         style={{
+          ...ringVar(ink),
+          fontFamily: SANS,
+          background: BG,
           marginLeft: isMobile ? 0 : SIDEBAR_WIDTH,
           height: "100dvh",
           display: "flex",

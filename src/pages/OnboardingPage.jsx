@@ -4,12 +4,17 @@ import { useConversation } from "@elevenlabs/react";
 import { supabase } from "../lib/supabase.js";
 import { requireUser } from "../lib/auth.js";
 import Spinner from "../components/common/Spinner.jsx";
-import { VoicePoweredOrb } from "../components/common/VoicePoweredOrb.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import IntakeForm, { EMPTY_INTAKE, clearDraft } from "../components/onboarding/IntakeForm.jsx";
 import TextInterview from "../components/onboarding/TextInterview.jsx";
 import IntakeReview from "../components/onboarding/IntakeReview.jsx";
-import { eyebrowStyle, titleStyle, primaryButton } from "../components/onboarding/intakeTheme.js";
+import {
+  AMBER_BG, AMBER_TEXT, BG, BORDER, DANGER, FOCUS_CLASS, RADIUS, SANS, TEXT, TEXT_MID, TEXT_MUTED, WHITE,
+  ringVar, subtitleStyle, titleStyle, useIntakeInk,
+} from "../components/onboarding/intakeTheme.js";
+import { Button, Notice, StampTile } from "../components/ui/kit.jsx";
+import { SpeechBubble } from "../components/ui/SpeechBubble.jsx";
+import { PixelStamp } from "../components/ui/PixelIcons.jsx";
 import { HOME_PATH, POST_ONBOARDING_PATH } from "../lib/features.js";
 import {
   saveIntakeForm, fetchIntakeContext, extractIntake, commitIntake, fetchActivities,
@@ -21,72 +26,40 @@ const MAX_CALL_SECONDS = 180; // ~3 min cap — keeps ElevenLabs credit cost dow
 const SILENCE_TIMEOUT_MS = 45000; // auto-end only if the call sits FULLY silent (agent done, user not talking, no replies) this long
 const SPEAKING_VOLUME_THRESHOLD = 0.02; // mic input above this = user is actively talking (counts as activity)
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
-const BG      = "#fafbff";
-const TEXT    = "#0e1019";
-const TEXT2   = "#4b5470";
-const TEXT3   = "#5b6188";
-const ACCENT  = "#1d4ed8";
-const ACCENT2 = "#3b82f6";
-const BORDER  = "rgba(59,91,252,0.13)";
-const SURFACE = "rgba(59,91,252,0.05)";
-const CARD    = "#faf9f5";
-const SANS    = "'Raleway', sans-serif";
-const MONO    = "'Raleway', sans-serif";
+// The look comes from the shared kit (src/components/ui): the calm shell's
+// grey page, white cards, flat buttons, and the student's accent only through
+// useIntakeInk. Character comes from the pixel stamps and the dialog-box
+// speech bubbles, never from louder chrome.
 
-// ─── Framer-motion variant helpers ───────────────────────────────────────────
+const ERROR_TILE = { background: "#fdf1f0", border: "1px solid #f4c7c2", color: DANGER };
+const AMBER_TILE = { background: AMBER_BG, border: "1px solid #f3d9a4", color: AMBER_TEXT };
+
+// ─── Framer-motion variant helper ────────────────────────────────────────────
 const fadeUp = (delay = 0) => ({
   initial:    { opacity:0, y:22 },
   animate:    { opacity:1, y:0 },
   transition: { duration:0.65, ease:[0.16,1,0.3,1], delay },
 });
 
-const staggerParent = (delayChildren = 0, stagger = 0.12) => ({
-  initial:  "hidden",
-  animate:  "visible",
-  variants: { hidden:{}, visible:{ transition:{ staggerChildren:stagger, delayChildren } } },
-});
-
-const staggerChild = {
-  variants: {
-    hidden:   { opacity:0, y:24 },
-    visible:  { opacity:1, y:0, transition:{ duration:0.6, ease:[0.16,1,0.3,1] } },
-  },
-};
-
-const chipChild = {
-  variants: {
-    hidden:   { opacity:0, scale:0.8, y:8 },
-    visible:  { opacity:1, scale:1, y:0, transition:{ duration:0.35, ease:[0.16,1,0.3,1] } },
-  },
-};
-
-
 // ─── Logo ─────────────────────────────────────────────────────────────────────
-function Logo({ textColor = TEXT }) {
+function Logo() {
+  const ink = useIntakeInk();
   return (
     <div style={{ display:"flex", alignItems:"center", gap:7 }}>
-      <span style={{ fontFamily:SANS, fontWeight:700, fontSize:"1.05rem", color:textColor, letterSpacing:"-0.04em" }}>
+      <span style={{ fontFamily:SANS, fontWeight:700, fontSize:"1.05rem", color:TEXT, letterSpacing:"-0.04em" }}>
         mentorable
       </span>
-      <motion.span
-        animate={{ scale:[1, 1.35, 1], opacity:[1, 0.7, 1] }}
-        transition={{ duration:2.8, repeat:Infinity, ease:"easeInOut" }}
-        style={{
-          width:6, height:6, borderRadius:"50%",
-          background:`linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
-          display:"inline-block", flexShrink:0,
-          boxShadow:`0 0 10px ${ACCENT}60`,
-        }}
-      />
+      <span aria-hidden="true" style={{
+        width:6, height:6, borderRadius:"50%", background:ink.accent, display:"inline-block", flexShrink:0,
+      }}/>
     </div>
   );
 }
 
 // ─── MicIcon ──────────────────────────────────────────────────────────────────
-function MicIcon({ color = "white", size = 22 }) {
+function MicIcon({ color = "currentColor", size = 22 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true"
       stroke={color} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
       <rect x="9" y="2" width="6" height="12" rx="3"/>
       <path d="M5 10a7 7 0 0 0 14 0"/>
@@ -96,27 +69,51 @@ function MicIcon({ color = "white", size = 22 }) {
   );
 }
 
-// ─── Elegant floating shape (background element) ─────────────────────────────
-function ElegantShape({ shapeStyle, delay = 0, width = 400, height = 100, rotate = 0, color = "rgba(37,99,235,0.15)", borderColor = "rgba(59,91,252,0.18)", glowColor = "rgba(59,91,252,0.07)" }) {
+/** A square tile for the status screens' mark (an error, the mic). */
+function StatusTile({ tone, children }) {
+  return (
+    <span aria-hidden="true" style={{
+      width:56, height:56, borderRadius:RADIUS.control, boxSizing:"border-box",
+      display:"inline-flex", alignItems:"center", justifyContent:"center", ...tone,
+    }}>
+      {children}
+    </span>
+  );
+}
+
+/** A centred status screen: a mark, a title, a line, and the actions. */
+function StatusScreen({ phaseKey, mark, title, children, actions }) {
+  const ink = useIntakeInk();
+  const isMobile = useIsMobile();
   return (
     <motion.div
-      initial={{ opacity:0, y:-150, rotate:rotate - 15 }}
-      animate={{ opacity:1, y:0, rotate }}
-      transition={{ duration:2.4, delay, ease:[0.23,0.86,0.39,0.96], opacity:{ duration:1.2 } }}
-      style={{ position:"absolute", ...shapeStyle }}
+      key={phaseKey}
+      initial={{ opacity:0, scale:0.97 }}
+      animate={{ opacity:1, scale:1 }}
+      exit={{ opacity:0 }}
+      transition={{ duration:0.45, ease:[0.16,1,0.3,1] }}
+      style={{
+        flex:1, minHeight:"100vh", display:"flex", flexDirection:"column",
+        alignItems:"center", justifyContent:"center",
+        textAlign:"center", padding:isMobile ? "2rem 1rem" : "2rem", position:"relative", zIndex:1,
+      }}
     >
       <motion.div
-        animate={{ y:[0,15,0] }}
-        transition={{ duration:12, repeat:Number.POSITIVE_INFINITY, ease:"easeInOut" }}
-        style={{ width, height, position:"relative" }}
+        initial={{ scale:0.7, opacity:0 }}
+        animate={{ scale:1, opacity:1 }}
+        transition={{ delay:0.15, duration:0.5, ease:[0.16,1,0.3,1] }}
+        style={{ marginBottom:"1.5rem" }}
       >
-        <div style={{
-          position:"absolute", inset:0, borderRadius:"9999px",
-          background:`linear-gradient(to right, ${color}, transparent)`,
-          backdropFilter:"blur(2px)",
-          border:`2px solid ${borderColor}`,
-          boxShadow:`0 8px 32px 0 ${glowColor}`,
-        }}/>
+        {mark}
+      </motion.div>
+      <motion.h2 {...fadeUp(0.25)} style={{ ...titleStyle(ink, isMobile), fontSize:isMobile ? "1.9rem" : "2.1rem", marginBottom:"0.8rem" }}>
+        {title}
+      </motion.h2>
+      <motion.div {...fadeUp(0.35)} style={{ maxWidth:440, marginBottom:"2rem" }}>
+        {children}
+      </motion.div>
+      <motion.div {...fadeUp(0.45)} style={{ display:"flex", gap:"0.75rem", flexWrap:"wrap", justifyContent:"center" }}>
+        {actions}
       </motion.div>
     </motion.div>
   );
@@ -127,28 +124,27 @@ function ElegantShape({ shapeStyle, delay = 0, width = 400, height = 100, rotate
 // neither there is nothing to talk about: both options stay visible but
 // disabled, with the reason and a way back to the form.
 function ChannelPhase({ onPick, skipping, canTalk, onBackToForm }) {
-  const Option = ({ id, title, blurb, meta, icon }) => (
+  const ink = useIntakeInk();
+  const isMobile = useIsMobile();
+  const Option = ({ id, title, blurb, meta, stamp }) => (
     <button type="button" onClick={() => canTalk && onPick(id)} disabled={!canTalk}
       aria-describedby={canTalk ? undefined : "talk-needs-items"}
+      className={FOCUS_CLASS}
       style={{
-        display: "flex", alignItems: "flex-start", gap: 18, width: "100%", textAlign: "left",
-        cursor: canTalk ? "pointer" : "not-allowed", background: "#fff", border: `1.5px solid ${BORDER}`,
-        borderRadius: 20, padding: "1.6rem 1.75rem", transition: "all 0.15s",
-        boxShadow: "0 2px 12px rgba(15,23,42,0.05)", opacity: canTalk ? 1 : 0.5,
+        display: "flex", alignItems: "center", gap: isMobile ? 14 : 18, width: "100%", textAlign: "left",
+        cursor: canTalk ? "pointer" : "not-allowed", background: WHITE, border: `1px solid ${BORDER}`,
+        borderRadius: RADIUS.card, padding: isMobile ? "1.1rem 1rem" : "1.3rem 1.4rem",
+        transition: "border-color 0.15s", opacity: canTalk ? 1 : 0.55, boxSizing: "border-box",
       }}
-      onMouseEnter={(e) => { if (!canTalk) return; e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 10px 28px rgba(29,78,216,0.15)"; }}
-      onMouseLeave={(e) => { if (!canTalk) return; e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 2px 12px rgba(15,23,42,0.05)"; }}>
-      <span style={{
-        flexShrink: 0, width: 54, height: 54, borderRadius: 15,
-        background: "rgba(59,91,252,0.08)", color: ACCENT,
-        display: "inline-flex", alignItems: "center", justifyContent: "center",
-      }}>{icon}</span>
+      onMouseEnter={(e) => { if (!canTalk) return; e.currentTarget.style.borderColor = ink.text; }}
+      onMouseLeave={(e) => { if (!canTalk) return; e.currentTarget.style.borderColor = BORDER; }}>
+      <StampTile kind={stamp} size={48} />
       <span style={{ minWidth: 0, flex: 1 }}>
-        <span style={{ display: "block", fontFamily: SANS, fontWeight: 700, fontSize: "1.3rem", color: TEXT, marginBottom: 6, letterSpacing: "-0.01em" }}>{title}</span>
-        <span style={{ display: "block", fontFamily: SANS, fontSize: "1.02rem", color: TEXT2, lineHeight: 1.55 }}>{blurb}</span>
-        <span style={{ display: "block", fontFamily: SANS, fontSize: "0.88rem", fontWeight: 600, color: TEXT3, marginTop: 9 }}>{meta}</span>
+        <span style={{ display: "block", fontFamily: SANS, fontWeight: 800, fontSize: "1.25rem", color: TEXT, marginBottom: 4, letterSpacing: "-0.01em" }}>{title}</span>
+        <span style={{ display: "block", fontFamily: SANS, fontSize: "1rem", color: TEXT_MID, lineHeight: 1.55 }}>{blurb}</span>
+        <span style={{ display: "block", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, color: TEXT_MUTED, marginTop: 7 }}>{meta}</span>
       </span>
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, alignSelf: "center" }}>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={ink.text} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
         <polyline points="9 18 15 12 9 6"/>
       </svg>
     </button>
@@ -158,15 +154,14 @@ function ChannelPhase({ onPick, skipping, canTalk, onBackToForm }) {
     <motion.div key="channel"
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
       transition={{ duration: 0.4 }}
-      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "3rem 1.5rem" }}>
+      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? "2rem 1rem" : "3rem 1.5rem" }}>
       <div style={{ width: "100%", maxWidth: 680 }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: "2rem" }}><Logo /></div>
 
-        <p style={{ ...eyebrowStyle, textAlign: "center" }}>Next up</p>
-        <h1 style={{ ...titleStyle, textAlign: "center", fontSize: "2.8rem" }}>
+        <h1 style={{ ...titleStyle(ink, isMobile), textAlign: "center" }}>
           Now let's talk it through
         </h1>
-        <p style={{ fontFamily: SANS, fontSize: "1.15rem", color: TEXT2, lineHeight: 1.6, marginBottom: "2.4rem", textAlign: "center", maxWidth: 540, marginLeft: "auto", marginRight: "auto" }}>
+        <p style={{ ...subtitleStyle(isMobile), marginBottom: "2rem", textAlign: "center", maxWidth: 540, marginLeft: "auto", marginRight: "auto" }}>
           {canTalk
             ? "We have your list. Now we just need a bit more detail on what you actually did. Pick whichever is easier for you."
             : "This conversation goes through the activities and awards you listed, one at a time."}
@@ -174,45 +169,41 @@ function ChannelPhase({ onPick, skipping, canTalk, onBackToForm }) {
 
         {!canTalk && (
           <div id="talk-needs-items" role="note"
-            style={{ background: "#fff", border: `1.5px solid ${ACCENT}`, borderRadius: 16, padding: "1.1rem 1.3rem",
+            style={{ background: AMBER_BG, border: "1px solid #f3d9a4", borderRadius: RADIUS.control, padding: "0.9rem 1rem 0.9rem 1.1rem",
               marginBottom: 16, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-            <p style={{ flex: 1, minWidth: 240, margin: 0, fontFamily: SANS, fontSize: "1.02rem", color: TEXT, lineHeight: 1.55 }}>
-              <strong>You need at least one activity or award for the conversation.</strong> You didn't list any, so there
+            <p style={{ flex: 1, minWidth: 220, margin: 0, fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: AMBER_TEXT, lineHeight: 1.55 }}>
+              <strong style={{ fontWeight: 800 }}>You need at least one activity or award for the conversation.</strong> You didn't list any, so there
               is nothing for it to ask about yet.
             </p>
-            <button type="button" onClick={onBackToForm}
-              style={{ flexShrink: 0, fontFamily: SANS, fontSize: "0.98rem", fontWeight: 700, cursor: "pointer",
-                padding: "10px 16px", borderRadius: 11, border: "none", background: ACCENT, color: "#fff" }}>
+            <Button kind="primary" onClick={onBackToForm} style={{ flexShrink: 0 }}>
               Add one
-            </button>
+            </Button>
           </div>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <Option id="text" title="Type it out"
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <Option id="text" title="Type it out" stamp="chat"
             blurb="A short back and forth. Take as long as you like on each answer."
-            meta="About 5 minutes"
-            icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>} />
-          <Option id="voice" title="Talk out loud"
+            meta="About 5 minutes" />
+          <Option id="voice" title="Talk out loud" stamp="person"
             blurb="A quick call with Mentorable. Usually the fastest way to get through it."
-            meta="About 3 minutes, needs a microphone"
-            icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>} />
+            meta="About 3 minutes, needs a microphone" />
         </div>
 
         {/* Deliberately a quiet third option, not a third card: skipping is
             supported but it genuinely costs the student advice quality, so it
             shouldn't look like an equal choice. */}
-        <div style={{ textAlign: "center", marginTop: "2rem" }}>
-          <button type="button" onClick={() => onPick("skip")} disabled={skipping}
+        <div style={{ textAlign: "center", marginTop: "1.6rem" }}>
+          <button type="button" onClick={() => onPick("skip")} disabled={skipping} className={FOCUS_CLASS}
             style={{
-              fontFamily: SANS, fontSize: "1rem", fontWeight: 600,
-              color: skipping ? TEXT3 : TEXT2, background: "none", border: "none",
-              cursor: skipping ? "default" : "pointer", padding: "8px 4px",
+              fontFamily: SANS, fontSize: "1rem", fontWeight: 700,
+              color: skipping ? TEXT_MUTED : TEXT_MID, background: "none", border: "none",
+              cursor: skipping ? "default" : "pointer", padding: "0 10px", minHeight: 44, borderRadius: 10,
               textDecoration: "underline", textUnderlineOffset: 3,
             }}>
             {skipping ? "Setting up your account…" : "Skip for now"}
           </button>
-          <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT3, lineHeight: 1.55, marginTop: 8, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>
+          <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.55, marginTop: 4, maxWidth: 440, marginLeft: "auto", marginRight: "auto" }}>
             {canTalk
               ? "We'll only know the names of your activities, so early advice will be more general. You can add the detail any time."
               : "You can add activities and awards from your Portfolio any time."}
@@ -225,45 +216,38 @@ function ChannelPhase({ onPick, skipping, canTalk, onBackToForm }) {
 
 // ─── Voice confirm: one tap, then the mic prompt fires ───────────────────────
 function VoiceConfirmPhase({ onStart, onBack, loading }) {
+  const ink = useIntakeInk();
+  const isMobile = useIsMobile();
   return (
     <motion.div key="voice-confirm"
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
       transition={{ duration: 0.4 }}
-      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "3rem 1.5rem" }}>
+      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? "2rem 1rem" : "3rem 1.5rem" }}>
       <div style={{ width: "100%", maxWidth: 520, textAlign: "center" }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: "2rem" }}><Logo /></div>
 
-        <motion.div
-          animate={{ scale: [1, 1.04, 1] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          style={{
-            width: 96, height: 96, borderRadius: "50%", margin: "0 auto 2rem",
-            background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: `0 16px 44px rgba(29,78,216,0.32)`,
-          }}>
-          <MicIcon color="#fff" size={40} />
-        </motion.div>
+        <div aria-hidden="true" style={{
+          width: 88, height: 88, borderRadius: RADIUS.card, margin: "0 auto 1.8rem", boxSizing: "border-box",
+          background: ink.softer, border: `1px solid ${ink.soft}`, color: ink.onSoft,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <MicIcon size={38} />
+        </div>
 
-        <p style={{ ...eyebrowStyle, textAlign: "center" }}>Voice chat</p>
-        <h1 style={{ ...titleStyle, textAlign: "center", fontSize: "2.6rem" }}>Ready when you are</h1>
-        <p style={{ fontFamily: SANS, fontSize: "1.1rem", color: TEXT2, lineHeight: 1.6, marginBottom: "2.2rem" }}>
+        <h1 style={{ ...titleStyle(ink, isMobile), textAlign: "center" }}>Ready when you are</h1>
+        <p style={{ ...subtitleStyle(isMobile), marginBottom: "2rem" }}>
           Your browser will ask for microphone access, then we'll start straight away.
         </p>
 
-        <button type="button" onClick={onStart} disabled={loading}
-          style={{ ...primaryButton(!loading), display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-          {loading ? <Spinner size={20} color="#fff" /> : <MicIcon color="#fff" size={20} />}
+        <Button kind="primary" onClick={onStart} busy={loading}
+          style={{ width: "100%", minHeight: 52, fontSize: "1.05rem", gap: 10 }}>
+          {!loading && <MicIcon size={20} />}
           {loading ? "Connecting…" : "Start the call"}
-        </button>
+        </Button>
 
-        <button type="button" onClick={onBack} disabled={loading}
-          style={{
-            display: "block", margin: "1.1rem auto 0", fontFamily: SANS, fontSize: "1rem",
-            fontWeight: 600, color: TEXT2, background: "none", border: "none", cursor: "pointer",
-          }}>
+        <Button kind="quiet" onClick={onBack} disabled={loading} style={{ display: "flex", margin: "0.8rem auto 0" }}>
           Type it out instead
-        </button>
+        </Button>
       </div>
     </motion.div>
   );
@@ -274,6 +258,7 @@ function VoiceConfirmPhase({ onStart, onBack, loading }) {
 // Samples the real mic level so the student can see the call is hearing them.
 // Keeps its own state so the 12Hz sampling never re-renders the transcript.
 function SpeakingMeter({ getInputLevel, agentSpeaking }) {
+  const ink = useIntakeInk();
   const [level, setLevel] = useState(0);
 
   useEffect(() => {
@@ -289,7 +274,8 @@ function SpeakingMeter({ getInputLevel, agentSpeaking }) {
 
   const userTalking = !agentSpeaking && level > SPEAKING_VOLUME_THRESHOLD;
   const label = agentSpeaking ? "Mentorable is speaking" : userTalking ? "Listening to you" : "Your turn, go ahead";
-  const tint  = agentSpeaking ? ACCENT : userTalking ? "#16a34a" : "rgba(59,91,252,0.25)";
+  // Bars are graphics, so the raw accent is fine; the label stays readable text.
+  const tint  = agentSpeaking ? ink.accent : userTalking ? ink.text : ink.soft;
 
   // 5 bars; the middle ones react hardest, which reads as a voice level.
   const weights = [0.55, 0.85, 1, 0.85, 0.55];
@@ -317,18 +303,17 @@ function SpeakingMeter({ getInputLevel, agentSpeaking }) {
           );
         })}
       </div>
-      <motion.span
-        animate={{ color: agentSpeaking ? ACCENT : userTalking ? "#16a34a" : TEXT2 }}
-        transition={{ duration:0.3 }}
-        style={{ fontFamily:SANS, fontWeight:600, fontSize:"0.95rem", minWidth:200 }}
-      >
+      <span style={{ fontFamily:SANS, fontWeight:700, fontSize:"0.95rem", minWidth:200, transition:"color 0.3s",
+        color: agentSpeaking ? ink.text : userTalking ? TEXT : TEXT_MID }}>
         {label}
-      </motion.span>
+      </span>
     </div>
   );
 }
 
 function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel }) {
+  const ink = useIntakeInk();
+  const isMobile = useIsMobile();
   const scrollerRef = useRef(null);
 
   // Keep the newest message in view by scrolling only this container.
@@ -341,6 +326,9 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel }) 
     const m = Math.floor(s / 60).toString().padStart(2, "0");
     return `${m}:${(s % 60).toString().padStart(2, "0")}`;
   };
+
+  const lastThirty = elapsed >= MAX_CALL_SECONDS - 30;
+  const lastMinute = elapsed >= MAX_CALL_SECONDS - 60;
 
   return (
     <motion.div
@@ -362,31 +350,30 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel }) 
         transition={{ duration:0.5 }}
         style={{
           display:"flex", alignItems:"center", justifyContent:"space-between",
-          padding:"1.25rem 1.75rem",
-          borderBottom:`1.5px solid ${BORDER}`,
-          background:CARD, flexShrink:0,
-          boxShadow:"0 1px 0 rgba(59,91,252,0.06)",
+          padding:isMobile ? "1rem" : "1.1rem 1.75rem",
+          borderBottom:`1px solid ${BORDER}`,
+          background:WHITE, flexShrink:0,
         }}
       >
         <Logo />
         <div style={{
           display:"flex", alignItems:"center", gap:7,
-          padding:"5px 12px", borderRadius:100,
-          background:"rgba(34,197,94,0.08)", border:"1.5px solid rgba(34,197,94,0.2)",
+          padding:"4px 12px", borderRadius:RADIUS.pill,
+          background:ink.softer, border:`1px solid ${ink.soft}`,
         }}>
           <span style={{
-            width:6, height:6, borderRadius:"50%",
-            background:"#22c55e", boxShadow:"0 0 6px #22c55e",
+            width:7, height:7, borderRadius:"50%",
+            background:ink.accent,
             animation:"ob-blink 2s ease-in-out infinite",
           }}/>
-          <span style={{ fontFamily:SANS, fontWeight:600, fontSize:"0.72rem", color:"#16a34a", letterSpacing:"0.04em" }}>LIVE</span>
+          <span style={{ fontFamily:SANS, fontWeight:800, fontSize:"0.9rem", color:ink.onSoft, letterSpacing:"0.04em" }}>LIVE</span>
         </div>
       </motion.div>
 
       {/* Transcript */}
       <div style={{
         flex:1, minHeight:0, display:"flex",
-        width:"100%", maxWidth:820, margin:"0 auto", padding:"1.75rem 1.5rem",
+        width:"100%", maxWidth:820, margin:"0 auto", padding:isMobile ? "1.25rem 1rem" : "1.75rem 1.5rem",
       }}>
         {/* The scroller owns its own scrolling. scrollIntoView on a sentinel
             scrolled every ancestor including the window, which yanked the whole
@@ -404,7 +391,7 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel }) 
                 initial={{ opacity:0 }}
                 animate={{ opacity:1 }}
                 transition={{ delay:0.8 }}
-                style={{ textAlign:"center", color:TEXT3, fontFamily:SANS, fontSize:"0.95rem", lineHeight:1.7, margin:0 }}
+                style={{ textAlign:"center", color:TEXT_MUTED, fontFamily:SANS, fontSize:"1rem", lineHeight:1.7, margin:0 }}
               >
                 Your conversation will appear here.
               </motion.p>
@@ -416,23 +403,28 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel }) 
                   initial={{ opacity:0, y:12, scale:0.97 }}
                   animate={{ opacity:1, y:0, scale:1 }}
                   transition={{ duration:0.35, ease:[0.22,1,0.36,1] }}
-                  style={{ display:"flex", justifyContent:msg.role === "agent" ? "flex-start" : "flex-end" }}
+                  style={{ display:"flex", justifyContent:msg.role === "agent" ? "flex-start" : "flex-end", alignItems:"flex-start", gap:12 }}
                 >
-                  <div style={{
-                    maxWidth:"76%", padding:"0.95rem 1.2rem",
-                    borderRadius:msg.role === "agent" ? "4px 18px 18px 18px" : "18px 4px 18px 18px",
-                    background:msg.role === "agent"
-                      ? CARD
-                      : `linear-gradient(135deg, ${ACCENT} 0%, ${ACCENT2} 100%)`,
-                    border:msg.role === "agent" ? `1.5px solid ${BORDER}` : "none",
-                    color:msg.role === "agent" ? TEXT : "white",
-                    fontFamily:SANS, fontSize:"1.02rem", lineHeight:1.65, fontWeight:400,
-                    boxShadow:msg.role !== "agent"
-                      ? "0 4px 20px rgba(59,91,252,0.3)"
-                      : "0 1px 6px rgba(0,0,0,0.06)",
-                  }}>
-                    {msg.message}
-                  </div>
+                  {msg.role === "agent" ? (
+                    <>
+                      <span aria-hidden="true" style={{ flexShrink:0, width:40, height:40, marginTop:14, borderRadius:RADIUS.control,
+                        background:ink.soft, color:ink.onSoft, display:"inline-flex", alignItems:"center", justifyContent:"center" }}>
+                        <PixelStamp kind="chat" size={24} />
+                      </span>
+                      <SpeechBubble side="left" name="Mentorable" style={{ maxWidth:"76%" }}>
+                        {msg.message}
+                      </SpeechBubble>
+                    </>
+                  ) : (
+                    <div style={{
+                      maxWidth:"76%", padding:"0.8rem 1.1rem",
+                      borderRadius:RADIUS.card, background:ink.soft, border:`1px solid ${ink.soft}`,
+                      color:TEXT, fontFamily:SANS, fontSize:"1.02rem", lineHeight:1.6, fontWeight:500,
+                      overflowWrap:"anywhere",
+                    }}>
+                      {msg.message}
+                    </div>
+                  )}
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -442,31 +434,31 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel }) 
 
       {/* Bottom bar */}
       <div style={{
-        padding:"1.25rem 1.75rem 2rem",
-        borderTop:`1.5px solid ${BORDER}`,
-        background:CARD,
-        display:"flex", flexDirection:"column", alignItems:"center", gap:"1rem",
+        padding:isMobile ? "1rem 1rem 1.5rem" : "1.1rem 1.75rem 1.75rem",
+        borderTop:`1px solid ${BORDER}`,
+        background:WHITE,
+        display:"flex", flexDirection:"column", alignItems:"center", gap:"0.9rem",
         flexShrink:0,
       }}>
         {/* Timer */}
         <div style={{ display:"flex", alignItems:"center", gap:"0.625rem" }}>
           <span style={{
-            fontFamily:MONO, fontSize:"1.35rem", letterSpacing:"0.06em", fontWeight:600,
-            color: elapsed >= MAX_CALL_SECONDS - 30 ? "#ef4444" : elapsed >= MAX_CALL_SECONDS - 60 ? "#f59e0b" : TEXT2,
+            fontFamily:SANS, fontSize:"1.35rem", letterSpacing:"0.04em", fontWeight:700, fontVariantNumeric:"tabular-nums",
+            color: lastThirty ? DANGER : lastMinute ? AMBER_TEXT : TEXT_MID,
             transition:"color 0.3s",
           }}>
             {formatTime(elapsed)}
           </span>
           <span style={{
-            fontFamily:SANS, fontSize:"0.72rem", fontWeight:600,
-            color: elapsed >= MAX_CALL_SECONDS - 30 ? "#ef4444" : "#6a6760",
-            letterSpacing:"0.04em", textTransform:"uppercase",
+            fontFamily:SANS, fontSize:"0.9rem", fontWeight:700,
+            color: lastThirty ? DANGER : TEXT_MUTED,
+            letterSpacing:"0.03em", textTransform:"uppercase",
           }}>
-            {elapsed >= MAX_CALL_SECONDS - 30 ? `${MAX_CALL_SECONDS - elapsed}s left` : `${Math.floor(MAX_CALL_SECONDS / 60)}:00 max`}
+            {lastThirty ? `${MAX_CALL_SECONDS - elapsed}s left` : `${Math.floor(MAX_CALL_SECONDS / 60)}:00 max`}
           </span>
         </div>
 
-        {/* Max time banner — shown in final 5 seconds */}
+        {/* Max time banner, shown in the final 5 seconds */}
         <AnimatePresence>
           {elapsed >= MAX_CALL_SECONDS - 5 && (
             <motion.div
@@ -474,15 +466,11 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel }) 
               animate={{ opacity:1, y:0 }}
               exit={{ opacity:0 }}
               transition={{ duration:0.3 }}
-              style={{
-                background:"rgba(239,68,68,0.07)",
-                border:"1.5px solid rgba(239,68,68,0.2)",
-                borderRadius:10, padding:"0.6rem 1.25rem",
-                fontFamily:SANS, fontSize:"0.82rem", fontWeight:600,
-                color:"#dc2626", textAlign:"center", lineHeight:1.5,
-              }}
+              style={{ textAlign:"center" }}
             >
-              You've reached the maximum time for this call. Wrapping up now.
+              <Notice tone="warn">
+                You've reached the maximum time for this call. Wrapping up now.
+              </Notice>
             </motion.div>
           )}
         </AnimatePresence>
@@ -492,19 +480,9 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel }) 
           <SpeakingMeter getInputLevel={getInputLevel} agentSpeaking={isSpeaking} />
         )}
 
-        <motion.button
-          onClick={() => onEnd(true)}
-          whileHover={{ borderColor:ACCENT, color:ACCENT }}
-          transition={{ duration:0.15 }}
-          style={{
-            padding:"0.6rem 1.75rem", borderRadius:8,
-            border:`1.5px solid ${BORDER}`, background:CARD,
-            color:TEXT2, fontFamily:SANS, fontWeight:500, fontSize:"0.85rem",
-            cursor:"pointer",
-          }}
-        >
+        <Button kind="secondary" onClick={() => onEnd(true)} style={{ padding:"10px 26px" }}>
           End conversation
-        </motion.button>
+        </Button>
       </div>
     </motion.div>
   );
@@ -512,6 +490,8 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel }) 
 
 // ─── Phase 3: Processing ──────────────────────────────────────────────────────
 function ProcessingPhase() {
+  const ink = useIntakeInk();
+  const isMobile = useIsMobile();
   return (
     <motion.div
       key="processing"
@@ -523,31 +503,20 @@ function ProcessingPhase() {
         flex:1, minHeight:"100vh",
         display:"flex", flexDirection:"column",
         alignItems:"center", justifyContent:"center",
-        textAlign:"center", padding:"2rem",
+        textAlign:"center", padding:isMobile ? "2rem 1rem" : "2rem",
         position:"relative", zIndex:1,
       }}
     >
-      {/* Counter-rotating rings */}
-      <div style={{ position:"relative", marginBottom:"2.5rem" }}>
-        <div style={{
-          width:68, height:68, borderRadius:"50%",
-          border:`2px solid rgba(59,91,252,0.15)`, borderTopColor:ACCENT,
-          animation:"spinner-rotate 1.2s linear infinite",
-        }}/>
-        <div style={{
-          position:"absolute", top:"50%", left:"50%",
-          transform:"translate(-50%, -50%)",
-          width:44, height:44, borderRadius:"50%",
-          border:`2px solid rgba(59,130,246,0.12)`, borderBottomColor:ACCENT2,
-          animation:"spinner-rotate 1.8s linear infinite reverse",
-        }}/>
+      {/* A pixel scroll being written up, on the accent's soft tile */}
+      <div style={{ marginBottom:"2rem" }}>
+        <StampTile kind="scroll" size={56} />
       </div>
 
       <motion.h2
         initial={{ opacity:0, y:16 }}
         animate={{ opacity:1, y:0 }}
         transition={{ delay:0.2, duration:0.6 }}
-        style={{ fontFamily:SANS, fontWeight:700, fontSize:"2.3rem", color:ACCENT, letterSpacing:"-0.03em", marginBottom:"0.9rem" }}
+        style={{ ...titleStyle(ink, isMobile), fontSize:isMobile ? "1.9rem" : "2.3rem", marginBottom:"0.8rem" }}
       >
         Writing up your record
       </motion.h2>
@@ -555,22 +524,19 @@ function ProcessingPhase() {
         initial={{ opacity:0, y:12 }}
         animate={{ opacity:1, y:0 }}
         transition={{ delay:0.35, duration:0.6 }}
-        style={{ fontFamily:SANS, color:TEXT2, fontSize:"1.12rem", lineHeight:1.7, maxWidth:420, marginBottom:"2rem" }}
+        style={{ ...subtitleStyle(isMobile), maxWidth:420, marginBottom:"2rem" }}
       >
         This takes about 30 seconds. We're writing up what you told us about each activity.
       </motion.p>
 
       {/* Pulsing dots */}
-      <div style={{ display:"flex", gap:8, justifyContent:"center" }}>
+      <div aria-hidden="true" style={{ display:"flex", gap:8, justifyContent:"center" }}>
         {[0, 1, 2].map(i => (
           <motion.div
             key={i}
             animate={{ opacity:[0.25, 1, 0.25], scale:[0.75, 1.15, 0.75] }}
             transition={{ duration:1.2, delay:i * 0.2, repeat:Infinity, ease:"easeInOut" }}
-            style={{
-              width:9, height:9, borderRadius:"50%",
-              background:`linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
-            }}
+            style={{ width:9, height:9, borderRadius:"50%", background:ink.accent }}
           />
         ))}
       </div>
@@ -581,102 +547,26 @@ function ProcessingPhase() {
 // ─── Error Phase ──────────────────────────────────────────────────────────────
 function ErrorPhase({ error, onRetry }) {
   return (
-    <motion.div
-      key="error"
-      initial={{ opacity:0, scale:0.97 }}
-      animate={{ opacity:1, scale:1 }}
-      exit={{ opacity:0 }}
-      transition={{ duration:0.45, ease:[0.16,1,0.3,1] }}
-      style={{
-        flex:1, minHeight:"100vh", display:"flex", flexDirection:"column",
-        alignItems:"center", justifyContent:"center",
-        textAlign:"center", padding:"2rem", position:"relative", zIndex:1,
-      }}
-    >
-      <motion.div
-        initial={{ scale:0.7, opacity:0 }}
-        animate={{ scale:1, opacity:1 }}
-        transition={{ delay:0.15, duration:0.5, ease:[0.16,1,0.3,1] }}
-        style={{
-          width:56, height:56, borderRadius:14,
-          background:"rgba(239,68,68,0.08)", border:"1.5px solid rgba(239,68,68,0.2)",
-          display:"flex", alignItems:"center", justifyContent:"center",
-          marginBottom:"1.5rem", fontSize:"1.35rem",
-        }}
-      >⚠</motion.div>
-
-      <motion.h2 {...fadeUp(0.25)} style={{ fontFamily:SANS, fontWeight:700, fontSize:"2.1rem", color:ACCENT, letterSpacing:"-0.03em", marginBottom:"0.8rem" }}>
-        Something went wrong
-      </motion.h2>
-      <motion.p {...fadeUp(0.35)} style={{ fontFamily:SANS, color:TEXT2, fontSize:"1.12rem", lineHeight:1.68, maxWidth:420, marginBottom:"2rem" }}>
+    <StatusScreen phaseKey="error" title="Something went wrong"
+      mark={<StatusTile tone={ERROR_TILE}><PixelStamp kind="question" size={24} /></StatusTile>}
+      actions={<Button kind="primary" onClick={onRetry} style={{ padding:"10px 26px" }}>Try again</Button>}>
+      <p style={{ fontFamily:SANS, color:TEXT_MUTED, fontSize:"1.1rem", lineHeight:1.65, margin:0 }}>
         {error || "An unexpected error occurred. Please try again."}
-      </motion.p>
-      <motion.button
-        {...fadeUp(0.45)}
-        onClick={onRetry}
-        whileHover={{ scale:1.04 }}
-        whileTap={{ scale:0.97 }}
-        style={{
-          padding:"0.7rem 1.75rem", borderRadius:10,
-          background:`linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
-          border:"none", color:"white", fontFamily:SANS, fontWeight:600, fontSize:"0.9rem",
-          cursor:"pointer", boxShadow:"0 4px 20px rgba(59,91,252,0.35)",
-        }}
-      >
-        Try again
-      </motion.button>
-    </motion.div>
+      </p>
+    </StatusScreen>
   );
 }
 
 // ─── Mic Denied Phase ─────────────────────────────────────────────────────────
 function MicDeniedPhase({ onRetry }) {
   return (
-    <motion.div
-      key="mic-denied"
-      initial={{ opacity:0, scale:0.97 }}
-      animate={{ opacity:1, scale:1 }}
-      exit={{ opacity:0 }}
-      transition={{ duration:0.45, ease:[0.16,1,0.3,1] }}
-      style={{
-        flex:1, minHeight:"100vh", display:"flex", flexDirection:"column",
-        alignItems:"center", justifyContent:"center",
-        textAlign:"center", padding:"2rem", position:"relative", zIndex:1,
-      }}
-    >
-      <motion.div
-        initial={{ scale:0.7, opacity:0 }}
-        animate={{ scale:1, opacity:1 }}
-        transition={{ delay:0.15, duration:0.5, ease:[0.16,1,0.3,1] }}
-        style={{
-          width:56, height:56, borderRadius:14,
-          background:"rgba(245,158,11,0.08)", border:"1.5px solid rgba(245,158,11,0.25)",
-          display:"flex", alignItems:"center", justifyContent:"center",
-          marginBottom:"1.5rem", fontSize:"1.35rem",
-        }}
-      >🎙</motion.div>
-
-      <motion.h2 {...fadeUp(0.25)} style={{ fontFamily:SANS, fontWeight:700, fontSize:"2.1rem", color:ACCENT, letterSpacing:"-0.03em", marginBottom:"0.8rem" }}>
-        Microphone access needed
-      </motion.h2>
-      <motion.p {...fadeUp(0.35)} style={{ fontFamily:SANS, color:TEXT2, fontSize:"1.12rem", lineHeight:1.68, maxWidth:420, marginBottom:"2rem" }}>
+    <StatusScreen phaseKey="mic-denied" title="Microphone access needed"
+      mark={<StatusTile tone={AMBER_TILE}><MicIcon size={26} /></StatusTile>}
+      actions={<Button kind="primary" onClick={onRetry} style={{ padding:"10px 26px" }}>Try again</Button>}>
+      <p style={{ fontFamily:SANS, color:TEXT_MUTED, fontSize:"1.1rem", lineHeight:1.65, margin:0 }}>
         We need microphone access to continue. Please allow access in your browser settings and try again.
-      </motion.p>
-      <motion.button
-        {...fadeUp(0.45)}
-        onClick={onRetry}
-        whileHover={{ scale:1.04 }}
-        whileTap={{ scale:0.97 }}
-        style={{
-          padding:"0.7rem 1.75rem", borderRadius:10,
-          background:`linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
-          border:"none", color:"white", fontFamily:SANS, fontWeight:600, fontSize:"0.9rem",
-          cursor:"pointer", boxShadow:"0 4px 20px rgba(59,91,252,0.35)",
-        }}
-      >
-        Try again
-      </motion.button>
-    </motion.div>
+      </p>
+    </StatusScreen>
   );
 }
 
@@ -701,40 +591,34 @@ function RecoveryPhase({ onRetryExtraction, onRetry }) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.97 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0 }}
-      style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "2rem", position: "relative", zIndex: 1 }}
-    >
-      <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-        style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(239,68,68,0.07)", border: "1.5px solid rgba(239,68,68,0.2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.5rem" }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      </motion.div>
-      <h2 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 700, fontSize: "1.4rem", color: TEXT, letterSpacing: "-0.02em", marginBottom: "0.75rem" }}>
-        Processing hiccup
-      </h2>
-      <p style={{ fontFamily: "'Raleway', sans-serif", color: TEXT2, fontSize: "0.95rem", lineHeight: 1.68, maxWidth: 360, marginBottom: "0.5rem" }}>
+    <StatusScreen phaseKey="recovery" title="Processing hiccup"
+      mark={(
+        <StatusTile tone={ERROR_TILE}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </StatusTile>
+      )}
+      actions={(
+        <>
+          <Button kind="primary" onClick={handleRetry} busy={retrying} style={{ padding:"10px 26px" }}>
+            {retrying ? "Retrying…" : "Try again"}
+          </Button>
+          <Button kind="secondary" onClick={onRetry}>
+            Record new conversation
+          </Button>
+        </>
+      )}>
+      <p style={{ fontFamily:SANS, color:TEXT_MUTED, fontSize:"1.1rem", lineHeight:1.65, margin:0 }}>
         We ran into an issue turning your conversation into a profile. Your transcript was saved, so click below to try again.
       </p>
-      {error && <p style={{ fontFamily: "'Raleway', sans-serif", color: "#ef4444", fontSize: "0.85rem", marginBottom: "1rem", maxWidth: 360 }}>{error}</p>}
-      <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.5rem", flexWrap: "wrap", justifyContent: "center" }}>
-        <button onClick={handleRetry} disabled={retrying}
-          style={{ padding: "0.7rem 1.75rem", borderRadius: 10, background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`, border: "none", color: "white", fontFamily: "'Raleway', sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: retrying ? "not-allowed" : "pointer", opacity: retrying ? 0.7 : 1 }}>
-          {retrying ? "Retrying…" : "Try again"}
-        </button>
-        <button onClick={onRetry}
-          style={{ padding: "0.7rem 1.5rem", borderRadius: 10, background: "transparent", border: "1.5px solid rgba(59,91,252,0.25)", color: ACCENT, fontFamily: "'Raleway', sans-serif", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer" }}>
-          Record new conversation
-        </button>
-      </div>
-    </motion.div>
+      {error && <Notice tone="error" style={{ marginTop:"1rem", textAlign:"left" }}>{error}</Notice>}
+    </StatusScreen>
   );
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function OnboardingPage() {
   const isMobile = useIsMobile();
+  const ink = useIntakeInk();
   const [phase, setPhase]               = useState("loading");
   const [transcript, setTranscript]     = useState([]);
   const [elapsed, setElapsed]           = useState(0);
@@ -1043,48 +927,21 @@ export default function OnboardingPage() {
   if (phase === "loading") {
     return (
       <div style={{ minHeight:"100vh", background:BG, display:"flex", alignItems:"center", justifyContent:"center" }}>
-        <Spinner size={26} color={ACCENT}/>
+        <Spinner size={26} color={ink.accent}/>
       </div>
     );
   }
 
   return (
-    <div style={{
+    <div className="ui-page" style={{
       minHeight:"100vh", background:BG,
       display:"flex", flexDirection:"column",
       fontFamily:SANS, position:"relative", overflow:"hidden",
+      ...ringVar(ink),
     }}>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        @keyframes blob-pulse {
-          0%, 100% { opacity:0.7; transform:scale(1); }
-          50%       { opacity:1;   transform:scale(1.09) translateY(-14px); }
-        }
-        @keyframes blob-drift-tr {
-          0%, 100% { transform:translate(0,0) scale(1); }
-          50%       { transform:translate(-22px,18px) scale(1.04); }
-        }
-        @keyframes blob-drift-bl {
-          0%, 100% { transform:translate(0,0) scale(1); }
-          50%       { transform:translate(18px,-16px) scale(1.03); }
-        }
-        @keyframes blob-drift-br {
-          0%, 100% { transform:translate(0,0) scale(1); }
-          50%       { transform:translate(-14px,-20px) scale(1.05); }
-        }
-        @keyframes float-dot {
-          0%, 100% { transform:translateY(0);    opacity:0.55; }
-          50%       { transform:translateY(-10px); opacity:1; }
-        }
-        @keyframes gradient-slide {
-          0%   { background-position:0% center; }
-          100% { background-position:300% center; }
-        }
-        @keyframes ob-pulse-ring {
-          0%   { transform:scale(1);   opacity:0.75; }
-          100% { transform:scale(1.85); opacity:0; }
-        }
         @keyframes ob-wave {
           0%, 100% { transform:scaleY(0.28); }
           50%       { transform:scaleY(1); }
@@ -1101,7 +958,7 @@ export default function OnboardingPage() {
 
       <AnimatePresence mode="wait">
         {phase === "form" && (
-          <div key="form" style={{ flex: 1, overflowY: "auto", padding: "2.5rem 0 3rem" }}>
+          <div key="form" style={{ flex: 1, overflowY: "auto", padding: isMobile ? "1.5rem 0 3rem" : "2.5rem 0 3rem" }}>
             <IntakeForm initial={intake} startAt={formStartAt} onComplete={handleFormComplete} submitting={savingForm} isMobile={isMobile} userId={user?.id} />
           </div>
         )}
@@ -1124,9 +981,9 @@ export default function OnboardingPage() {
           </div>
         )}
         {phase === "review" && (
-          <div key="review" style={{ flex: 1, overflowY: "auto", padding: "2.5rem 0 3rem" }}>
+          <div key="review" style={{ flex: 1, overflowY: "auto", padding: isMobile ? "1.5rem 0 3rem" : "2.5rem 0 3rem" }}>
             <IntakeReview draft={draft} activities={activities} onConfirm={handleConfirm}
-              committing={committing} error={reviewError} />
+              committing={committing} error={reviewError} isMobile={isMobile} />
           </div>
         )}
         {phase === "voice-confirm" && (

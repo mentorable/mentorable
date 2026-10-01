@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import RecordPanel, { sectionsFromForm } from "./RecordPanel.jsx";
+import { Button, Card, Tip } from "../ui/kit.jsx";
 import {
-  SANS, TEXT, TEXT2, TEXT3, ACCENT, BORDER, CARD,
-  eyebrowStyle, titleStyle, subtitleStyle, labelStyle, inputStyle,
-  cardStyle, primaryButton,
+  BORDER, DANGER, FOCUS_CLASS, INPUT_CLASS, PRESS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MUTED, WHITE,
+  inputStyle, labelStyle, pillStyle, squareChoiceStyle, titleStyle, useIntakeInk,
 } from "./intakeTheme.js";
 
 const GPA_SCALES = [
@@ -83,11 +83,11 @@ function withDrafts(values, drafts) {
 
 function Field({ label, hint, children }) {
   return (
-    <div style={{ marginBottom: "1.9rem" }}>
+    <div style={{ marginBottom: "1.6rem" }}>
       <label style={labelStyle}>{label}</label>
       {children}
       {hint && (
-        <p style={{ fontFamily: SANS, fontSize: "0.9rem", color: TEXT3, marginTop: 9, lineHeight: 1.5 }}>
+        <p style={{ fontFamily: SANS, fontSize: "0.92rem", color: TEXT_MUTED, marginTop: 8, lineHeight: 1.5 }}>
           {hint}
         </p>
       )}
@@ -96,20 +96,15 @@ function Field({ label, hint, children }) {
 }
 
 function Pills({ options, value, onChange }) {
+  const ink = useIntakeInk();
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
       {options.map((o) => {
         const active = value === o.value;
         return (
-          <button key={o.value} type="button"
+          <button key={o.value} type="button" aria-pressed={active} className={FOCUS_CLASS}
             onClick={() => onChange(active ? null : o.value)}
-            style={{
-              fontFamily: SANS, fontSize: "1rem", fontWeight: 600, cursor: "pointer",
-              padding: "11px 20px", borderRadius: 99,
-              border: `1.5px solid ${active ? ACCENT : BORDER}`,
-              background: active ? ACCENT : "#fff",
-              color: active ? "#fff" : TEXT2, transition: "all 0.15s",
-            }}>
+            style={pillStyle(ink, active)}>
             {o.label}
           </button>
         );
@@ -120,15 +115,15 @@ function Pills({ options, value, onChange }) {
 
 function RemoveButton({ onClick, label }) {
   return (
-    <button type="button" onClick={onClick} aria-label={`Remove ${label}`}
+    <button type="button" onClick={onClick} aria-label={`Remove ${label}`} className={FOCUS_CLASS}
       style={{
         flexShrink: 0, border: "none", background: "none", cursor: "pointer",
-        color: TEXT3, display: "inline-flex", alignItems: "center",
-        padding: 6, borderRadius: 8, transition: "color 0.15s, background 0.15s",
+        color: TEXT_MUTED, display: "inline-flex", alignItems: "center", justifyContent: "center",
+        width: 40, height: 40, margin: "-4px -4px -4px 0", borderRadius: 10, transition: "color 0.15s, background 0.15s",
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.color = "#dc2626"; e.currentTarget.style.background = "rgba(220,38,38,0.08)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.color = TEXT3; e.currentTarget.style.background = "none"; }}>
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+      onMouseEnter={(e) => { e.currentTarget.style.color = DANGER; e.currentTarget.style.background = "#fdf1f0"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = TEXT_MUTED; e.currentTarget.style.background = "none"; }}>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
         <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
       </svg>
     </button>
@@ -137,6 +132,7 @@ function RemoveButton({ onClick, label }) {
 
 /** Input with a visible + button. Enter also works, and so does Next: nothing depends on knowing any of them. */
 function AddRow({ value, onChange, onAdd, placeholder, disabled }) {
+  const ink = useIntakeInk();
   const canAdd = !disabled && value.trim().length > 0;
   return (
     <>
@@ -147,27 +143,27 @@ function AddRow({ value, onChange, onAdd, placeholder, disabled }) {
         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }}
         placeholder={placeholder}
         disabled={disabled}
+        className={INPUT_CLASS}
         style={{ ...inputStyle, paddingRight: 58, opacity: disabled ? 0.6 : 1 }}
-        onFocus={(e) => (e.target.style.borderColor = ACCENT)}
-        onBlur={(e) => (e.target.style.borderColor = BORDER)}
       />
       <button type="button" onClick={onAdd} disabled={!canAdd} aria-label="Add"
+        className={`${FOCUS_CLASS} ${canAdd ? PRESS_CLASS : ""}`}
         style={{
-          position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+          position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)",
           width: 38, height: 38, borderRadius: 10, border: "none",
-          background: canAdd ? ACCENT : "rgba(59,91,252,0.12)",
-          color: canAdd ? "#fff" : TEXT3,
+          background: canAdd ? ink.button.bg : SURFACE,
+          color: canAdd ? ink.button.fg : TEXT_MUTED,
           cursor: canAdd ? "pointer" : "not-allowed",
           display: "inline-flex", alignItems: "center", justifyContent: "center",
-          transition: "all 0.15s",
+          transition: "background 0.15s, color 0.15s",
         }}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
           <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
         </svg>
       </button>
     </div>
     {canAdd && (
-      <p style={{ fontFamily: SANS, fontSize: "0.88rem", fontWeight: 600, color: ACCENT, margin: "8px 0 0" }}>
+      <p style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: ink.text, margin: "8px 0 0" }}>
         Press + to add it to your list. Next adds it too.
       </p>
     )}
@@ -182,8 +178,8 @@ function ItemRow({ children, onRemove, label }) {
       transition={{ duration: 0.2 }}
       style={{
         display: "flex", alignItems: "center", gap: 12,
-        background: "#fff", border: `1px solid ${BORDER}`,
-        borderRadius: 12, padding: "12px 12px 12px 16px",
+        background: WHITE, border: `1px solid ${BORDER}`,
+        borderRadius: RADIUS.control, padding: "10px 10px 10px 14px", minWidth: 0,
       }}>
       {children}
       <RemoveButton onClick={onRemove} label={label} />
@@ -211,7 +207,7 @@ function ItemList({ items, onChange, placeholder, max, draft, setDraft }) {
             {items.map((item, i) => (
               <ItemRow key={`${item}-${i}`} label={item}
                 onRemove={() => onChange(items.filter((_, j) => j !== i))}>
-                <span style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT, flex: 1, minWidth: 0 }}>
+                <span style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT, flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
                   {item}
                 </span>
               </ItemRow>
@@ -225,6 +221,7 @@ function ItemList({ items, onChange, placeholder, max, draft, setDraft }) {
 
 /** Courses carry a level, because course rigor is a primary academic signal. */
 function CourseList({ items, onChange, draft, setDraft }) {
+  const ink = useIntakeInk();
   const add = () => {
     if (!splitEntries(draft).length) return;
     onChange(addCourses(items, draft));
@@ -246,10 +243,11 @@ function CourseList({ items, onChange, draft, setDraft }) {
                 <select
                   value={c.level || ""}
                   onChange={(e) => onChange(items.map((x, j) => j === i ? { ...x, level: e.target.value || null } : x))}
+                  className={INPUT_CLASS}
                   style={{
-                    fontFamily: SANS, fontSize: "0.9rem", fontWeight: 600, color: c.level ? ACCENT : TEXT3,
-                    border: `1.5px solid ${BORDER}`, borderRadius: 9, padding: "8px 11px",
-                    background: "#fff", cursor: "pointer", flexShrink: 0,
+                    fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, color: c.level ? ink.text : TEXT_MUTED,
+                    border: `1.5px solid ${BORDER}`, borderRadius: 10, padding: "0 10px", minHeight: 40,
+                    background: WHITE, cursor: "pointer", flexShrink: 0,
                   }}>
                   <option value="">Level</option>
                   {COURSE_LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
@@ -265,6 +263,7 @@ function CourseList({ items, onChange, draft, setDraft }) {
 
 /** AP exams as subject + score. */
 function ApList({ items, onChange, draft, setDraft }) {
+  const ink = useIntakeInk();
   const add = () => {
     if (!splitEntries(draft).length) return;
     onChange(addAps(items, draft));
@@ -284,15 +283,9 @@ function ApList({ items, onChange, draft, setDraft }) {
                 </span>
                 <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
                   {[1, 2, 3, 4, 5].map((n) => (
-                    <button key={n} type="button"
+                    <button key={n} type="button" aria-pressed={ap.score === n} className={FOCUS_CLASS}
                       onClick={() => onChange(items.map((x, j) => j === i ? { ...x, score: x.score === n ? null : n } : x))}
-                      style={{
-                        width: 34, height: 34, borderRadius: 9, cursor: "pointer",
-                        fontFamily: SANS, fontWeight: 700, fontSize: "0.92rem",
-                        border: `1.5px solid ${ap.score === n ? ACCENT : BORDER}`,
-                        background: ap.score === n ? ACCENT : "#fff",
-                        color: ap.score === n ? "#fff" : TEXT2,
-                      }}>{n}</button>
+                      style={squareChoiceStyle(ink, ap.score === n, 36)}>{n}</button>
                   ))}
                 </div>
               </ItemRow>
@@ -343,14 +336,15 @@ export const EMPTY_INTAKE = {
 };
 
 const STEPS = [
-  { id: "identity",  eyebrow: "Getting started", title: "Let's start with the basics",  blurb: "Just enough to know where you are in the process." },
-  { id: "academics", eyebrow: "Academics",       title: "Your grades and classes",      blurb: "Skip anything that doesn't apply to you yet." },
-  { id: "testing",   eyebrow: "Testing",         title: "Any test scores?",             blurb: "Plenty of students don't have these yet. That's completely fine." },
-  { id: "record",    eyebrow: "Your record",     title: "What you've been doing",       blurb: "Just the names for now. We'll talk through the details right after." },
-  { id: "direction", eyebrow: "Direction",       title: "Where you're headed",          blurb: "Rough guesses are genuinely useful here." },
+  { id: "identity",  stamp: "person", title: "Let's start with the basics",  blurb: "Just enough to know where you are in the process." },
+  { id: "academics", stamp: "scroll", title: "Your grades and classes",      blurb: "Skip anything that doesn't apply to you yet." },
+  { id: "testing",   stamp: "check",  title: "Any test scores?",             blurb: "Plenty of students don't have these yet. That's completely fine." },
+  { id: "record",    stamp: "star",   title: "What you've been doing",       blurb: "Just the names for now. We'll talk through the details right after." },
+  { id: "direction", stamp: "flag",   title: "Where you're headed",          blurb: "Rough guesses are genuinely useful here." },
 ];
 
 export default function IntakeForm({ initial, startAt, onComplete, submitting, isMobile, userId }) {
+  const ink = useIntakeInk();
   const key = draftKey(userId);
   // Restored values win over `initial`: they're the newer edit.
   const restored = loadDraft(key);
@@ -404,7 +398,7 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
       gridTemplateColumns: isMobile ? "1fr" : `minmax(0, ${PANEL_W}px) minmax(0, ${FORM_W}px) ${PANEL_W}px`,
       gap: isMobile ? "2rem" : "2rem",
       alignItems: "start", justifyContent: "center",
-      width: "100%", margin: "0 auto", padding: "0 1.5rem",
+      width: "100%", margin: "0 auto", padding: isMobile ? "0 1rem" : "0 1.5rem", boxSizing: "border-box",
     }}>
       {!isMobile && <div aria-hidden="true" />}
 
@@ -413,8 +407,8 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
         <div style={{ display: "flex", gap: 7, marginBottom: "2rem" }}>
           {STEPS.map((s, i) => (
             <div key={s.id} style={{
-              flex: 1, height: 5, borderRadius: 99,
-              background: i <= step ? ACCENT : "rgba(59,91,252,0.15)",
+              flex: 1, height: 6, borderRadius: RADIUS.pill,
+              background: i <= step ? ink.accent : BORDER,
               transition: "background 0.3s",
             }} />
           ))}
@@ -425,18 +419,17 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
             initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }}
             transition={{ duration: 0.28 }}>
 
-            <p style={eyebrowStyle}>{current.eyebrow}</p>
-            <h1 style={titleStyle}>{current.title}</h1>
-            <p style={subtitleStyle}>{current.blurb}</p>
+            <h1 style={titleStyle(ink, isMobile)}>{current.title}</h1>
+            <Tip name="Mentorable" stamp={current.stamp} tone="default" style={{ marginBottom: "1.4rem" }}>
+              {current.blurb}
+            </Tip>
 
-            <div style={cardStyle}>
+            <Card style={{ padding: isMobile ? "1.2rem 1.1rem 0.2rem" : "1.6rem 1.6rem 0.4rem" }}>
               {current.id === "identity" && (
                 <>
                   <Field label="Your name">
                     <input value={v.fullName} onChange={(e) => set({ fullName: e.target.value })}
-                      placeholder="First and last" style={inputStyle}
-                      onFocus={(e) => (e.target.style.borderColor = ACCENT)}
-                      onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+                      placeholder="First and last" style={inputStyle} className={INPUT_CLASS} />
                   </Field>
                   <Field label="When do you graduate high school?">
                     <Pills options={GRAD_YEARS.map((y) => ({ value: y, label: String(y) }))}
@@ -448,9 +441,7 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
                   </Field>
                   <Field label="Where are you based?" hint="Optional. It affects in-state options and some opportunities.">
                     <input value={v.state} onChange={(e) => set({ state: e.target.value })}
-                      placeholder="State or country" style={inputStyle}
-                      onFocus={(e) => (e.target.style.borderColor = ACCENT)}
-                      onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+                      placeholder="State or country" style={inputStyle} className={INPUT_CLASS} />
                   </Field>
                 </>
               )}
@@ -465,17 +456,13 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
                       <div style={{ flex: 1, minWidth: 160 }}>
                         <Field label="Unweighted GPA">
                           <input value={v.gpaUnweighted} onChange={(e) => set({ gpaUnweighted: e.target.value })}
-                            inputMode="decimal" placeholder="3.87" style={inputStyle}
-                            onFocus={(e) => (e.target.style.borderColor = ACCENT)}
-                            onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+                            inputMode="decimal" placeholder="3.87" style={inputStyle} className={INPUT_CLASS} />
                         </Field>
                       </div>
                       <div style={{ flex: 1, minWidth: 160 }}>
                         <Field label="Weighted GPA">
                           <input value={v.gpaWeighted} onChange={(e) => set({ gpaWeighted: e.target.value })}
-                            inputMode="decimal" placeholder="Optional" style={inputStyle}
-                            onFocus={(e) => (e.target.style.borderColor = ACCENT)}
-                            onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+                            inputMode="decimal" placeholder="Optional" style={inputStyle} className={INPUT_CLASS} />
                         </Field>
                       </div>
                     </div>
@@ -508,9 +495,7 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
                         <div key={key} style={{ flex: 1, minWidth: 130 }}>
                           <Field label={label}>
                             <input value={v.sat[key]} onChange={(e) => set({ sat: { ...v.sat, [key]: e.target.value } })}
-                              inputMode="numeric" placeholder={ph} style={inputStyle}
-                              onFocus={(e) => (e.target.style.borderColor = ACCENT)}
-                              onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+                              inputMode="numeric" placeholder={ph} style={inputStyle} className={INPUT_CLASS} />
                           </Field>
                         </div>
                       ))}
@@ -519,9 +504,7 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
                   {v.testType === "act" && (
                     <Field label="Composite score">
                       <input value={v.act.composite} onChange={(e) => set({ act: { composite: e.target.value } })}
-                        inputMode="numeric" placeholder="34" style={inputStyle}
-                        onFocus={(e) => (e.target.style.borderColor = ACCENT)}
-                        onBlur={(e) => (e.target.style.borderColor = BORDER)} />
+                        inputMode="numeric" placeholder="34" style={inputStyle} className={INPUT_CLASS} />
                     </Field>
                   )}
                   <Field label="AP exams you've taken" hint="Optional. Add the subject, then tap the score you got.">
@@ -557,26 +540,22 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
                   </Field>
                 </>
               )}
-            </div>
+            </Card>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: "1.75rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: "1.5rem" }}>
               {step > 0 && (
-                <button type="button" onClick={() => setStep((s) => s - 1)} disabled={submitting}
-                  style={{
-                    fontFamily: SANS, fontSize: "1.05rem", fontWeight: 700, cursor: "pointer",
-                    padding: "16px 26px", borderRadius: 14,
-                    border: `1.5px solid ${BORDER}`, background: "#fff", color: TEXT2,
-                  }}>
+                <Button kind="secondary" onClick={() => setStep((s) => s - 1)} disabled={submitting}
+                  style={{ minHeight: 52, padding: "12px 24px", fontSize: "1.05rem" }}>
                   Back
-                </button>
+                </Button>
               )}
-              <button type="button" onClick={next} disabled={!canAdvance || submitting}
-                style={primaryButton(canAdvance && !submitting)}>
+              <Button kind="primary" onClick={next} disabled={!canAdvance} busy={submitting}
+                style={{ flex: 1, minHeight: 52, fontSize: "1.05rem" }}>
                 {submitting ? "Saving…" : isLast ? "Continue" : "Next"}
-              </button>
+              </Button>
             </div>
 
-            <p style={{ fontFamily: SANS, fontSize: "0.92rem", color: TEXT3, textAlign: "center", marginTop: 15 }}>
+            <p style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, color: TEXT_MUTED, textAlign: "center", marginTop: 14 }}>
               Step {step + 1} of {STEPS.length}
             </p>
           </motion.div>

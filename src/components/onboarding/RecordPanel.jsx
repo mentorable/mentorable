@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { SANS, TEXT, TEXT2, TEXT3, ACCENT, BORDER, PANEL } from "./intakeTheme.js";
+import { BORDER, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useIntakeInk } from "./intakeTheme.js";
 
 /**
  * The right-hand panel that shows the student's record building up as they go.
@@ -14,40 +14,41 @@ import { SANS, TEXT, TEXT2, TEXT3, ACCENT, BORDER, PANEL } from "./intakeTheme.j
  * call deliberately has no panel, so its controls stay pinned to the viewport.
  */
 export default function RecordPanel({ sections, sticky = true, title = "Your responses" }) {
+  const ink = useIntakeInk();
   const live = (sections || []).filter((s) => (s.items || []).length > 0);
   const total = live.reduce((n, s) => n + s.items.length, 0);
 
   return (
     <aside style={{
-      width: "100%", background: PANEL, border: `1px solid ${BORDER}`,
-      borderRadius: 22, padding: "1.75rem",
+      width: "100%", boxSizing: "border-box", background: WHITE, border: `1px solid ${BORDER}`,
+      borderRadius: RADIUS.card, padding: "1.3rem 1.3rem 1.4rem",
       position: sticky ? "sticky" : "static", top: 32,
       maxHeight: sticky ? "calc(100vh - 64px)" : undefined,
       overflowY: "auto",
     }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: "1.4rem" }}>
-        <span style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.02em", color: TEXT }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: "1.1rem" }}>
+        <span style={{ fontFamily: SANS, fontSize: "1.1rem", fontWeight: 800, letterSpacing: "-0.01em", color: TEXT }}>
           {title}
         </span>
         {total > 0 && (
-          <span style={{ fontFamily: SANS, fontSize: "0.82rem", fontWeight: 700, color: ACCENT }}>
+          <span style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, color: ink.text, fontVariantNumeric: "tabular-nums" }}>
             {total} {total === 1 ? "item" : "items"}
           </span>
         )}
       </div>
 
       {live.length === 0 ? (
-        <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT3, lineHeight: 1.6, margin: 0 }}>
+        <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.6, margin: 0 }}>
           Everything you add shows up here, so you can see it building as you go.
         </p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.3rem" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
           <AnimatePresence initial={false}>
             {live.map((section) => (
               <motion.div key={section.key}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}>
-                <div style={{ fontFamily: SANS, fontSize: "0.76rem", fontWeight: 700, letterSpacing: "0.03em", color: TEXT3, marginBottom: 8 }}>
+                <div style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, color: TEXT_MID, marginBottom: 7 }}>
                   {section.label}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -61,14 +62,14 @@ export default function RecordPanel({ sections, sticky = true, title = "Your res
                           transition={{ duration: 0.22 }}
                           style={{
                             display: "flex", alignItems: "baseline", gap: 8,
-                            background: "#fff", border: `1px solid ${BORDER}`,
-                            borderRadius: 10, padding: "9px 12px",
+                            background: SURFACE, border: `1px solid ${BORDER}`,
+                            borderRadius: 10, padding: "8px 12px",
                           }}>
-                          <span style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: TEXT, flex: 1, minWidth: 0, lineHeight: 1.4 }}>
+                          <span style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, color: TEXT, flex: 1, minWidth: 0, lineHeight: 1.4, overflowWrap: "anywhere" }}>
                             {text}
                           </span>
                           {detail && (
-                            <span style={{ fontFamily: SANS, fontSize: "0.78rem", fontWeight: 600, color: ACCENT, flexShrink: 0 }}>
+                            <span style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, color: ink.text, flexShrink: 0 }}>
                               {detail}
                             </span>
                           )}
