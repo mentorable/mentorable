@@ -6,20 +6,27 @@ import {
   restoreSuggestion, searchSchools, setCategory,
 } from "../lib/collegeList.js";
 import { LIST_GOAL, balance, explainItem, suggestCategory } from "../lib/collegeCategory.js";
+import { readableOn } from "../lib/theme.js";
 import Spinner from "../components/common/Spinner.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
-import { contrastRatio, darken, readableOn } from "../lib/theme.js";
 import { useTheme } from "../lib/ThemeContext.jsx";
-import { BG, DANGER, INK, LINE, MID, SANS, STONE, STONE_EDGE, WHITE } from "../components/quest/questUi.jsx";
+import {
+  BG, BORDER, DANGER, RADIUS, SANS, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
+} from "../components/ui/tokens.js";
+import { Button, Notice, PageHeader, StampTile, Tip } from "../components/ui/kit.jsx";
+import { PixelStamp } from "../components/ui/PixelIcons.jsx";
 
 // College List: the schools a student is applying to, grouped reach, target
-// and likely. It shares Quest's raised look (white cards and buttons with a
-// solid bottom edge, all from the student's accent) and its sense of progress:
-// each group fills toward a goal, and a balanced list earns its badge.
+// and likely. Built on the app's shared kit (the calm shell the Agents pages
+// started), with its character in pixel stamps and the guide bubble: each
+// group fills toward a goal, and a balanced list earns its badge.
 
-const TEXT_MUTED = "#494742";   // the lightest text on this page
-const DANGER_BG  = "#fff4f2";
+const INK = TEXT;
+const MID = TEXT_MID;
+const LINE = BORDER;
+const STONE = "#ebe8e3";         // an empty pip or tile
+const STAMP = { reach: "peak", target: "target", likely: "check" };
 
 // What each group means, said as a comparison, never as odds: the rule only
 // sets scores against a school's range and admit rate. `empty` fills a group
@@ -79,12 +86,9 @@ function writePref(key, value) {
   try { localStorage.setItem(key, value); } catch { /* storage blocked: the choice lasts this visit */ }
 }
 
-// Pressing a raised control sinks it onto its edge, as on Quest. The focus
-// ring is the accent darkened to 3:1 on the page grey, and the placeholder
-// stays above the page's text floor.
+// The focus ring is the accent darkened to 3:1 on the page grey, and the
+// placeholder stays above the page's text floor.
 const pageCss = (ring) => `
-.cl-raised { transition: transform 0.08s, box-shadow 0.08s; }
-.cl-raised:not([aria-disabled="true"]):not(:disabled):active { transform: translateY(3px); box-shadow: 0 1px 0 transparent !important; }
 .cl-page :focus-visible { outline: 3px solid ${ring}; outline-offset: 2px; }
 .cl-page input::placeholder { color: ${TEXT_MUTED}; opacity: 1; }
 .cl-page summary { list-style: none; }
@@ -148,37 +152,19 @@ const SR_ONLY = { position: "absolute", width: 1, height: 1, padding: 0, margin:
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 
-// The accent as text, darkened just enough to read on white and the page
-// grey, and an accent-filled control whose label reads: white if it can, dark
-// ink if that reads instead (amber, sky), and otherwise white on an accent
-// darkened just enough (violet and indigo, where neither passes). Each fill
-// has its own darker bottom edge, as Quest's do.
+// The kit's accent colours, under the names this page uses: `text` reads on
+// white and the page grey, `button` is the readable fill, `wash` the soft tint.
 function useAccentInk() {
-  const { accent, accentRgb } = useTheme();
-  const fill = contrastRatio(WHITE, accent) >= 4.5 ? { bg: accent, fg: WHITE }
-    : contrastRatio(INK, accent) >= 4.5 ? { bg: accent, fg: INK }
-    : { bg: readableOn(accent, WHITE, 4.5), fg: WHITE };
-  return {
-    accent, accentRgb,
-    text: readableOn(accent, BG, 4.5),     // reads on white and on the page grey
-    ring: readableOn(accent, BG, 3),
-    button: { ...fill, edge: darken(fill.bg, 0.28) },
-    wash: `rgba(${accentRgb},0.09)`,
-    // Every group gets the same fill and is told apart by its mark: shading
-    // them would rank them, and a list too low is as much a problem as one
-    // too high.
-    lit: { bg: fill.bg, edge: darken(fill.bg, 0.28), fg: fill.fg },
-  };
+  const { accentRgb } = useTheme();
+  const ink = useAgentInk();
+  const text = readableOn(ink.accent, BG, 4.5);
+  return { ...ink, accentRgb, text, ring: ink.ring, wash: ink.softer, onWash: ink.onSoft };
 }
 // ─── Small pieces ─────────────────────────────────────────────────────────────
 
-/** Each group's mark: a peak for reach, a target for target, a check for likely. */
-function GroupIcon({ group, color, size = 22 }) {
-  const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color,
-    strokeWidth: 2.6, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true };
-  if (group === "reach") return <svg {...common}><path d="M3 19l6.5-11 4 6.5 2.5-4L21 19z" /><path d="M8 11.5l1.5 1.5 1.5-1.5" /></svg>;
-  if (group === "target") return <svg {...common}><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4" /><circle cx="12" cy="12" r="0.6" fill={color} /></svg>;
-  return <svg {...common}><polyline points="5 12.5 10 17 19 7" /></svg>;
+/** Each group's mark, in pixels: a peak for reach, a target, a check for likely. */
+function GroupIcon({ group, size = 16 }) {
+  return <PixelStamp kind={STAMP[group]} size={size} />;
 }
 
 function Icon({ name, color = "currentColor", size = 18 }) {
@@ -199,53 +185,37 @@ function Icon({ name, color = "currentColor", size = 18 }) {
   return null;
 }
 
-/** A raised stone with a group's mark: lit in the group's color, grey while
- *  the group is empty. It pops when it lights, the list's small reward. */
+/** A group's pixel mark on a soft tile: lit once the group has a school,
+ *  grey before. It pops when it lights, the list's small reward. */
 function GroupStone({ group, lit = true, size = 44 }) {
-  const ink = useAccentInk();
   const reduce = useReducedMotion();
   const was = useRef(lit);
   const lighting = lit && !was.current;
   useEffect(() => { was.current = lit; }, [lit]);
-  const g = ink.lit;
-  const bg = lit ? g.bg : STONE;
   return (
-    <motion.span aria-hidden="true" key={lit ? "lit" : "dark"}
+    <motion.span key={lit ? "lit" : "dark"} style={{ display: "inline-flex", flexShrink: 0 }}
       initial={lighting && !reduce ? { scale: 0.6 } : false}
-      animate={{ scale: 1 }} transition={{ type: "spring", damping: 9, stiffness: 320 }}
-      style={{ flexShrink: 0, width: size, height: size, borderRadius: "50%", background: bg,
-        boxShadow: `0 4px 0 ${lit ? g.edge : STONE_EDGE}`, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-      <GroupIcon group={group} color={lit ? g.fg : TEXT_MUTED} size={Math.round(size * 0.5)} />
+      animate={{ scale: 1 }} transition={{ type: "spring", damping: 9, stiffness: 320 }}>
+      <StampTile kind={STAMP[group]} size={size} lit={lit} />
     </motion.span>
   );
 }
 
-/** The raised button. `tone` picks the accent fill, quiet white or danger. */
+/** The kit's button under the page's old name: "accent" is the primary
+ *  fill, "quiet" the outlined secondary. */
 function Raised({ children, onClick, tone = "accent", small, full, disabled, busy, style, ...rest }) {
-  const ink = useAccentInk();
-  const touch = useTouch();
-  const p = {
-    accent: ink.button,
-    quiet:  { bg: WHITE, fg: INK, edge: "#d6d4cf" },
-  }[tone];
-  const off = disabled || busy;
   return (
-    <button type="button" className="cl-raised" onClick={off ? undefined : onClick} aria-disabled={off || undefined}
-      style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: "0.01em", fontSize: small ? "0.95rem" : "1rem",
-        padding: small ? "0 16px" : "0 22px", minHeight: small ? (touch ? 44 : 40) : 48, width: full ? "100%" : undefined,
-        borderRadius: 14, border: tone === "quiet" ? `2px solid ${p.edge}` : "none", flexShrink: 0,
-        background: disabled ? "#e6e6e4" : p.bg, color: disabled ? TEXT_MUTED : p.fg,
-        boxShadow: `0 4px 0 ${disabled ? "#d2d2cf" : p.edge}`, cursor: off ? "default" : "pointer",
-        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, ...style }}
-      {...rest}>
+    <Button kind={tone === "accent" ? "primary" : "secondary"} onClick={onClick} disabled={disabled} busy={busy}
+      style={{ width: full ? "100%" : undefined, fontSize: small ? "0.95rem" : "1rem", padding: small ? "8px 16px" : "10px 20px",
+        flexShrink: 0, ...style }} {...rest}>
       {children}
-    </button>
+    </Button>
   );
 }
 
-/** A white card with Quest's solid bottom edge. */
-const card = (border = LINE, edge = border) => ({
-  background: WHITE, borderRadius: 18, border: `2px solid ${border}`, boxShadow: `0 4px 0 ${edge}`,
+/** The kit's card: white, a 1px warm border, the shared radius. */
+const card = (border = LINE) => ({
+  background: WHITE, borderRadius: RADIUS.card, border: `1px solid ${border}`, boxSizing: "border-box",
 });
 
 /** The school's facts as chips. Each one is a button that shows what it
@@ -270,8 +240,8 @@ function Facts({ school, only }) {
                 onClick={() => setOpen(on ? null : f.text)}
                 style={{ fontFamily: SANS, fontVariantNumeric: "tabular-nums", lineHeight: 1.3, cursor: "pointer",
                   borderRadius: 99, padding: "5px 11px", minHeight: touch ? 36 : 30, fontSize: f.lead ? "0.95rem" : "0.92rem",
-                  fontWeight: f.lead ? 800 : 600, color: f.lead ? ink.text : MID,
-                  background: f.lead ? ink.wash : "#f1f1ef", border: `2px solid ${on ? (f.lead ? ink.text : STONE_EDGE) : "transparent"}` }}
+                  fontWeight: f.lead ? 800 : 600, color: f.lead ? ink.onWash : MID,
+                  background: f.lead ? ink.wash : "#f3f1ed", border: `1.5px solid ${on ? (f.lead ? ink.text : TEXT_MUTED) : "transparent"}` }}
                 aria-label={`${f.text}. ${on ? "Hide" : "Show"} what this means.`}>
                 {f.text}
               </button>
@@ -299,13 +269,13 @@ function CategoryPicker({ value, onChange, saving, label, stretch }) {
         return (
           // aria-disabled, not disabled: a disabled button cannot hold focus,
           // and focus moves here while the save that disables it runs.
-          <button key={s.key} type="button" aria-pressed={on} aria-disabled={saving || undefined} className="cl-raised"
+          <button key={s.key} type="button" aria-pressed={on} aria-disabled={saving || undefined}
             onClick={() => !on && !saving && onChange(s.key)}
             style={{ flex: stretch ? 1 : undefined, fontFamily: SANS, fontSize: "0.92rem", fontWeight: 800,
               cursor: on || saving ? "default" : "pointer", padding: "0 12px", minHeight: touch ? 44 : 38,
               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
-              borderRadius: 12, border: `2px solid ${on ? ink.text : LINE}`, background: on ? ink.wash : WHITE,
-              color: on ? ink.text : MID, boxShadow: `0 3px 0 ${on ? ink.button.edge : LINE}` }}>
+              borderRadius: RADIUS.control, border: `1.5px solid ${on ? ink.text : LINE}`, background: on ? ink.wash : WHITE,
+              color: on ? ink.onWash : MID }}>
             {on && saving && <Spinner size={13} color={ink.text} />}
             {s.label}
           </button>
@@ -315,28 +285,12 @@ function CategoryPicker({ value, onChange, saving, label, stretch }) {
   );
 }
 
-/** A note in Quest's banner style: accent-bordered, or red for an error. */
+/** A note: the kit's Notice, with an action beside the text. */
 function Banner({ error, children, action, onDismiss }) {
-  const ink = useAccentInk();
   return (
-    <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-      style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", borderRadius: 16,
-        padding: onDismiss ? "6px 6px 6px 16px" : "14px 16px", background: error ? DANGER_BG : WHITE,
-        border: `2px solid ${error ? DANGER : ink.text}` }}>
-      {error && <Icon name="alert" color={DANGER} size={20} />}
-      <div style={{ flex: "1 1 220px", fontFamily: SANS, fontSize: "1rem", fontWeight: error ? 700 : 600, color: INK,
-        lineHeight: 1.5, overflowWrap: "anywhere" }}>
-        {error && <span style={SR_ONLY}>Error: </span>}{children}
-      </div>
-      {action}
-      {onDismiss && (
-        <button type="button" onClick={onDismiss} aria-label="Dismiss this message"
-          style={{ flexShrink: 0, width: 44, height: 44, display: "inline-flex", alignItems: "center",
-            justifyContent: "center", border: "none", background: "none", cursor: "pointer", color: TEXT_MUTED, borderRadius: 12 }}>
-          <Icon name="x" size={16} />
-        </button>
-      )}
-    </motion.div>
+    <Notice tone={error ? "error" : "info"} onDismiss={onDismiss} action={action} style={{ background: error ? undefined : WHITE }}>
+      {children}
+    </Notice>
   );
 }
 
@@ -353,11 +307,10 @@ function Scoreboard({ counts, isMobile, reduce }) {
         {SECTIONS.map((s) => {
           const n = counts[s.key];
           const goal = LIST_GOAL[s.key];
-          const g = ink.lit;
           return (
-            <button key={s.key} type="button" className="cl-raised" onClick={() => reveal(`#sec-${s.key}`, reduce)}
+            <button key={s.key} type="button" onClick={() => reveal(`#sec-${s.key}`, reduce)}
               aria-label={`${n} ${s.label}, goal ${goal}. Go to ${s.label}.`}
-              style={{ ...card(LINE, n > 0 ? g.edge : LINE), cursor: "pointer", padding: isMobile ? "12px 6px" : "14px 16px",
+              style={{ ...card(n > 0 ? ink.soft : LINE), cursor: "pointer", padding: isMobile ? "12px 6px" : "14px 16px",
                 display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center",
                 gap: isMobile ? 6 : 14, textAlign: isMobile ? "center" : "left" }}>
               <GroupStone group={s.key} lit={n > 0} size={isMobile ? 38 : 46} />
@@ -365,11 +318,11 @@ function Scoreboard({ counts, isMobile, reduce }) {
                 <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: isMobile ? "1.05rem" : "1.15rem", color: INK, lineHeight: 1.2 }}>
                   <span style={{ fontVariantNumeric: "tabular-nums" }}>{n}</span> {s.label}
                 </span>
-                {/* One pip per school toward the goal; extras show as +n. */}
+                {/* One pixel per school toward the goal; extras show as +n. */}
                 <span aria-hidden="true" style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
                   {Array.from({ length: goal }, (_, i) => (
-                    <span key={i} style={{ width: isMobile ? 10 : 12, height: isMobile ? 10 : 12, borderRadius: 4,
-                      background: i < n ? g.bg : STONE, boxShadow: `0 2px 0 ${i < n ? g.edge : STONE_EDGE}` }} />
+                    <span key={i} style={{ width: isMobile ? 10 : 12, height: isMobile ? 10 : 12,
+                      background: i < n ? ink.button.bg : STONE }} />
                   ))}
                   {n > goal && (
                     <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: "0.9rem", color: MID, marginLeft: 2 }}>+{n - goal}</span>
@@ -385,11 +338,9 @@ function Scoreboard({ counts, isMobile, reduce }) {
   );
 }
 
-/** The list's goal, Quest-style: locked with a countdown of what is missing,
- *  then lit with a glow once every group has reached it. It also carries the
- *  one note the list needs next. */
+/** The list's goal in the guide bubble: a countdown of what is missing
+ *  while it is locked, then the badge once every group has reached it. */
 function BalanceBanner({ counts, reduce }) {
-  const ink = useAccentInk();
   const earned = counts.balanced;
   const was = useRef(earned);
   const earning = earned && !was.current;
@@ -398,9 +349,9 @@ function BalanceBanner({ counts, reduce }) {
   const left = missing.reduce((sum, s) => sum + s.n, 0);
   const plural = (key, n) => (n === 1 ? key : { reach: "reaches", target: "targets", likely: "likelies" }[key]);
   const shape = SECTIONS.map((s) => `${LIST_GOAL[s.key]} ${plural(s.key, LIST_GOAL[s.key])}`);
-  const title = earned ? "Balanced list"
-    : counts.total === 0 ? `Aim for ${shape[0]}, ${shape[1]} and ${shape[2]}`
-    : left ? `${left} more to unlock Balanced list` : "Almost balanced";
+  const title = earned ? "Balanced list unlocked!"
+    : counts.total === 0 ? `Aim for ${shape[0]}, ${shape[1]} and ${shape[2]}.`
+    : left ? `${left} more to unlock the Balanced list badge.` : "Almost balanced.";
   const detail = earned
     ? "A couple of reaches, a few targets and a couple of likelies. Keep every one a school you would be glad to attend."
     : counts.total === 0
@@ -410,28 +361,14 @@ function BalanceBanner({ counts, reduce }) {
         : counts.note;
   return (
     <motion.div key={earned ? "earned" : "locked"}
-      initial={earning && !reduce ? { scale: 0.92 } : false}
-      animate={earning && !reduce ? { scale: [0.92, 1.03, 1] } : { scale: 1 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      style={{ display: "flex", alignItems: "center", gap: 14, borderRadius: 18, padding: "14px 16px",
-        ...(earned
-          ? { background: ink.button.bg, color: ink.button.fg,
-              boxShadow: `0 4px 0 ${ink.button.edge}, 0 0 0 6px rgba(${ink.accentRgb},0.18)` }
-          : { background: WHITE, color: INK, border: `2px dashed ${STONE_EDGE}` }) }}>
-      <span aria-hidden="true" style={{ flexShrink: 0, width: 42, height: 42, borderRadius: "50%", display: "inline-flex",
-        alignItems: "center", justifyContent: "center",
-        ...(earned ? { background: "rgba(255,255,255,0.22)" } : { background: STONE, boxShadow: `0 3px 0 ${STONE_EDGE}` }) }}>
-        <Icon name={earned ? "star" : "lock"} color={earned ? ink.button.fg : TEXT_MUTED} size={22} />
-      </span>
-      <span style={{ minWidth: 0, fontFamily: SANS }}>
-        <span style={{ display: "block", fontWeight: 800, fontSize: "1.1rem", lineHeight: 1.3 }}>{title}</span>
-        {detail && (
-          <span style={{ display: "block", fontWeight: 600, fontSize: "0.98rem", lineHeight: 1.5, marginTop: 2,
-            color: earned ? ink.button.fg : MID }}>
-            {detail}
-          </span>
-        )}
-      </span>
+      initial={earning && !reduce ? { scale: 0.94 } : false}
+      animate={earning && !reduce ? { scale: [0.94, 1.03, 1] } : { scale: 1 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
+      <Tip name={earned ? "Badge earned" : "Goal"} stamp={earned ? "star" : "lock"} tone={earned ? "accent" : "default"}
+        style={{ paddingTop: 0 }}>
+        <span style={{ display: "block", fontWeight: 800, fontSize: "1.05rem" }}>{title}</span>
+        {detail && <span style={{ display: "block", marginTop: 2, color: MID }}>{detail}</span>}
+      </Tip>
     </motion.div>
   );
 }
@@ -569,7 +506,7 @@ function SchoolCard({ item, stats, onSetCategory, onRestore, onRemove, isMobile,
           {remove}
         </div>
         {isMobile && <div style={{ display: "flex", marginTop: 10 }}>{picker}</div>}
-        <div id={whyId} hidden={!why} style={{ borderTop: why ? `2px solid ${LINE}` : "none", marginTop: why ? 10 : 0,
+        <div id={whyId} hidden={!why} style={{ borderTop: why ? `1px solid ${LINE}` : "none", marginTop: why ? 10 : 0,
           paddingBottom: why ? 4 : 0 }}>
           {why && (
             <>
@@ -603,7 +540,7 @@ function SchoolCard({ item, stats, onSetCategory, onRestore, onRemove, isMobile,
       </div>
       <Reason item={item} stats={stats} onRestore={onRestore} saving={saving} />
       <Facts school={item} />
-      <div style={{ display: "flex", marginTop: 14, paddingTop: 12, borderTop: `2px solid ${LINE}` }}>{picker}</div>
+      <div style={{ display: "flex", marginTop: 14, paddingTop: 12, borderTop: `1px solid ${LINE}` }}>{picker}</div>
     </motion.li>
   );
 }
@@ -616,7 +553,7 @@ function SearchResult({ school, stats, counts, onList, adding, onAdd, first }) {
   // What this add would do to the list, so the balance is visible before it changes.
   const after = suggestion ? counts[suggestion.category] + 1 : null;
   return (
-    <li style={{ listStyle: "none", padding: "14px 0", borderTop: first ? "none" : `2px solid ${LINE}`,
+    <li style={{ listStyle: "none", padding: "14px 0", borderTop: first ? "none" : `1px solid ${LINE}`,
       display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
       <div style={{ flex: 1, minWidth: 200 }}>
         <p style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "1.1rem", color: INK, overflowWrap: "anywhere" }}>
@@ -645,7 +582,7 @@ function SearchResult({ school, stats, counts, onList, adding, onAdd, first }) {
         </span>
       ) : suggestion ? (
         <Raised small onClick={() => onAdd(school)}>
-          <GroupIcon group={suggestion.category} color="currentColor" size={18} /> Add as {LABEL[suggestion.category]}
+          <GroupIcon group={suggestion.category} size={16} /> Add as {LABEL[suggestion.category]}
         </Raised>
       ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -733,7 +670,7 @@ function AddSchool({ api, stats, items, counts, onAdded, intro }) {
   };
 
   return (
-    <div style={{ ...card(ink.text, ink.button.edge), padding: isMobile ? "16px 14px 16px" : "18px 20px 20px" }}>
+    <div style={{ ...card(ink.soft), borderWidth: 1.5, padding: isMobile ? "16px 14px 16px" : "18px 20px 20px" }}>
       <label htmlFor="college-search" style={{ display: "block", fontFamily: SANS, fontWeight: 800,
         fontSize: "1.15rem", color: INK, marginBottom: intro ? 4 : 10 }}>
         Add a school
@@ -752,7 +689,7 @@ function AddSchool({ api, stats, items, counts, onAdded, intro }) {
           onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }}
           placeholder={isMobile ? "Search, like Michigan or NYU" : "Search by name, like Michigan or NYU"}
           style={{ width: "100%", boxSizing: "border-box", fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: INK,
-            border: `2px solid ${LINE}`, borderRadius: 12, padding: isMobile ? "12px 14px 12px 42px" : "12px 44px 12px 42px",
+            border: `1.5px solid ${LINE}`, borderRadius: RADIUS.control, padding: isMobile ? "12px 14px 12px 42px" : "12px 44px 12px 42px",
             outline: "none", background: WHITE, transition: "border-color 0.15s, box-shadow 0.15s" }}
           // The focus ring is the one cue a keyboard user has here, so it
           // uses the accent darkened to 3:1, plus a soft halo.
@@ -761,7 +698,7 @@ function AddSchool({ api, stats, items, counts, onAdded, intro }) {
         {!isMobile && !query && (
           <kbd aria-hidden="true" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
             fontFamily: SANS, fontWeight: 800, fontSize: "0.9rem", color: MID, background: "#f1f1ef",
-            border: `2px solid ${LINE}`, borderRadius: 7, padding: "0 7px", lineHeight: 1.5 }}>/</kbd>
+            border: `1px solid ${LINE}`, borderRadius: 7, padding: "0 7px", lineHeight: 1.5 }}>/</kbd>
         )}
       </div>
 
@@ -825,15 +762,14 @@ function ChipChoice({ label, options, value, onChange }) {
     <div role="group" aria-label={label}
       style={isMobile ? { display: "grid", gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`, gap: 8 }
         : { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-      <span style={isMobile ? SR_ONLY : { fontFamily: SANS, fontWeight: 800, fontSize: "0.95rem", color: MID }}>{label}</span>
+      <span style={isMobile ? SR_ONLY : { fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", color: MID }}>{label}</span>
       {options.map((s) => {
         const on = value === s.key;
         return (
           <button key={s.key} type="button" aria-pressed={on} onClick={() => onChange(s.key)}
-            className="cl-raised"
-            style={{ fontFamily: SANS, fontWeight: 800, fontSize: "0.92rem", cursor: "pointer", borderRadius: 99,
-              padding: isMobile ? "4px 8px" : "0 14px", minHeight: touch ? 44 : 34, lineHeight: 1.2, border: `2px solid ${on ? ink.text : LINE}`,
-              background: on ? ink.wash : WHITE, color: on ? ink.text : MID, boxShadow: `0 3px 0 ${on ? ink.button.edge : LINE}` }}>
+            style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.92rem", cursor: "pointer", borderRadius: RADIUS.pill,
+              padding: isMobile ? "4px 8px" : "0 14px", minHeight: touch ? 44 : 36, lineHeight: 1.2, border: `1.5px solid ${on ? ink.text : LINE}`,
+              background: on ? ink.wash : WHITE, color: on ? ink.onWash : MID }}>
             {s.label}
           </button>
         );
@@ -843,7 +779,7 @@ function ChipChoice({ label, options, value, onChange }) {
 }
 
 function Skeleton({ isMobile }) {
-  const block = (h, w = "100%") => ({ height: h, width: w, borderRadius: 18, background: "#ebebe9" });
+  const block = (h, w = "100%") => ({ height: h, width: w, borderRadius: RADIUS.card, background: "#ebe8e3" });
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 18 : 22 }}>
       <div style={block(36, 220)} />
@@ -1054,7 +990,7 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
     padding: isMobile ? "1.25rem 1rem 6rem" : "2.25rem 2rem 4rem",
     paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH}px + 2rem)`,
   };
-  const column = { maxWidth: 820, margin: "0 auto", width: "100%" };
+  const column = { maxWidth: 880, margin: "0 auto", width: "100%" };
 
   if (phase === "loading") {
     return (
@@ -1093,34 +1029,27 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
     <div data-sidebar-offset className="cl-page" style={pagePad}>
       <style>{pageCss(ink.ring)}</style>
       <div style={{ ...column, display: "flex", flexDirection: "column", gap: isMobile ? 18 : 22 }}>
-        <header style={{ paddingBottom: isMobile ? 14 : 18, borderBottom: `2px solid ${LINE}` }}>
-          <h1 style={{ fontFamily: SANS, fontWeight: 800, fontSize: isMobile ? "1.9rem" : "2.3rem", color: INK,
-            letterSpacing: "-0.02em", margin: "0 0 6px", lineHeight: 1.1 }}>
-            College List
-          </h1>
-          <p style={{ fontFamily: SANS, fontSize: isMobile ? "1rem" : "1.08rem", fontWeight: 500, color: MID, lineHeight: 1.55,
-            margin: 0, maxWidth: "62ch" }}>
-            The schools you are applying to, grouped by how your scores compare with the students each one admits.
-            Admit rates, score ranges and costs come from the U.S. Department of Education.
-          </p>
-          <div style={{ marginTop: 8 }}><HowItWorks navigate={navigate} /></div>
-        </header>
+        <PageHeader title="College List" isMobile={isMobile} style={{ margin: 0 }}>
+          The schools you are applying to, grouped by how your scores compare with the students each one admits.
+          Admit rates, score ranges and costs come from the U.S. Department of Education.
+          <div style={{ marginTop: 6 }}><HowItWorks navigate={navigate} /></div>
+        </PageHeader>
 
         {offerImport && (
-          <Banner action={importing ? null : (
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Raised small onClick={runImport}>Add them to my list</Raised>
-              <Raised small tone="quiet" onClick={skipImport}>No thanks</Raised>
-            </div>
-          )}>
+          <Tip name="Start here" stamp="scroll" style={{ paddingTop: 0 }}>
             <strong style={{ fontWeight: 800 }}>Start with the schools you already named.</strong>{" "}
             When you signed up you mentioned {onboardingNames.join(", ")}. We can look them up and sort them for you.
-            {importing && (
+            {importing ? (
               <span role="status" style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 10, fontWeight: 700, color: MID }}>
                 <Spinner size={16} color={ink.accent} /> Looking up {importing}...
               </span>
+            ) : (
+              <span style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+                <Raised small onClick={runImport}>Add them to my list</Raised>
+                <Raised small tone="quiet" onClick={skipImport}>No thanks</Raised>
+              </span>
             )}
-          </Banner>
+          </Tip>
         )}
 
         {/* An empty list leads with the search; once there are schools, the
@@ -1137,8 +1066,8 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
           left: isMobile ? 12 : SIDEBAR_WIDTH + 16, right: 12,
           bottom: isMobile ? "calc(60px + env(safe-area-inset-bottom, 0px) + 12px)" : 24 }}>
           {notice && (
-            <div style={{ width: "100%", maxWidth: 560, pointerEvents: "auto", borderRadius: 16,
-              boxShadow: "0 14px 36px rgba(20,20,19,0.18)" }}>
+            <div style={{ width: "100%", maxWidth: 560, pointerEvents: "auto", borderRadius: RADIUS.control,
+              boxShadow: "0 14px 36px rgba(20,20,19,0.16)" }}>
               <Banner error={notice.error} onDismiss={() => setNotice(null)}
                 action={notice.action && (
                   <Raised small tone="quiet" onClick={notice.action.run}
@@ -1184,7 +1113,7 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
                 </div>
                 {empty ? null : list.length === 0 ? (
                   <p style={{ margin: 0, fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.5,
-                    border: `2px dashed ${STONE_EDGE}`, borderRadius: 18, padding: "16px 18px", background: "rgba(255,255,255,0.5)" }}>
+                    border: `1px dashed ${LINE}`, borderRadius: RADIUS.card, padding: "16px 18px", background: WHITE }}>
                     {sec.empty}
                   </p>
                 ) : (
