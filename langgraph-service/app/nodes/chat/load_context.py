@@ -8,17 +8,20 @@ Portfolio page or through a chat tool) and the next turn must see it.
 
 The student's Quest (the daily-streak project) is loaded too, so the advisor can
 talk about it and reshape it, their College List, so it can discuss it (the
-list itself is only edited on its page), and their outreach board from the
-Agents page, which it can read and point to but never change. Roadmap and research context are not: those
+list itself is only edited on its page), and their outreach board and Talon
+board from the Agents page, which it can read and point to but never change.
+Roadmap and research context are not: those
 features are parked behind FEATURES flags (src/lib/features.js), and loading
 them would mean dead queries and prompt sections about something the student
 cannot reach.
 """
 import logging
+from datetime import datetime, timezone
 
 from app.state import StudentState
 from app.db.supabase import get_supabase
 from app.nodes.agents.registry import get_agent
+from app.nodes.quest.schedule import local_today
 from app.nodes.quest.service import brief_for_chat
 
 logger = logging.getLogger(__name__)
@@ -90,6 +93,47 @@ async def load_context(state: StudentState) -> StudentState:
         logger.warning(f"[chat] outreach tries failed to load for {user_id}: {exc}")
         tries_left = None
 
+    # Their Talon board (the Agents page's opportunity hawk): only what they
+    # saved, are applying to or applied to. Read-only, never fatal, and only
+    # the listing's facts: never their notes, checklist or eligibility lines.
+    # Upcoming deadlines first (soonest first, counted from the student's own
+    # today), then the ones with no date, then the ones that have passed
+    # (marked, so the advisor never reads a closed one as the next due), cut
+    # to 20. A board holds at most about 32 of these, so all are read (latest
+    # deadline first, so any cut there drops the longest closed).
+    try:
+        talon_rows = (
+            supabase.from_("finder_items")
+            .select("lane, kind, status, title, provider, deadline, deadline_text, amount_text, cost_text, "
+                    "verified, checked_at")
+            .eq("user_id", user_id).in_("status", ["saved", "applying", "applied"])
+            .order("deadline", desc=True).limit(60).execute().data or []
+        )
+        today = local_today(profile.get("timezone"), datetime.now(timezone.utc)).isoformat()
+
+        def soonest(row):
+            day = str(row.get("deadline") or "")[:10]
+            if not day:
+                return (1, "")
+            return (0, day) if day >= today else (2, day)
+
+        finder = []
+        for row in sorted(talon_rows, key=soonest)[:20]:
+            day = str(row.get("deadline") or "")[:10]
+            finder.append({**row, "deadline_passed": bool(day) and day < today})
+    except Exception as exc:
+        logger.warning(f"[chat] Talon board failed to load for {user_id}: {exc}")
+        finder = []
+    # Talon's finds left, as for Beaker's tries. None when it cannot be read.
+    try:
+        found = sum(int(r.get("used") or 0) for r in (
+            supabase.from_("agent_usage").select("used").eq("user_id", user_id)
+            .eq("agent", "finder").eq("kind", "find").execute().data or []))
+        finds_left = max(0, get_agent("finder").budgets["find"][1] - found)
+    except Exception as exc:
+        logger.warning(f"[chat] Talon finds failed to load for {user_id}: {exc}")
+        finds_left = None
+
     return {
         **state,
         "profile":     profile,
@@ -102,4 +146,6 @@ async def load_context(state: StudentState) -> StudentState:
         "_college_list": college_list,
         "_outreach": outreach,
         "_outreach_tries_left": tries_left,
+        "_finder": finder,
+        "_finder_finds_left": finds_left,
     }

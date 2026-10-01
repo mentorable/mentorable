@@ -1,20 +1,22 @@
 """
-Agents endpoints: Beaker the outreach pelican, and the Gmail connection every
-agent shares. Thin on purpose: parse the request, call the service, map its
-refusals to HTTP. The rules live in app/nodes/agents/.
+Agents endpoints: Beaker the outreach pelican, Talon the opportunity hawk, and
+the Gmail connection every agent shares. Thin on purpose: parse the request,
+call the service, map its refusals to HTTP. The rules live in
+app/nodes/agents/.
 
 Every route needs a valid Supabase JWT except the OAuth callback, which Google
 calls in the student's browser: the signed state it carries says whose
 connection it is. The browser sends its time zone in an X-Timezone header,
 used only while none is stored.
 
-The two long calls (shortlist, draft) are Server-Sent Events: a checklist of
-progress events, then one final event, then [DONE]. The work runs as a task
-that keeps going if the browser goes away, so a paid try always ends on the
-board or refunded. The service stops a run at its own deadline and gives the
-try back ("timed_out"); the stream has a later one of its own, in case a run
-ever gets stuck past that. Anything refused before the work starts (a bad
-body, no tries left) is a plain HTTP error instead of a stream.
+The long calls (Beaker's shortlist and draft, Talon's find) are Server-Sent
+Events: a checklist of progress events, then one final event, then [DONE].
+The work runs as a task that keeps going if the browser goes away, so a paid
+try or find always ends on the board or refunded. The service stops a run at
+its own deadline and gives the unit back ("timed_out"); the stream has a later
+one of its own, in case a run ever gets stuck past that. Anything refused
+before the work starts (a bad body, nothing left to spend) is a plain HTTP
+error instead of a stream.
 """
 import asyncio
 import json
@@ -27,6 +29,7 @@ from fastapi.responses import RedirectResponse, StreamingResponse
 from app import config
 from app.auth import verify_jwt
 from app.nodes.agents import google
+from app.nodes.agents.finder import service as finder
 from app.nodes.agents.google import GoogleError
 from app.nodes.agents.outreach import service as svc
 from app.nodes.agents.outreach.service import AgentError
@@ -45,8 +48,9 @@ SERVER_ERROR = "Something went wrong. Try again."
 STREAM_GRACE = 30.0
 TIMED_OUT = "Beaker took too long on this one and stopped."
 
-# The running shortlist and draft tasks. A bare create_task can be garbage
-# collected mid-flight, and these must finish even after the browser leaves.
+# The running shortlist, draft and find tasks. A bare create_task can be
+# garbage collected mid-flight, and these must finish even after the browser
+# leaves.
 _TASKS: set[asyncio.Task] = set()
 _END = object()
 
@@ -96,27 +100,36 @@ def _frame(event: dict) -> str:
     return "data: " + json.dumps(event) + "\n\n"
 
 
-async def _sse(user_id: str, label: str, work: Callable[[Callable], Awaitable[dict]]) -> StreamingResponse:
+async def _sse(user_id: str, label: str, work: Callable[[Callable], Awaitable[dict]], *,
+               deadline: Optional[float] = None, timed_out: Optional[str] = None, event: str = "outreach",
+               props: Optional[dict] = None) -> StreamingResponse:
     """Run `work(emit)` as a background task and stream what it emits.
 
     Until its first event the request can still fail as plain HTTP: a refusal
-    raised before then (validation, no tries left, busy) becomes the matching
-    status. After it, every outcome is a final event in the stream."""
+    raised before then (validation, nothing left to spend, busy) becomes the
+    matching status. After it, every outcome is a final event in the stream.
+
+    deadline is the service's own run deadline (Beaker's when not given; read
+    at call time), timed_out the message if the stream's later one fires, and
+    event the agent's PostHog prefix ("outreach_shortlist", "finder_find"),
+    sent with `props` and the result."""
+    run_deadline = svc.RUN_DEADLINE if deadline is None else deadline
+    late = TIMED_OUT if timed_out is None else timed_out
     queue: asyncio.Queue = asyncio.Queue()
     started = asyncio.Event()
 
-    async def emit(event: dict) -> None:
+    async def emit(item: dict) -> None:
         started.set()
-        queue.put_nowait(event)
+        queue.put_nowait(item)
 
     async def job() -> dict:
         try:
-            final = await asyncio.wait_for(work(emit), svc.RUN_DEADLINE + STREAM_GRACE)
+            final = await asyncio.wait_for(work(emit), run_deadline + STREAM_GRACE)
         except asyncio.TimeoutError:
             if not started.is_set():
                 raise
             logger.error(f"[agents] {label} for {user_id} ran past the stream's deadline")
-            final = {"type": "error", "error": "timed_out", "message": TIMED_OUT, "refunded": False}
+            final = {"type": "error", "error": "timed_out", "message": late, "refunded": False}
         except AgentError as exc:
             if not started.is_set():
                 raise
@@ -129,7 +142,8 @@ async def _sse(user_id: str, label: str, work: Callable[[Callable], Awaitable[di
         queue.put_nowait(final)
         queue.put_nowait(_END)
         kind = final.get("type") if isinstance(final, dict) else None
-        _track(user_id, f"outreach_{label}", result=kind if kind != "error" else final.get("error"))
+        _track(user_id, f"{event}_{label}",
+               **{**(props or {}), "result": kind if kind != "error" else final.get("error")})
         return final
 
     task = asyncio.get_running_loop().create_task(job())
@@ -208,6 +222,30 @@ async def outreach_send(contact_id: str, raw: Request, user_id: str = Depends(ve
     body = await _body(raw)
     result = await _run(user_id, "send", lambda: svc.send(user_id, contact_id, body, _tz(raw)))
     _track(user_id, "outreach_sent", kind=body.get("kind"))
+    return result
+
+
+# ── Talon ─────────────────────────────────────────────────────────────────────
+# The brief never goes to PostHog: only the lane, and only when it is a real one.
+
+@router.get("/finder/status")
+async def finder_status(raw: Request, user_id: str = Depends(verify_jwt)):
+    return await _run(user_id, "finder_status", lambda: finder.status(user_id, _tz(raw)))
+
+
+@router.post("/finder/find")
+async def finder_find(raw: Request, user_id: str = Depends(verify_jwt)):
+    body = await _body(raw)
+    lane = body.get("lane") if body.get("lane") in ("scholarship", "activity") else None
+    return await _sse(user_id, "find", lambda emit: finder.find(user_id, body, emit),
+                      deadline=finder.RUN_DEADLINE, timed_out=finder.TIMED_OUT, event="finder",
+                      props={"lane": lane})
+
+
+@router.post("/finder/items/{item_id}/recheck")
+async def finder_recheck(item_id: str, raw: Request, user_id: str = Depends(verify_jwt)):
+    result = await _run(user_id, "finder_recheck", lambda: finder.recheck(user_id, item_id, _tz(raw)))
+    _track(user_id, "finder_recheck", gone=bool(result.get("gone")), changed=len(result.get("changed") or []))
     return result
 
 

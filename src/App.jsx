@@ -19,6 +19,8 @@ import AgentsHubPage from "./pages/AgentsHubPage.jsx";
 import OutreachBoardPage from "./pages/OutreachBoardPage.jsx";
 import OutreachNewPage from "./pages/OutreachNewPage.jsx";
 import OutreachReviewPage from "./pages/OutreachReviewPage.jsx";
+import FinderBoardPage from "./pages/FinderBoardPage.jsx";
+import FinderNewPage from "./pages/FinderNewPage.jsx";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage.jsx";
 import TermsOfServicePage from "./pages/TermsOfServicePage.jsx";
 import Sidebar from "./components/common/Sidebar.jsx";
@@ -183,6 +185,21 @@ function OutreachReviewRoute() {
   return <OutreachReviewPage navigate={navigate} contactId={contactId} />;
 }
 
+function FinderBoardRoute() {
+  const navigate = useNavigate();
+  return <FinderBoardPage navigate={navigate} />;
+}
+
+function FinderNewRoute() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  // Opened from another lane link (the board's empty state, its lane filter):
+  // start fresh on that lane instead of keeping the last one's state.
+  let lane = "";
+  try { lane = new URLSearchParams(location.search).get("lane") || ""; } catch { lane = ""; }
+  return <FinderNewPage key={lane} navigate={navigate} search={location.search} />;
+}
+
 // True if a Supabase session is stored — checked synchronously so we never flash
 // the landing page to a logged-in user who's about to be redirected.
 function hasStoredSession() {
@@ -228,6 +245,8 @@ export default function App() {
         <Route path="/agents/outreach" element={<ErrorBoundary><OutreachBoardRoute /></ErrorBoundary>} />
         <Route path="/agents/outreach/new" element={<ErrorBoundary><OutreachNewRoute /></ErrorBoundary>} />
         <Route path="/agents/outreach/:contactId" element={<ErrorBoundary><OutreachReviewRoute /></ErrorBoundary>} />
+        <Route path="/agents/finder" element={<ErrorBoundary><FinderBoardRoute /></ErrorBoundary>} />
+        <Route path="/agents/finder/new" element={<ErrorBoundary><FinderNewRoute /></ErrorBoundary>} />
         <Route path="/privacy" element={<PrivacyPolicyRoute />} />
         <Route path="/terms" element={<TermsOfServiceRoute />} />
         <Route path="/" element={<RootRoute />} />

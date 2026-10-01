@@ -72,6 +72,19 @@ OUTREACH_DRAFT_MODEL    = SONNET
 OUTREACH_REWRITE_MODEL  = SONNET
 OUTREACH_FOLLOWUP_MODEL = HAIKU
 
+# Talon (the opportunity finder) splits its work like Beaker's research. The
+# tiny model turns the brief into three searches, the small one reads the pages
+# into listings under a strict schema (every link, date, amount and requirement
+# is checked against the page in code afterwards), and Haiku writes the one
+# line on why each find fits. No Sonnet: nothing here is prose someone else
+# reads. FINDER_FALLBACK_MODEL is the Anthropic path when there is no OpenAI
+# key or a call fails, and the model behind Anthropic's web search tool when no
+# Tavily key can answer.
+FINDER_QUERIES_MODEL  = GPT_NANO
+FINDER_EXTRACT_MODEL  = GPT_MINI
+FINDER_FIT_MODEL      = HAIKU
+FINDER_FALLBACK_MODEL = HAIKU
+
 # Long-term memory (app/nodes/recall/): the student's own words, embedded and
 # searched. OpenAI embeddings, so without an OpenAI key memory is simply off.
 # The vector size is fixed by the student_memories table: changing either value

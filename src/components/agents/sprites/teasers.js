@@ -1,7 +1,8 @@
-// The agents that are not here yet: sleeping silhouettes in one muted color,
-// eyes closed, a z drifting up. Deliberately vague ("???" on the hub): they
-// promise nothing about what the agent will do, only that someone is coming.
-// Same format as Beaker's frames, 32 by 32, one character per pixel.
+// The agents that are not here yet: sleeping birds (birds all the way down,
+// like Beaker and Talon) in one muted color, eyes closed, a z drifting up.
+// Deliberately vague ("???" on the hub): they promise nothing about what the
+// agent will do, only that someone is coming. Same format as Beaker's frames,
+// 32 by 32, one character per pixel.
 
 const PALETTE = {
   ".": null,
@@ -46,75 +47,39 @@ const OWL_ROWS = [
   "................................",
 ];
 
-// A fox curled up, tail round the front.
-const FOX_ROWS = [
-  "................................",
-  "................................",
-  "................................",
-  "................................",
-  "................................",
-  "..................a......a......",
-  "..................aa....aa......",
-  "..................aea..aea......",
-  ".................aaaa..aaaa.....",
-  ".................aaaaaaaaaa.....",
-  "................aaaaaaaaaaaa....",
-  "................aaaaeaaeaaaaa...",
-  "................aaaaaeeaaaaaaa..",
-  "................aaaaaaaaaaaaaaa.",
-  "...............aaaaaaaaaaaaaaaaa",
-  ".........aaaaaaaaaaaaaaaaaaaaa..",
-  "......aaaaaaaaaaaaaaaaaaaaaa....",
-  ".....aaaaaaaaaaaaaaaaaeeeeea....",
-  "....aeaaaaaaaaaaaaaaaaeeeeea....",
-  "...aaeaaaaaaaaaaaaaaaaaeeeea....",
-  "...aaeaaaaaaaaaaaaaaaaaaeeea....",
-  "..aaaeaaaaaaaaaaaaaaaeaaaaaa....",
-  "..aaaaeaaaaaaaaaaaaaeaaaaaaa....",
-  "..aaaaaeaaaaaaaaaaaeaaaaaaaa....",
-  "..aaaaaaeeeeeeeeeeeaaaaaaaaa....",
-  "...aaaaaaaaaaaaaaaaaaaaaaaaa....",
-  "....aaaaaaaaaaaaaaaaaaaaaaa.....",
-  "......aaaaaaaaaaaaaaaaaaa.......",
-  "................................",
-  "................................",
-  "................................",
-  "................................",
-];
-
-// A turtle with its head down.
-const TURTLE_ROWS = [
+// A heron asleep on one leg in the shallows, bill forward, plume trailing.
+const HERON_ROWS = [
   "................................",
   "................................",
   "................................",
   "................................",
   "................................",
   "................................",
-  "................................",
-  "................................",
-  "................................",
-  "................................",
-  "................................",
-  "...........aaaaaaa..............",
-  ".........aaaaaaaaaaa............",
-  ".......aaaaaaaaaaaaaaa..........",
-  "......aaaaaeaaaaaeaaaaa.........",
-  ".....aaaaaaeaaaaaeaaaaaa........",
-  ".....aaaaaaeaaaaaeaaaaaa........",
-  "....aaaaaaaeaaaaaeaaaaaaa.......",
-  "....aaaeeeeeeeeeeeeeeeaaa.......",
-  "....aaaaeaaaaaeaaaaaeaaaa.aaa...",
-  "...aaaaaeaaaaaeaaaaaeaaaaaeaaea.",
-  "...aaaaaeaaaaaeaaaaaeaaaaaaeeaa.",
-  "aaaaeeeeeeeeeeeeeeeeeeeeeaaaaaa.",
-  "..aaaaaaaaaaaaaaaaaaaaaaaaaaaa..",
-  "...aaaa.............aaaa........",
-  "...aaaa.............aaaa........",
-  "..aaaaaa...........aaaaaa.......",
-  "................................",
-  "................................",
-  "................................",
-  "................................",
+  "................aaaa............",
+  "..........aaaa.aaaaaa...........",
+  "........aa....aaaeeaaaaaaaaaa...",
+  "..............aaaaaaaaaaaaa.....",
+  "..............aaaaaaaaa.........",
+  ".............aaaaaaaaaa.........",
+  "............aaaaaaaaaaa.........",
+  "...........aaaaaaaaaaaa.........",
+  "..........aaaaeaaaaaaaa.........",
+  ".........aaaaaaeaaaaaaa.........",
+  "........aaaaaaaaeaaaaa..........",
+  ".......aaaaaaaaaaeaaaa..........",
+  "......aaaaaaaaaaaaeaa...........",
+  ".....aaaaaaaaaaaaaaa............",
+  "....aaaaa..aaaaaaaa.............",
+  "...aaa.......aaaa...............",
+  "..............aa................",
+  "..............a.................",
+  "..............a.................",
+  "..............a.................",
+  "..............a.................",
+  "..............a.................",
+  "..............a.................",
+  "...........aaaaaa...............",
+  ".....aaaa..........aaaaa........",
   "................................",
 ];
 
@@ -137,7 +102,6 @@ function sleeper(base, small, big) {
 }
 
 export const OWL = sleeper(OWL_ROWS, [27, 6], [26, 0]);
-export const FOX = sleeper(FOX_ROWS, [28, 4], [26, 0]);
-export const TURTLE = sleeper(TURTLE_ROWS, [26, 13], [25, 7]);
+export const HERON = sleeper(HERON_ROWS, [24, 3], [26, 0]);
 
-export const TEASERS = { owl: OWL, fox: FOX, turtle: TURTLE };
+export const TEASERS = { owl: OWL, heron: HERON };

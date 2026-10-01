@@ -1,10 +1,11 @@
 // The Agents registry: one entry per specialist on the Agents page. The hub,
-// the nav and each agent's screens read it, so turning on agent number two is
-// an entry here (status "live", a route, a mascot) plus its own screen.
+// the nav and each agent's screens read it, so turning on another agent is an
+// entry here (status "live", a route, a mascot) plus its own screens.
 //
 // Persona lines are written here, never generated: short and warm, a light
-// postal or beach pun now and then, and instructions always plain. No em
-// dashes (house rule), and never mean about a slow reply.
+// pun in the agent's own world now and then (postal and beach for Beaker,
+// sky and scouting for Talon), and instructions always plain. No em dashes
+// (house rule), and never mean about a slow reply.
 
 const days = (n) => `${n} ${n === 1 ? "day" : "days"}`;
 
@@ -49,6 +50,48 @@ export const BEAKER_LINES = {
   error: "A gust knocked me off course. Nothing was lost, so give it another try in a moment.",
 };
 
+/** Talon, the opportunity hawk. Every line the finder screens show. A calm,
+ *  keen-eyed scout: it spots, checks, and says plainly what it couldn't. */
+export const TALON_LINES = {
+  hubTagline: "I scout the web for real scholarships and programs that fit you, check each one on its own page, and keep the ones you like on your board.",
+
+  boardHello: "Here's everything I've spotted for you. Save the ones worth a closer look, and keep an eye on their deadlines here.",
+  boardEmpty: "Nothing spotted yet. Tell me what you're after, like a scholarship for future nurses or a free summer coding program, and I'll go scouting.",
+  boardNoFinds: "You've used all your finds, so I can't go looking again. Everything here still works: save what you like, track deadlines and tick off requirements.",
+
+  laneAsk: "What should I scout for today? Pick one, then I'll ask a few quick questions.",
+  briefAsk: "Tell me what you're after and a few basics. The clearer the picture, the sharper my eyes.",
+  checkAsk: "Here's what I'll search with. Fix anything I got wrong, then send me off.",
+  searching: [
+    "Taking off. Scanning the web for real listings.",
+    "Circling the most promising pages.",
+    "Reading each one on its own site, not just a list.",
+    "Leaving out anything that looks like a scam.",
+    "Checking deadlines, so nothing has already closed.",
+  ],
+  results: (n) => (n === 1
+    ? "I spotted one that fits. Save it if you like it, and check the details on its page before you apply."
+    : `I spotted ${n} that fit. Save the ones you like, and check the details on each page before you apply.`),
+  nothingNew: "Everything I spotted is already on your board. Describe it another way and I'll look somewhere new.",
+  droppedIntro: "I left these out, and here's why, so you know what to watch for:",
+
+  staleNote: "I checked this over two weeks ago. Recheck it before you apply, in case something moved.",
+  recheckDone: "I read its page again and saw no change to the deadline or the money.",
+  recheckGone: "I couldn't open its page this time. It may have moved or closed, so check the provider's site before you count on it.",
+  soon: (title, n) => {
+    if (n <= 0) return `${title} is due today. If you're applying, now's the time.`;
+    if (n === 1) return `${title} is due tomorrow. A good day to finish it.`;
+    if (n <= 7) return `${title} is due in ${days(n)}. Worth setting some time aside this week.`;
+    return `${title} is due in ${days(n)}. Plenty of time if you start soon.`;
+  },
+  findsLeft: (left, limit) => (left > 0
+    ? `${left} of ${limit} ${limit === 1 ? "find" : "finds"} left`
+    : "No finds left"),
+
+  safety: "A few ground rules. Real scholarships never charge you to apply or ask for bank details or a Social Security number up front. For anything in person, tell a parent or teacher where you're going. Never share your home address or phone number with a listing.",
+  error: "A crosswind threw me off course. Nothing was lost, so give it another try in a moment.",
+};
+
 /**
  * `status`: "live" (on the hub, opens its route) or "soon" (a sleeping
  * silhouette, "???", one hint word, never a promise about what it will do).
@@ -66,9 +109,19 @@ export const AGENTS = [
     hint: "Letters",
     lines: BEAKER_LINES,
   },
+  {
+    id: "finder",
+    name: "Talon",
+    role: "Opportunity hawk",
+    tagline: TALON_LINES.hubTagline,
+    route: "/agents/finder",
+    status: "live",
+    mascot: "talon",
+    hint: "Finds",
+    lines: TALON_LINES,
+  },
   { id: "owl", name: "???", role: "", tagline: "", route: null, status: "soon", mascot: "owl", hint: "Wise", lines: {} },
-  { id: "fox", name: "???", role: "", tagline: "", route: null, status: "soon", mascot: "fox", hint: "Clever", lines: {} },
-  { id: "turtle", name: "???", role: "", tagline: "", route: null, status: "soon", mascot: "turtle", hint: "Steady", lines: {} },
+  { id: "heron", name: "???", role: "", tagline: "", route: null, status: "soon", mascot: "heron", hint: "Steady", lines: {} },
 ];
 
 /** The registry entry for an agent id (or a mascot key), or null. */

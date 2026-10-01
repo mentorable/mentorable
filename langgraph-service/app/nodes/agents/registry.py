@@ -40,6 +40,17 @@ AGENTS: dict[str, AgentSpec] = {
     "outreach": AgentSpec("outreach", "Beaker", True,
                           {"try": ("total", 2), "search": ("total", 8), "write": ("total", 20),
                            "send": ("day", 5)}),
+    # Talon the hawk: finds real scholarships and activities, checks each one
+    # against its own page, and keeps the ones the student wants on a board.
+    # A find is one brief searched once, in either lane, given back when the
+    # search fails or nothing it found could be checked or saved. A search is
+    # the paid run behind it and is never given back, so failed finds cannot
+    # be retried for free forever: four finds need at most four, and the rest
+    # covers a few honest retries. A recheck re-reads one saved listing's own
+    # page (no search, one model call) and is never given back either; each
+    # listing also has its own cap of three (service.RECHECKS_PER_ITEM).
+    "finder": AgentSpec("finder", "Talon", True,
+                        {"find": ("total", 4), "search": ("total", 12), "recheck": ("total", 20)}),
 }
 
 

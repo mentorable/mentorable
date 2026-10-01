@@ -726,7 +726,7 @@ function Hero() {
           filter: "drop-shadow(0 2px 32px rgba(29,78,216,0.25))" }}>
           Expert guidance for every student.
         </h1>
-        <p style={{ ...enter(0.22), fontFamily: BODY, fontWeight: 500, fontSize: "clamp(1rem,1.5vw,1.2rem)", lineHeight: 1.7,
+        <p style={{ ...enter(0.22), fontFamily: BODY, fontSize: "clamp(1rem,1.5vw,1.2rem)", lineHeight: 1.7,
           color: "#000000", fontWeight: 600, maxWidth: 540, margin: "1.8rem 0 0",
           textShadow: "0 1px 18px rgba(255,255,255,0.7)" }}>
           Your personal college application advisor. The kind of support that used to cost $300 a session, now free.
@@ -813,7 +813,7 @@ function Newsletter() {
           </p>
           {status === "done" ? (
             <p style={{ fontFamily: BODY, fontSize: "0.95rem", color: P, margin: 0 }}>
-              You're on the list — we'll be in touch.
+              You're on the list. We'll be in touch.
             </p>
           ) : (
             <form onSubmit={handleSubmit}

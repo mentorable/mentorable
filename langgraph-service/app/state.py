@@ -85,6 +85,8 @@ class StudentState(TypedDict, total=False):
     _college_list: list[dict[str, Any]]
     _outreach: list[dict[str, Any]]
     _outreach_tries_left: Optional[int]
+    _finder: list[dict[str, Any]]
+    _finder_finds_left: Optional[int]
     _deleted_titles: list[str]
     _recent_research: list[str]
     _chat_topics: list[str]

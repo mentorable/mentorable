@@ -1,10 +1,11 @@
 import PixelSprite from "./PixelSprite.jsx";
 import { BEAKER } from "./sprites/beaker.js";
+import { TALON } from "./sprites/talon.js";
 import { TEASERS } from "./sprites/teasers.js";
 import { getAgent } from "../../lib/agents/registry.js";
 
 // An agent's mascot at a given size. `agent` is a mascot key ("beaker",
-// "owl") or an agent id from the registry ("outreach").
+// "talon", "owl") or an agent id from the registry ("outreach", "finder").
 //
 // The box is always `size` square, so layouts can count on it, but the art
 // inside is drawn at the largest whole-number scale that fits (a 32-pixel
@@ -12,7 +13,7 @@ import { getAgent } from "../../lib/agents/registry.js";
 // Any fractional scale, even 2.5, gives art pixels of uneven width on the 1x
 // and 1.25x screens many school laptops have.
 
-const SPRITES = { beaker: BEAKER, ...TEASERS };
+const SPRITES = { beaker: BEAKER, talon: TALON, ...TEASERS };
 
 const TITLES = {
   beaker: {
@@ -22,6 +23,14 @@ const TITLES = {
     delivering: "Beaker holding up a letter",
     celebrating: "Beaker cheering",
     sleeping: "Beaker asleep",
+  },
+  talon: {
+    idle: "Talon the hawk",
+    flying: "Talon scouting from above",
+    thinking: "Talon thinking",
+    delivering: "Talon holding up a find",
+    celebrating: "Talon cheering",
+    sleeping: "Talon asleep",
   },
 };
 const MYSTERY_TITLE = "A mystery agent, fast asleep";

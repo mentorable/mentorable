@@ -186,7 +186,7 @@ async def json_completion(
         raw = msg.content[0].text if msg.content else ""
         parsed = parse_json_loose(raw)
         if parsed is None:
-            logger.warning(f"[llm] {schema_name}: could not parse Anthropic reply: {raw[:200]!r}")
+            logger.warning(f"[llm] {schema_name}: could not parse Anthropic reply ({len(raw)} chars)")
         return parsed
     except Exception as exc:
         logger.error(f"[llm] {schema_name}: Anthropic call failed: {exc}")

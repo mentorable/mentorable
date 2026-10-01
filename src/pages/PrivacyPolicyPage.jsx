@@ -5,7 +5,7 @@ const FG = "#141413";
 const MUT = "#4b5563";
 const P = "#1d4ed8";
 
-const LAST_UPDATED = "September 30, 2026";
+const LAST_UPDATED = "October 1, 2026";
 
 function Section({ title, children }) {
   return (
@@ -67,6 +67,9 @@ export default function PrivacyPolicyPage({ navigate }) {
           outreach agent, to help you contact a professor or professional, we search the public web for that
           person's professional pages and keep the pages and facts the draft relies on, the drafts
           themselves, and the contacts on your outreach board.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>Opportunity finder.</strong> When you ask Talon, our
+          opportunity finder, to look for scholarships or activities, we keep the listings it finds, what you
+          do with them on your board, and the search you asked for, minus the details described in section 6.</p>
           <p style={{ marginBottom: "0.9rem" }}><strong>Usage analytics.</strong> We record product-usage
           events (e.g., which features you use, how often) tied to your account, via PostHog, to
           understand and improve the product.</p>
@@ -76,7 +79,7 @@ export default function PrivacyPolicyPage({ navigate }) {
 
         <Section title="3. How we use your information">
           We use your information to: provide and personalize the product (e.g., generating quests,
-          roadmap guidance, and chat responses tailored to your profile); maintain your account;
+          chat responses, and scholarship and program finds tailored to your profile); maintain your account;
           operate rate limits and abuse prevention; analyze and improve the product; and communicate
           with you about your account or, if you've opted in, product updates.
         </Section>
@@ -86,8 +89,9 @@ export default function PrivacyPolicyPage({ navigate }) {
           bound by their own confidentiality and data-handling terms:
           <ul style={{ marginTop: "0.6rem", paddingLeft: "1.3rem" }}>
             <li style={{ marginBottom: "0.4rem" }}><strong>Supabase:</strong> database, authentication, and file storage.</li>
-            <li style={{ marginBottom: "0.4rem" }}><strong>Anthropic:</strong> processes chat, profile, Quest and outreach content, and runs web searches, to generate AI responses and drafts.</li>
-            <li style={{ marginBottom: "0.4rem" }}><strong>OpenAI:</strong> structured extraction and, for long-term memory, turning what you write into searchable form.</li>
+            <li style={{ marginBottom: "0.4rem" }}><strong>Anthropic:</strong> processes chat, profile, Quest, outreach and opportunity-finder content, and runs web searches, to generate AI responses and drafts.</li>
+            <li style={{ marginBottom: "0.4rem" }}><strong>OpenAI:</strong> structured extraction (including reading the web pages our agents check) and, for long-term memory, turning what you write into searchable form.</li>
+            <li style={{ marginBottom: "0.4rem" }}><strong>Tavily:</strong> runs the web searches Beaker and Talon make, and receives only the search words.</li>
             <li style={{ marginBottom: "0.4rem" }}><strong>ElevenLabs:</strong> records and transcribes voice onboarding calls.</li>
             <li style={{ marginBottom: "0.4rem" }}><strong>Google:</strong> sends the emails you approve, only if you connect Gmail (see section 5).</li>
             <li style={{ marginBottom: "0.4rem" }}><strong>PostHog:</strong> product usage analytics.</li>
@@ -117,36 +121,59 @@ export default function PrivacyPolicyPage({ navigate }) {
           API Services User Data Policy</a>, including the Limited Use requirements.</p>
         </Section>
 
-        <Section title="6. Data retention">
+        <Section title="6. Talon, the opportunity finder">
+          <p style={{ marginBottom: "0.9rem" }}>To find scholarships or activities, Talon asks for a short brief:
+          what you are looking for, your interests, grade and state, your citizenship status (you can choose
+          "not sure / prefer not to say"), and, only if you choose to add them, eligibility categories such as
+          being the first in your family to go to college, family income, a military family, a disability,
+          LGBTQ+, heritage, or openness to faith-based scholarships.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>What is sent, and where.</strong> Talon turns your brief
+          into a few search words and sends them to our search provider (Tavily, or Anthropic's web search when
+          Tavily is unavailable). The search words can include eligibility categories you added (for example,
+          "first generation scholarship") and your state, but Talon never adds your name or your school. To
+          read the pages it finds and explain why each listing fits you, Talon sends your brief, a summary of
+          your record without your name (your grades and scores, courses, activities, awards, intended majors
+          and target colleges), and the text of those pages to our AI providers, OpenAI and Anthropic.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>What is stored.</strong> The listings Talon finds (with
+          the page each was checked on and when), what you do with them on your board (where each one stands,
+          your notes, the requirements you tick off), and your brief without your citizenship status or any
+          eligibility category. Your citizenship status and eligibility categories are used for that one search
+          only: they are not saved to your profile, your long-term memory or your chat history, and they are
+          not written to our logs.</p>
+          <p>You can delete any listing from your board at any time. Deleting your account deletes all of it,
+          along with the searches you ran.</p>
+        </Section>
+
+        <Section title="7. Data retention">
           We retain your account and profile data for as long as your account is active. Chat and
           research history is retained to preserve product context unless you delete it. You can
           delete your account and associated data at any time from your Profile page.
         </Section>
 
-        <Section title="7. Your rights and choices">
+        <Section title="8. Your rights and choices">
           Depending on where you live, you may have the right to access, correct, export, or delete
           your personal information, and to object to or restrict certain processing. You can exercise
           most of these rights directly from your Profile page, or by contacting us at the email below.
         </Section>
 
-        <Section title="8. Children's privacy">
+        <Section title="9. Children's privacy">
           Mentorable is intended for users 13 years of age or older. We do not knowingly collect
           personal information from children under 13. If you believe a child under 13 has provided us
           information, contact us and we will delete it.
         </Section>
 
-        <Section title="9. Security">
+        <Section title="10. Security">
           We use industry-standard safeguards, including encryption in transit and access controls
           (row-level security on all database tables), to protect your information. No system is
           perfectly secure, and we cannot guarantee absolute security.
         </Section>
 
-        <Section title="10. Changes to this policy">
+        <Section title="11. Changes to this policy">
           We may update this policy from time to time. We'll update the "Last updated" date above and,
           for material changes, provide additional notice.
         </Section>
 
-        <Section title="11. Contact us">
+        <Section title="12. Contact us">
           Questions about this policy or your data? Reach us at{" "}
           <a href="mailto:app.mentora.ai@gmail.com" style={{ color: P }}>app.mentora.ai@gmail.com</a>.
         </Section>

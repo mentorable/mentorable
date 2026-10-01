@@ -1,10 +1,11 @@
 import { supabase } from "./supabase.js";
 
-// The Agents API: Beaker's calls and the Gmail connection. JSON calls work
-// like Quest's (src/lib/quest.js). The two long ones, shortlist and draft,
-// stream Server-Sent Events: progress lines for the checklist, then one final
-// event, then [DONE]. The server keeps working if the page goes away, so a
-// try that was paid for always ends on the board or refunded.
+// The Agents API: Beaker's calls, Talon's calls and the Gmail connection. JSON
+// calls work like Quest's (src/lib/quest.js). The long ones (Beaker's
+// shortlist and draft, Talon's find) stream Server-Sent Events: progress
+// lines for the checklist, then one final event, then [DONE]. The server
+// keeps working if the page goes away, so a try or a find that was paid for
+// always ends on the board or refunded.
 
 const BASE = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
@@ -177,6 +178,14 @@ export const agentsApi = {
   rewrite:          (id, body)         => post(`/agents/outreach/contacts/${encodeURIComponent(id)}/rewrite`, body),
   followup:         (id)               => post(`/agents/outreach/contacts/${encodeURIComponent(id)}/followup`),
   send:             (id, body)         => post(`/agents/outreach/contacts/${encodeURIComponent(id)}/send`, body),
+
+  // Talon, the opportunity finder.
+  /** Finds, searches and rechecks left, the limits, the prefill, and any open find. */
+  finderStatus:     ()                 => call("/agents/finder/status"),
+  /** SSE. Resolves to {type: "results"} or {type: "error"}. */
+  finderFind:       (body, onEvent, opts) => stream("/agents/finder/find", body, onEvent, opts),
+  /** -> { item, changed, gone }. */
+  finderRecheck:    (id)               => post(`/agents/finder/items/${encodeURIComponent(id)}/recheck`),
 };
 
 // ── Plain copy for every refusal ──────────────────────────────────────────────
@@ -291,6 +300,30 @@ export function agentErrorMessage(err) {
   const server = typeof err.message === "string" ? err.message.trim() : "";
   if (SERVER_WORDS.has(code) && server) return server;
   if (COPY[code]) return COPY[code];
+  return server || COPY.error;
+}
+
+// ── Talon's refusals ──────────────────────────────────────────────────────────
+// Every Talon message comes from the server, already in Talon's name, so the
+// page shows it as written. Only the failures the server can't word (no
+// sign-in, no connection, a stream cut off mid-search) use copy from here.
+
+const FINDER_STREAM_LOST = "The connection dropped while Talon was searching. Talon keeps going without you, so check your board in a minute.";
+
+/** The copy to show for a Talon refusal: an AgentApiError, a final {type:
+ *  "error"} event from a find, a FinderError from the board (src/lib/finder.js),
+ *  or anything else thrown (a bug's own message is never shown). */
+export function finderErrorMessage(err) {
+  if (!err) return COPY.error;
+  const code = err.code || err.error || "";
+  if (code === "auth") return SIGN_IN;
+  if (code === "network") return NETWORK;
+  if (code === "stream_lost") return FINDER_STREAM_LOST;
+  // "error": a refusal without Talon's {error, message} detail (a bare 404
+  // while the backend is mid-deploy, say), whose words are the framework's.
+  if (code === "error") return COPY.error;
+  const worded = err instanceof AgentApiError || err.type === "error" || err.name === "FinderError";
+  const server = worded && typeof err.message === "string" ? err.message.trim() : "";
   return server || COPY.error;
 }
 
