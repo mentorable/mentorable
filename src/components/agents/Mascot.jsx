@@ -43,8 +43,10 @@ function resolve(agent) {
 
 /**
  * Where the art sits inside a `size` box: { scale, top, left, width, height },
- * all whole CSS pixels. Whatever lines up with the art (a speech bubble's tail
- * and the beak, say) should use this rather than work it out again.
+ * all whole CSS pixels, plus `beakRow`, the art row the beak is on (the
+ * sprite's own, else row 10, Beaker's bill). Whatever lines up with the art (a
+ * speech bubble's tail and the beak, say) should use this rather than work it
+ * out again.
  */
 export function mascotFit(size, agent = "beaker") {
   const sprite = SPRITES[resolve(agent)];
@@ -56,6 +58,7 @@ export function mascotFit(size, agent = "beaker") {
     scale, width, height,
     top: Math.max(0, Math.floor((box - height) / 2)),
     left: Math.max(0, Math.floor((box - width) / 2)),
+    beakRow: sprite.beakRow ?? 10,
   };
 }
 

@@ -4,7 +4,8 @@ import { requireUser } from "../lib/auth.js";
 import { agentsApi, finderErrorMessage } from "../lib/agentsApi.js";
 import { TALON_LINES } from "../lib/agents/registry.js";
 import {
-  LANES, RECHECKS_PER_ITEM, STATUSES, daysLeft, deleteItem, groupByStatus, isSoon, loadItems, statusLabel, updateItem,
+  LANES, RECHECKS_PER_ITEM, daysLeft, deleteItem, groupByDeadline, isSoon, loadItems, statusLabel, timelinePlace,
+  updateItem,
 } from "../lib/finder.js";
 import { MascotSays } from "../components/agents/SpeechBubble.jsx";
 import { PixelArrow, PixelStamp } from "../components/agents/PixelIcons.jsx";
@@ -12,24 +13,25 @@ import {
   AMBER_TEXT, BG, BORDER, FOCUS_CLASS, PRESS_CLASS, RADIUS, SANS, TEXT, TEXT_MUTED, WHITE, ringVar, useAgentInk,
 } from "../components/agents/agentUi.js";
 import { Button, SR_ONLY } from "../components/agents/outreach/flowUi.jsx";
-import BoardTabs, { PANEL_ID, tabId } from "../components/agents/outreach/BoardTabs.jsx";
-import BoardSkeleton from "../components/agents/outreach/BoardSkeleton.jsx";
 import BoardToast from "../components/agents/outreach/BoardToast.jsx";
-import ListingCard from "../components/agents/finder/ListingCard.jsx";
 import ListingDrawer from "../components/agents/finder/ListingDrawer.jsx";
 import FinderEmpty from "../components/agents/finder/FinderEmpty.jsx";
 import DueSoon from "../components/agents/finder/DueSoon.jsx";
 import LaneFilter, { DismissedToggle } from "../components/agents/finder/LaneFilter.jsx";
+import SortingTray from "../components/agents/finder/SortingTray.jsx";
+import DeadlineTimeline, { TimelineSkeleton } from "../components/agents/finder/DeadlineTimeline.jsx";
 import {
-  TALON, blockCopy, budgetOf, findsBlock, newPath, topPosition,
+  TALON, blockCopy, budgetOf, findsBlock, laneLabel, newPath, topPosition,
 } from "../components/agents/finder/finderUi.js";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
-// Talon's board (/agents/finder): every scholarship and activity Talon found
-// for the student, from a new find to a finished application, in five
-// statuses plus a tab for the dismissed ones when asked for. Calm shell,
-// keen-eyed hawk.
+// Talon's board (/agents/finder), a deadline timeline: new finds wait in a
+// sorting tray at the top (Save or Dismiss each), and everything the student
+// kept is listed under the month its deadline falls in, with where it stands
+// as a chip. Finds with no set date come after the months; ones whose
+// deadline has passed and finished ones fold away at the end; dismissed ones
+// show last, behind a toggle. Calm shell, keen-eyed hawk.
 //
 // Moves are optimistic: a card changes at once and changes back, with a
 // message, if the save fails. Everything here is free; only a new find (the
@@ -43,8 +45,8 @@ const REAL_API = {
   recheck: (id) => agentsApi.finderRecheck(id),
 };
 
-// The tab, the lane filter and the dismissed toggle, for this browser tab
-// only. Nothing about the student's brief is kept here.
+// The lane filter, the dismissed toggle and which folds are open, for this
+// browser tab only. Nothing about the student's brief is kept here.
 const PREFS_KEY = "mentorable.finderBoard";
 function readPrefs() {
   try {
@@ -56,14 +58,13 @@ function writePrefs(prefs) {
   try { sessionStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* storage blocked: the board just resets */ }
 }
 
-const DISMISSED_TAB = { key: "dismissed", label: "Dismissed" };
-const TAB_EMPTY = {
-  new: "No new finds here. Start a find, and Talon's picks land here first.",
-  saved: "Nothing saved yet. Save a find from New finds to keep it here.",
-  applying: "Nothing here yet. Move a find here when you start its application.",
-  applied: "Nothing here yet. Move a find here once you've sent the application.",
-  done: "Nothing here yet. Finished finds land here, with how they went.",
-  dismissed: "Nothing dismissed. Dismissed finds never come back in a later find.",
+/** How many new finds the tray shows before "Show all": enough to sort, few
+ *  enough that the timeline stays in reach. */
+const TRAY_SHOW = 3;
+const TRAY_SHOW_PHONE = 2;
+
+const reducedMotion = () => {
+  try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
 };
 
 const short = (t, n = 60) => {
@@ -83,8 +84,9 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
   const [pending, setPending] = useState(() => new Set());
   const [rechecking, setRechecking] = useState(null);   // the id being rechecked
   const [lane, setLane] = useState(() => (LANES.some((l) => l.key === prefs.lane) ? prefs.lane : "all"));
-  const [tab, setTab] = useState(() => (typeof prefs.tab === "string" ? prefs.tab : null));
   const [showDismissed, setShowDismissed] = useState(!!prefs.dismissed);
+  // Closed and Done start folded: the timeline is for what is still ahead.
+  const [open, setOpen] = useState(() => ({ closed: !!prefs.open?.closed, done: !!prefs.open?.done }));
   const [refreshing, setRefreshing] = useState(false);
   const [toast, setToast] = useState(null);
   const [announce, setAnnounce] = useState("");
@@ -95,9 +97,14 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
   const runs = useRef(new Map());         // per card: its saves in flight, one at a time (see changeItem)
   const confirmed = useRef(new Map());    // per card: the row as the database last returned it
   const unsavedNotes = useRef(new Map()); // per card: notes whose save failed, for the drawer to offer again
-  const focusAfter = useRef(null);        // a card's id, or "panel", to focus after a move from the list
-  const headingRef = useRef(null);
-  const panelRef = useRef(null);
+  // What to focus after a move from the tray or a status chip, once the board
+  // has re-rendered: { chip: id, titles: [ids], fallback: "tray" | "timeline" },
+  // tried in that order (see the effect below).
+  const focusAfter = useRef(null);
+  const drawerFrom = useRef({ id: null, where: "timeline" });  // the open drawer's find, for focus if it moves
+  const revealDismissed = useRef(false);  // bring the dismissed group into view once it renders
+  const trayHeadingRef = useRef(null);
+  const timelineHeadingRef = useRef(null);
 
   const notify = useCallback((message, tone = "info") => {
     clearTimeout(toastTimer.current);
@@ -139,7 +146,7 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
     return () => { alive.current = false; clearTimeout(toastTimer.current); };
   }, [load]);
 
-  useEffect(() => { writePrefs({ lane, tab, dismissed: showDismissed }); }, [lane, tab, showDismissed]);
+  useEffect(() => { writePrefs({ lane, dismissed: showDismissed, open }); }, [lane, showDismissed, open]);
 
   // A search still running when the board opened: look again without the skeleton.
   const refresh = async () => {
@@ -164,19 +171,29 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
   // ── What shows ────────────────────────────────────────────────────────────
 
   const today = new Date();
+  const dayKey = today.toDateString();   // regroup when the day turns, not on every render
   const inLane = useMemo(() => (lane === "all" ? items : items.filter((i) => i.lane === lane)), [items, lane]);
-  const grouped = useMemo(() => groupByStatus(inLane), [inLane]);
-  const tabs = showDismissed ? [...STATUSES, DISMISSED_TAB] : STATUSES;
-  const counts = Object.fromEntries(tabs.map((t) => [t.key, (grouped[t.key] || []).length]));
-  const activeTab = tabs.some((t) => t.key === tab) ? tab
-    : counts.new ? "new"
-    : (tabs.find((t) => counts[t.key])?.key || STATUSES[0].key);
-  const visible = grouped[activeTab] || [];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const groups = useMemo(() => groupByDeadline(inLane, today), [inLane, dayKey]);
+  const tray = groups.tray;
+  // The timeline's rows top to bottom, as they show now (folded groups and
+  // hidden dismissed ones are not on screen, so focus never goes to them).
+  const rowOrder = [
+    ...groups.months.flatMap((m) => m.items), ...groups.undated,
+    ...(open.closed ? groups.closed : []), ...(open.done ? groups.done : []),
+    ...(showDismissed ? groups.dismissed : []),
+  ];
   const laneCounts = {
     all: items.filter((i) => i.status !== "dismissed").length,
     ...Object.fromEntries(LANES.map((l) => [l.key, items.filter((i) => i.lane === l.key && i.status !== "dismissed").length])),
   };
-  const dismissedCount = (grouped.dismissed || []).length;
+  const dismissedCount = groups.dismissed.length;
+  const laneWord = lane === "all" ? "" : (laneLabel(lane) || "").toLowerCase();
+  const trayEmpty = laneWord
+    ? `No new ${laneWord} to sort. When Talon finds more, they wait here first.`
+    : "Nothing new to sort. When Talon finds more, they wait here first.";
+  const timelineEmpty = `${laneWord ? `No ${laneWord} saved yet.` : "Nothing saved yet."} Save a find from the tray `
+    + "and it shows up here, under the month it's due.";
   const due = items
     .filter((i) => (i.status === "saved" || i.status === "applying") && isSoon(i, today))
     .sort((a, b) => (daysLeft(a, today) ?? 99) - (daysLeft(b, today) ?? 99));
@@ -187,17 +204,31 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
   const empty = items.length === 0;
   const drawerItem = drawerId ? items.find((i) => i.id === drawerId) : null;
 
-  // After a Save or Dismiss from the list the card leaves this tab: focus
-  // moves to its neighbour, or to the tab panel when it was the last one.
+  // After a Save or Dismiss from the tray the card leaves it: focus moves to
+  // its neighbour, or to the tray's heading when it was the last one. After a
+  // status change from a chip, focus stays on that chip if its row is still
+  // in view (it may have moved within the timeline), else goes to the row
+  // that was next to it, else to the timeline's heading.
   useEffect(() => {
     const target = focusAfter.current;
     if (!target) return;
     focusAfter.current = null;
-    const el = target === "panel" ? null
-      : [...document.querySelectorAll("[data-title-for]")].find((n) => n.dataset.titleFor === target);
+    const byAttr = (attr, id) => (id == null ? null
+      : [...document.querySelectorAll(`[${attr}]`)].find((n) => n.getAttribute(attr) === String(id)) || null);
+    const el = byAttr("data-chip-for", target.chip)
+      || (target.titles || []).map((id) => byAttr("data-title-for", id)).find(Boolean);
     if (el) el.focus();
-    else panelRef.current?.focus();
+    else (target.fallback === "tray" ? trayHeadingRef : timelineHeadingRef).current?.focus();
   }, [items]);
+
+  // Turning on Show dismissed brings their group (at the very end) into view.
+  useEffect(() => {
+    if (!showDismissed || !revealDismissed.current) return;
+    revealDismissed.current = false;
+    try {
+      document.getElementById("tf-g-dismissed")?.scrollIntoView({ block: "start", behavior: reducedMotion() ? "auto" : "smooth" });
+    } catch { /* old browsers: the group is still there to scroll to */ }
+  }, [showDismissed]);
 
   // A drawer takes its card's unsaved notes into its box as it opens; from
   // then on it owns them. As it closes it sends what is in the box if that
@@ -288,18 +319,60 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
     return false;
   };
 
-  /** Save or Dismiss from the New finds tab: the card leaves the tab. */
-  const moveFromList = (item, next) => {
-    const at = visible.findIndex((i) => i.id === item.id);
-    const neighbour = visible[at + 1] || visible[at - 1] || null;
-    focusAfter.current = neighbour ? neighbour.id : "panel";
+  const dismissedMessage = (item) => (showDismissed
+    ? `Dismissed "${short(item.title)}". It's under Dismissed, at the end of your timeline.`
+    : `Dismissed "${short(item.title)}". Turn on Show dismissed to see it again.`);
+
+  /** Save or Dismiss from the sorting tray: the card leaves the tray. */
+  const moveFromTray = (item, next) => {
+    const at = tray.findIndex((i) => i.id === item.id);
+    const neighbour = tray[at + 1] || tray[at - 1] || null;
+    focusAfter.current = { titles: neighbour ? [neighbour.id] : [], fallback: "tray" };
     changeItem(item, { status: next }, {
       okMessage: next === "saved"
-        ? `Saved "${short(item.title)}". It's in Saved now.`
-        : `Dismissed "${short(item.title)}". Turn on Show dismissed to see it again.`,
+        ? `Saved "${short(item.title)}". It's on your timeline under ${timelinePlace({ ...item, status: next }, today)}.`
+        : dismissedMessage(item),
       // Back where it was: focus returns to it too.
-      onFail: () => { focusAfter.current = item.id; },
+      onFail: () => { focusAfter.current = { titles: [item.id], fallback: "tray" }; },
     });
+  };
+
+  /** A status picked from a row's chip. The row may move to another group
+   *  (Done folds away; Dismissed hides unless shown), so a move that changes
+   *  its group says where it went. */
+  const moveFromTimeline = (item, next) => {
+    if (next === item.status) return;
+    const at = rowOrder.findIndex((i) => i.id === item.id);
+    focusAfter.current = {
+      chip: item.id,
+      titles: [rowOrder[at + 1]?.id, rowOrder[at - 1]?.id].filter(Boolean),
+      fallback: "timeline",
+    };
+    const from = timelinePlace(item, today);
+    const to = timelinePlace({ ...item, status: next }, today);
+    const okMessage = next === "dismissed" ? dismissedMessage(item)
+      : next === "done" ? `Moved "${short(item.title)}" to Done. Open it there to say how it went.`
+      : from !== to ? `Moved "${short(item.title)}" to ${statusLabel(next)}. It's under ${to} now.`
+      : undefined;
+    changeItem(item, { status: next }, {
+      okMessage,
+      onFail: () => { focusAfter.current = { chip: item.id, titles: [item.id], fallback: "timeline" }; },
+    });
+  };
+
+  const openDrawer = (item) => {
+    drawerFrom.current = { id: item.id, where: item.status === "new" ? "tray" : "timeline" };
+    setDrawerId(item.id);
+  };
+
+  /** The drawer closed and what opened it is gone (its find moved group, or
+   *  left the view): focus its find where it is now, else the heading of the
+   *  part of the board it was in. */
+  const drawerFallbackFocus = () => {
+    const { id, where } = drawerFrom.current;
+    const moved = [...document.querySelectorAll("[data-title-for]")].find((n) => n.getAttribute("data-title-for") === String(id));
+    if (moved) moved.focus();
+    else (where === "tray" ? trayHeadingRef : timelineHeadingRef).current?.focus();
   };
 
   /** A change from the drawer. Resolves to true when it saved, so the drawer
@@ -311,7 +384,7 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
     const item = drawerItem;
     const notes = Object.prototype.hasOwnProperty.call(patch, "notes");
     const opts = patch.status === "dismissed"
-      ? { okMessage: `Dismissed "${short(item.title)}". Turn on Show dismissed to see it again.` }
+      ? { okMessage: dismissedMessage(item) }
       : notes
         ? { failMessage: `Couldn't save your notes on "${short(item.title)}". What you typed is still in its notes box, so try again in a moment.` }
         : {};
@@ -358,13 +431,13 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
     notify(`Deleted "${short(item.title)}".`);
   };
 
-  const pickTab = (key) => { setTab(key); };
   const toggleDismissed = () => {
     const on = !showDismissed;
+    revealDismissed.current = on;
     setShowDismissed(on);
-    if (on) setTab("dismissed");
-    else if (activeTab === "dismissed") setTab(null);
+    setAnnounce(on ? "Dismissed finds now show at the end of your timeline." : "Dismissed finds are hidden.");
   };
+  const toggleFold = (key) => setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
 
   // ── Layout ────────────────────────────────────────────────────────────────
 
@@ -399,7 +472,7 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
           {phase === "loading" ? (
             <div aria-busy="true">
               <p role="status" style={SR_ONLY}>Loading your board</p>
-              <BoardSkeleton mobile />
+              <TimelineSkeleton />
             </div>
           ) : (
             <div style={{ maxWidth: 640 }}>
@@ -464,38 +537,22 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
           <FinderEmpty stopLine={stop?.line || null} onLane={(key) => navigate?.(newPath(key))} />
         ) : (
           <>
-            <DueSoon items={due} today={today} onOpen={(item) => setDrawerId(item.id)} />
+            <DueSoon items={due} today={today} onOpen={openDrawer} />
 
-            <h2 ref={headingRef} tabIndex={-1} style={SR_ONLY}>Your finds</h2>
+            {/* The filter governs the tray and the timeline alike, so it sits above both. */}
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between",
-              gap: 10, marginBottom: 12 }}>
+              gap: 10, marginBottom: 16, maxWidth: 900 }}>
               <LaneFilter value={lane} counts={laneCounts} onChange={setLane} />
               <DismissedToggle on={showDismissed} n={dismissedCount} onToggle={toggleDismissed} />
             </div>
 
-            <BoardTabs stages={tabs} counts={counts} value={activeTab} onChange={pickTab} />
-            <div ref={panelRef} id={PANEL_ID} role="tabpanel" aria-labelledby={tabId(activeTab)} tabIndex={-1}
-              style={{ outline: "none", marginTop: 8 }}>
-              {visible.length === 0 ? (
-                <p style={{ margin: 0, padding: "18px 16px", background: WHITE, border: `1px dashed ${BORDER}`,
-                  borderRadius: RADIUS.card, fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT_MUTED,
-                  lineHeight: 1.5, maxWidth: 760 }}>
-                  {TAB_EMPTY[activeTab] || "Nothing here yet."}
-                </p>
-              ) : (
-                <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 12,
-                  gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 320px), 1fr))" }}>
-                  {visible.map((item) => (
-                    <li key={item.id} style={{ minWidth: 0 }}>
-                      <ListingCard item={item} today={today} busy={pending.has(item.id)}
-                        onOpen={(it) => setDrawerId(it.id)}
-                        onSave={activeTab === "new" ? (it) => moveFromList(it, "saved") : undefined}
-                        onDismiss={activeTab === "new" ? (it) => moveFromList(it, "dismissed") : undefined} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <SortingTray items={tray} today={today} pending={pending} limit={isMobile ? TRAY_SHOW_PHONE : TRAY_SHOW}
+              headingRef={trayHeadingRef} emptyText={trayEmpty} onOpen={openDrawer}
+              onSave={(it) => moveFromTray(it, "saved")} onDismiss={(it) => moveFromTray(it, "dismissed")} />
+
+            <DeadlineTimeline groups={groups} today={today} open={open} onToggle={toggleFold}
+              showDismissed={showDismissed} headingRef={timelineHeadingRef} emptyText={timelineEmpty}
+              onOpen={openDrawer} onMove={moveFromTimeline} />
           </>
         )}
       </div>
@@ -510,7 +567,7 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
             onClose={() => setDrawerId(null)} onChange={onDrawerChange}
             onRecheck={recheckItem} onDelete={deleteDrawerItem}
             rechecking={rechecking === drawerItem.id} recheckBudget={budgetOf(status?.rechecks)}
-            onFallbackFocus={() => (panelRef.current || headingRef.current)?.focus()} />
+            onFallbackFocus={drawerFallbackFocus} />
         )}
       </AnimatePresence>
     </div>

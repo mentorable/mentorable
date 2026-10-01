@@ -467,18 +467,19 @@ export default function FinderNewPage({ navigate, api = REAL_API, search }) {
                   onEdit={goEdit} onStart={runFind} onBoard={() => navigate?.(BOARD_PATH)} />
               )}
 
+              {/* While the search runs (or before its end is known), the
+                  scouting sky; one element, so its stamps and the order they
+                  finished in survive every re-render. */}
               {step === "search" && (
-                searching ? (
-                  <TalonAtWork lines={lines} onLeave={() => navigate?.(BOARD_PATH)} />
-                ) : outcome ? (
+                !searching && outcome ? (
                   <ResultsStep outcome={outcome} today={new Date()} pending={pending}
                     onSave={(item) => setItemStatus(item, "saved")} onDismiss={(item) => setItemStatus(item, "dismissed")}
                     onBoard={() => navigate?.(BOARD_PATH)}
                     onMore={block ? null : findMore} moreNote={stop?.short || null} />
-                ) : failure ? (
+                ) : !searching && failure ? (
                   <SearchFailure failure={failure} lines={lines} actions={failureActions()} />
                 ) : (
-                  <TalonAtWork lines={lines} onLeave={() => navigate?.(BOARD_PATH)} />
+                  <TalonAtWork lines={lines} isMobile={isMobile} onLeave={() => navigate?.(BOARD_PATH)} />
                 )
               )}
             </>

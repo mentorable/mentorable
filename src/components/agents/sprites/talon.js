@@ -1,227 +1,299 @@
 // Talon, the opportunity hawk: a scout who spots real scholarships and
-// programs from up high. A red-tailed hawk with a cream chest, a golden eye
-// and a scout's red bandana, perched on a twig, drawn so every state reads at
-// 1x. A 32 by 32 grid, one character per pixel ("." is empty), in the same
-// format as Beaker's (sprites/beaker.js) and with its own palette: the mascot
-// keeps its colors whatever accent the student picked.
+// programs. A round, head-heavy hawk in a blue ranger hat with a gold star
+// badge (the "Chibi ranger" direction, picked from three), a sibling to
+// Beaker's postal cap: the hat leans a little toward azure and the band is the
+// darkest blue, so the two read as a set without wearing the same uniform. A
+// big glinting eye, a small hooked beak, a cream face and chest, a red tail.
+// A 32 by 32 grid, one character per pixel ("." is empty), in the same format
+// as Beaker's (sprites/beaker.js) and with its own palette: the mascot keeps
+// its colors whatever accent the student picked.
 //
-// Light comes from the top left: highlights (the crown, the wing's top edge,
-// the bandana's shine, the beak's shine) sit top left of each form, shade
-// (the chest's lower edge, the wing bars, the bandana's folds, the hook)
-// bottom right. One dark outline all round; inner edges use the darker tone
-// of what they separate.
+// Light comes from the top left: highlights (the hat's crown and brim, the
+// back of the head, the wing's top edge) sit top left of each form, shade (the
+// brim's underside, the chest's lower edge, the wing scallops) bottom right.
+// One dark outline all round.
 //
-// The three poses (perched, wing up, flying) are drawn in full. Every other
-// frame is a pose plus a small overlay (eyes, a "?", sleepy z's, sparkles,
-// the find card held in the hook) or a one-pixel shift, so frames differ only
-// where they must and the animation stays smooth.
+// The poses (standing, wing up, holding a certificate, napping under the hat,
+// three wingbeats) are drawn in full; every other frame is a pose plus a small
+// overlay (eyes, a "?", z's, sparkles) or a one-pixel breath.
 
 const PALETTE = {
   ".": null,
-  k: "#2b2129",   // outline, pupil, talons
-  w: "#ffffff",   // eye glint, the find card
-  n: "#d49a5e",   // feather highlight
-  b: "#a8673a",   // brown feathers
-  B: "#7d4727",   // feather shade, wing bars, the thinking "?"
-  d: "#4f2d20",   // brow, flight feather tips
-  c: "#f8ead0",   // cream face and chest
-  C: "#e0c79c",   // cream shade
-  e: "#f5b52b",   // golden eye
-  m: "#f3a48c",   // cheek
-  l: "#b3b8cc",   // beak shine
-  h: "#737891",   // beak
-  H: "#4c4f66",   // beak shade, the hook
-  o: "#f6c544",   // cere, legs and toes, the star on the card
-  O: "#c98f25",   // star shade
-  r: "#dc4637",   // bandana
-  R: "#a52f28",   // bandana shade and knot
-  q: "#f58c74",   // bandana shine
-  t: "#c4602f",   // red tail
-  T: "#8e3e1d",   // tail band
-  p: "#d8cfbd",   // the card's line of text
-  v: "#9b7a57",   // twig
-  g: "#86bf5f",   // leaf
-  G: "#4f8a3f",   // leaf shade
-  y: "#ffd779",   // sparkles
+  k: "#2e2230",   // outline, eye
+  w: "#ffffff",   // eye glint, the certificate
+  n: "#e2a468",   // feather highlight
+  b: "#b9733e",   // feathers
+  B: "#8a4c29",   // feather shade, wing scallops, the thinking "?"
+  d: "#5c3322",   // brow, flight feather tips
+  c: "#fcf0da",   // cream face and chest
+  C: "#e9d0a6",   // cream shade, the certificate's rolls
+  m: "#f6a38e",   // cheek
+  h: "#6c7088",   // beak
+  l: "#adb2c8",   // beak shine
+  H: "#474a5e",   // beak shade, the hook
+  o: "#f7c548",   // cere, legs and toes
+  O: "#cf9226",   // leg shade
+  g: "#3b7cc6",   // ranger hat
+  G: "#265392",   // hat shade, brim underside
+  j: "#7fb5ec",   // hat shine
+  t: "#1c3d72",   // hat band
+  y: "#ffd779",   // the hat's star badge, sparkles
+  r: "#cc6640",   // red tail, the certificate's ribbon
+  R: "#93401f",   // tail band
+  p: "#d8cfbd",   // the certificate's lines of text
   z: "#7c86ad",   // sleepy z's
 };
 
-// Perched on the twig, wing folded, bandana knotted at the back of the neck.
-// Rows 27 and 28 are the legs (a breath drops row 28; see `bob`).
-const PERCHED = [
-  "................................",
-  "...........kkkkkkk..............",
-  ".........kknnnnnnnkk............",
-  "........knnnnnnnbbbbk...........",
-  ".......knnnnnbbbbbbbbk..........",
-  ".......knnnbbbbbbbbbbbk.........",
-  ".......knnbbbbbbbbbbkkkk........",
-  ".......knbbbbddddddboollk.......",
-  ".......kbbbbbbewkeccoohhhk......",
-  ".......kbbbbbcekkecckkkhhHk.....",
-  ".......kbbbbccceeccchhkkHHk.....",
-  ".....kk.kbbbcmmccccckk..kHk.....",
-  "....kqrRRRqqqrrrrrrrRk...k......",
-  "...kRrknbRrrrrrrrrrrrRk.........",
-  "....kknnbbbbbBcRrrrrRcCk........",
-  ".....knbbbbbbBccRrrRccCk........",
-  "....knbbbbbbbbBccRRccccCk.......",
-  "....kBBbbbbbbbBccccccccCk.......",
-  "....kbbBBBBbbbBccbccbccCk.......",
-  "....kbbBbbBbbbBccbccbccCk.......",
-  "....kBbBbbBbbBccbccbccCk........",
-  "....kdBBbbbbBcccbccbcCCk........",
-  "...ktkddBBbbBcccccbccCCk........",
-  "..kttTkddBBBccccccccCk..........",
-  ".kttTtkkdCCCCccccCCCk...........",
-  "kttTttkkCCCCCCCCCCkk............",
-  "kTTTTTk.kkkkkkkkkk..............",
-  ".knnnk.......kok..kok...........",
-  ".............kok..kok...........",
-  "....kkkkkkkoooookoooookkkkkkk...",
-  "...kvvvvvvvvvvvvkvvvvvkvvvvvvk..",
-  "....kkkkkkkkkkkkkkkkkkkkkkkkk...",
+// Standing, wing folded. Rows 28 to 30 are the legs and toes and row 31 their
+// outline, so Talon stands on the bottom row like Beaker (a breath drops row
+// 29; see `bob`).
+const STAND = [
+  ".............kkkkkk.............",
+  "...........kkjjgggGkk...........",
+  "..........kjjgggggggGk..........",
+  "..........kjggggggggGk..........",
+  ".........kttttttttyyttk.........",
+  ".......kkGgggggggggggggGkk......",
+  "......kjjggggggggggggggggGk.....",
+  ".......kGGGGGGGGGGGGGGGGGk......",
+  "........kkkkkkkkkkkkkkkkk.......",
+  ".......knbbbbbbbbbBddbbbbk......",
+  ".......kbbbbbbbbbccwkccbkkk.....",
+  "......kbbbbbbbbbccckkcckollk....",
+  "......kbbbbbbbbcccckkcckohhhk...",
+  ".......kbbbbbbbcmmccccckhhhhhk..",
+  ".......kbbbbbbbccccccccckkHHHk..",
+  "........kbbbbbbcccccccccBkkkHk..",
+  "........kbbbbbbccccccccck...k...",
+  "........kBBbbbbccccccckk........",
+  ".......kBnnbbbbCCCcCCCk.........",
+  "......kBnnbbbbBcccCcbbk.........",
+  "......kBnbbbbbBccccccbbk........",
+  "......kBbbbbbbBcccccccbk........",
+  ".....krBBbBbBbBCccCccccbk.......",
+  "....krrBbbbbbbBccccccccBk.......",
+  "...krrRBbBbBbBBcccccccCk........",
+  "..krrRRkdBdbbBccCccCCCBk........",
+  "..kRRRkddBddBBcccCCCCCk.........",
+  "...kkk.kdddbbbcCCCCCCk..........",
+  "........kkkkkokBBkokk...........",
+  "............kOkkkkOk............",
+  "............koook.kook..........",
+  "............kkkk..kkkk..........",
 ];
 
-// The near wing thrown straight up behind the head, primaries spread.
+// The near wing thrown up behind the hat, feathers spread.
 const CHEER = [
-  ".kk.kk..........................",
-  "kddkddk....kkkkkkk..............",
-  "kddddddk.kknnnnnnnkk............",
-  "kdBdBdBkknnnnnnnbbbbk...........",
-  "knBbBbBknnnnnbbbbbbbbk..........",
-  "knbbbbbknnnbbbbbbbbbbbk.........",
-  "knbbbbbknnbbbbbbbbbbkkkk........",
-  "knbbbbbknbbbbddddddboollk.......",
-  ".knbbbbkbbbbbbewkeccoohhhk......",
-  ".knbbbbkbbbbbcekkecckkkhhHk.....",
-  ".knbbbbkbbbbccceeccchhkkHHk.....",
-  "..knbbbbkbbbcmmccccckk..kHk.....",
-  "..knbbbbbRqqqrrrrrrrRk...k......",
-  "...knbbbbRrrrrrrrrrrrRk.........",
-  "....knbbbbbBcccRrrrrRcCk........",
-  ".....knbbbbBccccRrrRccCk........",
-  "....knbbbbBccccccRRccccCk.......",
-  "....kbbbbBcccccccccccccCk.......",
-  "....kbbbBcccccbccbccbccCk.......",
-  "....kbbBccccccbccbccbccCk.......",
-  "....kbBccccccbccbccbccCk........",
-  "....kBcccccccbccbccbcCCk........",
-  "...ktkCcccccccccccbccCCk........",
-  "..kttTkCCcccccccccccCk..........",
-  ".kttTtkkCCCCCccccCCCk...........",
-  "kttTttkkCCCCCCCCCCkk............",
-  "kTTTTTk.kkkkkkkkkk..............",
-  ".knnnk.......kok..kok...........",
-  ".............kok..kok...........",
-  "....kkkkkkkoooookoooookkkkkkk...",
-  "...kvvvvvvvvvvvvkvvvvvkvvvvvvk..",
-  "....kkkkkkkkkkkkkkkkkkkkkkkkk...",
+  ".............kkkkkk.............",
+  "...........kkjjgggGkk...........",
+  "..........kjjgggggggGk..........",
+  "..........kjggggggggGk..........",
+  ".........kttttttttyyttk.........",
+  "..kk.kkkkGgggggggggggggGkk......",
+  ".kddkdkjjggggggggggggggggGk.....",
+  "kddddddkGGGGGGGGGGGGGGGGGk......",
+  "kdBdBdBdkkkkkkkkkkkkkkkkk.......",
+  "knbBbBbBnbbbbbbbbbBddbbbbk......",
+  "knbbbbbbbbbbbbbbbccwkccbkkk.....",
+  "knbbbbbbbbbbbbbbccckkcckollk....",
+  ".knbbbbbbbbbbbbcccckkcckohhhk...",
+  ".knbbbbbbbbbbbbcmmccccckhhhhhk..",
+  "..knbbbbbbbbbbbccccccccckkHHHk..",
+  "..knbbbbkbbbbbbcccccccccBkkkHk..",
+  "...knbbbkbbbbbbccccccccck...k...",
+  "...knbbbBbkbbbbccccccckk........",
+  "....kkkkBbknnbbCCCcCCCk.........",
+  "........kknbbbbcccCcbbk.........",
+  "........kbbbbbcccccccbbk........",
+  "......kkbbbbbcccccccccbk........",
+  ".....krkbbbbcccCccCccccbk.......",
+  "....krrkbbbbcccccccccccBk.......",
+  "...krrRkbbbbccccccccccCk........",
+  "..krrRRkbbbbccccCccCCCBk........",
+  "..kRRRk.kbbbbccccCCCCCk.........",
+  "...kkk...kbbbbcCCCCCCk..........",
+  "..........kkkokBBkokk...........",
+  "............kOkkkkOk............",
+  "............koook.kook..........",
+  "............kkkk..kkkk..........",
 ];
 
-// Flying, talons tucked: the same head on a body held level, tail fanned
-// behind. Wing up (body a pixel low), level-ish, and down (body a pixel high).
+// A find: a rolled certificate tied with a ribbon, held in the hook.
+const HOLD = [
+  ".............kkkkkk.............",
+  "...........kkjjgggGkk...........",
+  "..........kjjgggggggGk..........",
+  "..........kjggggggggGk..........",
+  ".........kttttttttyyttk.........",
+  ".......kkGgggggggggggggGkk......",
+  "......kjjggggggggggggggggGk.....",
+  ".......kGGGGGGGGGGGGGGGGGk......",
+  "........kkkkkkkkkkkkkkkkk.......",
+  ".......knbbbbbbbbbBddbbbbk......",
+  ".......kbbbbbbbbbccwkccbkkk.....",
+  "......kbbbbbbbbbccckkcckollk....",
+  "......kbbbbbbbbcccckkcckohhhk...",
+  ".......kbbbbbbbcmmccccckhhhhhk..",
+  ".......kbbbbbbbccccccccckkHHHk..",
+  "........kbbbbbbcccccckkkkkkHkk..",
+  "........kbbbbbbccccckCwwwrwwwCk.",
+  "........kBBbbbbccccckCwpprwppCk.",
+  ".......kBnnbbbbCCCcCkCCCCrCCCCk.",
+  "......kBnnbbbbBcccCcbkkkrkrkkk..",
+  "......kBnbbbbbBccccccbbkk.k.....",
+  "......kBbbbbbbBcccccccbk........",
+  ".....krBBbBbBbBCccCccccbk.......",
+  "....krrBbbbbbbBccccccccBk.......",
+  "...krrRBbBbBbBBcccccccCk........",
+  "..krrRRkdBdbbBccCccCCCBk........",
+  "..kRRRkddBddBBcccCCCCCk.........",
+  "...kkk.kdddbbbcCCCCCCk..........",
+  "........kkkkkokBBkokk...........",
+  "............kOkkkkOk............",
+  "............koook.kook..........",
+  "............kkkk..kkkk..........",
+];
+
+// Napping: the hat tipped down over the eyes.
+const NAP = [
+  "................................",
+  "................................",
+  ".............kkkkkk.............",
+  "...........kkjjgggGkk...........",
+  "..........kjjgggggggGk..........",
+  "..........kjggggggggGk..........",
+  ".........kttttttttyyttk.........",
+  ".......kkGgggggggggggggGkk......",
+  "......kjjggggggggggggggggGk.....",
+  ".......kGGGGGGGGGGGGGGGGGk......",
+  ".......kkkkkkkkkkkkkkkkkkkk.....",
+  "......kbbbbbbbbbcckcckckollk....",
+  "......kbbbbbbbbcccckkcckohhhk...",
+  ".......kbbbbbbbcmmccccckhhhhhk..",
+  ".......kbbbbbbbccccccccckkHHHk..",
+  "........kbbbbbbcccccccccBkkkHk..",
+  "........kbbbbbbccccccccck...k...",
+  "........kBBbbbbccccccckk........",
+  ".......kBnnbbbbCCCcCCCk.........",
+  "......kBnnbbbbBcccCcbbk.........",
+  "......kBnbbbbbBccccccbbk........",
+  "......kBbbbbbbBcccccccbk........",
+  ".....krBBbBbBbBCccCccccbk.......",
+  "....krrBbbbbbbBccccccccBk.......",
+  "...krrRBbBbBbBBcccccccCk........",
+  "..krrRRkdBdbbBccCccCCCBk........",
+  "..kRRRkddBddBBcccCCCCCk.........",
+  "...kkk.kdddbbbcCCCCCCk..........",
+  "........kkkkkokBBkokk...........",
+  "............kOkkkkOk............",
+  "............koook.kook..........",
+  "............kkkk..kkkk..........",
+];
+
+// Flying, talons tucked: the same head and hat a little forward, the round
+// body held level behind. Wing up (body a pixel low), level, down (body a
+// pixel high); the hat stays whole inside the grid on every beat.
 const FLY_UP = [
   "................................",
-  "....k.k.k.k.....................",
-  "...kdkdkdkdk....................",
-  "...kddddddddk...................",
-  "...kdBdBdBdBk...................",
-  "....kBbBbBbBbk..................",
-  "....kbbbbbbbbk..................",
-  ".....kbbbbbbbbk.kkkkkkk.........",
-  ".....kbbbbbbbbkknnnnnnnkk.......",
-  "......knbbbbbknnnnnnnbbbbk......",
-  "......knbbbbknnnnnbbbbbbbbk.....",
-  ".......knbbbknnnbbbbbbbbbbbk....",
-  ".......knnbbknnbbbbbbbbbbkkkk...",
-  "......kkknnnknbbbbddddddboollk..",
-  ".....knnbbbbkbbbbbbewkeccoohhhk.",
-  "....knbbbbbbkbbbbbcekkecckkkhhHk",
-  "kk.kbbbbbbbbkbbbbccceeccchhkkHHk",
-  "knkkbbbbbbbbbkbbbcmmccccckk..kHk",
-  "knTtbbbbbbbbkRqqqrrrrrrRk.....k.",
-  "knTttBbbbbbbkRrrrrrrrrrRk.......",
-  "knTtkBBbbbbbbbkRrrrrRkccck......",
-  "knkk.kBBbbbbbbbkRrRkccbcCk......",
-  "kk....kBBBbbbbbckkbccbCk........",
-  ".......kkBBBCCCCcccCCk..........",
-  ".........kkkkkkkkokkokk.........",
-  "..............kook.kook.........",
-  "...............kk...kk..........",
   "................................",
-  "................................",
-  "................................",
+  "...............kkkkkk...........",
+  ".............kkjjgggGkk.........",
+  "............kjjgggggggGk........",
+  "............kjggggggggGk........",
+  ".....k.k.k.kttttttttyyttk.......",
+  "....kdkdkkkGgggggggggggggGkk....",
+  "...kddddkjjggggggggggggggggGk...",
+  "...kdBdBdkGGGGGGGGGGGGGGGGGk....",
+  "...knbBbBbkkkkkkkkkkkkkkkkk.....",
+  "....knbbbbnbbbbbbbbbBddbbbbk....",
+  "....knbbbbbbbbbbbbbccwkccbkkk...",
+  ".....knbbbbbbbbbbbccckkcckollk..",
+  ".....knbbbbbbbbbbcccckkcckohhhk.",
+  "......knbbbbbbbbbcmmccccckhhhhhk",
+  ".......knbbbbbbbbccccccccckkHHHk",
+  "........knbbbbbbbcccccccccBkkkHk",
+  "........kkkbbbbbbccccccccck...k.",
+  "......kknbbbbbbbbccccccckk......",
+  "..kk.knbbbbbbbbbbCCCcCCCk.......",
+  "kkrrkbbbbbbbbbbbbbbcCckk........",
+  "rrrRrbbbbbbbbcccccccbbk.........",
+  "rRRRbbbbbbbccccccccccck.........",
+  "krrkkbbbbbcccccccccccck.........",
+  ".kk.kbbbbbcccccccccccck.........",
+  ".....kbbbbbCCCCCCCCCCCk.........",
+  "......kkbbBBBCCCCCCCkk..........",
+  "........kkkkkkkkokok............",
+  "................k.k.............",
   "................................",
   "................................",
 ];
 
 const FLY_MID = [
   "................................",
-  "................................",
-  "................................",
-  "..kkk...........................",
-  ".kdddkk.........................",
-  "kddBddBk........................",
-  "kdBbBbBbk.......kkkkkkk.........",
-  "kdBbbbbbbk....kknnnnnnnkk.......",
-  ".kBbbbbbbbk..knnnnnnnbbbbk......",
-  "..kbbbbbbbbkknnnnnbbbbbbbbk.....",
-  "...kbbbbbbbbknnnbbbbbbbbbbbk....",
-  "....knbbbbbbknnbbbbbbbbbbkkkk...",
-  ".....knnbbbbknbbbbddddddboollk..",
-  ".....kknnnbbkbbbbbbewkeccoohhhk.",
-  "....knbbbbbbkbbbbbcekkecckkkhhHk",
-  "kk.kbbbbbbbbkbbbbccceeccchhkkHHk",
-  "knkkbbbbbbbbbkbbbcmmccccckk..kHk",
-  "knTtbbbbbbbbkRqqqrrrrrrRk.....k.",
-  "knTttBbbbbbbkRrrrrrrrrrRk.......",
-  "knTtkBBbbbbbbbkRrrrrRkccck......",
-  "knkk.kBBbbbbbbbkRrRkccbcCk......",
-  "kk....kBBBbbbbbckkbccbCk........",
-  ".......kkBBBCCCCcccCCk..........",
-  ".........kkkkkkkkokkokk.........",
-  "..............kook.kook.........",
-  "...............kk...kk..........",
-  "................................",
-  "................................",
-  "................................",
+  "...............kkkkkk...........",
+  ".............kkjjgggGkk.........",
+  "............kjjgggggggGk........",
+  "............kjggggggggGk........",
+  "...........kttttttttyyttk.......",
+  ".........kkGgggggggggggggGkk....",
+  "........kjjggggggggggggggggGk...",
+  ".........kGGGGGGGGGGGGGGGGGk....",
+  "..........kkkkkkkkkkkkkkkkk.....",
+  ".........knbbbbbbbbbBddbbbbk....",
+  ".........kbbbbbbbbbccwkccbkkk...",
+  "........kbbbbbbbbbccckkcckollk..",
+  ".kkkk...kbbbbbbbbcccckkcckohhhk.",
+  "kddddkkk.kbbbbbbbcmmccccckhhhhhk",
+  "kdBdBdddkkbbbbbbbccccccccckkHHHk",
+  "kdbBbBbbbbkbbbbbbcccccccccBkkkHk",
+  ".knbbbbbbbbbbbbbbccccccccck...k.",
+  "..knnbbbbbbbbbbbbccccccckk......",
+  "..kkknnbbbbkbbbbbCCCcCCCk.......",
+  "kkrrkbbbbbbbbbbbbbbcCckk........",
+  "rrrRrbbbbbbbbcccccccbbk.........",
+  "rRRRbbbbbbbccccccccccck.........",
+  "krrkkbbbbbcccccccccccck.........",
+  ".kk.kbbbbbcccccccccccck.........",
+  ".....kbbbbbCCCCCCCCCCCk.........",
+  "......kkbbBBBCCCCCCCkk..........",
+  "........kkkkkkkkokok............",
+  "................k.k.............",
   "................................",
   "................................",
   "................................",
 ];
 
 const FLY_DOWN = [
-  "................................",
-  "................................",
-  "................................",
-  "................................",
-  "................................",
-  "................kkkkkkk.........",
-  "..............kknnnnnnnkk.......",
-  ".............knnnnnnnbbbbk......",
-  "............knnnnnbbbbbbbbk.....",
-  "............knnnbbbbbbbbbbbk....",
-  "........kkkkknnbbbbbbbbbbkkkk...",
-  "......kknnnnknbbbbddddddboollk..",
-  ".....knnbbbbkbbbbbbewkeccoohhhk.",
-  "....knbbbbbbkbbbbbcekkecckkkhhHk",
-  "kk.kbbbbbbbbkbbbbccceeccchhkkHHk",
-  "knkkbbbbbbbbbkbbbcmmccccckk..kHk",
-  "knTtbbbbbbknnnnnkrrrrrrRk.....k.",
-  "knTttBbbbknbbbbbbkrrrrrRk.......",
-  "knTtkBBbknbbbbbbbkrrRkccck......",
-  "knkk.kBBkbbbbbbbkrRkccbcCk......",
-  "kk....kkbbbbbbbbkkbccbCk........",
-  ".......kbbBbbbbkcccCCk..........",
-  "......kbBbBbbbkkkokkokk.........",
-  "......kBbBbbbkkook.kook.........",
-  ".....kdBdBbbk..kk...kk..........",
-  ".....kddBdBk....................",
-  "....kdddddk.....................",
-  "....kdkdkdk.....................",
-  "....k.k.k.k.....................",
-  "................................",
+  "...............kkkkkk...........",
+  ".............kkjjgggGkk.........",
+  "............kjjgggggggGk........",
+  "............kjggggggggGk........",
+  "...........kttttttttyyttk.......",
+  ".........kkGgggggggggggggGkk....",
+  "........kjjggggggggggggggggGk...",
+  ".........kGGGGGGGGGGGGGGGGGk....",
+  "..........kkkkkkkkkkkkkkkkk.....",
+  ".........knbbbbbbbbbBddbbbbk....",
+  ".........kbbbbbbbbbccwkccbkkk...",
+  "........kbbbbbbbbbccckkcckollk..",
+  "........kbbbbbbbbcccckkcckohhhk.",
+  ".........kbbbbbbbcmmccccckhhhhhk",
+  ".........kbbbbbbbccccccccckkHHHk",
+  "..........kbbbbbbcccccccccBkkkHk",
+  "........kkkbbbbbbccccccccck...k.",
+  "......kknbbbbbbbbccccccckk......",
+  "..kk.knbbbbbbbbbbCCCcCCCk.......",
+  "kkrrkbbbbbbbbbbbbbbcCckk........",
+  "rrrRrbbbbbnbbbbkccccbbk.........",
+  "rRRRbbbbbnbbbbbkcccccck.........",
+  "krrkkbbbbbbbbbbkcccccck.........",
+  ".kk.kbbbdbbbbbkccccccck.........",
+  ".....kbbdBbbbkCCCCCCCCk.........",
+  "......kdBdbbkCCCCCCCkk..........",
+  "......kddBdk.kkkokok............",
+  ".....kdddkk.....k.k.............",
+  ".....kddk.......................",
+  "......kk........................",
   "................................",
   "................................",
 ];
@@ -230,30 +302,11 @@ const FLY_DOWN = [
 // { x, y, rows }: drawn over a frame with its top-left corner at (x, y). A
 // space leaves the pixel underneath; any other character replaces it.
 
-const BLINK      = { x: 14, y: 8, rows: ["cccc", "kkkk", "cccc"] };
-const LOOK_UP    = { x: 14, y: 8, rows: ["eewk", "eekk"] };
-// Shut eyes soften the brow too, so a sleeping or cheering hawk never looks stern.
-const EYES_SHUT  = { x: 13, y: 7, rows: ["BBBBBB", " cccc", " kcck", " ckkc"] };
-const EYES_HAPPY = { x: 13, y: 7, rows: ["BBBBBB", " cccc", " ckkc", " kcck"] };
+const BLINK = { x: 19, y: 10, rows: ["cc", "", "cc"] };
+const LOOK_UP = { x: 19, y: 10, rows: ["kw", "", "cc"] };
+const EYES_HAPPY = { x: 18, y: 10, rows: [" k", "kcck", " cc"] };
 
-// A find: a card with a gold star, its top edge caught on the tip of the hook.
-const CARD = { x: 23, y: 12, rows: [
-  "kkHkkkkkk",
-  "kwkwwwwwk",
-  "kwwwowwwk",
-  "kwwooowwk",
-  "kwooooOwk",
-  "kwwooOwwk",
-  "kwwowOwwk",
-  "kwwwwwwwk",
-  "kwppppwwk",
-  "kkkkkkkkk",
-] };
-
-// A leaf on the twig. Stamped last, so it stays put while the hawk breathes.
-const LEAF = { x: 25, y: 26, rows: ["   kk", "  kggk", " kgGk", " Gk"] };
-
-const question = (y) => ({ x: 24, y, rows: [
+const question = (x, y) => ({ x, y, rows: [
   " BBB ",
   "B   B",
   "    B",
@@ -271,23 +324,17 @@ function stamp(base, ...marks) {
   const rows = base.map((r) => r.split(""));
   for (const { x, y, rows: art } of marks) {
     art.forEach((line, dy) => [...line].forEach((ch, dx) => {
-      if (ch !== " " && rows[y + dy] && x + dx < rows[y + dy].length) rows[y + dy][x + dx] = ch;
+      if (ch !== " " && rows[y + dy] && x + dx >= 0 && x + dx < rows[y + dy].length) rows[y + dy][x + dx] = ch;
     }));
   }
   return rows.map((r) => r.join(""));
 }
 
 // A breath: everything above the legs drops a pixel and the legs get a pixel
-// shorter (row 28, legs only, goes), so the talons keep their grip on the twig.
-const bob = (rows) => [".".repeat(rows[0].length), ...rows.slice(0, 28), ...rows.slice(29)];
-// A cock of the head: the crown leans back a pixel, as if looking up at the "?".
-const tilt = (rows) => rows.map((r, y) => (y >= 1 && y <= 5 ? `${r.slice(1)}.` : r));
-// Every perched frame gets the leaf last.
-const perch = (rows, ...marks) => stamp(rows, LEAF, ...marks);
+// shorter (row 29, legs only, goes), so the toes stay planted.
+const bob = (rows) => [".".repeat(rows[0].length), ...rows.slice(0, 29), ...rows.slice(30)];
 
-const HOLD = stamp(PERCHED, CARD);
-const LOOKING = stamp(tilt(PERCHED), LOOK_UP);
-const DOZING = stamp(PERCHED, EYES_SHUT);
+const LOOKING = stamp(STAND, LOOK_UP);
 const HAPPY = stamp(CHEER, EYES_HAPPY);
 
 // Each state: frames, frames per second, and optionally `sequence`, the order
@@ -298,10 +345,14 @@ export const TALON = {
   width: 32,
   height: 32,
   palette: PALETTE,
+  // The art row a speech bubble's tail points at (MascotSays, through
+  // mascotFit): the middle of the beak, three rows below Beaker's bill, which
+  // is the default and needs no entry.
+  beakRow: 13,
   states: {
     idle: {
       fps: 4,
-      frames: [perch(PERCHED), perch(bob(PERCHED)), perch(PERCHED, BLINK)],
+      frames: [STAND, bob(STAND), stamp(STAND, BLINK)],
       sequence: [0, 0, 1, 1, 0, 0, 1, 1, 0, 2, 1, 1],
     },
     flying: {
@@ -311,22 +362,22 @@ export const TALON = {
     },
     thinking: {
       fps: 3,
-      frames: [perch(LOOKING, question(0)), perch(bob(LOOKING), question(0))],
+      frames: [stamp(LOOKING, question(26, 0)), stamp(bob(LOOKING), question(26, 0))],
     },
     delivering: {
       fps: 3,
-      frames: [perch(HOLD, sparkle(28, 23)), perch(bob(HOLD), sparkle(24, 25), sparkle(29, 24))],
+      frames: [stamp(HOLD, sparkle(27, 22)), stamp(bob(HOLD), sparkle(24, 24), sparkle(29, 22))],
     },
     celebrating: {
       fps: 4,
       frames: [
-        perch(HAPPY, bigSparkle(24, 0), sparkle(27, 15)),
-        perch(bob(HAPPY), sparkle(25, 2), bigSparkle(26, 14)),
+        stamp(HAPPY, bigSparkle(26, 0), sparkle(27, 19)),
+        stamp(bob(HAPPY), sparkle(27, 1), bigSparkle(26, 17)),
       ],
     },
     sleeping: {
       fps: 1.5,
-      frames: [perch(DOZING, smallZ(23, 2)), perch(bob(DOZING), smallZ(23, 2), bigZ(27, 0))],
+      frames: [stamp(NAP, smallZ(23, 1)), stamp(bob(NAP), smallZ(23, 1), bigZ(27, 0))],
     },
   },
 };

@@ -14,10 +14,10 @@ export function MascotSays({ agent = "beaker", state = "idle", size = 72, childr
   const stacked = layout === "stack" || (layout === "auto" && narrow);
   const name = getAgent(agent)?.name || "Beaker";
 
-  // Line the tail up with the beak, which is about 10 art pixels below the
-  // top of the sprite; the fit says where the art sits in its box.
+  // Line the tail up with the beak (row 10 of Beaker's art, 13 of Talon's);
+  // the fit says where the art sits in its box and which row the beak is on.
   const fit = mascotFit(size, agent);
-  const beakY = fit.top + 10 * fit.scale;
+  const beakY = fit.top + fit.beakRow * fit.scale;
 
   return (
     <div style={{ display: "flex", flexDirection: stacked ? "column" : "row", alignItems: "flex-start",

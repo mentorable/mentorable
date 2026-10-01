@@ -56,7 +56,8 @@ export function KindTag({ kind }) {
   );
 }
 
-function ActionButton({ children, onClick, off, current, primary, ink, describedBy }) {
+/** Save or Dismiss on a card (and on the board's sorting tray rows). */
+export function ActionButton({ children, onClick, off, current, primary, ink, describedBy }) {
   // `current`: this is already the card's state ("Saved", "Dismissed").
   const look = current
     ? { background: SURFACE, color: TEXT_MUTED, border: `1.5px solid ${BORDER}` }

@@ -169,6 +169,22 @@ export function deadlineLabel(item, today = new Date()) {
   return `Due ${shortDay(d, today)}, ${left} days left`;
 }
 
+/** The deadline as a short line for a timeline row, where the month heading
+ *  and the date tile already say the day: "12 days left", "Due tomorrow",
+ *  "Due today", "Closed Feb 2", "Rolling deadline", or "Check the site for
+ *  the deadline". deadlineLabel is the full version for screen readers. */
+export function deadlineShort(item, today = new Date()) {
+  const left = daysLeft(item, today);
+  if (left === null || left <= 1) return deadlineLabel(item, today);
+  return `${left} days left`;
+}
+
+/** The item's deadline as a local calendar day (never parsed as UTC), or
+ *  null when it has none. */
+export function deadlineDay(item) {
+  return item?.deadline ? toDate(item.deadline) : null;
+}
+
 /** True when the deadline is today or within SOON_DAYS. */
 export function isSoon(item, today = new Date()) {
   const left = daysLeft(item, today);
@@ -251,6 +267,98 @@ export function groupByStatus(items, today = new Date()) {
   for (const { it } of keyed) (STATUS_KEYS.has(it.status) ? out[it.status] : out.new).push(it);
   return out;
 }
+
+// ─── The deadline timeline (pure) ─────────────────────────────────────────────
+// The board as a timeline: new finds wait in a tray to be sorted; everything
+// the student kept and is still working on is listed by the month its
+// deadline falls in. Finds with no set date (rolling, or no date on the page)
+// come after the months; ones whose deadline has passed, and finished ones,
+// each get a group of their own at the end, never mixed into the months.
+
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September",
+  "October", "November", "December"];
+
+/** The statuses still being worked on, in the order they sort within a day:
+ *  started first (it needs work), then saved, then sent. */
+const ACTIVE_ORDER = { applying: 0, saved: 1, applied: 2 };
+export const ACTIVE_STATUSES = Object.keys(ACTIVE_ORDER);
+
+/** "October", or "January 2027" in another year than `today`'s. */
+export function monthLabel(date, today = new Date()) {
+  const d = toDate(date);
+  if (!d) return "";
+  const now = toDate(today);
+  const name = MONTH_NAMES[d.getMonth()];
+  return now && d.getFullYear() === now.getFullYear() ? name : `${name} ${d.getFullYear()}`;
+}
+
+const NO_DATE_LABEL = "No set date";
+const CLOSED_LABEL = "Closed";
+
+/**
+ * {
+ *   tray: new finds, in board order (soonest deadline first, then the newest
+ *         find in Talon's ranked order), unknown statuses included;
+ *   months: [{ key: "2026-10", label: "October", items }], in date order,
+ *         each by deadline, then applying, saved, applied;
+ *   undated: saved, applying or applied with no date, applying first;
+ *   closed: saved, applying or applied whose deadline has passed, the most
+ *         recently closed first;
+ *   done: finished ones, the latest deadline first (no date last);
+ *   dismissed: in board order.
+ * }
+ * Ties keep board order (sorts are stable).
+ */
+export function groupByDeadline(items, today = new Date()) {
+  const by = groupByStatus(items, today);
+  const rank = (it) => ACTIVE_ORDER[it.status] ?? 3;
+  const day = (it) => { const d = deadlineDay(it); return d ? dayNumber(d) : null; };
+
+  const months = new Map();
+  const undated = [];
+  const closed = [];
+  // Board order across the three statuses, so a tie stays where groupByStatus put it.
+  const active = ACTIVE_STATUSES.flatMap((k) => by[k]);
+  for (const it of active) {
+    const d = deadlineDay(it);
+    const left = d ? daysBetween(today, d) : null;
+    if (left === null) { undated.push(it); continue; }
+    if (left < 0) { closed.push(it); continue; }
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (!months.has(key)) months.set(key, { key, label: monthLabel(d, today), items: [] });
+    months.get(key).items.push(it);
+  }
+
+  const monthList = [...months.values()].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  for (const m of monthList) m.items.sort((a, b) => day(a) - day(b) || rank(a) - rank(b));
+  undated.sort((a, b) => rank(a) - rank(b));
+  closed.sort((a, b) => day(b) - day(a) || rank(a) - rank(b));
+  const done = [...by.done].sort((a, b) => {
+    const da = day(a);
+    const db = day(b);
+    if (da === null || db === null) return (da === null) - (db === null);
+    return db - da;
+  });
+
+  return { tray: by.new, months: monthList, undated, closed, done, dismissed: by.dismissed };
+}
+
+/** Where an item shows on the timeline, in the words of its group heading:
+ *  "October", "January 2027", "No set date", "Closed", "Done", "Dismissed",
+ *  or "New finds" for one still waiting to be sorted. */
+export function timelinePlace(item, today = new Date()) {
+  if (item?.status === "done") return statusLabel("done");
+  if (item?.status === "dismissed") return statusLabel("dismissed");
+  if (!ACTIVE_STATUSES.includes(item?.status)) return statusLabel("new");
+  const d = deadlineDay(item);
+  const left = d ? daysBetween(today, d) : null;
+  if (left === null) return NO_DATE_LABEL;
+  if (left < 0) return CLOSED_LABEL;
+  return monthLabel(d, today);
+}
+
+/** The headings timelinePlace and the board share. */
+export const TIMELINE_LABELS = { undated: NO_DATE_LABEL, closed: CLOSED_LABEL };
 
 // ─── Writes: only the student's columns ──────────────────────────────────────
 
