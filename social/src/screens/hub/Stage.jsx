@@ -11,10 +11,10 @@ import { CLAMP } from "../../kit/motion.js";
 /** Where a stage bird stands, in canvas px. `unit` is CSS px per art pixel. */
 export const STAGE = {
   unit: 15,                 // a 32px sprite drawn 480px wide
-  x: 255,                   // the sprite box's left edge once landed: centred on x 495, the middle of the safe area
+  x: 300,                   // the sprite box's left edge once landed: centred on x 540, the canvas's middle
   y: 610,                   // the sprite box's top edge once landed
   ground: 610 + 32 * 15,    // where the feet stand
-  center: 255 + 16 * 15,
+  center: 300 + 16 * 15,
 };
 
 // Each sprite's feet, in art columns (centre), so the shadow sits under them.

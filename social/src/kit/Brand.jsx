@@ -1,4 +1,4 @@
-import { BG, BORDER, LAYOUT, SAFE, SANS, TEXT_MUTED, WHITE, lighten, useInk } from "../brand/brand.js";
+import { BG, BORDER, COLUMN, LAYOUT, SANS, TEXT_MUTED, WHITE, lighten, useInk } from "../brand/brand.js";
 
 // The wordmark as the app's sidebar draws it (lowercase Raleway 700, tight
 // tracking, the accent, a small dot after it) and the BETA pill that sits
@@ -46,11 +46,11 @@ export function DemoPill({ size = 26 }) {
  *  move it under the caption. */
 export function BrandBug({ demo = false }) {
   return (
-    <div style={{ position: "absolute", left: SAFE.left, top: LAYOUT.bugTop, width: SAFE.right - SAFE.left, display: "flex",
-      alignItems: "center", gap: 14 }}>
+    <div style={{ position: "absolute", left: COLUMN.top.left, top: LAYOUT.bugTop, width: COLUMN.top.width, display: "flex",
+      justifyContent: "center", alignItems: "center", gap: 14 }}>
       <Wordmark size={46} />
       <BetaPill size={28} />
-      {demo && <span style={{ marginLeft: "auto" }}><DemoPill /></span>}
+      {demo && <DemoPill />}
     </div>
   );
 }

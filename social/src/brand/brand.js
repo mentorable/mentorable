@@ -21,6 +21,12 @@ export const FPS = 30;
 export const SAFE = { top: 220, bottom: 1440, left: 60, right: 930 };
 export const RIGHT_RAIL = { x: 930, top: 640, bottom: 1700 };
 
+// Everything is centred on the canvas's middle. Above the rail (y < 640) a
+// centred block may be up to 960 wide (x 60..1020); beside it, up to 780
+// (x 150..930, the phone's own column), so nothing slides under the buttons.
+export const CENTER_X = W / 2;
+export const COLUMN = { top: { left: 60, width: 960 }, beside: { left: 150, width: 780 } };
+
 // Where the shared overlays sit, so scenes can stay clear of them.
 export const LAYOUT = {
   bugTop: 222,        // the wordmark + BETA pill

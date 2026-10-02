@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame } from "remotion";
-import { BG, BORDER, SANS, TEXT, TEXT_MID, WHITE, useInk } from "../../../brand/brand.js";
+import { BG, BORDER, COLUMN, SANS, TEXT, TEXT_MID, WHITE, useInk } from "../../../brand/brand.js";
 import { BEAKER, TALON } from "../../../brand/sprites.js";
 import { BetaPill, Wordmark } from "../../../kit/Brand.jsx";
 import { pop } from "../../../kit/motion.js";
@@ -7,8 +7,8 @@ import { StageBird, depart } from "../../../screens/hub/Stage.jsx";
 import { END_CARD } from "../copy.js";
 
 // The end card, the whole frame (no caption card or brand line over it).
-// Left-aligned on the same edge as every caption before it: the wordmark and
-// BETA pill, the two birds standing together, then the beta line as the
+// Centred on the canvas like every caption before it: the wordmark and BETA
+// pill, the two birds standing together, then the beta line as the
 // biggest words in the video, what it means, and where to find it. It pops
 // together in the first 15 frames and then holds dead still. In the last 18
 // frames Beaker takes off out of the right edge, which is where he comes back
@@ -17,8 +17,10 @@ import { END_CARD } from "../copy.js";
 const U = 10;                      // CSS px per art pixel
 const BIRDS_TOP = 400;
 const GROUND = BIRDS_TOP + 32 * U;
-const TALON_X = 50;                // Talon's art starts two columns in, so he lines up near x 70
-const BEAKER_X = 380;
+// The pair sits centred on x 540 (the sprites' art is not centred in their
+// boxes, so these were set by eye from renders).
+const TALON_X = 215;
+const BEAKER_X = 545;
 const TAKEOFF = 117;
 
 function parts(text) {
@@ -33,7 +35,8 @@ export default function EndCard() {
   const off = depart(frame, { start: TAKEOFF, end: TAKEOFF + 16, fromX: BEAKER_X, fromY: BIRDS_TOP, toX: 1160, toY: 150 });
   return (
     <AbsoluteFill style={{ background: BG, fontFamily: SANS }}>
-      <div style={{ position: "absolute", left: 60, top: 262, display: "flex", alignItems: "center", gap: 18, ...pop(frame, 1) }}>
+      <div style={{ position: "absolute", left: COLUMN.top.left, width: COLUMN.top.width, top: 262, display: "flex",
+        justifyContent: "center", alignItems: "center", gap: 18, ...pop(frame, 1) }}>
         <Wordmark size={52} />
         <BetaPill size={26} />
       </div>
@@ -44,13 +47,13 @@ export default function EndCard() {
           y={flying ? off.y : BIRDS_TOP} unit={U} ground={GROUND} offset={flying ? -TAKEOFF : 0} />
       )}
 
-      <div style={{ position: "absolute", left: 60, top: GROUND + 64, width: 870 }}>
-        <div style={{ fontWeight: 800, fontSize: 118, lineHeight: 1.02, letterSpacing: "-0.035em", color: TEXT, ...pop(frame, 3, { rise: 14 }) }}>
+      <div style={{ position: "absolute", left: COLUMN.beside.left, top: GROUND + 64, width: COLUMN.beside.width, textAlign: "center" }}>
+        <div style={{ fontWeight: 800, fontSize: 118, lineHeight: 1.02, letterSpacing: "-0.035em", color: TEXT, textWrap: "balance", ...pop(frame, 3, { rise: 14 }) }}>
           {parts(END_CARD.headline).map((p, i) => (
             <span key={i} style={p.accent ? { color: ink.text } : undefined}>{p.t}</span>
           ))}
         </div>
-        <p style={{ margin: "30px 0 0", maxWidth: 820, fontWeight: 600, fontSize: 44, lineHeight: 1.36, color: TEXT_MID,
+        <p style={{ margin: "30px auto 0", fontWeight: 600, fontSize: 44, lineHeight: 1.36, color: TEXT_MID, textWrap: "balance",
           ...pop(frame, 7) }}>
           {END_CARD.sub}
         </p>

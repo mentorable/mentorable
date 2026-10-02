@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame } from "remotion";
-import { BG, BORDER, SANS, TEXT, TEXT_MUTED, WHITE, useInk } from "../../../brand/brand.js";
+import { BG, BORDER, COLUMN, SANS, TEXT, TEXT_MUTED, WHITE, useInk } from "../../../brand/brand.js";
 import { typingLength, useTyping } from "../../../kit/typing.jsx";
 
 // "emailing a professor at 16 is terrifying". A plain compose card, no
@@ -25,7 +25,7 @@ const SEED = "dear";
 // script, seed or typing rhythm keeps the caret's blink in step (72 today).
 const EMPTY_AT = START + typingLength(SCRIPT, SEED);
 
-const CARD = { left: 60, top: 590, width: 870, height: 800 };
+const CARD = { left: COLUMN.beside.left, top: 590, width: COLUMN.beside.width, height: 800 };   // centred, clear of the button rail
 const PAD = 44;
 
 function Row({ label, children }) {

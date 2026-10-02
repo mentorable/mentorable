@@ -33,7 +33,8 @@ npm run render:001                                        # out/001-agents.mp4 a
   mascots. No glows, gradients, particles or sparkle icons.
 - Hard cuts, snappy moves, a little handheld drift, real-looking taps and
   uneven typing. Everything seeded from the frame number, so renders repeat.
-- Captions sound like a person: lowercase, short, specific, no em dashes.
+- Captions sound like a person: sentence case, short, specific, no em dashes.
+  Name what a thing is (Beaker and Talon are "agents") the first time it appears.
 - Demo data is invented. No real professor, school or scholarship is named.
 - Every claim on screen is something the product actually does.
 
