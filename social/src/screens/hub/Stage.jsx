@@ -21,17 +21,19 @@ export const STAGE = {
 const FEET = { beaker: 12.5, talon: 16.5 };
 
 /** A flight in from the left: the box's left/top at `frame`, landing at
- *  `land`. Decelerates into the landing (x eases out) while gliding down a
- *  shallow curve (y eases in and out), so the path is a slight arc. */
-export function arrive(frame, { start = 0, land, fromX = -240, fromY = 470, toX = STAGE.x, toY = STAGE.y }) {
+ *  `land`. Decelerates into the landing (x eases out, cubic, so the last
+ *  stretch is a soft glide rather than a stop) while gliding down a shallow
+ *  curve (y eases in and out), so the path is a slight arc. Give it 30 to 40
+ *  frames. `easing` replaces the x easing (a swoop that picks up speed first). */
+export function arrive(frame, { start = 0, land, fromX = -240, fromY = 470, toX = STAGE.x, toY = STAGE.y, easing = Easing.out(Easing.cubic) }) {
   return {
-    x: interpolate(frame, [start, land], [fromX, toX], { ...CLAMP, easing: Easing.out(Easing.quad) }),
+    x: interpolate(frame, [start, land], [fromX, toX], { ...CLAMP, easing }),
     y: interpolate(frame, [start, land], [fromY, toY], { ...CLAMP, easing: Easing.inOut(Easing.sin) }),
     landed: frame >= land,
   };
 }
 
-/** A take-off to the right: accelerating, climbing. */
+/** A take-off to the right: accelerating, climbing. Give it 20 frames or more. */
 export function depart(frame, { start, end, fromX = STAGE.x, fromY = STAGE.y, toX = 1180, toY = 380 }) {
   return {
     x: interpolate(frame, [start, end], [fromX, toX], { ...CLAMP, easing: Easing.in(Easing.quad) }),

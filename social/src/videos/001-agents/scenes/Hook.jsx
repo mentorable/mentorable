@@ -7,8 +7,9 @@ import { typingLength, useTyping } from "../../../kit/typing.jsx";
 // round corners) with To and Subject rows and a body, drawn big so the typing
 // is the whole picture. The address in To stops at the @, a guess abandoned
 // halfway. "Dear Professor" goes in with a thumb's uneven rhythm and one
-// doubled letter fixed, sits there, then a held backspace eats it, and the
-// caret blinks alone in the empty body until the cut.
+// doubled letter fixed (done on frame 56), sits there for a real pause (the
+// first backspace lands on 80), then a held backspace eats it (empty on 99),
+// and the caret blinks alone in the empty body for the last 21 frames.
 //
 // No phone frame on purpose: the hook has under a second to land while the
 // feed is still moving, and at phone scale the body text would be 30px on
@@ -16,13 +17,13 @@ import { typingLength, useTyping } from "../../../kit/typing.jsx";
 
 const SCRIPT = [
   { text: "Dear Professor", typo: { at: 9, wrong: "f" } },  // "Proff", noticed, fixed
-  { pause: 10 },
+  { pause: 20 },   // the finished words sit there before the backspace
   { erase: true },
 ];
 const START = 2;
 const SEED = "dear";
 // The frame the last backspace lands, read off the script itself, so a new
-// script, seed or typing rhythm keeps the caret's blink in step (72 today).
+// script, seed or typing rhythm keeps the caret's blink in step (99 today).
 const EMPTY_AT = START + typingLength(SCRIPT, SEED);
 
 const CARD = { left: COLUMN.beside.left, top: 590, width: COLUMN.beside.width, height: 800 };   // centred, clear of the button rail
@@ -42,9 +43,9 @@ export default function Hook() {
   const ink = useInk();
   const typed = useTyping(SCRIPT, { start: START, seed: SEED });
 
-  // The caret: solid while keys land, then the usual blink, timed from the
-  // moment the body went empty so the last beat shows it go off and come back.
-  const caretOn = frame < EMPTY_AT + 5 || Math.floor((frame - EMPTY_AT - 5) / 8) % 2 === 1;
+  // The caret: solid while keys land, then an unhurried blink, timed from
+  // the moment the body went empty so the last beat shows it go off and come back.
+  const caretOn = frame < EMPTY_AT + 3 || Math.floor((frame - EMPTY_AT - 3) / 9) % 2 === 1;
   const hasText = typed.value.length > 0;
 
   return (

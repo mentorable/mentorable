@@ -1,8 +1,10 @@
 import { Easing, interpolate } from "remotion";
 
-// Motion that reads as edited by a person, not generated: things snap into
-// place in a handful of frames (no long floaty eases), cuts are hard, and
-// anything "random" is seeded so every render is identical.
+// Motion that reads as edited by a person, not generated: small things (a
+// card, a caption) settle in a handful of frames, big moves (a scroll, a
+// flight, a push-in) take their time, cuts are hard, and anything "random" is
+// seeded so every render is identical. Unhurried beats frantic: every state
+// a viewer should read holds for at least a second and a half.
 
 export const CLAMP = { extrapolateLeft: "clamp", extrapolateRight: "clamp" };
 

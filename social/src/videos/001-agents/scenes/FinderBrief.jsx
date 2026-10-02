@@ -7,22 +7,24 @@ import { BriefScreen, LaneScreen, SearchScreen } from "../../../screens/finder/N
 import { progressEarly } from "../../../screens/finder/data.js";
 import { FINDER_BRIEF } from "../demoData.js";
 
-// 18.0 to 21.0 s: "talon scouts scholarships and programs for you".
+// 29.0 to 34.0 s: "Talon scouts scholarships and programs for you".
 // Talon's new-find flow on the phone, three shots on hard cuts, each held
-// long enough to read (20 frames or more):
+// long enough to read (45 frames or more):
 //   0   the lane choice, Scholarships or Activities; a tap on Scholarships at
-//       10 selects it, and "Selected" holds for 10 frames before the cut
-//   20  the brief: we cut in as she finishes typing what she's after (one
-//       typo), and it rests a few frames once she's done. The box has focus,
-//       so the phone's keyboard is up, as in Beaker's goal box before it
-//   46  the search: Talon over the scouting sky, the server's checklist, and
-//       Talon's own lines (TALON_LINES.searching) turning over at 68
+//       14 selects it, and "Selected" holds for 30 frames before the cut
+//   44  the brief: we cut in as she finishes typing what she's after, at the
+//       kit's thumb pace (2 to 4 frames a key, one typo noticed and fixed),
+//       from 48, done at 83 and resting 21 frames till the cut. The box has focus, so
+//       the phone's keyboard is up, as in Beaker's goal box before it
+//   104 the search: Talon over the scouting sky, the server's checklist, and
+//       Talon's first line (TALON_LINES.searching[0]), held to the end. One
+//       line only: a second would get less than a second and a half.
 // The real flow has a check step between the brief and the search; the edit
 // cuts past it (its dense summary can't be read in a shot this short).
 // Nothing scrolls on screen: each shot opens where its detail is, as a cut
 // would.
 
-const AT = { laneTap: 10, brief: 20, search: 46, lineTwo: 68 };
+const AT = { laneTap: 14, brief: 44, typeFrom: 48, search: 104 };
 const S = SCREEN.statusBar;   // viewport y + S = the phone's own y, for Tap
 
 // Maya's record as the server counts it. Beaker's checklist reads the same
@@ -33,23 +35,27 @@ const RECORD = { activities: 4, awards: 1 };
 const PROGRESS = progressEarly(RECORD);
 
 // The want, as she finishes it: the cut lands after "marine ", and
-// "biologist" goes in with one slip (p for o, the next key over).
-const PREFIX = "scholarships for a future marine ";
+// "biologist" goes in with one slip (p for o, the next key over). Cutting
+// in on a word break keeps the last word from hopping between lines.
 const WORD = "biologist";
+const PREFIX = "scholarships for a future marine ";
+const REST = WORD;
 const TYPO = { at: 4, wrong: "p" };
 
+// The same rhythm as the kit's typing (kit/typing.jsx): 2 to 4 frames a key,
+// a wrong key noticed after 7 frames and backspaced 3 later.
 function typingEvents(seed) {
   const ev = [{ f: 0, value: PREFIX }];
   let f = 0;
   let value = PREFIX;
-  [...WORD].forEach((ch, i) => {
-    const gap = 1 + (random(`${seed}-${i}`) < 0.45 ? 1 : 0);
+  const gap = (n) => 2 + Math.floor(random(`${seed}-${n}`) * 2.6);
+  [...REST].forEach((ch, i) => {
     if (i === TYPO.at) {
-      f += gap; value += TYPO.wrong; ev.push({ f, value });
-      f += 3; value = value.slice(0, -1); ev.push({ f, value });   // notices, one backspace
-      f += 2;
+      f += gap(`typo-${i}`); value += TYPO.wrong; ev.push({ f, value });
+      f += 7; value = value.slice(0, -1); ev.push({ f, value });   // notices, one backspace
+      f += 3;
     } else {
-      f += gap;
+      f += gap(i);
     }
     value += ch;
     ev.push({ f, value });
@@ -94,17 +100,17 @@ export default function FinderBrief() {
     screen = <LaneScreen lane={picked} pressedKey={frame >= AT.laneTap && frame < AT.laneTap + 3 ? "scholarship" : null}
       anchorY={263} mascotOffset={3} />;
   } else if (frame < AT.search) {
-    const typed = typedAt(frame - AT.brief);
+    const typed = typedAt(frame - AT.typeFrom);
     screen = <BriefScreen brief={{ ...BRIEF, want: typed.value }} typing={typed.typing} focused anchorY={92}
       mascotOffset={3} />;
     // The box has focus, so the phone's keyboard is up for the whole shot;
     // the hard cut to the search takes it away with the field.
     keys = <Keyboard shown={1} suggestions={suggestionsFor(typed.value)} />;
   } else {
-    // Seconds since the search started: the cut lands a few seconds in, and
-    // Talon's line turns over at 4.5 s, as the app's timer does.
-    const t = 4.5 + (frame - AT.lineTwo) / 30;
-    const saying = TALON_LINES.searching[t < 4.5 ? 0 : 1];
+    // Seconds since the search started: the cut lands a second in, and the
+    // shot ends before 4.5 s, when the app's timer would turn Talon's line.
+    const t = 1 + (frame - AT.search) / 30;
+    const saying = TALON_LINES.searching[0];
     screen = <SearchScreen t={t} progress={PROGRESS} saying={saying} anchorY={20} />;
   }
 

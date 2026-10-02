@@ -9,10 +9,11 @@ import { END_CARD } from "../copy.js";
 // The end card, the whole frame (no caption card or brand line over it).
 // Centred on the canvas like every caption before it: the wordmark and BETA
 // pill, the two birds standing together, then the beta line as the
-// biggest words in the video, what it means, and where to find it. It pops
-// together in the first 15 frames and then holds dead still. In the last 18
-// frames Beaker takes off out of the right edge, which is where he comes back
-// in from the left a few seconds into the loop.
+// biggest words in the video, what it means, and where to find it. It
+// settles in over the first 20 frames, holds dead still for 122 frames (just
+// over 4 seconds), and only then, in the last 23 frames, Beaker takes off out
+// of the right edge, which is where he comes back in from the left a few
+// seconds into the loop.
 
 const U = 10;                      // CSS px per art pixel
 const BIRDS_TOP = 400;
@@ -21,7 +22,9 @@ const GROUND = BIRDS_TOP + 32 * U;
 // boxes, so these were set by eye from renders).
 const TALON_X = 215;
 const BEAKER_X = 545;
-const TAKEOFF = 117;
+const TAKEOFF = 142;
+const TAKEOFF_FRAMES = 23;   // gone on the scene's last frame + 1
+const POP = { dur: 8 };
 
 function parts(text) {
   return text.split(/(\*[^*]+\*)/g).filter(Boolean).map((p) =>
@@ -32,11 +35,11 @@ export default function EndCard() {
   const frame = useCurrentFrame();
   const ink = useInk();
   const flying = frame >= TAKEOFF;
-  const off = depart(frame, { start: TAKEOFF, end: TAKEOFF + 16, fromX: BEAKER_X, fromY: BIRDS_TOP, toX: 1160, toY: 150 });
+  const off = depart(frame, { start: TAKEOFF, end: TAKEOFF + TAKEOFF_FRAMES, fromX: BEAKER_X, fromY: BIRDS_TOP, toX: 1160, toY: 150 });
   return (
     <AbsoluteFill style={{ background: BG, fontFamily: SANS }}>
       <div style={{ position: "absolute", left: COLUMN.top.left, width: COLUMN.top.width, top: 262, display: "flex",
-        justifyContent: "center", alignItems: "center", gap: 18, ...pop(frame, 1) }}>
+        justifyContent: "center", alignItems: "center", gap: 18, ...pop(frame, 1, POP) }}>
         <Wordmark size={52} />
         <BetaPill size={26} />
       </div>
@@ -48,16 +51,16 @@ export default function EndCard() {
       )}
 
       <div style={{ position: "absolute", left: COLUMN.beside.left, top: GROUND + 64, width: COLUMN.beside.width, textAlign: "center" }}>
-        <div style={{ fontWeight: 800, fontSize: 118, lineHeight: 1.02, letterSpacing: "-0.035em", color: TEXT, textWrap: "balance", ...pop(frame, 3, { rise: 14 }) }}>
+        <div style={{ fontWeight: 800, fontSize: 118, lineHeight: 1.02, letterSpacing: "-0.035em", color: TEXT, textWrap: "balance", ...pop(frame, 4, { ...POP, rise: 14 }) }}>
           {parts(END_CARD.headline).map((p, i) => (
             <span key={i} style={p.accent ? { color: ink.text } : undefined}>{p.t}</span>
           ))}
         </div>
         <p style={{ margin: "30px auto 0", fontWeight: 600, fontSize: 44, lineHeight: 1.36, color: TEXT_MID, textWrap: "balance",
-          ...pop(frame, 7) }}>
+          ...pop(frame, 8, POP) }}>
           {END_CARD.sub}
         </p>
-        <div style={{ marginTop: 46, ...pop(frame, 11) }}>
+        <div style={{ marginTop: 46, ...pop(frame, 12, POP) }}>
           <span style={{ display: "inline-block", background: WHITE, border: `2px solid ${BORDER}`, borderRadius: 999,
             padding: "20px 40px 24px", fontWeight: 800, fontSize: 52, letterSpacing: "-0.01em", color: ink.text,
             boxShadow: "0 4px 0 rgba(20,20,19,0.06)" }}>

@@ -7,7 +7,7 @@
     "studio": "remotion studio src/index.js",
     "render": "remotion render src/index.js",
     "still": "remotion still src/index.js",
-    "render:001": "remotion render src/index.js Agents001 out/001-agents.mp4 && remotion still src/index.js Agents001 out/001-agents-cover.png --frame=930"
+    "render:001": "remotion render src/index.js Agents001 out/001-agents.mp4 && remotion still src/index.js Agents001 out/001-agents-cover.png --frame=1440"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.532",

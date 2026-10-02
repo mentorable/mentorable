@@ -23,15 +23,16 @@ export const CANDIDATES = SHORTLIST.map((p, i) => ({
 /** The checklist a goal's shortlist run streams (service._record, then
  *  research.find_people), each line as it is at a frame offset from the
  *  moment "Find people" is pressed. The labels are the server's formats
- *  (_found_label, "Searching: <query>"); the queries are short enough to sit
- *  on one line each, so the newest line lands inside the safe area. */
+ *  (_found_label, "Searching: <query>"); the query is short enough to sit on
+ *  one line, so the newest line lands inside the safe area. Spaced for a
+ *  calm read: the record line ticks while the thumb's drag (6 to 38) brings
+ *  the list into view, and the search line arrives early and holds to the
+ *  cut (the shortlist itself is the next shot). */
 export const SHORTLIST_PROGRESS = [
   { at: 0, id: "record", label: "Reading your record", status: "active" },
-  { at: 7, id: "record", label: "Read your record: 4 activities and 1 award", status: "done" },
-  { at: 9, id: "search-1", label: "Searching the web", status: "active" },
-  { at: 13, id: "search-1", label: "Searching: marine biology research labs California", status: "active" },
-  { at: 27, id: "search-1", label: "Found 4 pages on harborstate.edu", status: "done" },
-  { at: 29, id: "search-2", label: "Searching: tide pool surveys", status: "active" },
+  { at: 10, id: "record", label: "Read your record: 4 activities and 1 award", status: "done" },
+  { at: 14, id: "search-1", label: "Searching the web", status: "active" },
+  { at: 20, id: "search-1", label: "Searching: marine biology research labs California", status: "active" },
 ];
 
 /** The checklist at `t` frames after the run started (mergeProgress). */

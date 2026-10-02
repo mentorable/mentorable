@@ -18,9 +18,9 @@ function build(steps, seed) {
   const gap = () => {
     n += 1;
     const r = random(`${seed}-${n}`);
-    // 1 to 3 frames a key (a quick thumb at 30 fps), and now and then a
+    // 2 to 4 frames a key (an easy thumb at 30 fps), and now and then a
     // longer think.
-    return 1 + Math.floor(r * 2.6) + (random(`${seed}-h-${n}`) < 0.06 ? 4 : 0);
+    return 2 + Math.floor(r * 2.6) + (random(`${seed}-h-${n}`) < 0.06 ? 5 : 0);
   };
   const push = (next, wait) => {
     f += wait;

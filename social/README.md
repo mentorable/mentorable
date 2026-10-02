@@ -31,8 +31,11 @@ npm run render:001                                        # out/001-agents.mp4 a
 
 - The real product's look: the app's grey, white cards, Raleway, the pixel
   mascots. No glows, gradients, particles or sparkle icons.
-- Hard cuts, snappy moves, a little handheld drift, real-looking taps and
-  uneven typing. Everything seeded from the frame number, so renders repeat.
+- Unhurried: every state a viewer should read holds 1.5 s or more. Hard cuts,
+  slow smooth scrolls, at most two gradual push-ins a video, a little handheld
+  drift, real-looking taps and uneven typing. Everything seeded from the frame
+  number, so renders repeat.
+- Everything centred on the canvas; text in sentence case.
 - Captions sound like a person: sentence case, short, specific, no em dashes.
   Name what a thing is (Beaker and Talon are "agents") the first time it appears.
 - Demo data is invented. No real professor, school or scholarship is named.

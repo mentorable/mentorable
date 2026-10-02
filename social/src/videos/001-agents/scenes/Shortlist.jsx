@@ -8,26 +8,27 @@ import { NewOutreachPage, ShortlistStep } from "../../../screens/outreach/NewOut
 import { CANDIDATES } from "../../../screens/outreach/demo001.js";
 import { OUTREACH_GOAL, PICKED } from "../demoData.js";
 
-// 8.0 s, "it finds real people doing that work" (75 frames).
+// 8.0 s, "it finds real people doing that work" (120 frames).
 // The shortlist as it lands: Beaker holding up a letter over its line, the
-// goal, the first person's name. One slow drag down (8 to 26) to the first
-// card whole, with the next person's name and role under it, and a hold
-// there (26 to 67): who she is, what she works on, and the page the search
-// found her on. A thumb presses "Write to Lena" at 71 and the scene cuts on
-// the press (the app moves to Details the moment it lands).
+// goal, the first person's name, held while the caption reads (0 to 34).
+// One slow drag down (34 to 68) to the first card whole, with the next
+// person's name and role under it, and a hold there (68 to 113): who she is,
+// what she works on, and the page the search found her on. A thumb presses
+// "Write to Lena" at 113 and the scene cuts on the press (the app moves to
+// Details the moment it lands).
 //
 // Page-y positions (CSS px) are from laying the rebuilt page out at the
 // app's mobile width; the band a viewer reads is screen y 46 to 422.
 
 const TOP = 241;          // Beaker, its line, the goal, the first card's name and role
 const PICK = 486;         // the first card whole, the second's name and role
-const DRAG = 8;
-const DRAG_FRAMES = 18;
-const PRESS = 71;
+const DRAG = 34;
+const DRAG_FRAMES = 34;
+const PRESS = DRAG + DRAG_FRAMES + 45;   // the card held for a second and a half first
 const WRITE_TO = { x: 115, y: 721 };   // "Write to Lena", page-y, on the first card
 
 // A drag, not a fling: the page follows the thumb, easing in and out.
-const DRAG_EASE = Easing.inOut(Easing.quad);
+const DRAG_EASE = Easing.inOut(Easing.cubic);
 
 export default function Shortlist() {
   const frame = useCurrentFrame();

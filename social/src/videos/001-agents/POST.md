@@ -1,7 +1,7 @@
 # Video #1: Meet Beaker and Talon (product demo)
 
-File: `social/out/001-agents.mp4` (1080x1920, 30 fps, about 33 s)
-Cover: `social/out/001-agents-cover.png` (frame 930, the end card: both birds and "Mentorable is in beta"). Set it as the cover on both platforms; their default is frame 0, the empty email.
+File: `social/out/001-agents.mp4` (1080x1920, 30 fps, about 51 s)
+Cover: `social/out/001-agents-cover.png` (frame 1440, the end card: both birds and "Mentorable is in beta"). Set it as the cover on both platforms; their default is frame 0, the empty email.
 
 ## TikTok caption
 
