@@ -1,0 +1,22 @@
+{
+  "name": "mentorable-social",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.js",
+    "render": "remotion render src/index.js",
+    "still": "remotion still src/index.js",
+    "render:001": "remotion render src/index.js Agents001 out/001-agents.mp4 && remotion still src/index.js Agents001 out/001-agents-cover.png --frame=930"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.532",
+    "@remotion/cli": "4.0.532",
+    "@remotion/google-fonts": "4.0.532",
+    "@remotion/noise": "4.0.532",
+    "@remotion/renderer": "4.0.532",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "remotion": "4.0.532"
+  }
+}
