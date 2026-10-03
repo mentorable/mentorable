@@ -3,17 +3,18 @@ import { motion, useReducedMotion } from "framer-motion";
 import { formatDay, relativeDay } from "../../lib/quest.js";
 import { PixelStamp } from "../ui/PixelIcons.jsx";
 import { RADIUS, SURFACE } from "../ui/tokens.js";
+import { darken, lighten } from "../../lib/theme.js";
 import { StampTile } from "../ui/kit.jsx";
 import {
-  SANS, WHITE, INK, MID, MUTED, LINE, STONE, STONE_EDGE, AMBER, AMBER_EDGE, AMBER_WASH,
+  SANS, WHITE, INK, MID, MUTED, FAINT, LINE, STONE, STONE_EDGE, AMBER, AMBER_EDGE, AMBER_WASH,
   Chunky, Flame, useQuestColors,
 } from "./questUi.jsx";
 
 // The quest drawn as a climb: the start at the bottom, the finish line at the
 // top, one stone per scheduled day and a plate for each milestone. The page
 // scrolls today's stone into view, so the direction never costs a student a
-// scroll to find where they are. The stones keep their colour but sit flat,
-// marked in pixels like the rest of the app.
+// scroll to find where they are. The stones are raised, with a solid bottom
+// edge; the plates and the rest are flat and pixel-marked like the rest of the app.
 
 const ZIG = 0.9;
 
@@ -21,7 +22,24 @@ function offsetFor(slot, amp) {
   return Math.round(Math.sin((slot - 1) * ZIG) * amp);
 }
 
-/** A stone's pixel mark, in the colour given. */
+/** The raised stones' own icons: round-capped line drawings, as they were
+ *  before the pixel marks (the plates and other pieces keep the pixel ones). */
+function StoneIcon({ name, color, size = 22 }) {
+  const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color,
+    strokeWidth: 3, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true };
+  if (name === "check") return <svg {...common}><polyline points="5 12.5 10 17 19 7" /></svg>;
+  if (name === "lock") return (
+    <svg {...common} strokeWidth={2.4}><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+  );
+  if (name === "star") return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path fill={color} d="M12 2.8l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-2.9-5.4 2.9 1.1-6L3.2 9.2l6.1-.8L12 2.8z" />
+    </svg>
+  );
+  return null;
+}
+
+/** A pixel mark, in the colour given. */
 function Mark({ kind, color, size = 24 }) {
   return <PixelStamp kind={kind} size={size} style={{ color }} />;
 }
@@ -29,28 +47,31 @@ function Mark({ kind, color, size = 24 }) {
 // ─── A stone ──────────────────────────────────────────────────────────────────
 
 const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, amp, label }, ref) {
-  const c = useQuestColors();
+  const ink = useQuestColors();
   const reduce = useReducedMotion();
   const { state, doable } = stone;
   const isToday = state === "today" || (todayState === "done" && stone.isTodaySlot);
   const size = isToday ? 70 : state === "future" ? 46 : 56;
+  // The raised stones' own colours, from the accent: a solid bottom edge, not the kit's flat tints.
+  const c = { accent: ink.accent, edge: darken(ink.accent, 0.28), soft: lighten(ink.accent, 0.55) };
 
-  let bg = STONE, border = `1px solid ${STONE_EDGE}`, halo = null, icon = null, cursor = "default";
+  let bg = STONE, edge = STONE_EDGE, border = "none", icon = null, cursor = "default";
   if (state === "done") {
-    bg = c.button.bg; border = `1px solid ${c.button.bg}`; icon = <Mark kind="check" color={c.button.fg} />; cursor = "pointer";
+    bg = c.accent; edge = c.edge; icon = <StoneIcon name="check" color={WHITE} />; cursor = "pointer";
   } else if (state === "late") {
-    bg = c.soft; border = `1.5px solid ${c.text}`; icon = <Mark kind="check" color={c.onSoft} />; cursor = "pointer";
+    bg = c.soft; edge = c.accent; icon = <StoneIcon name="check" color={c.edge} />; cursor = "pointer";
   } else if (state === "missed") {
-    bg = doable ? AMBER_WASH : "#f0eeea";
-    border = `1.5px dashed ${doable ? AMBER_EDGE : STONE_EDGE}`;
-    icon = doable ? null : <Mark kind="lock" color={MUTED} size={16} />;
+    bg = doable ? AMBER_WASH : "#f0f0ee";
+    edge = doable ? AMBER_EDGE : STONE_EDGE;
+    border = `3px dashed ${doable ? AMBER_EDGE : STONE_EDGE}`;
+    icon = doable ? null : <StoneIcon name="lock" color={FAINT} size={18} />;
     cursor = "pointer";
   } else if (state === "today") {
     if (doable) {
-      bg = WHITE; border = `1.5px solid ${c.text}`; halo = c.soft;
-      icon = <Mark kind="star" color={c.text} size={32} />;
+      bg = WHITE; edge = c.edge; border = `4px solid ${c.accent}`;
+      icon = <StoneIcon name="star" color={c.accent} size={28} />;
     } else {
-      bg = "#efedea"; border = `1px solid ${STONE_EDGE}`; icon = <Mark kind="lock" color={MUTED} />;
+      bg = "#efefed"; edge = STONE_EDGE; icon = <StoneIcon name="lock" color={FAINT} size={24} />;
     }
     cursor = "pointer";
   }
@@ -72,7 +93,7 @@ const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, a
           style={{
             width: size, height: size, borderRadius: "50%", cursor,
             background: bg, border, boxSizing: "border-box",
-            boxShadow: halo ? `0 0 0 6px ${halo}` : "none",
+            boxShadow: state === "future" ? `0 4px 0 ${edge}` : `0 5px 0 ${edge}`,
             display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
           }}
         >
