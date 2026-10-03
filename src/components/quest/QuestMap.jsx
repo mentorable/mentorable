@@ -22,6 +22,19 @@ function offsetFor(slot, amp) {
   return Math.round(Math.sin((slot - 1) * ZIG) * amp);
 }
 
+/** Space above a stone so it sits the same distance from the one before it
+ *  whatever the bend: where the path moves sideways a lot the stones need
+ *  less height, where it runs straight they need more. Spacing by height
+ *  alone made the bends look cramped and the straights stretched. */
+const GAP = 6;                       // the stone's space below it, as before
+function padTopFor(slot, amp, size) {
+  // Centre to centre, along the path: the widest bend a plain stone can make.
+  const reach = Math.ceil(Math.hypot(amp * ZIG, 56 + 2 * GAP)) + 1;
+  const dx = Math.abs(offsetFor(slot, amp) - offsetFor(slot - 1, amp));
+  const rise = Math.sqrt(Math.max(0, reach * reach - dx * dx));
+  return Math.max(GAP, Math.round(rise - size - GAP));
+}
+
 /** The raised stones' own icons: round-capped line drawings, as they were
  *  before the pixel marks (the plates and other pieces keep the pixel ones). */
 function StoneIcon({ name, color, size = 22 }) {
@@ -78,7 +91,7 @@ const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, a
 
   const pop = justDone && !reduce;
   return (
-    <div style={{ display: "flex", justifyContent: "center", padding: isToday ? "10px 0" : "6px 0" }}>
+    <div style={{ display: "flex", justifyContent: "center", padding: `${padTopFor(stone.slot, amp, size)}px 0 ${GAP}px` }}>
       <div style={{ position: "relative", transform: `translateX(${offsetFor(stone.slot, amp)}px)` }}>
         <motion.button
           ref={ref}
