@@ -3,10 +3,10 @@ import { motion, useReducedMotion } from "framer-motion";
 import { questApi, formatDay } from "../../lib/quest.js";
 import Spinner from "../common/Spinner.jsx";
 import { FOCUS_CLASS, RADIUS } from "../ui/tokens.js";
-import { INPUT_CLASS, Tip } from "../ui/kit.jsx";
+import { INPUT_CLASS } from "../ui/kit.jsx";
 import {
   SANS, WHITE, INK, MID, MUTED, LINE,
-  Chunky, DayToggles, ErrorLine, Segmented, TextButton, fieldStyle, useQuestColors,
+  Chunky, DayToggles, ErrorLine, QuietNote, Segmented, TextButton, fieldStyle, useQuestColors,
 } from "./questUi.jsx";
 import { MINUTE_OPTIONS } from "./QuestPanels.jsx";
 
@@ -438,9 +438,9 @@ export function DraftReview({ state, onStart, onDiscard, busy, error }) {
         <Chunky onClick={onStart} disabled={busy}>{busy ? "Starting..." : "Start quest"}</Chunky>
         <TextButton onClick={onDiscard} color={MUTED} disabled={busy}>Pick something else</TextButton>
       </div>
-      <Tip name="Tip" stamp="chat" tone="default" style={{ marginTop: 14 }}>
+      <QuietNote style={{ marginTop: 14 }}>
         Your advisor can reshape milestones later if the plan stops fitting.
-      </Tip>
+      </QuietNote>
     </div>
   );
 }

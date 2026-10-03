@@ -181,6 +181,16 @@ export function Chunky({ children, onClick, disabled, tone = "accent", full, sma
 }
 
 /** A plain text button for secondary actions, at least 44px tall. */
+/** A short, plain note in a quiet card: a tip or an aside, no mascot voice. */
+export function QuietNote({ children, style }) {
+  return (
+    <p style={{ margin: 0, padding: "12px 16px", background: WHITE, border: `1px solid ${LINE}`, borderRadius: RADIUS.card,
+      boxSizing: "border-box", fontFamily: SANS, fontSize: "0.98rem", fontWeight: 600, color: MID, lineHeight: 1.5, ...style }}>
+      {children}
+    </p>
+  );
+}
+
 export function TextButton({ children, onClick, color, style, disabled, ...rest }) {
   const c = useQuestColors();
   return (

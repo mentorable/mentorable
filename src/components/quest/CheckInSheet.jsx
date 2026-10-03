@@ -3,10 +3,10 @@ import { motion, useReducedMotion } from "framer-motion";
 import { formatDay } from "../../lib/quest.js";
 import Spinner from "../common/Spinner.jsx";
 import { FOCUS_CLASS, RADIUS, SURFACE } from "../ui/tokens.js";
-import { INPUT_CLASS, Tip } from "../ui/kit.jsx";
+import { INPUT_CLASS } from "../ui/kit.jsx";
 import {
   SANS, INK, MID, MUTED, LINE, AMBER,
-  Chunky, ErrorLine, FLAME_GROWS_AT, Flame, GrowingFlame, Sheet, TextButton, fieldStyle, useQuestColors,
+  Chunky, ErrorLine, FLAME_GROWS_AT, Flame, GrowingFlame, QuietNote, Sheet, TextButton, fieldStyle, useQuestColors,
 } from "./questUi.jsx";
 
 function useCountUp(target, run) {
@@ -143,9 +143,9 @@ function Resources({ slot, task, find, canSearch }) {
       )}
 
       {list !== null && list.length === 0 && (
-        <Tip name="Resources" stamp="question" tone="default" style={{ marginTop: 4 }}>
+        <QuietNote style={{ marginTop: 4 }}>
           Nothing solid turned up for this one. Your advisor in Chat can help you find a starting point.
-        </Tip>
+        </QuietNote>
       )}
 
       {list !== null && list.length > 0 && (
