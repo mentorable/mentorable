@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { formatDay, relativeDay } from "../../lib/quest.js";
 import { PixelStamp } from "../ui/PixelIcons.jsx";
 import { FOCUS_CLASS, RADIUS, SURFACE } from "../ui/tokens.js";
-import { INPUT_CLASS, StampTile, Tip } from "../ui/kit.jsx";
+import { INPUT_CLASS, StampTile } from "../ui/kit.jsx";
 import {
   SANS, WHITE, INK, MID, MUTED, LINE, AMBER, AMBER_LINE, AMBER_WASH, DANGER,
   Chunky, DayToggles, ErrorLine, Flame, LevelChip, Modal, Segmented, TextButton,
@@ -167,11 +167,27 @@ export function DeadlineNotice({ state, onAskAdvisor }) {
 }
 
 export function RestNote({ state }) {
+  const c = useQuestColors();
   if (state.today_state !== "rest") return null;
   return (
-    <Tip name="Rest day" stamp="clock" tone="default" style={{ marginTop: 14 }}>
-      Rest day today.{state.next_work_date ? ` Your next task opens ${relativeDay(state.next_work_date, state.today)}.` : ""}
-    </Tip>
+    <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 14, background: WHITE, boxSizing: "border-box",
+      border: `1px solid ${LINE}`, borderRadius: RADIUS.card, padding: "14px 16px" }}>
+      <span aria-hidden="true" style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, background: c.softer,
+        display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c.text} strokeWidth="2.2"
+          strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />
+        </svg>
+      </span>
+      <div style={{ minWidth: 0 }}>
+        <p style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "1.05rem", color: INK }}>Rest day</p>
+        <p style={{ margin: "2px 0 0", fontFamily: SANS, fontWeight: 600, fontSize: "0.98rem", color: MID, lineHeight: 1.45 }}>
+          {state.next_work_date
+            ? `Nothing to do today. Your next task opens ${relativeDay(state.next_work_date, state.today)}.`
+            : "Nothing to do today."}
+        </p>
+      </div>
+    </div>
   );
 }
 
