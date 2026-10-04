@@ -337,6 +337,37 @@ function Scoreboard({ counts, isMobile, reduce }) {
   );
 }
 
+/** The list's next step in the pixel guide bubble: the shape to aim for on
+ *  an empty list, what each group still needs while the goal pips are filling,
+ *  and the balance note (a list too low matters as much as one too high).
+ *  No badge: reaching the goal is just a calm line. */
+function NextStep({ counts }) {
+  const plural = (key, n) => (n === 1 ? key : { reach: "reaches", target: "targets", likely: "likelies" }[key]);
+  const missing = SECTIONS.map((s) => ({ ...s, n: Math.max(0, LIST_GOAL[s.key] - counts[s.key]) })).filter((s) => s.n);
+  const shape = SECTIONS.map((s) => `${LIST_GOAL[s.key]} ${plural(s.key, LIST_GOAL[s.key])}`);
+  let name, stamp, title, detail;
+  if (counts.total === 0) {
+    name = "Start here"; stamp = "scroll";
+    title = `Aim for ${shape[0]}, ${shape[1]} and ${shape[2]}.`;
+    detail = "Search for a school below and it lands in one of the three groups, with the reason why. Every one should be a school you would be glad to attend.";
+  } else if (missing.length) {
+    name = "Next step"; stamp = "flag";
+    const parts = missing.map((s) => `${s.n} more ${plural(s.key, s.n)}`);
+    title = `Add ${parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts[0]}.`;
+    detail = counts.note || "Each one a school you would be glad to attend.";
+  } else {
+    name = counts.note ? "Next step" : "Nice balance"; stamp = counts.note ? "flag" : "star";
+    title = counts.note ? "Almost there." : "Every group has reached its goal.";
+    detail = counts.note || "Keep every school on it one you would be glad to attend.";
+  }
+  return (
+    <Tip name={name} stamp={stamp} style={{ paddingTop: 0 }}>
+      <span style={{ display: "block", fontWeight: 800, fontSize: "1.05rem" }}>{title}</span>
+      <span style={{ display: "block", marginTop: 2, color: MID }}>{detail}</span>
+    </Tip>
+  );
+}
+
 /** How the page sorts schools and what its numbers mean, one tap away. */
 function HowItWorks({ navigate }) {
   const ink = useAccentInk();
@@ -1012,6 +1043,9 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
         {empty && search}
 
         <Scoreboard counts={b} isMobile={isMobile} reduce={reduce} />
+
+        {/* The import offer already says "Start here" for a brand-new list. */}
+        {!(empty && offerImport) && <NextStep counts={b} />}
 
         {!empty && search}
 
