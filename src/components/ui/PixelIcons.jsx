@@ -140,6 +140,37 @@ const STAMPS = {
     "xxxxxxxx",
     "........",
   ],
+  // Portfolio's record sections.
+  book: [
+    "xxxx.xxx",
+    "x..x.x.x",
+    "x..x.x.x",
+    "x..x.x.x",
+    "x..x.x.x",
+    "x..x.x.x",
+    "xxxxxxxx",
+    "........",
+  ],
+  pencil: [
+    "......xx",
+    ".....xxx",
+    "....xxx.",
+    "...xxx..",
+    "..xxx...",
+    ".xxx....",
+    "xx......",
+    "x.......",
+  ],
+  grade: [
+    "..x.....",
+    ".x.x....",
+    "x...x.x.",
+    "xxxxxxxx",
+    "x...x.x.",
+    "x...x...",
+    "x...x...",
+    "........",
+  ],
   lock: [
     "..xxxx..",
     ".x....x.",
@@ -219,7 +250,7 @@ export function PixelBeakIcon({ size = 20 }) {
 }
 
 /** kind: "letter" | "check" | "clock" | "star" | "sparkle" | "question" |
- *  "peak" | "target" | "flag" | "scroll" | "chat" | "person" | "lock".
+ *  "peak" | "target" | "flag" | "scroll" | "chat" | "person" | "lock" | "book" | "pencil" | "grade".
  *  Decorative unless given a `title`. */
 export function PixelStamp({ kind, size = 16, title, style }) {
   const grid = STAMPS[kind] || STAMPS.sparkle;

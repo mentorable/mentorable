@@ -86,17 +86,21 @@ function GroupLabel({ id, children }) {
   );
 }
 
+// Text boxes and dropdowns share one height, so the labels of a row of fields
+// line up (a native select otherwise renders a few pixels off an input).
+const CONTROL_HEIGHT = 48;
+
 function Input({ value, onChange, style, ...rest }) {
   return (
     <input value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={INPUT_CLASS}
-      style={{ ...inputStyle, ...style }} {...rest} />
+      style={{ ...inputStyle, height: CONTROL_HEIGHT, minHeight: 0, paddingTop: 0, paddingBottom: 0, ...style }} {...rest} />
   );
 }
 
 function Select({ value, onChange, options, placeholder = "Not set", ...rest }) {
   return (
     <select value={value || ""} onChange={(e) => onChange(e.target.value || null)} className={INPUT_CLASS}
-      style={{ ...inputStyle, cursor: "pointer" }} {...rest}>
+      style={{ ...inputStyle, height: CONTROL_HEIGHT, minHeight: 0, paddingTop: 0, paddingBottom: 0, cursor: "pointer" }} {...rest}>
       <option value="">{placeholder}</option>
       {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
@@ -132,13 +136,13 @@ function Chips({ options, value, onChange, multi = false, labelledBy }) {
   );
 }
 
-function IconBtn({ onClick, label, danger, children, ...rest }) {
+function IconBtn({ onClick, label, danger, children, style, ...rest }) {
   return (
     <button type="button" onClick={onClick} aria-label={label} className={FOCUS_CLASS}
       style={{
         flexShrink: 0, width: 44, height: 44, border: "none", background: "none", cursor: "pointer",
         color: TEXT_MUTED, display: "inline-flex", alignItems: "center", justifyContent: "center",
-        padding: 0, borderRadius: RADIUS.control, transition: "color 0.15s, background 0.15s",
+        padding: 0, borderRadius: RADIUS.control, transition: "color 0.15s, background 0.15s", ...style,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.color = danger ? DANGER : TEXT;
@@ -169,8 +173,7 @@ const PlusIcon = () => (
 
 /** A record section: the kit card with a pixel mark, the title and count,
  *  an action on the right and a line of guidance under it. */
-function SectionCard({ title, stamp, hint, accentHint, count, action, children }) {
-  const ink = useAgentInk();
+function SectionCard({ title, stamp, hint, count, action, children }) {
   return (
     <Card as="section" style={{ padding: "1.3rem 1.3rem 1.4rem", marginBottom: "1.25rem" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
@@ -188,8 +191,8 @@ function SectionCard({ title, stamp, hint, accentHint, count, action, children }
         {action}
       </div>
       {hint && (
-        <p style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: accentHint ? 600 : 500,
-          color: accentHint ? ink.text : TEXT_MUTED, lineHeight: 1.55, margin: "0 0 16px" }}>
+        <p style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.55,
+          margin: "0 0 16px", maxWidth: "62ch" }}>
           {hint}
         </p>
       )}
@@ -218,6 +221,9 @@ function EmptyNote({ children }) {
 
 /** One item in a record section: a smaller card inside the section's. */
 const itemCard = { padding: "12px 14px", marginBottom: 10, borderRadius: RADIUS.control };
+/** An item whose remove button is pinned to its top-right corner, clear of the fields. */
+const pinnedItem = { ...itemCard, position: "relative", paddingRight: 54 };
+const pinnedRemove = { position: "absolute", top: 4, right: 4 };
 
 // ─── Kept for ScorecardPage, which renders this beside its portfolio banner ───
 export function LearnMore() {
@@ -277,7 +283,7 @@ function GpaBlock({ profile, onSave }) {
 
   const notUsed = gpaScale === "not_used";
   return (
-    <SectionCard title="GPA" stamp="peak" accentHint
+    <SectionCard title="GPA" stamp="grade"
       hint="Admissions reads unweighted GPA first, alongside how hard your classes are.">
       <div style={{ marginBottom: 16 }}>
         <GroupLabel id={scaleId}>Scale</GroupLabel>
@@ -316,9 +322,9 @@ function ScoreRow({ score, onPatch, onDelete }) {
   const isAp = (score.test_type || "").toLowerCase() === "ap";
   const sub = score.section_scores || {};
   return (
-    <Card style={itemCard}>
+    <Card style={pinnedItem}>
       <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-        <Field label="Test" style={{ width: 130 }}>
+        <Field label="Test" style={{ flex: "1 1 110px" }}>
           {(id) => (
             <Select id={id} value={(score.test_type || "").toLowerCase()} placeholder="Type"
               onChange={(v) => onPatch({ test_type: v })}
@@ -327,11 +333,11 @@ function ScoreRow({ score, onPatch, onDelete }) {
           )}
         </Field>
         {isAp && (
-          <Field label="Subject" style={{ flex: 1, minWidth: 150 }}>
+          <Field label="Subject" style={{ flex: "2 1 160px" }}>
             {(id) => <Input id={id} value={score.subject} onChange={(v) => onPatch({ subject: v })} placeholder="Chemistry" />}
           </Field>
         )}
-        <Field label={isAp ? "Score (1-5)" : "Total"} style={{ width: 120 }}>
+        <Field label={isAp ? "Score (1-5)" : "Total"} style={{ flex: "1 1 110px" }}>
           {(id) => (
             <Input id={id} value={score.score} onChange={(v) => onPatch({ score: v === "" ? null : Number(v) })}
               inputMode="numeric" placeholder={isAp ? "5" : "1520"} />
@@ -339,13 +345,13 @@ function ScoreRow({ score, onPatch, onDelete }) {
         </Field>
         {!isAp && (
           <>
-            <Field label="Reading/Writing" style={{ width: 160 }}>
+            <Field label="Reading/Writing" style={{ flex: "1 1 110px" }}>
               {(id) => (
                 <Input id={id} value={sub.reading_writing} inputMode="numeric" placeholder="760"
                   onChange={(v) => onPatch({ section_scores: { ...sub, reading_writing: v === "" ? undefined : Number(v) } })} />
               )}
             </Field>
-            <Field label="Math" style={{ width: 110 }}>
+            <Field label="Math" style={{ flex: "1 1 110px" }}>
               {(id) => (
                 <Input id={id} value={sub.math} inputMode="numeric" placeholder="760"
                   onChange={(v) => onPatch({ section_scores: { ...sub, math: v === "" ? undefined : Number(v) } })} />
@@ -353,25 +359,23 @@ function ScoreRow({ score, onPatch, onDelete }) {
             </Field>
           </>
         )}
-        <IconBtn onClick={onDelete} label={`Remove ${score.test_type || "score"}`} danger><XIcon /></IconBtn>
       </div>
+      <IconBtn onClick={onDelete} label={`Remove ${score.test_type || "score"}`} danger style={pinnedRemove}><XIcon /></IconBtn>
     </Card>
   );
 }
 
 function CourseRow({ course, onPatch, onDelete }) {
   return (
-    <Card style={{ ...itemCard, padding: "10px 12px", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-      <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+    <Card style={{ ...pinnedItem, padding: "10px 54px 10px 12px", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ flex: "3 1 200px", minWidth: 0 }}>
         <Input value={course.name} onChange={(v) => onPatch({ name: v })} placeholder="Course name" aria-label="Course name" />
       </div>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flex: "0 1 auto", marginLeft: "auto" }}>
-        <div style={{ width: 170 }}>
-          <Select value={course.level} onChange={(v) => onPatch({ level: v })} options={COURSE_LEVELS} placeholder="Level"
-            aria-label="Course level" />
-        </div>
-        <IconBtn onClick={onDelete} label={`Remove ${course.name || "course"}`} danger><XIcon /></IconBtn>
+      <div style={{ flex: "1 0 150px" }}>
+        <Select value={course.level} onChange={(v) => onPatch({ level: v })} options={COURSE_LEVELS} placeholder="Level"
+          aria-label="Course level" />
       </div>
+      <IconBtn onClick={onDelete} label={`Remove ${course.name || "course"}`} danger style={{ ...pinnedRemove, top: 12 }}><XIcon /></IconBtn>
     </Card>
   );
 }
@@ -392,14 +396,18 @@ function ActivityCard({ activity, onPatch, onDelete }) {
 
   return (
     <Card style={{ ...itemCard, padding: 0, overflow: "hidden" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 6, padding: "12px 8px 12px 14px" }}>
-        <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
-          <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: TEXT, marginBottom: meta.length ? 4 : 0,
+      <div style={{ padding: "8px 8px 12px 14px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ flex: 1, minWidth: 0, fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: TEXT,
             overflowWrap: "anywhere" }}>
             {a.title || "Untitled activity"}
           </div>
+          <IconBtn onClick={() => setOpen((o) => !o)} label="Edit activity" aria-expanded={open}><PencilIcon /></IconBtn>
+          <IconBtn onClick={onDelete} label={`Remove ${a.title || "activity"}`} danger><XIcon /></IconBtn>
+        </div>
+        <div style={{ paddingRight: 6 }}>
           {meta.length > 0 && (
-            <div style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, color: ink.text, lineHeight: 1.5 }}>
+            <div style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, color: TEXT_MID, lineHeight: 1.5 }}>
               {meta.join(" · ")}
             </div>
           )}
@@ -416,8 +424,6 @@ function ActivityCard({ activity, onPatch, onDelete }) {
             </span>
           )}
         </div>
-        <IconBtn onClick={() => setOpen((o) => !o)} label="Edit activity" aria-expanded={open}><PencilIcon /></IconBtn>
-        <IconBtn onClick={onDelete} label={`Remove ${a.title || "activity"}`} danger><XIcon /></IconBtn>
       </div>
 
       <AnimatePresence initial={false}>
@@ -488,22 +494,22 @@ function DescriptionField({ value, onChange }) {
 
 function AwardRow({ award, onPatch, onDelete }) {
   return (
-    <Card style={itemCard}>
+    <Card style={pinnedItem}>
       <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-        <Field label="Award" style={{ flex: 1, minWidth: 180 }}>
+        <Field label="Award" style={{ flex: "2 1 220px" }}>
           {(id) => <Input id={id} value={award.title} onChange={(v) => onPatch({ title: v })} placeholder="e.g. State finalist" />}
         </Field>
-        <Field label="Level" style={{ width: 160 }}>
+        <Field label="Level" style={{ flex: "1 1 130px" }}>
           {(id) => <Select id={id} value={award.level} onChange={(v) => onPatch({ level: v })} options={AWARD_LEVELS} placeholder="Level" />}
         </Field>
-        <Field label="Year" style={{ width: 110 }}>
+        <Field label="Year" style={{ flex: "1 1 90px" }}>
           {(id) => (
             <Input id={id} value={award.year} inputMode="numeric" placeholder="2025"
               onChange={(v) => onPatch({ year: v === "" ? null : Number(v) })} />
           )}
         </Field>
-        <IconBtn onClick={onDelete} label={`Remove ${award.title || "award"}`} danger><XIcon /></IconBtn>
       </div>
+      <IconBtn onClick={onDelete} label={`Remove ${award.title || "award"}`} danger style={pinnedRemove}><XIcon /></IconBtn>
     </Card>
   );
 }
@@ -975,16 +981,14 @@ export default function PortfolioPage({ navigate }) {
       <div style={{ maxWidth: 880, margin: "0 auto", width: "100%" }}>
 
         <PageHeader title="Portfolio" isMobile={isMobile} style={{ marginBottom: "1.75rem" }}>
-          <p style={{ margin: "0 0 0.4rem" }}>
-            Your grades, scores, classes, activities and awards, all in one place. <LearnMore />
-          </p>
           <p style={{ margin: 0 }}>
-            You can reference all of this directly in the{" "}
+            Your grades, scores, classes, activities and awards, all in one place. Your advisor in{" "}
             <button onClick={() => navigate("/chat")} className={`${FOCUS_CLASS} ${LINK_CLASS}`}
               style={{ fontFamily: SANS, fontSize: "inherit", color: textOnPage(ink), fontWeight: 700, background: "none",
                 border: "none", padding: 0, cursor: "pointer", borderRadius: 4 }}>
-              chat page
-            </button>.
+              Chat
+            </button>{" "}
+            reads all of it, so the more you fill in, the more specific its advice.
           </p>
         </PageHeader>
 
@@ -1047,8 +1051,8 @@ export default function PortfolioPage({ navigate }) {
                 }));
               }} />
 
-            <SectionCard title="Test scores" stamp="target" count={record.scores.length}
-              hint="SAT, ACT, PSAT and AP exam results." accentHint
+            <SectionCard title="Test scores" stamp="pencil" count={record.scores.length}
+              hint="SAT, ACT, PSAT and AP exam results."
               action={<AddButton onClick={() => add("student_test_scores", "scores", { test_type: "sat", section_scores: {} })}>Add score</AddButton>}>
               {record.scores.length === 0
                 ? <EmptyNote>Nothing here yet. Add a score when you have one, or leave it empty if you're going test-optional.</EmptyNote>
@@ -1059,8 +1063,8 @@ export default function PortfolioPage({ navigate }) {
                   ))}
             </SectionCard>
 
-            <SectionCard title="Coursework" stamp="check" count={record.courses.length}
-              hint="Course rigor is one of the first things admissions looks at, so tag the level." accentHint
+            <SectionCard title="Coursework" stamp="book" count={record.courses.length}
+              hint="Course rigor is one of the first things admissions looks at, so tag the level."
               action={<AddButton onClick={() => add("student_courses", "courses", { name: "" })}>Add course</AddButton>}>
               {record.courses.length === 0
                 ? <EmptyNote>No classes listed yet.</EmptyNote>
