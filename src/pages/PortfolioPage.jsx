@@ -283,7 +283,7 @@ function GpaBlock({ profile, onSave }) {
 
   const notUsed = gpaScale === "not_used";
   return (
-    <SectionCard title="GPA" stamp="grade"
+    <SectionCard title="GPA" stamp="reportcard"
       hint="Admissions reads unweighted GPA first, alongside how hard your classes are.">
       <div style={{ marginBottom: 16 }}>
         <GroupLabel id={scaleId}>Scale</GroupLabel>
@@ -553,7 +553,7 @@ function ReviewModal({ rows: initial, onConfirm, onClose, saving }) {
       <motion.div {...panelMotion} onClick={(e) => e.stopPropagation()}
         style={panelStyle(640, { maxHeight: "86vh", overflowY: "auto" })}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-          <StampTile kind="letter" />
+          <StampTile kind="resume" />
           <Heading style={{ fontSize: "1.4rem" }}>
             We found {initial.length} {initial.length === 1 ? "item" : "items"}
           </Heading>
@@ -684,7 +684,7 @@ function ExportModal({ record, contact: initialContact, exportsLeft, generating,
       <motion.div {...panelMotion} onClick={(e) => e.stopPropagation()}
         style={panelStyle(660, { maxHeight: "88vh", overflowY: "auto" })}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-          <StampTile kind="scroll" />
+          <StampTile kind="resume" />
           <Heading style={{ fontSize: "1.45rem" }}>
             Export as a resume
           </Heading>
@@ -1051,7 +1051,7 @@ export default function PortfolioPage({ navigate }) {
                 }));
               }} />
 
-            <SectionCard title="Test scores" stamp="pencil" count={record.scores.length}
+            <SectionCard title="Test scores" stamp="answersheet" count={record.scores.length}
               hint="SAT, ACT, PSAT and AP exam results."
               action={<AddButton onClick={() => add("student_test_scores", "scores", { test_type: "sat", section_scores: {} })}>Add score</AddButton>}>
               {record.scores.length === 0
@@ -1063,7 +1063,7 @@ export default function PortfolioPage({ navigate }) {
                   ))}
             </SectionCard>
 
-            <SectionCard title="Coursework" stamp="book" count={record.courses.length}
+            <SectionCard title="Coursework" stamp="notebook" count={record.courses.length}
               hint="Course rigor is one of the first things admissions looks at, so tag the level."
               action={<AddButton onClick={() => add("student_courses", "courses", { name: "" })}>Add course</AddButton>}>
               {record.courses.length === 0
@@ -1083,7 +1083,7 @@ export default function PortfolioPage({ navigate }) {
             <Card style={{ padding: "1.3rem", marginBottom: "1.25rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
                 <div style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "flex-start", gap: 12 }}>
-                  <StampTile kind="letter" />
+                  <StampTile kind="resume" />
                   <div style={{ minWidth: 0 }}>
                     <p style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.1rem", color: TEXT, margin: "0 0 4px" }}>
                       Have a resume or brag sheet?
@@ -1113,7 +1113,7 @@ export default function PortfolioPage({ navigate }) {
               )}
             </Card>
 
-            <SectionCard title="Activities" stamp="scroll" count={record.activities.length}
+            <SectionCard title="Activities" stamp="rocket" count={record.activities.length}
               hint="Clubs, sports, jobs, projects, volunteering, research. Open one to fill in your role, hours and what you actually did."
               action={<AddButton onClick={() => add("student_activities", "activities", { title: "", detail_level: "name_only", grade_levels: [] })}>Add activity</AddButton>}>
               {record.activities.length === 0
@@ -1125,7 +1125,7 @@ export default function PortfolioPage({ navigate }) {
                   ))}
             </SectionCard>
 
-            <SectionCard title="Awards and honors" stamp="star" count={record.awards.length}
+            <SectionCard title="Awards and honors" stamp="trophy" count={record.awards.length}
               hint="Anything you were recognised for, at any level."
               action={<AddButton onClick={() => add("student_awards", "awards", { title: "" })}>Add award</AddButton>}>
               {record.awards.length === 0

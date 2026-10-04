@@ -140,36 +140,114 @@ const STAMPS = {
     "xxxxxxxx",
     "........",
   ],
-  // Portfolio's record sections.
-  book: [
-    "xxxx.xxx",
-    "x..x.x.x",
-    "x..x.x.x",
-    "x..x.x.x",
-    "x..x.x.x",
-    "x..x.x.x",
-    "xxxxxxxx",
-    "........",
+  // 16 by 16, two-tone ("o" is the soft shade): Portfolio's record sections.
+  reportcard: [
+    "................",
+    "..xxxxxxxxxxxx..",
+    "..x..........x..",
+    "..x...xx.....x..",
+    "..x..x..x....x..",
+    "..x..x..x..x.x..",
+    "..x..xxxx.xxxx..",
+    "..x..x..x..x.x..",
+    "..x..x..x....x..",
+    "..x..........x..",
+    "..x.oooooooo.x..",
+    "..x..........x..",
+    "..x.oooooo...x..",
+    "..x..........x..",
+    "..xxxxxxxxxxxx..",
+    "................",
   ],
-  pencil: [
-    "......xx",
-    ".....xxx",
-    "....xxx.",
-    "...xxx..",
-    "..xxx...",
-    ".xxx....",
-    "xx......",
-    "x.......",
+  answersheet: [
+    "................",
+    "..xxxxxxxxxxxx..",
+    "..x..........x..",
+    "..x.xx.oo.oo.x..",
+    "..x.xx.oo.oo.x..",
+    "..x..........x..",
+    "..x.oo.xx.oo.x..",
+    "..x.oo.xx.oo.x..",
+    "..x..........x..",
+    "..x.oo.oo.xx.x..",
+    "..x.oo.oo.xx.x..",
+    "..x..........x..",
+    "..x.xx.oo.oo.x..",
+    "..x.xx.oo.oo.x..",
+    "..xxxxxxxxxxxx..",
+    "................",
   ],
-  grade: [
-    "..x.....",
-    ".x.x....",
-    "x...x.x.",
-    "xxxxxxxx",
-    "x...x.x.",
-    "x...x...",
-    "x...x...",
-    "........",
+  notebook: [
+    "................",
+    "...xxxxxxxxxx...",
+    "..xx........x...",
+    "...x.oooooo.x...",
+    "..xx........x...",
+    "...x.oooooo.x...",
+    "..xx........x...",
+    "...x.oooooo.x...",
+    "..xx........x...",
+    "...x.oooo...x...",
+    "..xx........x...",
+    "...x........x...",
+    "..xx........x...",
+    "...xxxxxxxxxx...",
+    "................",
+    "................",
+  ],
+  rocket: [
+    ".......xx.......",
+    "......xxxx......",
+    "......xxxx......",
+    ".....xxxxxx.....",
+    ".....xxooxx.....",
+    ".....xxooxx.....",
+    ".....xxxxxx.....",
+    ".....xxxxxx.....",
+    "....xxxxxxxx....",
+    "...xxxxxxxxxx...",
+    "...xx.xxxx.xx...",
+    "......xxxx......",
+    ".......oo.......",
+    "......o..o......",
+    ".......oo.......",
+    "................",
+  ],
+  trophy: [
+    "................",
+    "..xxxxxxxxxxxx..",
+    "xxxooooooooooxxx",
+    "x.xoooooooooox.x",
+    "x.xoooooooooox.x",
+    ".xxooooooooooxx.",
+    "...xoooooooox...",
+    "....xoooooox....",
+    ".....xxxxxx.....",
+    ".......xx.......",
+    ".......xx.......",
+    ".....xxxxxx.....",
+    "....xoooooox....",
+    "....xxxxxxxx....",
+    "................",
+    "................",
+  ],
+  resume: [
+    "................",
+    "..xxxxxxxxx.....",
+    "..x.......xx....",
+    "..x.ooo...x.x...",
+    "..x.ooo...xxxx..",
+    "..x.ooo......x..",
+    "..x..........x..",
+    "..x.xxxxxxx..x..",
+    "..x..........x..",
+    "..x.ooooooo..x..",
+    "..x.ooooo....x..",
+    "..x..........x..",
+    "..x.ooooooo..x..",
+    "..xxxxxxxxxxxx..",
+    "................",
+    "................",
   ],
   lock: [
     "..xxxx..",
@@ -204,23 +282,25 @@ const ARROW = [
   "........",
 ];
 
-// One path for the whole grid: a 1-pixel-tall rectangle per run of "x".
+// One path per tone for the whole grid: a 1-pixel-tall rectangle per run of
+// "x" (the main tone) or "o" (the soft tone, drawn as a tint of the same colour).
 const PATHS = new WeakMap();
-function pathFor(grid) {
-  let d = PATHS.get(grid);
-  if (d) return d;
-  d = "";
+function pathFor(grid, ch = "x") {
+  let byTone = PATHS.get(grid);
+  if (!byTone) { byTone = {}; PATHS.set(grid, byTone); }
+  if (byTone[ch] !== undefined) return byTone[ch];
+  let d = "";
   grid.forEach((row, y) => {
     let x = 0;
     while (x < row.length) {
-      if (row[x] !== "x") { x += 1; continue; }
+      if (row[x] !== ch) { x += 1; continue; }
       let end = x;
-      while (end < row.length && row[end] === "x") end += 1;
+      while (end < row.length && row[end] === ch) end += 1;
       d += `M${x} ${y}h${end - x}v1h${x - end}z`;
       x = end;
     }
   });
-  PATHS.set(grid, d);
+  byTone[ch] = d;
   return d;
 }
 
@@ -240,6 +320,7 @@ function GridIcon({ grid, size, title, style }) {
       style={{ display: "block", flexShrink: 0, ...style }}>
       {title && <title>{title}</title>}
       <path d={pathFor(grid)} fill="currentColor" />
+      {grid.some((r) => r.includes("o")) && <path d={pathFor(grid, "o")} fill="currentColor" opacity={0.42} />}
     </svg>
   );
 }
@@ -250,7 +331,8 @@ export function PixelBeakIcon({ size = 20 }) {
 }
 
 /** kind: "letter" | "check" | "clock" | "star" | "sparkle" | "question" |
- *  "peak" | "target" | "flag" | "scroll" | "chat" | "person" | "lock" | "book" | "pencil" | "grade".
+ *  "peak" | "target" | "flag" | "scroll" | "chat" | "person" | "lock", and the 16 by 16 two-tone
+ *  "reportcard" | "answersheet" | "notebook" | "rocket" | "trophy" | "resume".
  *  Decorative unless given a `title`. */
 export function PixelStamp({ kind, size = 16, title, style }) {
   const grid = STAMPS[kind] || STAMPS.sparkle;
@@ -260,4 +342,9 @@ export function PixelStamp({ kind, size = 16, title, style }) {
 /** A small pixel arrow pointing right, for "Open" and "Continue" buttons. */
 export function PixelArrow({ size = 16, style }) {
   return <GridIcon grid={ARROW} size={size} style={style} />;
+}
+
+/** The grid width of a stamp: 8 for the classic marks, 16 for the detailed ones. */
+export function stampWidth(kind) {
+  return (STAMPS[kind] || STAMPS.sparkle)[0].length;
 }

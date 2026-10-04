@@ -1,7 +1,7 @@
 import Spinner from "../common/Spinner.jsx";
 import { readableOn } from "../../lib/theme.js";
 import { SpeechBubble } from "./SpeechBubble.jsx";
-import { PixelStamp } from "./PixelIcons.jsx";
+import { PixelStamp, stampWidth } from "./PixelIcons.jsx";
 import {
   AMBER_BG, AMBER_TEXT, BG, BORDER, DANGER, FOCUS_CLASS, PRESS_CLASS, RADIUS, SANS, SURFACE, TEXT,
   TEXT_MID, TEXT_MUTED, WHITE, ringVar, useAgentInk,
@@ -215,7 +215,8 @@ export function StampTile({ kind, size = 40, lit = true, title }) {
         alignItems: "center", justifyContent: "center", boxSizing: "border-box",
         background: lit ? ink.softer : "#efedf3", border: `1px solid ${lit ? ink.soft : BORDER}`,
         color: lit ? ink.onSoft : TEXT_MUTED }}>
-      <PixelStamp kind={kind} size={size >= 40 ? 24 : 16} />
+      {/* A 16-pixel stamp draws at 2 CSS px a pixel on a full tile, an 8-pixel one at 3. */}
+      <PixelStamp kind={kind} size={stampWidth(kind) === 16 ? (size >= 40 ? 32 : 16) : (size >= 40 ? 24 : 16)} />
     </span>
   );
 }
