@@ -1,14 +1,14 @@
 import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { BG, BORDER, COLUMN, SANS, TEXT, TEXT_MID, WHITE, useInk } from "../../../brand/brand.js";
 import { BEAKER, TALON } from "../../../brand/sprites.js";
-import { BetaPill, Wordmark } from "../../../kit/Brand.jsx";
+import { Wordmark } from "../../../kit/Brand.jsx";
 import { pop } from "../../../kit/motion.js";
 import { StageBird, depart } from "../../../screens/hub/Stage.jsx";
 import { END_CARD } from "../copy.js";
 
 // The end card, the whole frame (no caption card or brand line over it).
-// Centred on the canvas like every caption before it: the wordmark and BETA
-// pill, the two birds standing together, then the beta line as the
+// Centred on the canvas like every caption before it: the wordmark, the two
+// birds standing together, then the beta line as the
 // biggest words in the video, what it means, and where to find it. It
 // settles in over the first 20 frames, holds dead still for 122 frames (just
 // over 4 seconds), and only then, in the last 23 frames, Beaker takes off out
@@ -38,10 +38,9 @@ export default function EndCard() {
   const off = depart(frame, { start: TAKEOFF, end: TAKEOFF + TAKEOFF_FRAMES, fromX: BEAKER_X, fromY: BIRDS_TOP, toX: 1160, toY: 150 });
   return (
     <AbsoluteFill style={{ background: BG, fontFamily: SANS }}>
-      <div style={{ position: "absolute", left: COLUMN.top.left, width: COLUMN.top.width, top: 262, display: "flex",
-        justifyContent: "center", alignItems: "center", gap: 18, ...pop(frame, 1, POP) }}>
+      <div style={{ position: "absolute", left: COLUMN.top.left, width: COLUMN.top.width, top: 262, textAlign: "center",
+        ...pop(frame, 1, POP) }}>
         <Wordmark size={52} />
-        <BetaPill size={26} />
       </div>
 
       <StageBird sprite={TALON} kind="talon" state="idle" x={TALON_X} y={BIRDS_TOP} unit={U} ground={GROUND} offset={6} />

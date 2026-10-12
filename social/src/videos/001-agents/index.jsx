@@ -17,7 +17,6 @@ import Handoff from "./scenes/Handoff.jsx";
 import FinderBrief from "./scenes/FinderBrief.jsx";
 import FinderBoard from "./scenes/FinderBoard.jsx";
 import Dropped from "./scenes/Dropped.jsx";
-import Hub from "./scenes/Hub.jsx";
 import EndCard from "./scenes/EndCard.jsx";
 
 // Video #1, "Meet Beaker and Talon": the Agents launch, about 33 seconds.
@@ -27,7 +26,7 @@ import EndCard from "./scenes/EndCard.jsx";
 const COMPONENTS = {
   hook: Hook, beakerArrives: BeakerArrives, outreachWho: OutreachWho, shortlist: Shortlist, draft: Draft,
   review: Review, handoff: Handoff, finderBrief: FinderBrief, finderBoard: FinderBoard, dropped: Dropped,
-  hub: Hub, endCard: EndCard,
+  endCard: EndCard,
 };
 
 export const AGENTS_001 = {
@@ -50,7 +49,7 @@ export function Agents001({ accent = DEFAULT_ACCENT, guides = false }) {
         })}
         {SCENES.filter((s) => s.id !== "endCard").map((s) => (
           <Sequence key={`brand-${s.id}`} name="brand" from={s.from} durationInFrames={s.frames}>
-            <BrandBug demo={!!s.demo} />
+            <BrandBug />
           </Sequence>
         ))}
         {CAPTIONS.map((c, i) => {

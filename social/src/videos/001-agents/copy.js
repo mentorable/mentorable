@@ -19,7 +19,6 @@ export const CAPTIONS = [
   { scene: "finderBrief",   text: "Talon scouts *scholarships* and programs for you" },
   { scene: "finderBoard",   text: "It checks every detail against its *page*" },
   { scene: "dropped",       text: "A scholarship that charges you to apply? *Gone.*" },
-  { scene: "hub",           text: "Two more *agents* are still asleep" },
   // endCard: no caption card; the end card says it.
 ];
 
