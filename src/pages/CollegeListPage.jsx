@@ -19,7 +19,7 @@ import { PixelStamp } from "../components/ui/PixelIcons.jsx";
 
 // College List: the schools a student is applying to, grouped reach, target
 // and likely. Built on the app's shared kit (the calm shell the Agents pages
-// started), with its character in pixel stamps and the guide bubble: each
+// started), with its character in pixel stamps and the guide line: each
 // group fills toward a goal.
 
 const INK = TEXT;

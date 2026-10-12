@@ -13,7 +13,6 @@ import {
   ringVar, subtitleStyle, titleStyle, useIntakeInk,
 } from "../components/onboarding/intakeTheme.js";
 import { Button, Notice, StampTile } from "../components/ui/kit.jsx";
-import { SpeechBubble } from "../components/ui/SpeechBubble.jsx";
 import { PixelStamp } from "../components/ui/PixelIcons.jsx";
 import { HOME_PATH, POST_ONBOARDING_PATH } from "../lib/features.js";
 import {
@@ -28,8 +27,8 @@ const SPEAKING_VOLUME_THRESHOLD = 0.02; // mic input above this = user is active
 
 // The look comes from the shared kit (src/components/ui): the calm shell's
 // grey page, white cards, flat buttons, and the student's accent only through
-// useIntakeInk. Character comes from the pixel stamps and the dialog-box
-// speech bubbles, never from louder chrome.
+// useIntakeInk. Character comes from the pixel stamps, never from louder
+// chrome.
 
 const ERROR_TILE = { background: "#fdf1f0", border: "1px solid #f4c7c2", color: DANGER };
 const AMBER_TILE = { background: AMBER_BG, border: "1px solid #f3d9a4", color: AMBER_TEXT };
@@ -407,13 +406,18 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel }) 
                 >
                   {msg.role === "agent" ? (
                     <>
-                      <span aria-hidden="true" style={{ flexShrink:0, width:40, height:40, marginTop:14, borderRadius:RADIUS.control,
+                      <span aria-hidden="true" style={{ flexShrink:0, width:40, height:40, marginTop:4, borderRadius:RADIUS.control,
                         background:ink.soft, color:ink.onSoft, display:"inline-flex", alignItems:"center", justifyContent:"center" }}>
                         <PixelStamp kind="chat" size={24} />
                       </span>
-                      <SpeechBubble side="left" name="Mentorable" style={{ maxWidth:"76%" }}>
+                      <div style={{
+                        maxWidth:"76%", padding:"0.8rem 1.1rem",
+                        borderRadius:RADIUS.card, background:WHITE, border:`1px solid ${BORDER}`,
+                        color:TEXT, fontFamily:SANS, fontSize:"1.02rem", lineHeight:1.6, fontWeight:600,
+                        overflowWrap:"anywhere",
+                      }}>
                         {msg.message}
-                      </SpeechBubble>
+                      </div>
                     </>
                   ) : (
                     <div style={{

@@ -1,6 +1,5 @@
 import Spinner from "../common/Spinner.jsx";
 import { readableOn } from "../../lib/theme.js";
-import { SpeechBubble } from "./SpeechBubble.jsx";
 import { PixelStamp, stampWidth } from "./PixelIcons.jsx";
 import {
   AMBER_BG, AMBER_TEXT, BG, BORDER, DANGER, FOCUS_CLASS, PRESS_CLASS, RADIUS, SANS, SURFACE, TEXT,
@@ -9,8 +8,9 @@ import {
 
 // The shared kit every page builds from: the calm shell's buttons, cards,
 // fields, notices and headings (first made for the Agents pages), plus the
-// page header, the Tip guide bubble, choice chips and the toast. Character
-// comes from the pixel stamps and speech bubbles here, never louder chrome.
+// page header, the Tip guide line, choice chips and the toast. Character
+// comes from the pixel stamps here, never louder chrome. The pixel speech box
+// belongs to the agents' mascots alone (MascotSays).
 
 export const INPUT_CLASS = "oa-input";
 export const CHOICE_CLASS = "oa-choice";
@@ -221,24 +221,28 @@ export function StampTile({ kind, size = 40, lit = true, title }) {
   );
 }
 
-/** A guide line in the game dialog box: a pixel stamp beside a speech bubble
- *  with a name tab. For tips, next steps and empty states on every page. */
-export function Tip({ name = "Tip", stamp = "sparkle", tone = "accent", children, style }) {
+/** A guide line: a pixel stamp beside a plain card. For tips, next steps and
+ *  empty states on every page. `name` says whose line it is, to screen
+ *  readers only. */
+export function Tip({ name, stamp = "sparkle", tone = "accent", children, style }) {
   const ink = useAgentInk();
+  const accent = tone === "accent";
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 14, minWidth: 0, paddingTop: 12, ...style }}>
-      <span aria-hidden="true" style={{ flexShrink: 0, width: 40, height: 40, marginTop: 14, borderRadius: RADIUS.control,
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 14, minWidth: 0, ...style }}>
+      <span aria-hidden="true" style={{ flexShrink: 0, width: 40, height: 40, marginTop: 4, borderRadius: RADIUS.control,
         background: ink.soft, color: ink.onSoft, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
         <PixelStamp kind={stamp} size={24} />
       </span>
-      <SpeechBubble side="left" tone={tone} name={name} style={{ flex: "1 1 auto", maxWidth: 640 }}>
+      <div style={{ flex: "1 1 auto", minWidth: 0, maxWidth: 640, boxSizing: "border-box", padding: "12px 16px",
+        background: accent ? ink.softer : WHITE, border: `1px solid ${accent ? ink.soft : BORDER}`,
+        borderRadius: RADIUS.card, fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT, lineHeight: 1.5,
+        overflowWrap: "anywhere" }}>
+        {name && <span style={SR_ONLY}>{name}: </span>}
         {children}
-      </SpeechBubble>
+      </div>
     </div>
   );
 }
-
-// ─── Choices ─────────────────────────────────────────────────────────────────
 
 /** A labelled row of pills, one of them chosen (an order, a view, a filter).
  *  On a phone the pills share the row evenly. */

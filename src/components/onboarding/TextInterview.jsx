@@ -147,7 +147,7 @@ export default function TextInterview({ onFinish, record, isMobile }) {
         </p>
 
         <div style={{ flex: 1, overflowY: "auto", minHeight: 160, paddingRight: 4 }}>
-          {/* The interviewer speaks in the kit's dialog box, the student's own
+          {/* The interviewer speaks in a plain white card beside a pixel stamp, the student's own
               answers sit on the right in a soft tint of their accent. */}
           {messages.map((m, i) => m.role === "user" ? (
             <div key={i} style={{ display: "flex", justifyContent: "flex-end", margin: "4px 0 16px" }}>

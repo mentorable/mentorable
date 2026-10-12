@@ -25,7 +25,7 @@ import { PixelStamp } from "../components/ui/PixelIcons.jsx";
 // The Portfolio: the student's record (grades, scores, classes, activities,
 // awards) and the resume export. Built on the shared kit: white cards with a
 // warm 1px border, flat buttons, a pixel mark per section, and the guide
-// bubble for nudges and empty sections.
+// line for nudges and empty sections.
 
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
@@ -210,7 +210,7 @@ function AddButton({ onClick, children }) {
   );
 }
 
-/** An empty section: the guide bubble says what goes here. */
+/** An empty section: the guide line says what goes here. */
 function EmptyNote({ children }) {
   return (
     <Tip name="Tip" stamp="sparkle" tone="default" style={{ paddingTop: 0 }}>
