@@ -4,7 +4,7 @@ import { Button } from "../../../ui/kit.jsx";
 import { BORDER, FOCUS_CLASS, RADIUS, SANS, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk } from "../../../ui/tokens.js";
 import { ROW_CLASS, short, whenLabel } from "./editorUi.js";
 
-// Beside the essay after a review: the notes from the newest one that the
+// In the notes panel the bar opens: the notes from the newest review that the
 // student has neither answered nor dismissed, each as its quote and Quill's
 // question. A slim list, and deliberately nothing more: the live text carries
 // no highlights (they belong to the version Quill read, which the essay has
@@ -21,10 +21,10 @@ export default function OpenNotesList({ review, onOpen }) {
 
   return (
     <section aria-labelledby="qe-open-title" style={{ minWidth: 0 }}>
-      <h2 id="qe-open-title" style={{ margin: 0, fontFamily: SANS, fontSize: "1.05rem", fontWeight: 800, color: TEXT,
+      <h3 id="qe-open-title" style={{ margin: 0, fontFamily: SANS, fontSize: "1.05rem", fontWeight: 800, color: TEXT,
         fontVariantNumeric: "tabular-nums" }}>
         Open notes ({open.length})
-      </h2>
+      </h3>
       <p style={{ margin: "2px 0 10px", fontFamily: SANS, fontSize: "0.93rem", fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.5 }}>
         {open.length > 0
           ? `From Quill's read${when ? ` ${when}` : ""}. They point at the version it read, not at what you have typed since.`

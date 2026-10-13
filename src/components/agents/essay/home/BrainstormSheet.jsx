@@ -3,14 +3,14 @@ import Sheet from "../../outreach/Sheet.jsx";
 import { MascotSays } from "../../SpeechBubble.jsx";
 import { PixelArrow } from "../../../ui/PixelIcons.jsx";
 import {
-  AMBER_TEXT, BORDER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, useAgentInk,
+  AMBER_TEXT, BORDER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
 } from "../../../ui/tokens.js";
 import { Button, Card, ChoiceChips, INPUT_CLASS, LinkButton, Notice, inputStyle } from "../../../ui/kit.jsx";
 import Spinner from "../../../common/Spinner.jsx";
 import { QUILL_LINES } from "../../../../lib/agents/registry.js";
 import { essayErrorMessage, needsSignIn } from "../../../../lib/agentsApi.js";
 import { TALK_QUESTIONS, TALK_STARTS, TOPIC_STATUS } from "../../../../lib/essay.js";
-import { CharCount, Chevron, QuillLine, RadioRow, SheetHeader, SmallLabel } from "./homeParts.jsx";
+import { CharCount, QuillLine, RadioRow, SheetHeader, SmallLabel } from "./homeParts.jsx";
 import { ANSWER_MAX, QUILL, asTopic, budgetOf, oneLine, talkLines } from "./homeUi.js";
 
 // The guided brainstorm: Quill asks one short question at a time and the
@@ -89,8 +89,7 @@ export default function BrainstormSheet({
   const [keepError, setKeepError] = useState(null);  // a failed keep, in words
   const [ending, setEnding] = useState(null);        // the done view: { message, fallback, topic, lines }
   const [left, setLeft] = useState(() => budgetOf(turns));
-  const [showAnswers, setShowAnswers] = useState(false);
-
+  
   const alive = useRef(true);
   const talk = useRef({ start: "open", topicId: null });   // fixed when the talk starts
   const stopAfter = useRef(false);
@@ -98,6 +97,7 @@ export default function BrainstormSheet({
   const firstView = useRef(true);
   const topRef = useRef(null);
   const boxRef = useRef(null);
+  const endRef = useRef(null);
 
   useEffect(() => {
     alive.current = true;
@@ -112,8 +112,6 @@ export default function BrainstormSheet({
   const question = last?.role === "advisor" ? last.content : "";
   const clean = oneLine(answer, ANSWER_MAX);
   const noTurns = !!left && left.left <= 0;
-  const pairs = [];
-  for (let i = 0; i + 1 < messages.length; i += 2) pairs.push({ q: messages[i].content, a: messages[i + 1].content });
 
   // While answers (or words in the box) live only in this sheet, the page
   // asks before the tab closes.
@@ -135,6 +133,19 @@ export default function BrainstormSheet({
   useEffect(() => {
     if (waiting) boxRef.current?.focus();
   }, [waiting, messages.length]);
+
+  // The thread follows the newest line. scrollIntoView moves no focus, so the
+  // answer box keeps whatever the student is typing.
+  useEffect(() => {
+    if (view !== "talk") return;
+    const calm = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    // The answer box is sticky over the bottom of the sheet, so the marker
+    // alone would count as visible while it sits under the box. Scroll the
+    // sheet itself to its end instead: the thread then ends just above it.
+    const panel = endRef.current?.closest?.("[role='dialog']");
+    if (panel?.scrollTo) panel.scrollTo({ top: panel.scrollHeight, behavior: calm ? "auto" : "smooth" });
+    else endRef.current?.scrollIntoView?.({ block: "end", behavior: calm ? "auto" : "smooth" });
+  }, [view, messages.length, busy, !!error, ended]);
 
   // ── The talk ───────────────────────────────────────────────────────────────
 
@@ -158,7 +169,6 @@ export default function BrainstormSheet({
     } catch (e) {
       if (!alive.current) return;
       setSaving(false);
-      setShowAnswers(true);
       setKeepError(essayErrorMessage(e));
     }
   };
@@ -275,36 +285,70 @@ export default function BrainstormSheet({
   const startChoice = from === "card" ? !!topicId : !!start;
   const title = view === "handoff" ? "Let's pause here" : "Brainstorm with Quill";
   const small = { margin: 0, fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.5 };
-  const turnsLine = left ? (
-    <p style={{ ...small, marginTop: 16, fontVariantNumeric: "tabular-nums", color: noTurns ? AMBER_TEXT : TEXT_MUTED }}>
+  const turnsLine = (mt = 16) => left ? (
+    <p style={{ ...small, marginTop: mt, fontVariantNumeric: "tabular-nums", color: noTurns ? AMBER_TEXT : TEXT_MUTED }}>
       {noTurns ? "No brainstorm turns left." : `${left.left} of ${left.limit} brainstorm turns left.`}
     </p>
   ) : null;
 
-  const answersSoFar = pairs.length > 0 && (
-    <div style={{ marginTop: 16 }}>
-      <button type="button" className={FOCUS_CLASS} aria-expanded={showAnswers} aria-controls={id("so-far")}
-        onClick={() => setShowAnswers((v) => !v)}
-        style={{ minHeight: 44, padding: "0 12px", marginLeft: -12, display: "inline-flex", alignItems: "center", gap: 8,
-          border: "none", background: "none", borderRadius: 10, cursor: "pointer", fontFamily: SANS, fontSize: "0.95rem",
-          fontWeight: 700, color: TEXT_MID }}>
-        <Chevron up={showAnswers} />
-        Your answers so far ({pairs.length})
-      </button>
-      <ol id={id("so-far")} hidden={!showAnswers}
-        style={{ listStyle: "none", margin: "4px 0 0", padding: 0, display: showAnswers ? "flex" : undefined,
-          flexDirection: "column", gap: 10 }}>
-        {pairs.map((p, i) => (
-          <li key={i} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: RADIUS.control,
-            padding: "10px 12px" }}>
-            <p style={{ ...small, color: TEXT_MID }}>Quill asked: {p.q}</p>
-            <p style={{ margin: "4px 0 0", fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: TEXT, lineHeight: 1.55,
-              overflowWrap: "anywhere" }}>
-              {p.a}
-            </p>
-          </li>
-        ))}
-      </ol>
+  // The whole talk, oldest first: Quill's questions on the left in plain
+  // cards, the student's answers on the right in a tint of their accent.
+  // Quill's newest unanswered question is shown by the mascot instead.
+  const shown = waiting ? messages.slice(0, -1) : messages;
+  const thread = (
+    <div role="log" aria-label="Your conversation with Quill" aria-live="polite" aria-relevant="additions text"
+      style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+      {shown.map((m, i) => (m.role === "advisor" ? (
+        <div key={i} style={{ maxWidth: "88%", alignSelf: "flex-start", background: SURFACE, border: `1px solid ${BORDER}`,
+          borderRadius: "12px 12px 12px 4px", padding: "9px 12px", boxSizing: "border-box" }}>
+          <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.9rem", fontWeight: 800, color: TEXT_MUTED, lineHeight: 1.4 }}>
+            Quill asked
+          </p>
+          <p style={{ margin: "2px 0 0", fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT_MID, lineHeight: 1.5,
+            overflowWrap: "anywhere" }}>
+            {m.content}
+          </p>
+        </div>
+      ) : (
+        <div key={i} style={{ maxWidth: "88%", alignSelf: "flex-end", background: ink.softer, border: `1px solid ${ink.soft}`,
+          borderRadius: "12px 12px 4px 12px", padding: "9px 12px", boxSizing: "border-box" }}>
+          <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.9rem", fontWeight: 800, color: ink.onSoft, lineHeight: 1.4 }}>
+            You said
+          </p>
+          <p style={{ margin: "2px 0 0", fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: TEXT, lineHeight: 1.55,
+            overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}>
+            {m.content}
+          </p>
+        </div>
+      )))}
+      {(busy || waiting) && (
+        <div style={{ marginTop: shown.length ? 4 : 0 }}>
+          <MascotSays agent={QUILL} state={busy ? "thinking" : "idle"} size={64} layout="auto">
+            {busy ? (
+              <span role="status">
+                {stopping ? "One moment while I finish up."
+                  : asked === 0 ? "Let me think about where to begin."
+                  : "Thinking about what you said."}
+              </span>
+            ) : (
+              <span id={id("question")}>{question}</span>
+            )}
+          </MascotSays>
+        </div>
+      )}
+      {error && !ended && (
+        <Notice tone="error"
+          action={(
+            <span style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <Button kind="secondary" onClick={() => ask(messages)}>Try again</Button>
+              {error.signIn && <Button kind="secondary" onClick={() => onSignIn?.()}>Sign in again</Button>}
+            </span>
+          )}>
+          {error.message}
+          {answers > 0 && " What you said is still here."}
+        </Notice>
+      )}
+      <div ref={endRef} aria-hidden="true" style={{ height: 1 }} />
     </div>
   );
 
@@ -354,102 +398,91 @@ export default function BrainstormSheet({
             </Button>
             <Button kind="secondary" onClick={() => onClose?.()} style={{ flex: "1 1 140px" }}>Not now</Button>
           </div>
-          {turnsLine}
+          {turnsLine()}
         </div>
       )}
 
       {view === "talk" && (
-        <div ref={topRef} tabIndex={-1} style={{ outline: "none" }}>
-          {ended ? (
-            // The talk is over: only the card is left to write.
-            <div>
-              {saving && (
-                <p role="status" style={{ display: "flex", alignItems: "center", gap: 10, margin: 0, fontFamily: SANS,
-                  fontSize: "1rem", fontWeight: 700, color: TEXT_MID }}>
-                  <Spinner size={18} color={ink.text} /> Putting your answers on a card...
-                </p>
-              )}
-              {keepError && (
-                <>
-                  <Notice tone="error">
-                    {keepError} Your answers are still here, below, and nothing is lost while this stays open.
-                  </Notice>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 14 }}>
-                    <Button kind="primary" onClick={retryKeep} data-autofocus style={{ flex: "1 1 180px" }}>Try again</Button>
-                    <Button kind="secondary" onClick={() => onClose?.()} style={{ flex: "1 1 180px" }}>
-                      Close without saving
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            <>
-              <p id={id("count")} style={{ ...small, fontWeight: 700, color: TEXT_MID, marginBottom: 10,
-                fontVariantNumeric: "tabular-nums" }}>
-                Question {Math.max(1, asked)} of up to {maxQuestions}
-              </p>
+        <div ref={topRef} tabIndex={-1}
+          style={{ outline: "none", display: "flex", flexDirection: "column", minHeight: "min(calc(80vh - 90px), 620px)" }}>
+          {!ended && (
+            <p id={id("count")} style={{ ...small, fontWeight: 700, color: TEXT_MID, margin: "0 0 12px", display: "flex",
+              alignItems: "center", gap: 12, fontVariantNumeric: "tabular-nums" }}>
+              Question {Math.max(1, asked)} of up to {maxQuestions}
+              <span aria-hidden="true" style={{ display: "inline-flex", gap: 5 }}>
+                {Array.from({ length: maxQuestions }, (_, i) => (
+                  <span key={i} style={{ width: i + 1 === Math.max(1, asked) ? 22 : 10, height: 10, borderRadius: 3,
+                    background: i + 1 <= Math.max(1, asked) ? ink.accent : BORDER }} />
+                ))}
+              </span>
+            </p>
+          )}
 
-              {(busy || waiting) && (
-                <MascotSays agent={QUILL} state={busy ? "thinking" : "idle"} size={64} layout="auto">
-                  {busy ? (
-                    <span role="status">
-                      {stopping ? "One moment while I finish up."
-                        : asked === 0 ? "Let me think about where to begin."
-                        : "Thinking about what you said."}
-                    </span>
-                  ) : (
-                    <span id={id("question")}>{question}</span>
-                  )}
-                </MascotSays>
-              )}
-
-              {waiting && (
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
-                    <label htmlFor={id("answer")} style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 800, color: TEXT }}>
-                      Your answer
-                    </label>
-                    <CharCount id={id("chars")} n={answer.length} max={ANSWER_MAX} />
-                  </div>
-                  <textarea ref={boxRef} id={id("answer")} className={INPUT_CLASS} rows={4} value={answer}
-                    maxLength={ANSWER_MAX} aria-describedby={`${id("count")} ${id("question")} ${id("chars")}`}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); }
-                    }}
-                    placeholder="Say it however it comes out. A few sentences is plenty."
-                    style={{ ...inputStyle, display: "block", marginTop: 6, minHeight: 116, resize: "vertical" }} />
-                  <p style={{ ...small, marginTop: 4, fontWeight: 500 }}>Enter sends. Shift and Enter starts a new line.</p>
-                </div>
-              )}
-
-              {error && (
-                <Notice tone="error" style={{ marginTop: 14 }}
-                  action={(
-                    <span style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      <Button kind="secondary" onClick={() => ask(messages)}>Try again</Button>
-                      {error.signIn && <Button kind="secondary" onClick={() => onSignIn?.()}>Sign in again</Button>}
-                    </span>
-                  )}>
-                  {error.message}
-                  {answers > 0 && " What you said is still here."}
-                </Notice>
-              )}
-
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 16 }}>
-                <Button kind="primary" disabled={!waiting || !clean} onClick={send} style={{ flex: "1 1 160px" }}>
-                  Send
-                  <PixelArrow size={16} />
-                </Button>
-                <Button kind="secondary" disabled={stopping} onClick={stop} style={{ flex: "1 1 200px" }}>
-                  {stopping ? "Finishing up..." : "That's enough for now"}
+          {ended && saving && (
+            <p role="status" style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 0 12px", fontFamily: SANS,
+              fontSize: "1rem", fontWeight: 700, color: TEXT_MID }}>
+              <Spinner size={18} color={ink.text} /> Putting your answers on a card...
+            </p>
+          )}
+          {ended && keepError && (
+            <div style={{ marginBottom: 14 }}>
+              <Notice tone="error">
+                {keepError} Your answers are still here, below, and nothing is lost while this stays open.
+              </Notice>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 14 }}>
+                <Button kind="primary" onClick={retryKeep} data-autofocus style={{ flex: "1 1 180px" }}>Try again</Button>
+                <Button kind="secondary" onClick={() => onClose?.()} style={{ flex: "1 1 180px" }}>
+                  Close without saving
                 </Button>
               </div>
-            </>
+            </div>
           )}
-          {answersSoFar}
-          {!ended && turnsLine}
+
+          {thread}
+
+          {!ended && (
+            <div style={{ position: "sticky", bottom: 0, zIndex: 1, marginTop: "auto", paddingTop: 12, background: WHITE }}>
+              <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 12 }}>
+                {waiting && (
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+                        <label htmlFor={id("answer")} style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 800, color: TEXT }}>
+                          Your answer
+                        </label>
+                        <CharCount id={id("chars")} n={answer.length} max={ANSWER_MAX} />
+                      </div>
+                      <textarea ref={boxRef} id={id("answer")} className={INPUT_CLASS} rows={3} value={answer}
+                        maxLength={ANSWER_MAX} aria-describedby={`${id("count")} ${id("question")} ${id("chars")} ${id("hint")}`}
+                        onChange={(e) => setAnswer(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); }
+                        }}
+                        placeholder="Say it however it comes out. A few sentences is plenty."
+                        style={{ ...inputStyle, display: "block", marginTop: 6, minHeight: 84, maxHeight: "30vh", resize: "vertical" }} />
+                    </div>
+                    <Button kind="primary" disabled={!clean} onClick={send} aria-label="Send your answer"
+                      style={{ minHeight: 84, padding: "10px 16px", flexShrink: 0 }}>
+                      Send
+                      <PixelArrow size={16} />
+                    </Button>
+                  </div>
+                )}
+                {waiting && (
+                  <p id={id("hint")} style={{ ...small, marginTop: 6, fontWeight: 500 }}>
+                    Enter sends. Shift and Enter starts a new line.
+                  </p>
+                )}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
+                  marginTop: 8 }}>
+                  {turnsLine(0) || <span />}
+                  <Button kind="secondary" disabled={stopping} onClick={stop}>
+                    {stopping ? "Finishing up..." : "That's enough for now"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

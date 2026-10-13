@@ -9,6 +9,7 @@ import { FLASH_CLASS } from "../../outreach/flowUi.jsx";
 import { TOPIC_STATUS } from "../../../../lib/essay.js";
 import { CharCount, Chevron, SmallLabel } from "./homeParts.jsx";
 import { NOTES_MAX, RULE, clip, evidenceOf, listOf, ruledStyle } from "./homeUi.js";
+import { SOURCES, Tag } from "./IdeaParts.jsx";
 
 // One idea on Quill's desk: a part of the student's life worth a closer look.
 // A card from their record carries what in the record points there (the
@@ -23,36 +24,24 @@ import { NOTES_MAX, RULE, clip, evidenceOf, listOf, ruledStyle } from "./homeUi.
 // outside the box (a brainstorm added its answers), words not yet saved are
 // kept and what was added goes after them.
 //
-// A card that is set aside folds to its title. Deleting asks first.
-
-const SOURCES = {
-  record: { stamp: "scroll", label: "From your record" },
-  talk: { stamp: "chat", label: "From a brainstorm" },
-  student: { stamp: "sparkle", label: "Your own idea" },
-};
-
-function Tag({ children, style }) {
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: RADIUS.pill,
-      fontFamily: SANS, fontSize: "0.9rem", fontWeight: 800, lineHeight: 1.35, maxWidth: "100%", boxSizing: "border-box",
-      ...style }}>
-      {children}
-    </span>
-  );
-}
+// This is the whole card, shown in the drawer a pile card opens (`inDrawer`:
+// always open, no fold button, and the pile card keeps the page's focus
+// target). Used on its own it still folds when set aside. Deleting asks first.
 
 /**
  * topic: an essay_topics row. essays: the essays that grew from it
  * ([{ id, title }]). fresh: it arrived during this visit.
  * onStatus(key): move it (exploring, chosen, parked).
- * onSaveNotes(text): resolves to true once the database has the text, false
+ * onSaveNotes(text, { leaving }): resolves to true once the database has the text, false
  * when the save failed (it never throws).
  * onDelete(): async; throws an Error whose message is fit to show.
  * onBrainstorm(), onStartEssay(), onOpenEssay(id): the card's ways out.
+ * onConfirming(cancel): the delete question is open (cancel backs out of it), or null once it is not.
  * onDirty(id, unsaved): the box holds words the database does not have yet.
+ * inDrawer: shown whole in a drawer, not folded and not the page's focus target.
  */
 export default function TopicCard({
-  topic, essays = [], fresh = false, onStatus, onSaveNotes, onDelete, onBrainstorm, onStartEssay, onOpenEssay, onDirty,
+  topic, essays = [], fresh = false, inDrawer = false, onStatus, onSaveNotes, onDelete, onBrainstorm, onStartEssay, onOpenEssay, onDirty, onConfirming,
 }) {
   const ink = useAgentInk();
   const uid = useId();
@@ -108,7 +97,7 @@ export default function TopicCard({
     if (ok) storedRef.current = text;
     if (!mounted.current) {
       // The card went away while it saved, with more typed since: that goes too.
-      if (notesRef.current !== storedRef.current) Promise.resolve(saveRef.current?.(notesRef.current)).catch(() => {});
+      if (notesRef.current !== storedRef.current) Promise.resolve(saveRef.current?.(notesRef.current, { leaving: true })).catch(() => {});
       return;
     }
     setSave(ok ? "saved" : "failed");
@@ -125,7 +114,7 @@ export default function TopicCard({
       // Leaving with words not yet saved (a link pressed mid-sentence): send
       // them on the way out.
       if (notesRef.current !== storedRef.current && !inFlight.current) {
-        Promise.resolve(saveRef.current?.(notesRef.current)).catch(() => {});
+        Promise.resolve(saveRef.current?.(notesRef.current, { leaving: true })).catch(() => {});
       }
       dirtyRef.current?.(topicId, false);
     };
@@ -133,7 +122,7 @@ export default function TopicCard({
 
   // ── Folding, status, delete ────────────────────────────────────────────────
 
-  const [open, setOpen] = useState(topic.status !== "parked");
+  const [open, setOpen] = useState(inDrawer || topic.status !== "parked");
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
@@ -154,9 +143,20 @@ export default function TopicCard({
     wasConfirming.current = confirming;
   }, [confirming]);
 
+  // The drawer's Escape, X and backdrop back out of the question first (and
+  // do nothing while the delete is in flight).
+  const deletingRef = useRef(false);
+  deletingRef.current = deleting;
+  const confirmingRef = useRef(onConfirming);
+  confirmingRef.current = onConfirming;
+  useEffect(() => {
+    confirmingRef.current?.(confirming ? () => { if (!deletingRef.current) setConfirming(false); } : null);
+    return () => confirmingRef.current?.(null);
+  }, [confirming]);
+
   const pickStatus = (key) => {
     if (key === topic.status) return;
-    if (key === "parked") { refocusFold.current = true; setOpen(false); }
+    if (key === "parked" && !inDrawer) { refocusFold.current = true; setOpen(false); }
     onStatus?.(key);
   };
 
@@ -185,10 +185,12 @@ export default function TopicCard({
   return (
     <article ref={cardRef} aria-labelledby={id("title")} className={fresh ? FLASH_CLASS : undefined}
       style={{ background: WHITE, borderRadius: RADIUS.card, boxSizing: "border-box", minWidth: 0,
-        padding: "14px 16px 16px 18px",
+        padding: inDrawer ? 0 : "14px 16px 16px 18px",
         // The left edge is the page's margin line: stronger once this is the
         // idea being written about, dashed all round when it is set aside.
-        ...(parked
+        ...(inDrawer
+          ? { border: "none" }
+          : parked
           ? { border: "1.5px dashed #b9b3aa" }
           : { borderStyle: "solid", borderWidth: "1px 1px 1px 4px",
             borderColor: `${BORDER} ${BORDER} ${BORDER} ${chosen ? ink.ring : ink.soft}` }) }}>
@@ -208,19 +210,19 @@ export default function TopicCard({
             {parked && <Tag style={{ background: WHITE, color: TEXT_MID, border: "1px dashed #8a857c" }}>Set aside</Tag>}
             {fresh && <Tag style={{ background: ink.soft, color: ink.onSoft }}>New</Tag>}
           </div>
-          <h3 id={id("title")} tabIndex={-1} data-topic-title={topicId}
+          <h3 id={id("title")} tabIndex={-1} data-topic-title={inDrawer ? undefined : topicId}
             style={{ margin: "8px 0 0", fontFamily: SANS, fontSize: "1.2rem", fontWeight: 800, color: TEXT,
               letterSpacing: "-0.01em", lineHeight: 1.3, overflowWrap: "anywhere", outline: "none" }}>
             {area}
           </h3>
         </div>
-        <button ref={foldRef} type="button" className={FOCUS_CLASS} aria-expanded={open} aria-controls={id("body")}
+        {!inDrawer && <button ref={foldRef} type="button" className={FOCUS_CLASS} aria-expanded={open} aria-controls={id("body")}
           aria-label={`${open ? "Fold" : "Open"} the card for ${area}`} onClick={() => setOpen((v) => !v)}
           style={{ flexShrink: 0, width: 44, height: 44, margin: "-4px -6px 0 0", display: "inline-flex",
             alignItems: "center", justifyContent: "center", border: "none", borderRadius: 10,
             background: "rgba(20,20,19,0.05)", color: TEXT_MID, cursor: "pointer" }}>
           <Chevron up={open} />
-        </button>
+        </button>}
       </header>
 
       <div id={id("body")} hidden={!open}>

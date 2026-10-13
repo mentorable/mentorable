@@ -1,8 +1,10 @@
+import { useEffect, useRef, useState } from "react";
 import { PixelStamp } from "../../../ui/PixelIcons.jsx";
 import {
   AMBER_TEXT, BORDER, FOCUS_CLASS, RADIUS, SANS, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
 } from "../../../ui/tokens.js";
 import { CHOICE_CLASS, SR_ONLY } from "../../../ui/kit.jsx";
+import { SpeechBubble, TAIL_AT } from "../../../ui/SpeechBubble.jsx";
 import { SKEL_CLASS } from "../../outreach/BoardUi.js";
 
 // Small pieces shared by Quill's home: the fold chevron, a choice row for the
@@ -40,6 +42,35 @@ export function QuillLine({ children, style, as: Tag = "p" }) {
       <span style={SR_ONLY}>Quill: </span>
       {children}
     </Tag>
+  );
+}
+
+/**
+ * Quill's own voice on the night desk: the pixel speech bubble under the
+ * scene, its tail aimed up at the owl. `center`: how far the owl's middle is
+ * from the right edge of the page column (NightScene perches it there).
+ */
+export function QuillSays({ children, center = 120 }) {
+  const ref = useRef(null);
+  const [wide, setWide] = useState(560);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const read = () => setWide(Math.min(560, el.clientWidth || 560));
+    read();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const watch = new ResizeObserver(read);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
+  return (
+    <div ref={ref} style={{ display: "flex", justifyContent: "flex-end", paddingTop: 18, marginTop: -14 }}>
+      <SpeechBubble side="top" tailAt={Math.max(TAIL_AT, Math.round(wide - center - 5))}
+        style={{ width: "min(560px, 100%)" }}>
+        <span style={SR_ONLY}>Quill says: </span>
+        {children}
+      </SpeechBubble>
+    </div>
   );
 }
 
@@ -123,27 +154,31 @@ function Bar({ w = "100%", h = 14, style }) {
   return <div className={SKEL_CLASS} style={{ width: w, height: h, borderRadius: 6, ...style }} />;
 }
 
-/** The desk while it loads: a few cards where the ideas and essays will be. */
-export function DeskSkeleton({ stacked }) {
-  const card = (k, tall) => (
+/** The desk while it loads: the resume card, the tabs, and a few sheets. */
+export function DeskSkeleton() {
+  const sheet = (k) => (
     <div key={k} style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: RADIUS.card,
       padding: "16px 18px", boxSizing: "border-box" }}>
       <Bar w="55%" h={18} />
       <Bar w="85%" style={{ marginTop: 12 }} />
       <Bar w="70%" style={{ marginTop: 8 }} />
-      {tall && <Bar h={84} style={{ marginTop: 14, borderRadius: RADIUS.control }} />}
+      <Bar h={8} style={{ marginTop: 14 }} />
     </div>
   );
   return (
-    <div aria-hidden="true" style={{ display: "grid", gap: stacked ? 28 : 36, alignItems: "start",
-      gridTemplateColumns: stacked ? "minmax(0, 1fr)" : "minmax(0, 1.55fr) minmax(0, 1fr)" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <Bar w={120} h={22} />
-        {[0, 1].map((k) => card(k, true))}
+    <div aria-hidden="true">
+      <div style={{ marginTop: 18, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: RADIUS.card,
+        padding: "18px 20px", boxSizing: "border-box" }}>
+        <Bar w="30%" h={14} />
+        <Bar w="55%" h={22} style={{ marginTop: 10 }} />
+        <Bar h={8} style={{ marginTop: 16 }} />
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <Bar w={150} h={22} />
-        {[0, 1].map((k) => card(k, false))}
+      <div style={{ display: "flex", gap: 8, marginTop: 24 }}>
+        <Bar w={120} h={44} style={{ borderRadius: 999 }} />
+        <Bar w={90} h={44} style={{ borderRadius: 999 }} />
+      </div>
+      <div style={{ display: "grid", gap: 16, marginTop: 14, gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))" }}>
+        {[0, 1, 2].map(sheet)}
       </div>
     </div>
   );

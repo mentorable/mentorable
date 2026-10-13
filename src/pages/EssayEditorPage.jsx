@@ -5,14 +5,14 @@ import { agentsApi, essayErrorMessage, needsSignIn } from "../lib/agentsApi.js";
 import { QUILL_LINES } from "../lib/agents/registry.js";
 import {
   REVIEW_MIN_WORDS, VERSIONS_MAX, countWords, deleteEssay, deleteReview, deleteVersion, essayStamp, lengthState, loadEssay,
-  loadVersion, saveEssay, saveResponses, wordBounds,
+  loadVersion, openNotes, saveEssay, saveResponses, wordBounds,
 } from "../lib/essay.js";
 import { MascotSays } from "../components/agents/SpeechBubble.jsx";
-import AskReview from "../components/agents/essay/editor/AskReview.jsx";
+import AskStatus from "../components/agents/essay/editor/AskStatus.jsx";
 import DraftPaper from "../components/agents/essay/editor/DraftPaper.jsx";
+import EditorBar from "../components/agents/essay/editor/EditorBar.jsx";
 import EditorHeader, { BackLink } from "../components/agents/essay/editor/EditorHeader.jsx";
-import OpenNotesList from "../components/agents/essay/editor/OpenNotesList.jsx";
-import PastReviews from "../components/agents/essay/editor/PastReviews.jsx";
+import NotesSheet from "../components/agents/essay/editor/NotesSheet.jsx";
 import PromptPanel from "../components/agents/essay/editor/PromptPanel.jsx";
 import ReviewView from "../components/agents/essay/editor/ReviewView.jsx";
 import VersionsDrawer from "../components/agents/essay/editor/VersionsDrawer.jsx";
@@ -25,14 +25,15 @@ import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import Spinner from "../components/common/Spinner.jsx";
 import { Button, Card, Notice, SR_ONLY, pageStyle } from "../components/ui/kit.jsx";
 import { PixelStamp } from "../components/ui/PixelIcons.jsx";
-import { BORDER, DANGER, FOCUS_CLASS, SANS, TEXT, TEXT_MID, TEXT_MUTED, useAgentInk } from "../components/ui/tokens.js";
+import { DANGER, FOCUS_CLASS, SANS, TEXT, TEXT_MID, TEXT_MUTED, useAgentInk } from "../components/ui/tokens.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
-// One essay (/agents/essay/:essayId): a writing-first page. The textarea is
-// the page, the prompt sits above it, and Quill is small and to the side with
-// the one thing that spends anything here, "Ask Quill to read it". After a
-// review the same page shows it beside the version it read (ReviewView), and
-// "Keep writing" comes back to the text with a slim list of open notes.
+// One essay (/agents/essay/:essayId): a writing-first page. One calm page of
+// writing under a bar that stays at the top: the word count, where the words
+// are saved, Notes (the open notes and past reviews, in a panel) and the one
+// thing that spends anything here, "Ask Quill". Quill is small and quiet in
+// the bar until asked. After a review the same page shows it beside the
+// version it read (ReviewView), and "Keep writing" comes back to the text.
 //
 // What this page promises, and how:
 //   * The words are never lost. Everything typed goes through one autosave
@@ -127,8 +128,6 @@ function asVersionRow(v) {
   return { id: v.id, essay_id: v.essay_id, word_count: v.word_count, source: v.source, created_at: v.created_at };
 }
 
-const sectionRule = { height: 1, background: BORDER, border: "none", margin: 0 };
-
 // The server sends the hand-off's words (rules.HANDOFF in the backend). This
 // is the same message, word for word, for the one case where its answer says
 // "hand-off" and carries none.
@@ -138,8 +137,8 @@ const HANDOFF_FALLBACK = "This sounds like more than an essay. Please talk to an
 
 export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
   const isMobile = useIsMobile();
-  // Below this the side column goes under the text: beside it, the essay's
-  // measure would fall under about 55 characters.
+  // Below this a review's notes go under the text (and open as a sheet):
+  // beside it, the essay's measure would fall under about 55 characters.
   const narrow = useIsMobile(1240);
   const ink = useAgentInk();
 
@@ -156,6 +155,7 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
   const [handoff, setHandoff] = useState(null);        // the server's hand-off message
   const [drawerOpen, setDrawerOpen] = useState(false); // the saved versions
   const [sheet, setSheet] = useState(null);            // null | "delete"
+  const [notesOpen, setNotesOpen] = useState(false);  // the open notes and past reviews, from the bar
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
   const [notice, setNotice] = useState(null);          // { tone, text, leave }
@@ -185,7 +185,7 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
   const scrollBack = useRef(0);           // where the editor was scrolled to when a review opened
   const focusAfter = useRef(null);        // "review" | "write" | "ask" | "text" | "handoff", once the view has rendered
   const textRef = useRef(null);
-  const askHeading = useRef(null);
+  const askRef = useRef(null);
   const reviewHeading = useRef(null);
   const handoffRef = useRef(null);
   const lastLength = useRef(null);
@@ -236,6 +236,7 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
     setGone(true);
     setDrawerOpen(false);
     setSheet(null);
+    setNotesOpen(false);
   }, [stop]);
   onGone.current = markGone;
   // A save found the essay changed somewhere else. The choice is at the top
@@ -374,9 +375,9 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
     } else if (target === "write") {
       try { window.scrollTo({ top: scrollBack.current || 0 }); } catch { /* old browsers */ }
       // On a phone, focusing the text would throw the keyboard up unasked.
-      (isMobile ? askHeading.current : textRef.current)?.focus?.({ preventScroll: true });
+      (isMobile ? askRef.current : textRef.current)?.focus?.({ preventScroll: true });
     } else if (target === "ask") {
-      askHeading.current?.focus?.({ preventScroll: true });
+      askRef.current?.focus?.({ preventScroll: true });
     } else if (target === "text") {
       textRef.current?.focus?.({ preventScroll: true });
     } else if (target === "handoff") {
@@ -387,6 +388,7 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
   const showReview = (id, note = null) => {
     if (view.name === "write") scrollBack.current = window.scrollY || 0;
     focusAfter.current = "review";
+    setNotesOpen(false);
     setView({ name: "review", id, note });
   };
   const keepWriting = useCallback(() => {
@@ -428,6 +430,11 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
   else if (length === "over") quillLine = QUILL_LINES.overLimit(words - bounds.max);
   else if (length === "under" && bounds.min !== null && words >= minWords) quillLine = QUILL_LINES.underMin(bounds.min - words);
   else if (!block) quillLine = QUILL_LINES.reviewAsk;
+
+  // Quill speaks up only when there is something to know: no reviews left, or
+  // the draft is over or under its length. Otherwise it stays quiet.
+  const quillSpeaks = block?.code === "no_reviews" || length === "over"
+    || (length === "under" && bounds.min !== null && words >= minWords);
 
   const applyUsage = (usage) => {
     if (usage && Number.isFinite(usage.left) && Number.isFinite(usage.limit)) setStatus((s) => ({ ...(s || {}), reviews: usage }));
@@ -570,7 +577,7 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
       setAskError(null);
       refreshStatus();
       // The student may be mid-sentence: say so, and leave them where they are.
-      notify("Quill finished reading your draft. Its review is under Past reviews.");
+      notify("Quill finished reading your draft. Its review is in Notes, under Past reviews.");
     }, WATCH_EVERY_MS);
   };
 
@@ -588,7 +595,7 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
     const elsewhere = viewRef.current.name !== "write";
     const wroteOn = typeof askedBody === "string" && current().body !== askedBody;
     if (elsewhere || wroteOn || inField()) {
-      notify("Quill finished reading your draft. Its review is under Past reviews.");
+      notify("Quill finished reading your draft. Its review is in Notes, under Past reviews.");
       return;
     }
     showReview(review.id);
@@ -954,45 +961,6 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
     </>
   );
 
-  const side = (
-    <>
-      <AskReview line={quillLine} block={block} budget={reviewsBudget} reviewing={reviewing} error={askError}
-        handoff={handoff} headingRef={askHeading} handoffRef={handoffRef} onAsk={askReview}
-        onDismissError={() => setAskError(null)} onSignIn={() => navigate?.("/auth")}
-        onCloseHandoff={() => { focusAfter.current = "ask"; setHandoff(null); }} />
-
-      {newest && (
-        <>
-          <hr style={sectionRule} />
-          <OpenNotesList review={newest} onOpen={(noteId) => showReview(newest.id, noteId)} />
-        </>
-      )}
-      {reviews.length > 0 && (
-        <>
-          <hr style={sectionRule} />
-          <PastReviews reviews={reviews} onOpen={(id) => showReview(id)} />
-        </>
-      )}
-
-      <hr style={sectionRule} />
-      <div>
-        {!gone && (
-          <Button kind="secondary" onClick={() => setDrawerOpen(true)} style={{ width: "100%" }}>
-            Saved versions ({versions.length})
-          </Button>
-        )}
-        <p style={{ margin: "12px 0 0", display: "flex", alignItems: "flex-start", gap: 8, fontFamily: SANS, fontSize: "0.93rem",
-          fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.5 }}>
-          <span aria-hidden="true" style={{ display: "flex", marginTop: 3, flexShrink: 0 }}><PixelStamp kind="lock" size={16} /></span>
-          <span>
-            <span style={SR_ONLY}>Quill says: </span>
-            {QUILL_LINES.neverWrites}
-          </span>
-        </p>
-      </div>
-    </>
-  );
-
   return (
     <div data-sidebar-offset className="ui-page" style={pagePad}>
       {openReview && (
@@ -1011,26 +979,35 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
           textarea keeps its caret and its undo history, so "Keep writing"
           really does pick up where the student left off. */}
       <div hidden={!!openReview}
-        style={{ maxWidth: narrow ? 736 : 1120, margin: "0 auto", width: "100%", display: openReview ? "none" : "block" }}>
+        style={{ maxWidth: 860, margin: "0 auto", width: "100%", display: openReview ? "none" : "block" }}>
         <EditorHeader title={values.title} status={values.status} kindLine={kindLine} locked={gone}
           onTitle={(title) => edit({ title })} onStatus={(next) => edit({ status: next })} onBack={goBack}
           menuItems={menuItems} />
         {notices}
-        <div style={narrow
-          ? { display: "flex", flexDirection: "column", gap: 20 }
-          : { display: "grid", gridTemplateColumns: "minmax(0, 736px) minmax(280px, 1fr)", gap: 28, alignItems: "start" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
-            <PromptPanel essay={live} locked={gone} onChange={(patch) => { edit(patch); saveNow(); }} />
-            <DraftPaper value={values.body} onChange={(body) => edit({ body })} onBlur={() => { saveNow(); }}
-              textRef={textRef} words={words} bounds={bounds} length={length} saveState={saveState}
-              onRetry={() => { saveNow(); }} onConflict={showClash} isMobile={isMobile} locked={gone} />
-          </div>
-          <aside aria-label="Quill, your notes and your versions"
-            style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0,
-              ...(narrow ? null : { position: "sticky", top: 24, maxHeight: "calc(100vh - 48px)", overflowY: "auto",
-                padding: 4, margin: -4, boxSizing: "border-box" }) }}>
-            {side}
-          </aside>
+        <EditorBar words={words} bounds={bounds} length={length} saveState={saveState} onRetry={() => { saveNow(); }}
+          onConflict={showClash} reviewing={reviewing} off={!!block || reviewing} hasNotes={reviews.length > 0 && !gone}
+          notesCount={newest ? openNotes(newest).length : 0} notesOpen={notesOpen} onNotes={() => setNotesOpen(true)}
+          onAsk={askReview} onBlocked={() => { if (block) notify(block.text); }} askRef={askRef} />
+        <AskStatus line={quillLine} speaks={quillSpeaks} block={block} budget={reviewsBudget} reviewing={reviewing}
+          error={askError} handoff={handoff} handoffRef={handoffRef} onDismissError={() => setAskError(null)}
+          onSignIn={() => navigate?.("/auth")} onCloseHandoff={() => { focusAfter.current = "ask"; setHandoff(null); }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
+          <PromptPanel essay={live} locked={gone} onChange={(patch) => { edit(patch); saveNow(); }} />
+          <DraftPaper value={values.body} onChange={(body) => edit({ body })} onBlur={() => { saveNow(); }}
+            textRef={textRef} isMobile={isMobile} locked={gone} />
+        </div>
+        <div style={{ margin: "16px 0 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+          {!gone && (
+            <Button kind="secondary" onClick={() => setDrawerOpen(true)}>Saved versions ({versions.length})</Button>
+          )}
+          <p style={{ margin: 0, display: "flex", alignItems: "flex-start", justifyContent: "center", gap: 8, fontFamily: SANS,
+            fontSize: "0.93rem", fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.5, maxWidth: 560 }}>
+            <span aria-hidden="true" style={{ display: "flex", marginTop: 3, flexShrink: 0 }}><PixelStamp kind="lock" size={16} /></span>
+            <span>
+              <span style={SR_ONLY}>Quill says: </span>
+              {QUILL_LINES.neverWrites}
+            </span>
+          </p>
         </div>
       </div>
 
@@ -1038,6 +1015,10 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
       <BoardToast toast={toast} onDismiss={() => { clearTimeout(toastTimer.current); setToast(null); }} />
 
       <AnimatePresence>
+        {notesOpen && !openReview && !gone && (
+          <NotesSheet key="notes" newest={newest} reviews={reviews} onClose={() => setNotesOpen(false)}
+            onOpen={(reviewId, noteId) => showReview(reviewId, noteId)} />
+        )}
         {drawerOpen && (
           <VersionsDrawer key="versions" versions={versions} bodies={bodies} reviewed={reviewed} max={versionsMax}
             saveBlock={saveBlock} onClose={() => setDrawerOpen(false)} onLoad={(id) => { ensureVersion(id, { again: true }); }}

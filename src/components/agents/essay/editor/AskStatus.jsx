@@ -1,22 +1,17 @@
 import { useEffect, useState } from "react";
 import { QUILL_LINES } from "../../../../lib/agents/registry.js";
-import Spinner from "../../../common/Spinner.jsx";
-import { PixelStamp } from "../../../ui/PixelIcons.jsx";
 import { Button, Card, LinkButton, Notice, SR_ONLY } from "../../../ui/kit.jsx";
-import {
-  AMBER_TEXT, BORDER, FOCUS_CLASS, PRESS_CLASS, RADIUS, SANS, TEXT, TEXT_MID, TEXT_MUTED, useAgentInk,
-} from "../../../ui/tokens.js";
+import { AMBER_TEXT, BORDER, FOCUS_CLASS, SANS, TEXT, TEXT_MID, TEXT_MUTED, useAgentInk } from "../../../ui/tokens.js";
 import { MascotSays } from "../../SpeechBubble.jsx";
 import { QUILL } from "./editorUi.js";
 
-// Quill, small and to the side of the essay, and the one button that spends
-// anything on this page: "Ask Quill to read it".
+// What Quill has to say under the bar (EditorBar holds the "Ask Quill" button
+// itself): why the button is off, how many reviews are left, how a read is
+// going, and what went wrong.
 //
-// The button is never a dead end. When it is off it says exactly why (no
-// prompt yet, under 50 words, nothing changed since the last read, no reviews
-// left), and it stays focusable so a keyboard or a screen reader can reach
-// the reason. While Quill reads, its lines rotate for flavour only: the one
-// thing announced is that it is reading.
+// The reason is never hidden. It is always the description of the button (the
+// element qe-ask-why), whatever else is on screen. While Quill reads, its lines
+// rotate for flavour only: the one thing announced is that it is reading.
 //
 // A hand-off is not a review. When the writing says the student may be in
 // danger, the server sends a message instead of notes, and this shows it
@@ -73,34 +68,30 @@ function Handoff({ message, panelRef, onClose }) {
 }
 
 /**
- * line: what Quill says while nothing is happening. block: null, or { code,
+ * line, speaks: what Quill says, and whether it says it now (it speaks when
+ * there is something to know, not all the time). block: null, or { code,
  * text }: exactly why the button is off. budget: { left, limit } or null when
  * unknown. reviewing: a review is in flight. error: { text, signIn } from the
- * last ask. handoff: the server's hand-off message, or null. headingRef: the
- * section heading, for the page to focus. handoffRef: the hand-off's heading.
+ * last ask. handoff: the server's hand-off message, or null. handoffRef: the
+ * hand-off's heading, for the page to focus.
  */
-export default function AskReview({
-  line, block, budget, reviewing, error, handoff, headingRef, handoffRef, onAsk, onDismissError, onSignIn, onCloseHandoff,
+export default function AskStatus({
+  line, speaks = false, block, budget, reviewing, error, handoff, handoffRef, onDismissError, onSignIn, onCloseHandoff,
 }) {
-  const ink = useAgentInk();
-  const off = !!block || reviewing;
   const spent = block?.code === "no_reviews";
   const left = budget ? QUILL_LINES.reviewsLeft(budget.left, budget.limit) : "";
 
   return (
-    <section aria-labelledby="qe-ask-title" style={{ minWidth: 0 }}>
-      <h2 id="qe-ask-title" ref={headingRef} tabIndex={-1} className={FOCUS_CLASS}
-        style={{ margin: "0 0 4px", fontFamily: SANS, fontSize: "1.05rem", fontWeight: 800, color: TEXT, borderRadius: 6 }}>
-        Ask Quill
-      </h2>
+    <section aria-labelledby="qe-ask-title" style={{ minWidth: 0, margin: "0 0 14px" }}>
+      <h2 id="qe-ask-title" style={SR_ONLY}>Ask Quill</h2>
 
       {handoff ? (
         <Handoff message={handoff} panelRef={handoffRef} onClose={onCloseHandoff} />
       ) : reviewing ? (
         <Reading />
-      ) : (
+      ) : speaks && line ? (
         <MascotSays agent={QUILL} state="idle" size={64} layout="auto">{line}</MascotSays>
-      )}
+      ) : null}
 
       {error && (
         <Notice tone={error.signIn ? "error" : "warn"} onDismiss={onDismissError} style={{ marginTop: 14 }}
@@ -109,30 +100,18 @@ export default function AskReview({
         </Notice>
       )}
 
-      <div style={{ marginTop: 16 }}>
-        <button type="button" className={`${FOCUS_CLASS} ${off ? "" : PRESS_CLASS}`} aria-disabled={off || undefined}
-          aria-busy={reviewing || undefined} aria-describedby="qe-ask-why" onClick={() => { if (!off) onAsk?.(); }}
-          style={{ width: "100%", minHeight: 48, padding: "10px 18px", display: "inline-flex", alignItems: "center",
-            justifyContent: "center", gap: 9, boxSizing: "border-box", borderRadius: RADIUS.control,
-            border: off ? `1.5px solid ${BORDER}` : "none", background: off ? "#e9e6e1" : ink.button.bg,
-            color: off ? TEXT_MUTED : ink.button.fg, fontFamily: SANS, fontSize: "1.05rem", fontWeight: 800, lineHeight: 1.25,
-            cursor: off ? "not-allowed" : "pointer" }}>
-          {reviewing ? <Spinner size={16} color={TEXT_MUTED} /> : <PixelStamp kind="scroll" size={16} />}
-          {reviewing ? "Quill is reading" : "Ask Quill to read it"}
-        </button>
-        <div id="qe-ask-why" style={{ marginTop: 8, fontFamily: SANS, lineHeight: 1.5 }}>
-          {block && !reviewing && (
-            <p style={{ margin: 0, fontSize: "0.98rem", fontWeight: 700, color: spent ? AMBER_TEXT : TEXT_MID }}>
-              {block.text}
-            </p>
-          )}
-          {left && !spent && (
-            <p style={{ margin: block && !reviewing ? "2px 0 0" : 0, fontSize: "0.93rem", fontWeight: 700, color: TEXT_MUTED,
-              fontVariantNumeric: "tabular-nums" }}>
-              {left}
-            </p>
-          )}
-        </div>
+      <div id="qe-ask-why" style={{ margin: handoff || reviewing || speaks || error ? "12px 0 0" : 0, fontFamily: SANS, lineHeight: 1.5 }}>
+        {block && !reviewing && (
+          <p style={{ margin: 0, fontSize: "0.98rem", fontWeight: 700, color: spent ? AMBER_TEXT : TEXT_MID }}>
+            {block.text}
+          </p>
+        )}
+        {left && !spent && (
+          <p style={{ margin: block && !reviewing ? "2px 0 0" : 0, fontSize: "0.93rem", fontWeight: 700, color: TEXT_MUTED,
+            fontVariantNumeric: "tabular-nums" }}>
+            {left}
+          </p>
+        )}
       </div>
     </section>
   );

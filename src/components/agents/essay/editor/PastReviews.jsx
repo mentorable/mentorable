@@ -12,9 +12,9 @@ export default function PastReviews({ reviews, onOpen }) {
   if (!reviews?.length) return null;
   return (
     <section aria-labelledby="qe-past-title" style={{ minWidth: 0 }}>
-      <h2 id="qe-past-title" style={{ margin: "0 0 8px", fontFamily: SANS, fontSize: "1.05rem", fontWeight: 800, color: TEXT }}>
+      <h3 id="qe-past-title" style={{ margin: "0 0 8px", fontFamily: SANS, fontSize: "1.05rem", fontWeight: 800, color: TEXT }}>
         Past reviews
-      </h2>
+      </h3>
       <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
         {reviews.map((r) => {
           const notes = Array.isArray(r.notes) ? r.notes.length : 0;

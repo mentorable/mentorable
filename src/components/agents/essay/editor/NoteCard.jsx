@@ -38,7 +38,7 @@ function Quote({ children, onShow, dashed = false }) {
   );
 }
 
-function Chip({ children, quiet = false }) {
+export function Chip({ children, quiet = false }) {
   const ink = useAgentInk();
   return (
     <span aria-hidden="true" style={{ flexShrink: 0, padding: "0 7px", borderRadius: 6, fontFamily: SANS, fontSize: "0.9rem",

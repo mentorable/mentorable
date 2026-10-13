@@ -5,9 +5,10 @@ import {
 import { Button, Notice, SR_ONLY } from "../../../ui/kit.jsx";
 import Spinner from "../../../common/Spinner.jsx";
 import { QUILL_LINES } from "../../../../lib/agents/registry.js";
+import { useIsMobile } from "../../../../hooks/useIsMobile.js";
 import { QuillLine } from "./homeParts.jsx";
 import { budgetOf } from "./homeUi.js";
-import TopicCard from "./TopicCard.jsx";
+import PileBoard from "./PileBoard.jsx";
 import NewIdeaCard from "./NewIdeaCard.jsx";
 
 // The ideas half of Quill's desk: the cards, and the three ways one gets
@@ -19,6 +20,8 @@ import NewIdeaCard from "./NewIdeaCard.jsx";
 //
 // A control that cannot be used right now stays in place, marked
 // aria-disabled, with the reason in words beside it.
+
+const BOARD_INTRO = "Ideas come first. Each card is a part of your life worth a closer look. Move a card along as you make up your mind about it.";
 
 /** One of the three ways to an idea. `big`: a tile with a line about it (the
  *  empty desk); otherwise a button in a row. */
@@ -83,6 +86,7 @@ export default function IdeasSection({
   onStatus, onSaveNotes, onDelete, onStartEssay, onOpenEssay, onDirty, headingRef,
 }) {
   const ink = useAgentInk();
+  const oneAtATime = useIsMobile(1000);
   const finds = budgetOf(status?.topics);
   const talk = budgetOf(status?.talk);
   const thin = status?.record?.thin === true;
@@ -159,7 +163,7 @@ export default function IdeasSection({
         </div>
       ) : (
         <>
-          <QuillLine style={{ marginTop: 6 }}>{QUILL_LINES.ideasIntro}</QuillLine>
+          <QuillLine style={{ marginTop: 6 }}>{BOARD_INTRO}</QuillLine>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
             {findAction}
             {talkAction}
@@ -192,23 +196,18 @@ export default function IdeasSection({
         </div>
       )}
 
-      {(composing || topics.length > 0) && (
-        <ul style={{ listStyle: "none", margin: "16px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 14 }}>
-          {composing && (
-            <li><NewIdeaCard onAdd={onAddIdea} onCancel={onCancelCompose} /></li>
-          )}
-          {topics.map((topic) => (
-            <li key={topic.id}>
-              <TopicCard topic={topic} essays={linked?.get(topic.id) || []} fresh={!!fresh?.has(topic.id)}
-                onStatus={(key) => onStatus?.(topic, key)}
-                onSaveNotes={(text) => onSaveNotes?.(topic, text)}
-                onDelete={() => onDelete?.(topic)}
-                onBrainstorm={() => onBrainstorm?.(topic.id)}
-                onStartEssay={() => onStartEssay?.(topic)}
-                onOpenEssay={onOpenEssay} onDirty={onDirty} />
-            </li>
-          ))}
-        </ul>
+      {composing && (
+        <div style={{ marginTop: 16, maxWidth: 620 }}>
+          <NewIdeaCard onAdd={onAddIdea} onCancel={onCancelCompose} />
+        </div>
+      )}
+
+      {topics.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <PileBoard topics={topics} linked={linked} fresh={fresh} mobile={oneAtATime}
+            onStatus={onStatus} onSaveNotes={onSaveNotes} onDelete={onDelete} onBrainstorm={onBrainstorm}
+            onStartEssay={onStartEssay} onOpenEssay={onOpenEssay} onDirty={onDirty} />
+        </div>
       )}
 
       {topics.length > 0 && (

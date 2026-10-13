@@ -7,23 +7,28 @@ import {
   ESSAYS_MAX, TALK_QUESTIONS, TALK_STARTS, TOPIC_STATUS, addTopic, deleteTopic, loadHome, updateTopic,
 } from "../lib/essay.js";
 import { loadCollegeList } from "../lib/collegeList.js";
-import { MascotSays } from "../components/agents/SpeechBubble.jsx";
-import { PixelArrow, PixelStamp } from "../components/ui/PixelIcons.jsx";
-import { AMBER_TEXT, FOCUS_CLASS, SANS, TEXT_MUTED, useAgentInk } from "../components/ui/tokens.js";
-import { Button, PageHeader, SR_ONLY, Toast, pageStyle } from "../components/ui/kit.jsx";
+import { PixelStamp } from "../components/ui/PixelIcons.jsx";
+import { AMBER_TEXT, BORDER, RADIUS, SANS, TEXT, TEXT_MID, WHITE, useAgentInk } from "../components/ui/tokens.js";
+import { Button, SR_ONLY, Toast, pageStyle } from "../components/ui/kit.jsx";
 import IdeasSection from "../components/agents/essay/home/IdeasSection.jsx";
-import EssaysSection from "../components/agents/essay/home/EssaysSection.jsx";
+import EssaysSection, { NewEssayButton } from "../components/agents/essay/home/EssaysSection.jsx";
+import NightScene from "../components/agents/essay/home/NightScene.jsx";
+import DeskTabs, { panelId, tabId } from "../components/agents/essay/home/DeskTabs.jsx";
+import { DeskInvitation, DeskResume } from "../components/agents/essay/home/DeskResume.jsx";
 import BrainstormSheet from "../components/agents/essay/home/BrainstormSheet.jsx";
 import NewEssaySheet from "../components/agents/essay/home/NewEssaySheet.jsx";
-import { DeskSkeleton } from "../components/agents/essay/home/homeParts.jsx";
+import { DeskSkeleton, QuillLine, QuillSays } from "../components/agents/essay/home/homeParts.jsx";
 import {
-  AREA_MAX, NOTES_MAX, QUILL, appendNotes, asTopic, budgetOf, clip, essayPath, plural, refusalTone, short, sortTopics,
+  AREA_MAX, NOTES_MAX, appendNotes, asTopic, budgetOf, clip, essayPath, plural, refusalTone, short, sortTopics,
 } from "../components/agents/essay/home/homeUi.js";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
-// Quill's desk (/agents/essay): the ideas a student is turning over, and the
-// essays they are writing. Ideas come three ways (Quill reads the record and
+// Quill's night desk (/agents/essay): a pixel night scene across the top, the
+// essay in progress first, then the other essays and the ideas behind a
+// two-tab switch (Essays | Ideas).
+//
+// The ideas a student is turning over, and the essays they are writing. Ideas come three ways (Quill reads the record and
 // names areas with questions, a guided brainstorm, or a card of the student's
 // own); each essay opens on its own page (/agents/essay/<id>), where the
 // writing and Quill's reviews live.
@@ -47,9 +52,15 @@ const REAL_API = {
   createEssay: (body) => agentsApi.essayCreate(body),
 };
 
-/** Below this width the desk is one column: essays over ideas once there is
- *  an essay to go back to, ideas first before that. */
-const DESK_MIN = 1180;
+const TAB_KEY = "quill-desk-tab";
+const TAB_PREFIX = "eq-desk";
+/** The tab the student last chose this session, or null. */
+function storedTab() {
+  try {
+    const v = window.sessionStorage.getItem(TAB_KEY);
+    return v === "essays" || v === "ideas" ? v : null;
+  } catch { return null; }
+}
 
 const titleOf = (id) => [...document.querySelectorAll("[data-topic-title]")]
   .find((n) => n.getAttribute("data-topic-title") === String(id)) || null;
@@ -64,7 +75,6 @@ function inField() {
 
 export default function EssayHomePage({ navigate, api = REAL_API }) {
   const isMobile = useIsMobile();
-  const stacked = useIsMobile(DESK_MIN);
   const ink = useAgentInk();
   const [phase, setPhase] = useState("loading");    // loading | ready | error
   const [userId, setUserId] = useState(null);
@@ -75,6 +85,7 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
   const [composing, setComposing] = useState(false);
   const [finding, setFinding] = useState(false);
   const [findNote, setFindNote] = useState(null);   // { message, tone, signIn }
+  const [tabChoice, setTabChoice] = useState(storedTab);   // "essays" | "ideas", null until the student picks
   const [fresh, setFresh] = useState(() => new Set());
   const [toast, setToast] = useState(null);
   const [announce, setAnnounce] = useState("");
@@ -161,7 +172,7 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
     focusAfter.current = null;
     if (inField()) return;
     ((target.topic && titleOf(target.topic)) || ideasHeadingRef.current)?.focus();
-  }, [topics, sheet, composing]);
+  }, [topics, sheet, composing, tabChoice]);
 
   const onSheetGone = () => {
     const next = afterSheet.current;
@@ -195,6 +206,9 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
   const noReviews = !!reviews && reviews.left <= 0;
   const talkQuestions = Number(status?.limits?.talk_questions) > 0 ? Number(status.limits.talk_questions) : TALK_QUESTIONS;
   const deskEmpty = topics.length === 0 && essays.length === 0;
+  // With no essay yet the desk opens on ideas; the student's own pick wins.
+  const tab = tabChoice || (essays.length > 0 ? "essays" : "ideas");
+  const resuming = essays[0] || null;
   const sheetTopic = sheet?.topicId ? topics.find((t) => t.id === sheet.topicId) || null : null;
   // The essays that grew from each idea, for the line on its card.
   const linked = useMemo(() => {
@@ -304,7 +318,9 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
     }
 
     console.warn("[essay] idea save failed:", failed?.code || failed?.name || "error");
-    const message = `Couldn't save that change to "${short(current.area)}". It's back as it was.`;
+    const message = "notes" in patch
+      ? `Couldn't save your notes on "${short(current.area)}". They are back as they were last saved.`
+      : `Couldn't save that change to "${short(current.area)}". It's back as it was.`;
     if (!last) {
       if (!quiet) run.lost = { keys: new Set([...(run.lost?.keys || []), ...Object.keys(patch)]), message };
       return false;
@@ -331,7 +347,9 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
     });
   };
 
-  const saveNotes = (topic, text) => changeTopic(topic, { notes: text }, { quiet: true });
+  // Quiet while the card is open (its box says so itself). Once the card has
+  // closed on words it could not save, nothing else would, so that one says so.
+  const saveNotes = (topic, text, opts) => changeTopic(topic, { notes: text }, { quiet: !opts?.leaving });
 
   const removeTopic = async (topic) => {
     try {
@@ -354,6 +372,19 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
   };
 
   // ── The sheets ────────────────────────────────────────────────────────────
+
+  const chooseTab = (key) => {
+    setTabChoice(key);
+    try { window.sessionStorage.setItem(TAB_KEY, key); } catch { /* the tab just forgets itself */ }
+  };
+  /** The way in from an essay-side empty state: the Ideas tab, with focus on its heading. */
+  const goToIdeas = () => {
+    // Already on Ideas: nothing will re-render, so focus the heading now
+    // rather than leave a request waiting for some later change.
+    if (tab === "ideas") { ideasHeadingRef.current?.focus(); return; }
+    focusAfter.current = { ideas: true };
+    chooseTab("ideas");
+  };
 
   const closeSheet = () => { setSheet(null); refreshStatus(); };
   const signIn = () => navigate?.("/auth");
@@ -398,6 +429,7 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
     const topic = asTopic(row);
     if (!topic) return;
     const isNew = !topicsRef.current.some((t) => t.id === topic.id);
+    chooseTab("ideas");
     landTopics([topic]);
     setAnnounce(isNew
       ? `Your answers are on a new idea card, "${short(topic.area)}".`
@@ -406,6 +438,7 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
 
   const seeCard = (topicId) => {
     afterSheet.current = { topic: topicId };
+    chooseTab("ideas");
     closeSheet();
   };
 
@@ -424,32 +457,26 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
 
   const pagePad = pageStyle({ isMobile, sidebar: SIDEBAR_WIDTH, ink });
 
-  const header = (
-    <>
-      <button type="button" className={FOCUS_CLASS} onClick={() => navigate?.("/agents")}
-        style={{ minHeight: 44, display: "inline-flex", alignItems: "center", gap: 8, margin: "0 0 4px -8px", padding: "0 8px",
-          border: "none", background: "none", borderRadius: 10, cursor: "pointer", fontFamily: SANS, fontSize: "0.95rem",
-          fontWeight: 700, color: TEXT_MUTED }}>
-        <PixelArrow size={16} style={{ transform: "scaleX(-1)" }} />
-        Agents
-      </button>
-      <PageHeader title="Essays" isMobile={isMobile} style={{ margin: "0 0 1rem" }} />
-    </>
+  const scene = (
+    <NightScene title="Essays" isMobile={isMobile} state={finding ? "thinking" : "idle"} onBack={() => navigate?.("/agents")} />
   );
 
   if (phase !== "ready") {
     return (
       <div data-sidebar-offset className="ui-page" style={pagePad}>
         <div style={{ maxWidth: 1120, margin: "0 auto", width: "100%" }}>
-          {header}
+          {scene}
           {phase === "loading" ? (
             <div aria-busy="true">
               <p role="status" style={SR_ONLY}>Loading your desk</p>
-              <DeskSkeleton stacked={stacked} />
+              <DeskSkeleton />
             </div>
           ) : (
             <div style={{ maxWidth: 640 }}>
-              <MascotSays agent={QUILL} state="thinking" size={80} layout="auto">{QUILL_LINES.error}</MascotSays>
+              <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: RADIUS.card, padding: "1.1rem 1.2rem",
+                boxSizing: "border-box" }}>
+                <QuillLine style={{ fontWeight: 600, color: TEXT }}>{QUILL_LINES.error}</QuillLine>
+              </div>
               <Button kind="primary" onClick={load} style={{ marginTop: 18 }}>Try again</Button>
             </div>
           )}
@@ -458,38 +485,27 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
     );
   }
 
-  const ideas = (
-    <IdeasSection key="ideas" topics={topics} linked={linked} fresh={fresh} status={status}
-      finding={finding} findNote={findNote} onDismissFindNote={() => setFindNote(null)}
-      composing={composing} onCompose={() => setComposing(true)}
-      onCancelCompose={() => { focusAfter.current = { ideas: true }; setComposing(false); }}
-      onAddIdea={addIdea} onFind={findAreas} onBrainstorm={openBrainstorm} onSignIn={signIn}
-      onStatus={setTopicStatus} onSaveNotes={saveNotes} onDelete={removeTopic}
-      onStartEssay={openNewEssay} onOpenEssay={openEssay} onDirty={onDirty} headingRef={ideasHeadingRef} />
-  );
-  const drafts = (
-    <EssaysSection key="essays" essays={essays} status={status} oneColumn={!stacked} today={today}
-      onNew={() => openNewEssay(null)} onOpen={openEssay} />
-  );
+  const full = essaysFull;
+  const hello = noReviews ? QUILL_LINES.noReviews : deskEmpty ? QUILL_LINES.homeEmpty : QUILL_LINES.homeHello;
 
   return (
     <div data-sidebar-offset className="ui-page" style={pagePad}>
       <div style={{ maxWidth: 1120, margin: "0 auto", width: "100%" }}>
-        {header}
+        {scene}
 
-        {/* The one Quill on the page. It always says it never writes for you. */}
-        <div style={{ maxWidth: 760 }}>
-          <MascotSays agent={QUILL} state={finding ? "thinking" : "idle"} size={80} layout="auto">
-            <span style={{ display: "block" }}>
-              {noReviews ? QUILL_LINES.noReviews : deskEmpty ? QUILL_LINES.homeEmpty : QUILL_LINES.homeHello}
-            </span>
-            <span style={{ display: "block", marginTop: 8, fontWeight: 500 }}>{QUILL_LINES.neverWrites}</span>
-          </MascotSays>
-        </div>
-
+        {/* Quill's line is the one pixel bubble, aimed at the owl. The rest is plain text. */}
+        <QuillSays center={isMobile ? 62 : 120}>{hello}</QuillSays>
+        <p style={{ display: "flex", alignItems: "flex-start", gap: 8, margin: "14px 0 0", fontFamily: SANS, fontSize: "0.95rem",
+          fontWeight: 500, lineHeight: 1.5, color: TEXT_MID, maxWidth: "70ch" }}>
+          <span aria-hidden="true" style={{ display: "flex", marginTop: 3, flexShrink: 0 }}><PixelStamp kind="lock" size={16} /></span>
+          <span>
+            <span style={SR_ONLY}>Quill: </span>
+            {QUILL_LINES.neverWrites}
+          </span>
+        </p>
         {reviews && (
-          <p style={{ display: "flex", alignItems: "flex-start", gap: 8, margin: "16px 0 0", fontFamily: SANS,
-            fontSize: "0.95rem", fontWeight: 700, lineHeight: 1.45, color: noReviews ? AMBER_TEXT : TEXT_MUTED,
+          <p style={{ display: "flex", alignItems: "flex-start", gap: 8, margin: "8px 0 0", fontFamily: SANS,
+            fontSize: "0.95rem", fontWeight: 700, lineHeight: 1.45, color: noReviews ? AMBER_TEXT : TEXT_MID,
             fontVariantNumeric: "tabular-nums" }}>
             <span aria-hidden="true" style={{ display: "flex", marginTop: 2 }}><PixelStamp kind="scroll" size={16} /></span>
             <span>
@@ -499,11 +515,41 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
           </p>
         )}
 
-        {/* The desk: ideas beside essays when there is room. In one column,
-            essays lead once there is an essay to go back to. */}
-        <div style={{ display: "grid", alignItems: "start", gap: stacked ? 36 : 44, marginTop: 30,
-          gridTemplateColumns: stacked ? "minmax(0, 1fr)" : "minmax(0, 1.55fr) minmax(0, 1fr)" }}>
-          {stacked && essays.length > 0 ? [drafts, ideas] : [ideas, drafts]}
+        {/* The essay in progress first, or the invitation to start one. */}
+        {resuming
+          ? <DeskResume essay={resuming} today={today} onOpen={openEssay} />
+          : <DeskInvitation onNew={() => openNewEssay(null)} onFindIdeas={goToIdeas} onBrainstorm={() => openBrainstorm(null)} />}
+
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "10px 16px",
+          marginTop: 24 }}>
+          <DeskTabs prefix={TAB_PREFIX} value={tab} onChange={chooseTab}
+            tabs={[
+              { key: "essays", label: `Essays, ${essays.length} of ${essayLimit}` },
+              { key: "ideas", label: `Ideas, ${topics.length}` },
+            ]} />
+          {/* With no essay yet the invitation above already offers New essay. */}
+          {resuming && (
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 14px", flex: full ? "1 1 320px" : "0 0 auto",
+              justifyContent: "flex-end" }}>
+              <NewEssayButton full={full} limit={essayLimit} onNew={() => openNewEssay(null)} />
+            </div>
+          )}
+        </div>
+
+        <div role="tabpanel" id={panelId(TAB_PREFIX, "essays")} aria-labelledby={tabId(TAB_PREFIX, "essays")}
+          hidden={tab !== "essays"} style={{ marginTop: 18 }}>
+          <EssaysSection essays={essays} skip={resuming?.id} status={status} today={today}
+            onNew={() => openNewEssay(null)} onOpen={openEssay} />
+        </div>
+        <div role="tabpanel" id={panelId(TAB_PREFIX, "ideas")} aria-labelledby={tabId(TAB_PREFIX, "ideas")}
+          hidden={tab !== "ideas"} style={{ marginTop: 18 }}>
+          <IdeasSection key="ideas" topics={topics} linked={linked} fresh={fresh} status={status}
+            finding={finding} findNote={findNote} onDismissFindNote={() => setFindNote(null)}
+            composing={composing} onCompose={() => setComposing(true)}
+            onCancelCompose={() => { focusAfter.current = { ideas: true }; setComposing(false); }}
+            onAddIdea={addIdea} onFind={findAreas} onBrainstorm={openBrainstorm} onSignIn={signIn}
+            onStatus={setTopicStatus} onSaveNotes={saveNotes} onDelete={removeTopic}
+            onStartEssay={openNewEssay} onOpenEssay={openEssay} onDirty={onDirty} headingRef={ideasHeadingRef} />
         </div>
       </div>
 

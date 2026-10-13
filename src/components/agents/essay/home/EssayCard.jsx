@@ -1,7 +1,7 @@
 import { useId, useRef } from "react";
 import { PixelArrow, PixelStamp } from "../../../ui/PixelIcons.jsx";
 import {
-  AMBER_TEXT, BORDER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
+  AMBER_TEXT, BG, BORDER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
 } from "../../../ui/tokens.js";
 import { StampTile } from "../../../ui/kit.jsx";
 import { CARD_CLASS } from "../../outreach/BoardUi.js";
@@ -18,7 +18,7 @@ import { STONE, dayPhrase } from "./homeUi.js";
 // does the same for a mouse. Over the limit is amber, never red, and always
 // said in words as well as shown on the bar.
 
-function Tag({ children, style }) {
+export function Tag({ children, style }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: RADIUS.pill,
       fontFamily: SANS, fontSize: "0.9rem", fontWeight: 800, lineHeight: 1.35, maxWidth: "100%", boxSizing: "border-box",
@@ -65,12 +65,29 @@ export function WordMeter({ essay }) {
   );
 }
 
+/** What an essay answers, in a line: the school for a supplement, or the
+ *  Common App prompt by number and its short name. "" when none is picked. */
+export function answersOf(essay) {
+  const what = promptLabel(essay);
+  if (essay.kind === "supplement") return what;
+  const picked = COMMON_APP_PROMPTS.find((p) => p.key === essay.prompt_key) || null;
+  return picked ? `${what}: ${picked.short}` : "";
+}
+
+/** "Last read by Quill today", or that it has not read it. Nothing at all
+ *  when the page could not find out (undefined: loadHome's read failed). */
+export function readLineOf(essay, today = new Date()) {
+  if (essay.last_review_at === undefined) return "";
+  if (!essay.last_review_at) return "Not read by Quill yet";
+  return `Last read by Quill ${dayPhrase(essay.last_review_at, today)}`.trim();
+}
+
 /**
  * essay: an essays row without its text, with `last_review_at` (loadHome:
  * a timestamp, null for never, undefined for unknown).
  * today: a Date. onOpen(essay): go to its page.
  */
-export default function EssayCard({ essay, today = new Date(), onOpen }) {
+export default function EssayCard({ essay, today = new Date(), onOpen, look = "card" }) {
   const ink = useAgentInk();
   const uid = useId();
   const titleId = `${uid}-title`;
@@ -79,18 +96,9 @@ export default function EssayCard({ essay, today = new Date(), onOpen }) {
   const supplement = essay.kind === "supplement";
   const kind = KINDS.find((k) => k.key === essay.kind)?.label || "Essay";
   const status = ESSAY_STATUS.find((s) => s.key === essay.status)?.label || "";
-  const what = promptLabel(essay);
   const promptText = typeof essay.prompt_text === "string" ? essay.prompt_text.trim() : "";
-  // What it answers, in a line: the school and the prompt they pasted, or the
-  // Common App prompt by number and its short name.
-  const picked = supplement ? null : COMMON_APP_PROMPTS.find((p) => p.key === essay.prompt_key) || null;
-  const answers = supplement ? what : picked ? `${what}: ${picked.short}` : "";
-  // "Last read by Quill today", or that it has not read it; a date that
-  // cannot be read still says it was read. Nothing at all when the page could
-  // not find out (undefined: loadHome's read of the reviews failed).
-  const readLine = essay.last_review_at === undefined ? ""
-    : !essay.last_review_at ? "Not read by Quill yet"
-      : `Last read by Quill ${dayPhrase(essay.last_review_at, today)}`.trim();
+  const answers = answersOf(essay);
+  const readLine = readLineOf(essay, today);
 
   const onCardClick = (e) => {
     if (e.target.closest("button, a, input, select, textarea, label")) return;
@@ -99,38 +107,65 @@ export default function EssayCard({ essay, today = new Date(), onOpen }) {
   };
 
   const line = { margin: 0, fontFamily: SANS, fontSize: "0.95rem", lineHeight: 1.5, overflowWrap: "anywhere" };
+  const sheet = look === "sheet";
+
+  const tags = (
+    <>
+      <Tag style={{ background: SURFACE, color: TEXT_MID, border: `1px solid ${BORDER}` }}>{kind}</Tag>
+      {status && (
+        <Tag style={essay.status === "done"
+          ? { background: ink.softer, color: ink.onSoft, border: `1px solid ${ink.soft}` }
+          : { background: WHITE, color: TEXT_MID, border: `1px solid ${BORDER}` }}>
+          {essay.status === "done" && <PixelStamp kind="check" size={16} />}
+          {status}
+        </Tag>
+      )}
+    </>
+  );
+  const title = (
+    <button ref={titleRef} type="button" className={FOCUS_CLASS} data-essay-title={essay.id}
+      onClick={() => onOpen?.(essay)}
+      style={{ display: "inline", padding: 0, margin: 0, border: "none", background: "none", textAlign: "left",
+        font: "inherit", color: "inherit", cursor: "pointer", borderRadius: 4, overflowWrap: "anywhere" }}>
+      {essay.title || "Untitled essay"}
+    </button>
+  );
+  const titleStyle = { margin: 0, fontFamily: SANS, fontSize: sheet ? "1.2rem" : "1.15rem", fontWeight: 800, color: TEXT,
+    lineHeight: 1.3, letterSpacing: "-0.01em", overflowWrap: "anywhere" };
 
   return (
     <article aria-labelledby={titleId} className={CARD_CLASS} onClick={onCardClick}
-      style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: RADIUS.card, boxSizing: "border-box",
-        minWidth: 0, height: "100%", padding: "14px 16px 12px", display: "flex", flexDirection: "column", cursor: "pointer" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-        <StampTile kind={supplement ? "resume" : "notebook"} size={40} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h3 id={titleId} style={{ margin: 0, fontFamily: SANS, fontSize: "1.15rem", fontWeight: 800, color: TEXT,
-            lineHeight: 1.3, letterSpacing: "-0.01em", overflowWrap: "anywhere" }}>
-            <button ref={titleRef} type="button" className={FOCUS_CLASS} data-essay-title={essay.id}
-              onClick={() => onOpen?.(essay)}
-              style={{ display: "inline", padding: 0, margin: 0, border: "none", background: "none", textAlign: "left",
-                font: "inherit", color: "inherit", cursor: "pointer", borderRadius: 4, overflowWrap: "anywhere" }}>
-              {essay.title || "Untitled essay"}
-            </button>
-          </h3>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-            <Tag style={{ background: SURFACE, color: TEXT_MID, border: `1px solid ${BORDER}` }}>{kind}</Tag>
-            {status && (
-              <Tag style={essay.status === "done"
-                ? { background: ink.softer, color: ink.onSoft, border: `1px solid ${ink.soft}` }
-                : { background: WHITE, color: TEXT_MID, border: `1px solid ${BORDER}` }}>
-                {essay.status === "done" && <PixelStamp kind="check" size={16} />}
-                {status}
-              </Tag>
-            )}
+      style={sheet
+        // A sheet of paper: a margin line down the left and a folded top corner.
+        ? { position: "relative", height: "100%", boxSizing: "border-box", minWidth: 0, display: "flex",
+            flexDirection: "column", cursor: "pointer", padding: "16px 16px 10px 38px",
+            background: `linear-gradient(to right, transparent 22px, ${ink.soft} 22px, ${ink.soft} 24px, transparent 24px), ${WHITE}`,
+            border: `1px solid ${BORDER}`, borderRadius: "4px 0 12px 12px",
+            clipPath: "polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%)" }
+        : { background: WHITE, border: `1px solid ${BORDER}`, borderRadius: RADIUS.card, boxSizing: "border-box",
+            minWidth: 0, height: "100%", padding: "14px 16px 12px", display: "flex", flexDirection: "column",
+            cursor: "pointer" }}>
+      {sheet && (
+        <span aria-hidden="true" style={{ position: "absolute", top: -1, right: -1, width: 25, height: 25,
+          background: `linear-gradient(225deg, ${BG} 50%, ${ink.soft} 50%)`, borderLeft: `1px solid ${BORDER}`,
+          borderBottom: `1px solid ${BORDER}` }} />
+      )}
+      {sheet ? (
+        <>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingRight: 22 }}>{tags}</div>
+          <h3 id={titleId} style={{ ...titleStyle, marginTop: 10 }}>{title}</h3>
+        </>
+      ) : (
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <StampTile kind={supplement ? "resume" : "notebook"} size={40} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 id={titleId} style={titleStyle}>{title}</h3>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>{tags}</div>
           </div>
         </div>
-      </div>
+      )}
 
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: sheet ? 8 : 12 }}>
         {answers ? (
           <p style={{ ...line, fontWeight: 700, color: TEXT }}>{answers}</p>
         ) : (

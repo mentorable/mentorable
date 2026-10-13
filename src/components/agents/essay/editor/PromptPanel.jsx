@@ -125,13 +125,19 @@ function SupplementForm({ essay, onSave, onCancel }) {
  * onChange(patch): a new prompt (prompt_key and prompt_text together), or a
  * supplement's prompt_text and word_limit. locked: nothing can be changed
  * (the essay is gone).
+ *
+ * Folded to one line (its name and the start of its words) while a prompt is
+ * set, so the page is mostly the essay; "Show" opens it. With no prompt yet it
+ * starts open, since the next thing to do is pick one.
  */
 export default function PromptPanel({ essay, onChange, locked = false }) {
   const uid = useId();
-  const [open, setOpen] = useState(false);
-  const toggle = useRef(null);
   const personal = essay.kind === "personal_statement";
   const text = (essay.prompt_text || "").trim();
+  const [open, setOpen] = useState(false);          // the chooser or the supplement form
+  const [shown, setShown] = useState(() => !text);  // the whole panel
+  const toggle = useRef(null);
+  const fold = useRef(null);
   const school = typeof essay.school_name === "string" ? essay.school_name.trim() : "";
   // A personal statement made with its own wording and no prompt number
   // still has a prompt: say so rather than "No prompt yet".
@@ -151,47 +157,79 @@ export default function PromptPanel({ essay, onChange, locked = false }) {
     onChange?.(patch);
     close();
   };
+  const flip = () => {
+    setShown((v) => !v);
+    // The button that was pressed stays where it is, so focus stays on it.
+    requestAnimationFrame(() => fold.current?.focus?.({ preventScroll: true }));
+  };
 
   const toggleLabel = open ? "Close"
     : personal ? (text ? "Change prompt" : "Pick a prompt")
       : (text ? "Edit prompt and limit" : "Add the prompt");
 
+  const foldButton = (
+    <button ref={fold} type="button" className={FOCUS_CLASS} aria-expanded={shown} aria-controls={`${uid}-more`} onClick={flip}
+      style={{ ...quietButton, display: "inline-flex", alignItems: "center", gap: 8, border: "1.5px solid transparent",
+        background: "transparent" }}>
+      {shown ? "Hide" : "Show"}
+      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false" shapeRendering="crispEdges">
+        <path d={shown ? "M1 8h2V6h2V4h2v2h2v2h2V6H9V4H7V2H5v2H3v2H1z" : "M1 4h2v2h2v2h2V6h2V4h2v2H9v2H7v2H5V8H3V6H1z"} fill="currentColor" />
+      </svg>
+    </button>
+  );
+
   return (
-    <Card as="section" aria-labelledby={`${uid}-title`} style={{ background: SURFACE, padding: "14px 16px" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "6px 12px" }}>
+    <Card as="section" aria-labelledby={`${uid}-title`} style={{ background: SURFACE, padding: shown ? "14px 16px" : "6px 8px 6px 16px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: shown ? "wrap" : "nowrap",
+        gap: "6px 12px", minHeight: 44 }}>
         <h2 id={`${uid}-title`} style={{ margin: 0, fontFamily: SANS, fontSize: "1.05rem", fontWeight: 800, color: TEXT,
-          lineHeight: 1.3, overflowWrap: "anywhere", minWidth: 0 }}>
+          lineHeight: 1.3, overflowWrap: "anywhere", minWidth: 0, flexShrink: 1,
+          ...(shown ? { whiteSpace: "normal" } : { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }) }}>
           {heading}
         </h2>
-        {!locked && (
-          <button ref={toggle} type="button" className={FOCUS_CLASS} aria-expanded={open} aria-controls={`${uid}-change`}
-            onClick={() => setOpen((v) => !v)} style={quietButton}>
-            {toggleLabel}
-          </button>
+        {!shown && (
+          <p style={{ flex: 1, minWidth: 0, margin: 0, fontFamily: SANS, fontSize: "1rem", fontWeight: 500,
+            color: text ? TEXT_MID : TEXT_MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {text || "None yet."}
+          </p>
         )}
+        {foldButton}
       </div>
 
-      <p style={{ margin: "6px 0 0", fontFamily: SANS, fontSize: "1rem", fontWeight: 500, lineHeight: 1.6,
-        color: text ? TEXT_MID : TEXT_MUTED, whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxWidth: "70ch" }}>
-        {text || (personal
-          ? "You haven't picked a prompt yet. You can write first, but Quill needs a prompt before it can read your draft."
-          : "There is no prompt here yet. Paste the school's prompt so Quill knows what you are answering.")}
-      </p>
-      {personal ? (
-        <p style={{ margin: "8px 0 0", fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.5 }}>
-          {PROMPTS_NOTE}
-        </p>
-      ) : (
-        <p style={{ margin: "8px 0 0", fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, color: TEXT_MUTED, lineHeight: 1.5,
-          fontVariantNumeric: "tabular-nums" }}>
-          Word limit: {wordBounds(essay).max}. Both come from you: Quill never looks anything up about a school.
-        </p>
-      )}
-
-      <div id={`${uid}-change`}>
-        {open && !locked && (personal
-          ? <PromptChooser value={essay.prompt_key || null} undecided={!essay.prompt_key && !text} onPick={pick} />
-          : <SupplementForm essay={essay} onSave={saveSupplement} onCancel={close} />)}
+      <div id={`${uid}-more`} hidden={!shown}>
+        {shown && (
+          <>
+            <p style={{ margin: "6px 0 0", fontFamily: SANS, fontSize: "1rem", fontWeight: 500, lineHeight: 1.6,
+              color: text ? TEXT_MID : TEXT_MUTED, whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxWidth: "70ch" }}>
+              {text || (personal
+                ? "You haven't picked a prompt yet. You can write first, but Quill needs a prompt before it can read your draft."
+                : "There is no prompt here yet. Paste the school's prompt so Quill knows what you are answering.")}
+            </p>
+            {personal ? (
+              <p style={{ margin: "8px 0 0", fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.5 }}>
+                {PROMPTS_NOTE}
+              </p>
+            ) : (
+              <p style={{ margin: "8px 0 0", fontFamily: SANS, fontSize: "0.92rem", fontWeight: 700, color: TEXT_MUTED, lineHeight: 1.5,
+                fontVariantNumeric: "tabular-nums" }}>
+                Word limit: {wordBounds(essay).max}. Both come from you: Quill never looks anything up about a school.
+              </p>
+            )}
+            {!locked && (
+              <div style={{ marginTop: 10 }}>
+                <button ref={toggle} type="button" className={FOCUS_CLASS} aria-expanded={open} aria-controls={`${uid}-change`}
+                  onClick={() => setOpen((v) => !v)} style={quietButton}>
+                  {toggleLabel}
+                </button>
+              </div>
+            )}
+            <div id={`${uid}-change`}>
+              {open && !locked && (personal
+                ? <PromptChooser value={essay.prompt_key || null} undecided={!essay.prompt_key && !text} onPick={pick} />
+                : <SupplementForm essay={essay} onSave={saveSupplement} onCancel={close} />)}
+            </div>
+          </>
+        )}
       </div>
     </Card>
   );
