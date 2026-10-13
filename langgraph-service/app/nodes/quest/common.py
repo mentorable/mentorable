@@ -35,10 +35,14 @@ def clean_kind(value) -> str:
     return value if value in GOAL_KINDS else "other"
 
 
-def student_context(user_id: str) -> tuple[str, dict]:
+def student_context(user_id: str, strict: bool = False) -> tuple[str, dict]:
     """The student's record as prompt text, plus the raw record for anything
-    else the caller needs (grade, narrative gaps)."""
-    record = load_student_record(user_id)
+    else the caller needs (grade, narrative gaps).
+
+    strict is load_student_record's: a table that cannot be read raises
+    instead of coming back empty, for a caller that would otherwise tell a
+    student something false about a record it never saw."""
+    record = load_student_record(user_id, strict=strict)
     text = render_record_context(record)
     narrative = (record.get("profile") or {}).get("narrative") or {}
     if isinstance(narrative, dict):

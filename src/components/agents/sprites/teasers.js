@@ -1,8 +1,15 @@
 // The agents that are not here yet: sleeping birds (birds all the way down,
-// like Beaker and Talon) in one muted color, eyes closed, a z drifting up.
-// Deliberately vague ("???" on the hub): they promise nothing about what the
-// agent will do, only that someone is coming. Same format as Beaker's frames,
-// 32 by 32, one character per pixel.
+// like Beaker, Talon and Quill) in one muted color, eyes closed, a z drifting
+// up. Deliberately vague ("???" on the hub): they promise nothing about what
+// the agent will do, only that someone is coming. Same format as Beaker's
+// frames, 32 by 32, one character per pixel.
+//
+// The heron is the one teaser left. The owl that slept beside it woke up as
+// Quill (sprites/quill.js) and is no longer in TEASERS, so the app cannot
+// draw it. Its silhouette is still exported for one reader outside the app,
+// the social videos (social/src/brand/sprites.js re-exports OWL and an old
+// hub screen there uses it): delete OWL_ROWS and OWL here in the same change
+// that drops them there.
 
 const PALETTE = {
   ".": null,
@@ -11,7 +18,7 @@ const PALETTE = {
   z: "#86809f",   // the z's
 };
 
-// An owl asleep on a branch.
+// An owl asleep on a branch. Not a teaser any more (see the note above).
 const OWL_ROWS = [
   "................................",
   "................................",
@@ -101,7 +108,9 @@ function sleeper(base, small, big) {
   return { width: 32, height: 32, palette: PALETTE, states: { sleeping, idle: sleeping } };
 }
 
-export const OWL = sleeper(OWL_ROWS, [27, 6], [26, 0]);
 export const HERON = sleeper(HERON_ROWS, [24, 3], [26, 0]);
+/** Only for the social videos. Not in TEASERS: Quill took this owl's place. */
+export const OWL = sleeper(OWL_ROWS, [27, 6], [26, 0]);
 
-export const TEASERS = { owl: OWL, heron: HERON };
+/** The silhouettes the app can draw (Mascot.jsx), by mascot key. */
+export const TEASERS = { heron: HERON };

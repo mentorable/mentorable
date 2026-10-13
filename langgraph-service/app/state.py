@@ -87,6 +87,11 @@ class StudentState(TypedDict, total=False):
     _outreach_tries_left: Optional[int]
     _finder: list[dict[str, Any]]
     _finder_finds_left: Optional[int]
+    # Quill's list for the advisor: titles, statuses and word counts, and the
+    # names of their topic areas. Never an essay's text or its prompt.
+    _essays: list[dict[str, Any]]
+    _essay_topics: list[dict[str, Any]]
+    _essay_reviews_left: Optional[int]
     _deleted_titles: list[str]
     _recent_research: list[str]
     _chat_topics: list[str]

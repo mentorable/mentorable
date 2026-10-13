@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { requireUser } from "../lib/auth.js";
 import { agentsApi } from "../lib/agentsApi.js";
-import { AGENTS, BEAKER_LINES, TALON_LINES } from "../lib/agents/registry.js";
+import { AGENTS, BEAKER_LINES, QUILL_LINES, TALON_LINES } from "../lib/agents/registry.js";
 import AgentCard from "../components/agents/AgentCard.jsx";
 import { PixelStamp } from "../components/agents/PixelIcons.jsx";
 import {
@@ -21,18 +21,20 @@ const REAL_API = {
   requireUser,
   status: () => agentsApi.status(),
   finderStatus: () => agentsApi.finderStatus(),
+  essayStatus: () => agentsApi.essayStatus(),
 };
 
 /** A count line under an agent's tagline: a stamp, then the words. Amber when
- *  the agent can't start anything new (its board still works). */
-function CountLine({ stamp, stopped, children }) {
+ *  the agent can't start anything new, with `still`, what does still work
+ *  (the board, for Beaker and Talon). */
+function CountLine({ stamp, stopped, still = "Your board still works.", children }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 8, color: stopped ? AMBER_TEXT : TEXT_MUTED,
       fontVariantNumeric: "tabular-nums" }}>
       <PixelStamp kind={stamp} size={16} />
       <span>
         {children}
-        {stopped && ". Your board still works."}
+        {stopped && `. ${still}`}
       </span>
     </span>
   );
@@ -59,17 +61,28 @@ function FindsLine({ finds, searches }) {
   );
 }
 
+/** Reviews left. With none, Quill can't read another draft, but writing,
+ *  saving versions and the notes it already left all still work. */
+function ReviewsLine({ reviews }) {
+  return (
+    <CountLine stamp="scroll" stopped={reviews.left <= 0} still="You can still write and save here.">
+      {QUILL_LINES.reviewsLeft(reviews.left, reviews.limit)}
+    </CountLine>
+  );
+}
+
 export default function AgentsHubPage({ navigate, api = REAL_API }) {
   const isMobile = useIsMobile();
   const ink = useAgentInk();
   const [status, setStatus] = useState(null);   // agentsApi.status() once the backend answers
   const [finder, setFinder] = useState(null);   // agentsApi.finderStatus(), likewise
+  const [essay, setEssay] = useState(null);     // agentsApi.essayStatus(), likewise
 
   useEffect(() => {
     let cancelled = false;
-    // Each agent's count is fetched on its own: either can fail (or be slow)
-    // without holding up or hiding the other. The hub works without them,
-    // and the card just leaves its count off.
+    // Each agent's count is fetched on its own: any of them can fail (or be
+    // slow) without holding up or hiding the others. The hub works without
+    // them, and the card just leaves its count off.
     const load = async (name, get, ok, set) => {
       try {
         const s = await get();
@@ -86,6 +99,7 @@ export default function AgentsHubPage({ navigate, api = REAL_API }) {
       await Promise.all([
         load("status", () => api.status(), (s) => !!budgetOf(s?.tries), setStatus),
         load("finder status", () => api.finderStatus?.(), (s) => !!budgetOf(s?.finds), setFinder),
+        load("essay status", () => api.essayStatus?.(), (s) => !!budgetOf(s?.reviews), setEssay),
       ]);
     })();
     return () => { cancelled = true; };
@@ -95,17 +109,19 @@ export default function AgentsHubPage({ navigate, api = REAL_API }) {
   const block = researchBlock(status);
   const finds = budgetOf(finder?.finds);
   const searches = budgetOf(finder?.searches);
+  const reviews = budgetOf(essay?.reviews);
 
   const extraFor = (agent) => {
     if (agent.id === "outreach" && tries) return <TriesLine tries={tries} block={block} />;
     if (agent.id === "finder" && finds) return <FindsLine finds={finds} searches={searches} />;
+    if (agent.id === "essay" && reviews) return <ReviewsLine reviews={reviews} />;
     return null;
   };
 
   // The live agents each take a full row; the sleeping ones share the rows
   // under them, as many to a row as there are (up to three), so two teasers
-  // sit side by side rather than leaving a gap. One per row on a phone, where
-  // each lies on its side.
+  // sit side by side rather than leaving a gap, and one alone takes the row.
+  // One per row on a phone, where each lies on its side.
   const soonCount = AGENTS.filter((a) => a.status !== "live").length;
   const columns = Math.min(3, Math.max(1, soonCount));
 

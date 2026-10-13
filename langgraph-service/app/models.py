@@ -85,6 +85,20 @@ FINDER_EXTRACT_MODEL  = GPT_MINI
 FINDER_FIT_MODEL      = HAIKU
 FINDER_FALLBACK_MODEL = HAIKU
 
+# Quill (the essay owl) asks, points and flags; it never writes a word of an
+# essay, so none of its three jobs is prose anyone else reads. The brainstorm
+# is one short question a turn, the topic areas are a read of the record, and
+# the review is a list of notes pinned to quotes from the draft. All three go
+# through app.llm.tool_completion, and everything they return is checked in
+# code (app/nodes/agents/essay/rules.py): a quote must be in the draft, and a
+# line that rewrites, corrects or predicts is dropped. Haiku for all three; the
+# review is the one where judgment shows (is there a point, is the student in
+# their own essay), so if scripts/check_essay.py shows it missing those,
+# OWL_REVIEW_MODEL = SONNET is the one-word change.
+OWL_TALK_MODEL   = HAIKU
+OWL_TOPICS_MODEL = HAIKU
+OWL_REVIEW_MODEL = HAIKU
+
 # Long-term memory (app/nodes/recall/): the student's own words, embedded and
 # searched. OpenAI embeddings, so without an OpenAI key memory is simply off.
 # The vector size is fixed by the student_memories table: changing either value

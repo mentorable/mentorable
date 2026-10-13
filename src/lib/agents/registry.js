@@ -4,10 +4,11 @@
 //
 // Persona lines are written here, never generated: short and warm, a light
 // pun in the agent's own world now and then (postal and beach for Beaker,
-// sky and scouting for Talon), and instructions always plain. No em dashes
-// (house rule), and never mean about a slow reply.
+// sky and scouting for Talon, night and feathers for Quill), and instructions
+// always plain. No em dashes (house rule), and never mean about a slow reply.
 
 const days = (n) => `${n} ${n === 1 ? "day" : "days"}`;
+const words = (n) => `${n} ${n === 1 ? "word" : "words"}`;
 
 /** Beaker, the outreach pelican. Every line the outreach screens show. */
 export const BEAKER_LINES = {
@@ -92,6 +93,55 @@ export const TALON_LINES = {
   error: "A crosswind threw me off course. Nothing was lost, so give it another try in a moment.",
 };
 
+/** Quill, the essay owl. Every line the essay screens show. A calm, curious
+ *  reader who asks more than it tells. It never writes, rewrites or corrects
+ *  a word of an essay, so no line here may offer to, or say how a reader or
+ *  an admissions office will take one. */
+export const QUILL_LINES = {
+  hubTagline: "I help you find what to write about, then read your drafts and ask what a careful reader would. I never write or edit a word of them.",
+
+  homeHello: "Welcome to my desk. Your ideas and your essays live here. I keep late hours, so ask me to read a draft whenever you like.",
+  homeEmpty: "Nothing on the desk yet. Start with an idea, or open a blank page if you already know what you want to say.",
+
+  ideasIntro: "Ideas come first. Each card is a part of your life worth a closer look, with a few questions to turn over.",
+  ideasEmpty: "No ideas here yet. I can look through your record for places to start, ask you a few questions, or you can add one of your own.",
+  findAreas: "I'll read your record and point to a few parts of your life worth a closer look. I bring areas and questions. What you make of them is yours.",
+  thinRecord: "There isn't enough on your record yet for me to point anywhere. A brainstorm works better: I ask, you answer, and we see what turns up.",
+  talkIntro: "Where should we start? Pick one and I'll ask a few short questions, one at a time. Stop whenever you like, and I'll keep what you said on a card.",
+  talkDone: "That's a good place to stop. Your answers are on a card, ready when you are.",
+
+  essaysIntro: "Your essays. Write here, save versions as you go, and ask me to read a draft when you want a second pair of eyes.",
+  essaysEmpty: "No essays yet. Start one when you're ready. A rough first draft is plenty for me to read.",
+  newEssay: "What are we working on? Your personal statement, or a supplement for one of your schools?",
+
+  editorHello: "Write as much or as little as you like. It saves as you go, and I only read when you ask.",
+  neverWrites: "I never write, rewrite or fix your essay. I point to places and ask questions, and every word stays yours.",
+  reviewAsk: "Want me to read this draft? I'll hold it up to the prompt and your record, then leave notes and questions beside it.",
+  reviewing: [
+    "Reading your draft from the first line to the last.",
+    "Holding it up to the prompt.",
+    "Looking for where you step into the story.",
+    "Checking it against your record and your other essays.",
+    "Writing down my questions.",
+  ],
+  reviewReady: (n) => (n === 1
+    ? "I left one note beside your draft. It's a question, not an order."
+    : `I left ${n} notes beside your draft. Take them one at a time. They're questions, not orders.`),
+  reviewClean: "I read it through and found nothing to flag. That isn't a verdict, only what I noticed this time.",
+  // No notes, but a check is flagged (length, most often) or passages are listed to cut.
+  reviewNoNotes: "I left no notes on this read, but the checks still have something for you. Look through the list.",
+  overLimit: (n) => `That's ${words(n)} over the limit. I can point to passages that could go, but the cutting is yours.`,
+  underMin: (n) => `That's ${words(n)} short of the minimum. What goes in is yours to decide, so I won't suggest it.`,
+  proofread: "I don't check spelling, grammar or punctuation. A counselor or a teacher is the right reader for that.",
+  handoffNote: "The essay can wait. I kept no notes on this, and your drafts are right where you left them.",
+
+  reviewsLeft: (left, limit) => (left > 0
+    ? `${left} of ${limit} ${limit === 1 ? "review" : "reviews"} left`
+    : "No reviews left"),
+  noReviews: "You've used all your reviews, so I can't read another draft. Everything here still works: write, save versions, and go back over the notes I left.",
+  error: "A cloud crossed the moon and I lost my place. Nothing was lost, so give it another try in a moment.",
+};
+
 /**
  * `status`: "live" (on the hub, opens its route) or "soon" (a sleeping
  * silhouette, "???", one hint word, never a promise about what it will do).
@@ -120,7 +170,17 @@ export const AGENTS = [
     hint: "Finds",
     lines: TALON_LINES,
   },
-  { id: "owl", name: "???", role: "", tagline: "", route: null, status: "soon", mascot: "owl", hint: "Wise", lines: {} },
+  {
+    id: "essay",
+    name: "Quill",
+    role: "Essay owl",
+    tagline: QUILL_LINES.hubTagline,
+    route: "/agents/essay",
+    status: "live",
+    mascot: "quill",
+    hint: "Essays",
+    lines: QUILL_LINES,
+  },
   { id: "heron", name: "???", role: "", tagline: "", route: null, status: "soon", mascot: "heron", hint: "Steady", lines: {} },
 ];
 

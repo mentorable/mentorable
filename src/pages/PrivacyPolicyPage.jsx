@@ -5,7 +5,7 @@ const FG = "#141413";
 const MUT = "#4b5563";
 const P = "#1d4ed8";
 
-const LAST_UPDATED = "October 1, 2026";
+const LAST_UPDATED = "October 11, 2026";
 
 function Section({ title, children }) {
   return (
@@ -70,6 +70,10 @@ export default function PrivacyPolicyPage({ navigate }) {
           <p style={{ marginBottom: "0.9rem" }}><strong>Opportunity finder.</strong> When you ask Talon, our
           opportunity finder, to look for scholarships or activities, we keep the listings it finds, what you
           do with them on your board, and the search you asked for, minus the details described in section 6.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>Essays.</strong> When you write with Quill, our essay
+          agent, we keep the essays you write, the versions you save, the notes Quill leaves on a draft and
+          your answers to them, and your essay ideas, including what you say in a brainstorm. Section 7
+          explains how these are used.</p>
           <p style={{ marginBottom: "0.9rem" }}><strong>Usage analytics.</strong> We record product-usage
           events (e.g., which features you use, how often) tied to your account, via PostHog, to
           understand and improve the product.</p>
@@ -79,7 +83,8 @@ export default function PrivacyPolicyPage({ navigate }) {
 
         <Section title="3. How we use your information">
           We use your information to: provide and personalize the product (e.g., generating quests,
-          chat responses, and scholarship and program finds tailored to your profile); maintain your account;
+          chat responses, scholarship and program finds, and feedback on your essays tailored to your profile);
+          maintain your account;
           operate rate limits and abuse prevention; analyze and improve the product; and communicate
           with you about your account or, if you've opted in, product updates.
         </Section>
@@ -89,7 +94,7 @@ export default function PrivacyPolicyPage({ navigate }) {
           bound by their own confidentiality and data-handling terms:
           <ul style={{ marginTop: "0.6rem", paddingLeft: "1.3rem" }}>
             <li style={{ marginBottom: "0.4rem" }}><strong>Supabase:</strong> database, authentication, and file storage.</li>
-            <li style={{ marginBottom: "0.4rem" }}><strong>Anthropic:</strong> processes chat, profile, Quest, outreach and opportunity-finder content, and runs web searches, to generate AI responses and drafts.</li>
+            <li style={{ marginBottom: "0.4rem" }}><strong>Anthropic:</strong> processes chat, profile, Quest, outreach, opportunity-finder and essay content, and runs web searches, to generate AI responses, drafts and essay feedback.</li>
             <li style={{ marginBottom: "0.4rem" }}><strong>OpenAI:</strong> structured extraction (including reading the web pages our agents check) and, for long-term memory, turning what you write into searchable form.</li>
             <li style={{ marginBottom: "0.4rem" }}><strong>Tavily:</strong> runs the web searches Beaker and Talon make, and receives only the search words.</li>
             <li style={{ marginBottom: "0.4rem" }}><strong>ElevenLabs:</strong> records and transcribes voice onboarding calls.</li>
@@ -144,36 +149,73 @@ export default function PrivacyPolicyPage({ navigate }) {
           along with the searches you ran.</p>
         </Section>
 
-        <Section title="7. Data retention">
+        <Section title="7. Quill, the essay agent">
+          <p style={{ marginBottom: "0.9rem" }}>Quill helps you find what to write about and gives feedback on
+          drafts of your Common App personal statement and college supplements. Quill never writes, rewrites,
+          corrects or edits any part of an essay: it points to passages and asks questions, and every word of
+          an essay stays yours. Quill does not search the web or look anything up about you or a school.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>What is stored.</strong> The essays you write, with the
+          prompt and word limit you chose; the versions you save, and a copy of the draft each time Quill
+          reads it, so its notes stay attached to the words they were about; Quill's notes on each draft and
+          anything you write in reply to them; and your essay ideas, with your own notes and your answers
+          from a brainstorm. What you write in reply to a note stays with the review and is not sent to an
+          AI provider. While you write, words that have not saved yet are also held in your own browser
+          tab, so a dropped connection cannot lose them. That copy stays on your device and is removed as
+          soon as the words save, when you log out, or when you close the tab.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>What is sent, and when.</strong> Your writing goes to
+          our AI provider, Anthropic, only when you ask Quill for something. When you ask Quill to read a
+          draft, we send that draft, its prompt, the school's name for a supplement, a summary of your record
+          with the name on your profile left off (your grade level, grades and scores, courses, activities,
+          awards, intended majors and target colleges, and the summary of you from your onboarding
+          interview), and the titles and text of your other essays, so Quill can tell you where two of them
+          repeat each other. When you ask Quill to look for ideas in your record, we send that summary of
+          your record, with things you said in your onboarding interview, and the names of the ideas already
+          on your board, including ones you named yourself, so it does not repeat them. During a brainstorm,
+          we send your answers so far and the summary of your record, and, if you started from one of your
+          idea cards, that card: its name, its questions and your notes on it. Typing, saving and keeping
+          versions send nothing to an AI provider.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>What stays out.</strong> Your essays, their versions,
+          Quill's notes and your brainstorm answers are never added to long-term memory. The chat advisor
+          cannot read them: it sees only a list with each essay's title, the prompt number or school, its
+          status and word count, and the names of your ideas. Essays about hard things, such as loss, illness
+          or family, are read like any other essay. If a draft or an answer says you are in danger right now,
+          Quill stops and shows you where to get help instead. Your essay stays where you saved it, but we do
+          not keep that message or any notes on the writing; our usage analytics record only that a review
+          ended this way, never the words.</p>
+          <p>You can delete any essay, saved version, set of notes or idea at any time. Deleting an essay
+          deletes its versions and notes with it, and deleting your account deletes all of it.</p>
+        </Section>
+
+        <Section title="8. Data retention">
           We retain your account and profile data for as long as your account is active. Chat and
           research history is retained to preserve product context unless you delete it. You can
           delete your account and associated data at any time from your Profile page.
         </Section>
 
-        <Section title="8. Your rights and choices">
+        <Section title="9. Your rights and choices">
           Depending on where you live, you may have the right to access, correct, export, or delete
           your personal information, and to object to or restrict certain processing. You can exercise
           most of these rights directly from your Profile page, or by contacting us at the email below.
         </Section>
 
-        <Section title="9. Children's privacy">
+        <Section title="10. Children's privacy">
           Mentorable is intended for users 13 years of age or older. We do not knowingly collect
           personal information from children under 13. If you believe a child under 13 has provided us
           information, contact us and we will delete it.
         </Section>
 
-        <Section title="10. Security">
+        <Section title="11. Security">
           We use industry-standard safeguards, including encryption in transit and access controls
           (row-level security on all database tables), to protect your information. No system is
           perfectly secure, and we cannot guarantee absolute security.
         </Section>
 
-        <Section title="11. Changes to this policy">
+        <Section title="12. Changes to this policy">
           We may update this policy from time to time. We'll update the "Last updated" date above and,
           for material changes, provide additional notice.
         </Section>
 
-        <Section title="12. Contact us">
+        <Section title="13. Contact us">
           Questions about this policy or your data? Reach us at{" "}
           <a href="mailto:app.mentora.ai@gmail.com" style={{ color: P }}>app.mentora.ai@gmail.com</a>.
         </Section>

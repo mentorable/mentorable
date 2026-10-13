@@ -1,8 +1,8 @@
 """
-Agents endpoints: Beaker the outreach pelican, Talon the opportunity hawk, and
-the Gmail connection every agent shares. Thin on purpose: parse the request,
-call the service, map its refusals to HTTP. The rules live in
-app/nodes/agents/.
+Agents endpoints: Beaker the outreach pelican, Talon the opportunity hawk,
+Quill the essay owl, and the Gmail connection every agent shares. Thin on
+purpose: parse the request, call the service, map its refusals to HTTP. The
+rules live in app/nodes/agents/.
 
 Every route needs a valid Supabase JWT except the OAuth callback, which Google
 calls in the student's browser: the signed state it carries says whose
@@ -17,10 +17,16 @@ its own deadline and gives the unit back ("timed_out"); the stream has a later
 one of its own, in case a run ever gets stuck past that. Anything refused
 before the work starts (a bad body, nothing left to spend) is a plain HTTP
 error instead of a stream.
+
+Quill's calls are plain JSON, a review included: it is one model call under
+the service's own deadline, with nothing to show while it runs. An unexpected
+error on one of its routes is logged without the error's message, because
+that message can carry a student's essay.
 """
 import asyncio
 import json
 import logging
+import traceback
 from typing import Awaitable, Callable, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -29,6 +35,7 @@ from fastapi.responses import RedirectResponse, StreamingResponse
 from app import config
 from app.auth import verify_jwt
 from app.nodes.agents import google
+from app.nodes.agents.essay import service as essay
 from app.nodes.agents.finder import service as finder
 from app.nodes.agents.google import GoogleError
 from app.nodes.agents.outreach import service as svc
@@ -82,17 +89,25 @@ def _server_error() -> HTTPException:
     return HTTPException(status_code=500, detail={"error": "server_error", "message": SERVER_ERROR})
 
 
-async def _run(user_id: str, label: str, call: Callable[[], Awaitable]):
+async def _run(user_id: str, label: str, call: Callable[[], Awaitable], *, private: bool = False):
     """Await the service, turning its refusals into HTTP errors the page can
-    show. The service puts its blocking database calls on worker threads."""
+    show. The service puts its blocking database calls on worker threads.
+
+    private: log an unexpected error by its type and where it was raised,
+    never its message. Quill's routes use it: a database or parsing error can
+    quote the row or the text it choked on, and there that is an essay."""
     try:
         return await call()
     except AgentError as exc:
         raise _refusal(exc)
     except HTTPException:
         raise
-    except Exception:
-        logger.exception(f"[agents] {label} failed for {user_id}")
+    except Exception as exc:
+        if private:
+            where = "".join(traceback.format_tb(exc.__traceback__))
+            logger.error(f"[agents] {label} failed for {user_id}: {type(exc).__name__}\n{where}")
+        else:
+            logger.exception(f"[agents] {label} failed for {user_id}")
         raise _server_error()
 
 
@@ -246,6 +261,55 @@ async def finder_find(raw: Request, user_id: str = Depends(verify_jwt)):
 async def finder_recheck(item_id: str, raw: Request, user_id: str = Depends(verify_jwt)):
     result = await _run(user_id, "finder_recheck", lambda: finder.recheck(user_id, item_id, _tz(raw)))
     _track(user_id, "finder_recheck", gone=bool(result.get("gone")), changed=len(result.get("changed") or []))
+    return result
+
+
+# ── Quill ─────────────────────────────────────────────────────────────────────
+# Nothing a student wrote goes to PostHog: only the kind of essay, counts and
+# how a call ended. Never a title, a prompt, a draft, a note or an answer.
+# A review or a brainstorm turn that ended in the hand-off (the writing said
+# the student is in danger now) sends no event at all: a hand-off leaves no
+# record anywhere, and an event carries the student's id.
+
+@router.get("/essay/status")
+async def essay_status(raw: Request, user_id: str = Depends(verify_jwt)):
+    return await _run(user_id, "essay_status", lambda: essay.status(user_id, _tz(raw)), private=True)
+
+
+@router.post("/essay/essays")
+async def essay_create(raw: Request, user_id: str = Depends(verify_jwt)):
+    body = await _body(raw)
+    result = await _run(user_id, "essay_create", lambda: essay.create_essay(user_id, body), private=True)
+    _track(user_id, "essay_created", kind=(result.get("essay") or {}).get("kind"))
+    return result
+
+
+@router.post("/essay/essays/{essay_id}/versions")
+async def essay_save_version(essay_id: str, user_id: str = Depends(verify_jwt)):
+    return await _run(user_id, "essay_version", lambda: essay.save_version(user_id, essay_id), private=True)
+
+
+@router.post("/essay/essays/{essay_id}/review")
+async def essay_review(essay_id: str, user_id: str = Depends(verify_jwt)):
+    result = await _run(user_id, "essay_review", lambda: essay.review(user_id, essay_id), private=True)
+    if result.get("type") != "handoff":
+        _track(user_id, "essay_review", result="review", notes=len((result.get("review") or {}).get("notes") or []))
+    return result
+
+
+@router.post("/essay/topics/find")
+async def essay_find_topics(user_id: str = Depends(verify_jwt)):
+    result = await _run(user_id, "essay_topics", lambda: essay.find_topics(user_id), private=True)
+    _track(user_id, "essay_topics_found", count=len(result.get("topics") or []))
+    return result
+
+
+@router.post("/essay/talk")
+async def essay_talk(raw: Request, user_id: str = Depends(verify_jwt)):
+    body = await _body(raw)
+    result = await _run(user_id, "essay_talk", lambda: essay.talk(user_id, body), private=True)
+    if not result.get("handoff"):
+        _track(user_id, "essay_talk_turn", done=bool(result.get("done")))
     return result
 
 

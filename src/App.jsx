@@ -21,6 +21,8 @@ import OutreachNewPage from "./pages/OutreachNewPage.jsx";
 import OutreachReviewPage from "./pages/OutreachReviewPage.jsx";
 import FinderBoardPage from "./pages/FinderBoardPage.jsx";
 import FinderNewPage from "./pages/FinderNewPage.jsx";
+import EssayHomePage from "./pages/EssayHomePage.jsx";
+import EssayEditorPage from "./pages/EssayEditorPage.jsx";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage.jsx";
 import TermsOfServicePage from "./pages/TermsOfServicePage.jsx";
 import Sidebar from "./components/common/Sidebar.jsx";
@@ -29,6 +31,7 @@ import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 import { HOME_PATH, isEnabled } from "./lib/features.js";
 import { getValidUser } from "./lib/auth.js";
+import { dropAllDrafts } from "./components/agents/essay/editor/useAutosave.js";
 
 // Routes that show the persistent sidebar
 const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/quest", "/college-list", "/roadmap", "/portfolio", "/agents"];
@@ -67,12 +70,17 @@ function AppShell({ children }) {
     // and round and round.
     getValidUser().then((user) => {
       if (!user) return;
+      // Unsaved essay words Quill's editor kept in this tab belong to whoever
+      // typed them. Once a student is known to be signed in here, anyone
+      // else's are removed (their own stay, to be given back to them).
+      dropAllDrafts({ keep: user.id });
       const path = window.location.pathname;
       if (CAME_FROM_AUTH || path === "/auth") routeAfterAuth(user.id, navigate);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "SIGNED_IN" || !session?.user) return;
+      dropAllDrafts({ keep: session.user.id });
       const path = window.location.pathname;
       if (path === "/" || path === "/auth") routeAfterAuth(session.user.id, navigate);
     });
@@ -200,6 +208,19 @@ function FinderNewRoute() {
   return <FinderNewPage key={lane} navigate={navigate} search={location.search} />;
 }
 
+function EssayHomeRoute() {
+  const navigate = useNavigate();
+  return <EssayHomePage navigate={navigate} />;
+}
+
+function EssayEditorRoute() {
+  const navigate = useNavigate();
+  const { essayId } = useParams();
+  // Keyed on the essay: opening another one starts the editor fresh, so one
+  // essay's text, unsaved words and open review never carry into the next.
+  return <EssayEditorPage key={essayId} navigate={navigate} essayId={essayId} />;
+}
+
 // True if a Supabase session is stored — checked synchronously so we never flash
 // the landing page to a logged-in user who's about to be redirected.
 function hasStoredSession() {
@@ -247,6 +268,8 @@ export default function App() {
         <Route path="/agents/outreach/:contactId" element={<ErrorBoundary><OutreachReviewRoute /></ErrorBoundary>} />
         <Route path="/agents/finder" element={<ErrorBoundary><FinderBoardRoute /></ErrorBoundary>} />
         <Route path="/agents/finder/new" element={<ErrorBoundary><FinderNewRoute /></ErrorBoundary>} />
+        <Route path="/agents/essay" element={<ErrorBoundary><EssayHomeRoute /></ErrorBoundary>} />
+        <Route path="/agents/essay/:essayId" element={<ErrorBoundary><EssayEditorRoute /></ErrorBoundary>} />
         <Route path="/privacy" element={<PrivacyPolicyRoute />} />
         <Route path="/terms" element={<TermsOfServiceRoute />} />
         <Route path="/" element={<RootRoute />} />

@@ -1,11 +1,13 @@
 import PixelSprite from "./PixelSprite.jsx";
 import { BEAKER } from "./sprites/beaker.js";
 import { TALON } from "./sprites/talon.js";
+import { QUILL } from "./sprites/quill.js";
 import { TEASERS } from "./sprites/teasers.js";
 import { getAgent } from "../../lib/agents/registry.js";
 
 // An agent's mascot at a given size. `agent` is a mascot key ("beaker",
-// "talon", "owl") or an agent id from the registry ("outreach", "finder").
+// "talon", "quill", "heron") or an agent id from the registry ("outreach",
+// "finder", "essay").
 //
 // The box is always `size` square, so layouts can count on it, but the art
 // inside is drawn at the largest whole-number scale that fits (a 32-pixel
@@ -13,7 +15,7 @@ import { getAgent } from "../../lib/agents/registry.js";
 // Any fractional scale, even 2.5, gives art pixels of uneven width on the 1x
 // and 1.25x screens many school laptops have.
 
-const SPRITES = { beaker: BEAKER, talon: TALON, ...TEASERS };
+const SPRITES = { beaker: BEAKER, talon: TALON, quill: QUILL, ...TEASERS };
 
 const TITLES = {
   beaker: {
@@ -32,6 +34,14 @@ const TITLES = {
     celebrating: "Talon cheering",
     sleeping: "Talon asleep",
   },
+  quill: {
+    idle: "Quill the owl",
+    flying: "Quill flying",
+    thinking: "Quill thinking",
+    delivering: "Quill holding up a page",
+    celebrating: "Quill cheering",
+    sleeping: "Quill asleep",
+  },
 };
 const MYSTERY_TITLE = "A mystery agent, fast asleep";
 
@@ -44,9 +54,9 @@ function resolve(agent) {
 /**
  * Where the art sits inside a `size` box: { scale, top, left, width, height },
  * all whole CSS pixels, plus `beakRow`, the art row the beak is on (the
- * sprite's own, else row 10, Beaker's bill). Whatever lines up with the art (a
- * speech bubble's tail and the beak, say) should use this rather than work it
- * out again.
+ * sprite's own, as Talon and Quill give, else row 10, Beaker's bill). Whatever
+ * lines up with the art (a speech bubble's tail and the beak, say) should use
+ * this rather than work it out again.
  */
 export function mascotFit(size, agent = "beaker") {
   const sprite = SPRITES[resolve(agent)];

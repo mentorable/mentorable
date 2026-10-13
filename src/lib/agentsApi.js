@@ -1,11 +1,13 @@
 import { supabase } from "./supabase.js";
 
-// The Agents API: Beaker's calls, Talon's calls and the Gmail connection. JSON
-// calls work like Quest's (src/lib/quest.js). The long ones (Beaker's
-// shortlist and draft, Talon's find) stream Server-Sent Events: progress
-// lines for the checklist, then one final event, then [DONE]. The server
-// keeps working if the page goes away, so a try or a find that was paid for
-// always ends on the board or refunded.
+// The Agents API: Beaker's calls, Talon's calls, Quill's calls and the Gmail
+// connection. JSON calls work like Quest's (src/lib/quest.js). The long ones
+// (Beaker's shortlist and draft, Talon's find) stream Server-Sent Events:
+// progress lines for the checklist, then one final event, then [DONE]. The
+// server keeps working if the page goes away, so a try or a find that was
+// paid for always ends on the board or refunded. Quill's calls are all plain
+// JSON: a review is one request that answers when Quill has read the draft
+// (up to a minute and a half), with no stream to follow.
 
 const BASE = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
@@ -186,6 +188,23 @@ export const agentsApi = {
   finderFind:       (body, onEvent, opts) => stream("/agents/finder/find", body, onEvent, opts),
   /** -> { item, changed, gone }. */
   finderRecheck:    (id)               => post(`/agents/finder/items/${encodeURIComponent(id)}/recheck`),
+
+  // Quill, the essay owl. Essays are created here (the server holds the cap
+  // of 8); their words are then saved straight to the database (src/lib/essay.js).
+  /** Reviews, record searches and brainstorm turns left, essays used, the
+   *  limits, and how much is on the record. */
+  essayStatus:      ()                 => call("/agents/essay/status"),
+  /** -> { essay }. */
+  essayCreate:      (body)             => post("/agents/essay/essays", body),
+  /** Saves the essay's current text as a version. -> { version }. */
+  essaySnapshot:    (id)               => post(`/agents/essay/essays/${encodeURIComponent(id)}/versions`),
+  /** -> { type: "review", review, version, usage }, or { type: "handoff",
+   *  message, usage } when the writing called for help rather than notes. */
+  essayReview:      (id)               => post(`/agents/essay/essays/${encodeURIComponent(id)}/review`),
+  /** Areas from the student's record. -> { topics, usage }. */
+  essayFindTopics:  ()                 => post("/agents/essay/topics/find"),
+  /** One turn of the brainstorm. -> { done, message, fallback, handoff, topic, usage }. */
+  essayTalk:        (body)             => post("/agents/essay/talk", body),
 };
 
 // ── Plain copy for every refusal ──────────────────────────────────────────────
@@ -323,6 +342,27 @@ export function finderErrorMessage(err) {
   // while the backend is mid-deploy, say), whose words are the framework's.
   if (code === "error") return COPY.error;
   const worded = err instanceof AgentApiError || err.type === "error" || err.name === "FinderError";
+  const server = worded && typeof err.message === "string" ? err.message.trim() : "";
+  return server || COPY.error;
+}
+
+// ── Quill's refusals ──────────────────────────────────────────────────────────
+// Like Talon's: every Quill message comes from the server in Quill's name, so
+// the page shows it as written. Only no sign-in and no connection use the
+// shared copy from here.
+
+/** The copy to show for a Quill refusal: an AgentApiError, an EssayError from
+ *  the desk's own reads and writes (src/lib/essay.js), or anything else
+ *  thrown (a bug's own message is never shown). */
+export function essayErrorMessage(err) {
+  if (!err) return COPY.error;
+  const code = err.code || err.error || "";
+  if (code === "auth") return SIGN_IN;
+  if (code === "network") return NETWORK;
+  // "error": a refusal without Quill's {error, message} detail (a bare 404
+  // while the backend is mid-deploy, say), whose words are the framework's.
+  if (code === "error") return COPY.error;
+  const worded = err instanceof AgentApiError || err.name === "EssayError";
   const server = worded && typeof err.message === "string" ? err.message.trim() : "";
   return server || COPY.error;
 }

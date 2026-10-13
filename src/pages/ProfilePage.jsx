@@ -9,6 +9,7 @@ import MemorySection from "../components/profile/MemorySection.jsx";
 import ConnectedAccounts from "../components/profile/ConnectedAccounts.jsx";
 import { isEnabled } from "../lib/features.js";
 import { agentsApi } from "../lib/agentsApi.js";
+import { dropAllDrafts } from "../components/agents/essay/editor/useAutosave.js";
 import {
   AMBER_TEXT, BORDER, DANGER, FOCUS_CLASS, RADIUS, SANS, TEXT, TEXT_MUTED, WHITE, useAgentInk,
 } from "../components/ui/tokens.js";
@@ -205,6 +206,9 @@ export default function ProfilePage({ navigate }) {
   const handleLogout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
+    // Essay words Quill's editor was still holding in this tab (unsaved when
+    // a save failed) do not outlive the session on a shared computer.
+    dropAllDrafts();
     await supabase.auth.signOut();
     nav("/");
   };
@@ -220,6 +224,8 @@ export default function ProfilePage({ navigate }) {
       const { data: deleteData, error } = await supabase.functions.invoke("delete-account");
       if (error) throw error;
       if (deleteData?.error) throw new Error(deleteData.error);
+      // The account is gone: so are any essay words still held in this tab.
+      dropAllDrafts();
       await supabase.auth.signOut();
       nav("/");
     } catch (err) {

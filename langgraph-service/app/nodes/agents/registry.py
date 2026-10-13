@@ -51,6 +51,33 @@ AGENTS: dict[str, AgentSpec] = {
     # listing also has its own cap of three (service.RECHECKS_PER_ITEM).
     "finder": AgentSpec("finder", "Talon", True,
                         {"find": ("total", 4), "search": ("total", 12), "recheck": ("total", 20)}),
+    # Quill the owl: a place to write the personal statement and supplements,
+    # ideas for what to write about, and feedback on a draft. It never writes
+    # or edits any part of an essay, and it looks nothing up on the web.
+    # A review is one draft read once, given back when the model's answer is
+    # unusable, the call fails or times out, or the writing gets the hand-off
+    # to a trusted adult instead. A topics unit is one read of the record for
+    # areas to write about, given back when it fails or finds nothing new. A
+    # talk unit is one model turn of a brainstorm (a brainstorm is at most six
+    # questions and a closing line); when they run out a talk just ends, it
+    # never refuses. Writing, saving and versions cost nothing, and the caps on
+    # essays (8) and versions per essay (30) are counts in service.py, not
+    # budgets.
+    # The three "_back" budgets count the units given back, and are never
+    # given back themselves. Once one is spent, a run that does not land keeps
+    # its unit. Without them a run that never lands costs nothing and can be
+    # repeated for ever: a draft that trips the checks every time, a hand-off
+    # (which stores nothing, so nothing stops the same draft being sent
+    # again), a read of a record whose areas are all on the board already.
+    # Quill has no search to charge the way Beaker and Talon do, so it is the
+    # giving back that is capped. Each is sized for honest retries: as many
+    # again as the budget itself for reviews and for reads of the record, and
+    # twelve talk turns (a real brainstorm gets one turn back at most, the one
+    # the model took no part in, and 24 turns are four brainstorms or so).
+    # So a student's model runs are bounded: 16 reviews, 6 reads, 36 turns.
+    "essay": AgentSpec("essay", "Quill", True,
+                       {"review": ("total", 8), "topics": ("total", 3), "talk": ("total", 24),
+                        "review_back": ("total", 8), "topics_back": ("total", 3), "talk_back": ("total", 12)}),
 }
 
 
