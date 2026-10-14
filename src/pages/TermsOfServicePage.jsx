@@ -5,7 +5,7 @@ const FG = "#141413";
 const MUT = "#4b5563";
 const P = "#1d4ed8";
 
-const LAST_UPDATED = "July 22, 2026";
+const LAST_UPDATED = "October 12, 2026";
 
 function Section({ title, children }) {
   return (
@@ -43,7 +43,7 @@ export default function TermsOfServicePage({ navigate }) {
           fontFamily: BODY, fontSize: "0.82rem", color: "#9a5b00", background: "#fff3d6",
           border: "1px solid #f0d896", borderRadius: 8, padding: "0.7rem 0.9rem", marginBottom: "2.5rem",
         }}>
-          Draft — pending attorney review. These terms describe our intended arrangement in good faith
+          Draft, pending attorney review. These terms describe our intended arrangement in good faith
           but have not yet been finalized by counsel.
         </p>
 
@@ -83,38 +83,61 @@ export default function TermsOfServicePage({ navigate }) {
           time.
         </Section>
 
-        <Section title="7. Content and intellectual property">
+        <Section title="7. Schools and counselors">
+          <p style={{ marginBottom: "0.9rem" }}><strong>For students.</strong> Joining a school is optional
+          and yours to decide. You join by entering a counselor's code on your Profile page, you choose
+          which parts of your record that school's counselors can see, and you can change those choices or
+          leave at any time, which ends their access at once. Only use a code that your own school counselor
+          gave you: we do not verify who sets up a school. Our Privacy Policy lists exactly what a counselor
+          can and cannot see.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>Meeting requests.</strong> A meeting request is a
+          message from you to your school's counselors. We do not arrange, attend or guarantee meetings.
+          Requests are not read around the clock, so they are not a way to reach anyone in an emergency.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>For counselors.</strong> The counselor pages are for
+          school counselors and school staff who advise students. If you set up a school, you confirm that
+          you work with the students you invite, that you will give your join code only to your own students,
+          and that you will use what students share only to advise them, in line with your school's policies
+          and the student-privacy laws that apply to you. You may not try to see anything a student has not
+          shared, or pass on what they have shared except as your school's rules and the law allow. Replace
+          your join code if it reaches people it should not. We may remove a school or a counselor account
+          that breaks these terms.</p>
+          <p><strong>Not an official record.</strong> What a student shares is their own record as they
+          entered it. We have not verified it, it is not a transcript, and Mentorable is not your school's
+          record system.</p>
+        </Section>
+
+        <Section title="8. Content and intellectual property">
           You retain ownership of the information you provide. You grant us a license to use that
           information to operate and improve the Service, as described in our Privacy Policy. The
           Mentorable name, branding, and underlying software are owned by us and may not be used
           without permission.
         </Section>
 
-        <Section title="8. Disclaimers">
+        <Section title="9. Disclaimers">
           The Service is provided "as is" without warranties of any kind, express or implied, including
           warranties of merchantability, fitness for a particular purpose, or non-infringement. We do
           not warrant that the Service will be uninterrupted, error-free, or that AI-generated content
           will be accurate or complete.
         </Section>
 
-        <Section title="9. Limitation of liability">
+        <Section title="10. Limitation of liability">
           To the maximum extent permitted by law, Mentorable and its affiliates will not be liable for
           any indirect, incidental, special, consequential, or punitive damages, or any loss of data,
           arising from your use of the Service.
         </Section>
 
-        <Section title="10. Termination">
+        <Section title="11. Termination">
           You may stop using the Service and delete your account at any time from your Profile page. We
           may suspend or terminate access to the Service for violation of these terms or for any other
           reason, with or without notice.
         </Section>
 
-        <Section title="11. Changes to these terms">
+        <Section title="12. Changes to these terms">
           We may update these terms from time to time. Continued use of the Service after changes take
           effect constitutes acceptance of the revised terms.
         </Section>
 
-        <Section title="12. Contact us">
+        <Section title="13. Contact us">
           Questions about these terms? Reach us at{" "}
           <a href="mailto:app.mentora.ai@gmail.com" style={{ color: P }}>app.mentora.ai@gmail.com</a>.
         </Section>

@@ -42,3 +42,13 @@ services:
         sync: false
       - key: APP_URL
         sync: false
+      # The counselors' daily email (see app/config.py). DIGEST_SECRET is the
+      # shared secret the database's scheduler sends with its call; the same
+      # value goes in Supabase Vault as counselor_digest_secret. Without it the
+      # digest route answers 404 to everyone, the scheduler included.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
+      - key: DIGEST_SECRET
+        sync: false

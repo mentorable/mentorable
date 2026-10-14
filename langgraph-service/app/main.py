@@ -38,6 +38,7 @@ from app.nodes.roadmap.expand import expand_node
 from app.nodes.roadmap.intake import generate_intake_questions
 from app.rate_limit import check_rate_limit, refund_usage
 from app.routers.agents import router as agents_router
+from app.routers.counselor import router as counselor_router
 from app.routers.quest import router as quest_router
 
 logger = logging.getLogger(__name__)
@@ -86,6 +87,8 @@ app.add_middleware(
 # this file was already long enough to hide a missing variable.
 app.include_router(quest_router)
 app.include_router(agents_router)
+# The counselors' daily email: one route, called by the database's scheduler.
+app.include_router(counselor_router)
 
 
 # ── Health ─────────────────────────────────────────────────────────────────────

@@ -261,6 +261,9 @@ export function ChoiceChips({ label, options, value, onChange, isMobile, hideLab
           <button key={o.key} type="button" aria-pressed={on} onClick={() => onChange(o.key)} className={FOCUS_CLASS}
             style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", borderRadius: RADIUS.pill,
               padding: isMobile ? "4px 8px" : "0 14px", minHeight: 44, lineHeight: 1.2, boxSizing: "border-box",
+              // A one-character pill ("9") is still a full touch target. On a
+              // phone the grid already stretches every pill.
+              ...(isMobile ? null : { minWidth: 44 }),
               border: `1.5px solid ${on ? ink.text : BORDER}`, background: on ? ink.softer : WHITE,
               color: on ? ink.onSoft : TEXT_MID }}>
             {o.label}
@@ -284,8 +287,11 @@ export function Toast({ notice, onDismiss, isMobile, sidebar = 0 }) {
       {notice && (
         <div style={{ width: "100%", maxWidth: 560, pointerEvents: "auto", borderRadius: RADIUS.control,
           boxShadow: "0 14px 36px rgba(20,20,19,0.16)" }}>
+          {/* Notice spreads `style` last, so an error passes none: a background
+              key set to undefined would wipe the error tint and leave the words
+              floating on the page. */}
           <Notice tone={notice.error ? "error" : "info"} onDismiss={onDismiss} action={notice.action}
-            style={{ background: notice.error ? undefined : WHITE }}>
+            style={notice.error ? undefined : { background: WHITE }}>
             {notice.text}
           </Notice>
         </div>

@@ -6,6 +6,7 @@ import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { useTheme } from "../lib/ThemeContext.jsx";
 import MemorySection from "../components/profile/MemorySection.jsx";
+import MySchool from "../components/profile/MySchool.jsx";
 import ConnectedAccounts from "../components/profile/ConnectedAccounts.jsx";
 import { isEnabled } from "../lib/features.js";
 import { agentsApi } from "../lib/agentsApi.js";
@@ -369,6 +370,11 @@ export default function ProfilePage({ navigate }) {
             {/* ── Memory ───────────────────────────────────────────────────── */}
             <Section stamp="sparkle" title="What Mentorable remembers" id="pf-memory">
               <MemorySection userId={userId} accent={accent} onToast={showToast} />
+            </Section>
+
+            {/* ── My school ────────────────────────────────────────────────── */}
+            <Section stamp="flag" title="My school" id="pf-school">
+              <MySchool userId={userId} onToast={showToast} />
             </Section>
 
             {/* ── Connected accounts ───────────────────────────────────────── */}

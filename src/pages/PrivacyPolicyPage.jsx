@@ -5,7 +5,7 @@ const FG = "#141413";
 const MUT = "#4b5563";
 const P = "#1d4ed8";
 
-const LAST_UPDATED = "October 11, 2026";
+const LAST_UPDATED = "October 12, 2026";
 
 function Section({ title, children }) {
   return (
@@ -74,6 +74,15 @@ export default function PrivacyPolicyPage({ navigate }) {
           agent, we keep the essays you write, the versions you save, the notes Quill leaves on a draft and
           your answers to them, and your essay ideas, including what you say in a brainstorm. Section 7
           explains how these are used.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>Your school link.</strong> If you join a school with a
+          code from your counselor, we keep which school you joined and when, which parts of your record you
+          chose to share, the meeting requests you send (your message and the times you offer) and your
+          counselor's answers. We also record when you try a join code, so that codes cannot be guessed.
+          Section 8 explains who can see what.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>Counselor accounts.</strong> If you are a school
+          counselor and set up a school, we keep your email address, the school's name, your name as you
+          entered it for students to see, your school's join code, and a record of the daily emails we sent
+          you.</p>
           <p style={{ marginBottom: "0.9rem" }}><strong>Usage analytics.</strong> We record product-usage
           events (e.g., which features you use, how often) tied to your account, via PostHog, to
           understand and improve the product.</p>
@@ -85,6 +94,7 @@ export default function PrivacyPolicyPage({ navigate }) {
           We use your information to: provide and personalize the product (e.g., generating quests,
           chat responses, scholarship and program finds, and feedback on your essays tailored to your profile);
           maintain your account;
+          show your school's counselors the parts of your record you chose to share, if you joined a school;
           operate rate limits and abuse prevention; analyze and improve the product; and communicate
           with you about your account or, if you've opted in, product updates.
         </Section>
@@ -99,9 +109,13 @@ export default function PrivacyPolicyPage({ navigate }) {
             <li style={{ marginBottom: "0.4rem" }}><strong>Tavily:</strong> runs the web searches Beaker and Talon make, and receives only the search words.</li>
             <li style={{ marginBottom: "0.4rem" }}><strong>ElevenLabs:</strong> records and transcribes voice onboarding calls.</li>
             <li style={{ marginBottom: "0.4rem" }}><strong>Google:</strong> sends the emails you approve, only if you connect Gmail (see section 5).</li>
+            <li style={{ marginBottom: "0.4rem" }}><strong>Resend:</strong> sends the daily email to school counselors (see section 8). It receives the counselor's email address, their school's name and a count of waiting requests, and nothing about any student.</li>
             <li style={{ marginBottom: "0.4rem" }}><strong>PostHog:</strong> product usage analytics.</li>
             <li><strong>Render / Vercel:</strong> application hosting infrastructure.</li>
           </ul>
+          <p style={{ margin: "0.9rem 0" }}>Separately, if you choose to join a school, that school's
+          counselors can see what section 8 describes. They are the people who set that school up in
+          Mentorable. We do not verify who they are, and they are not service providers of ours.</p>
           We do not sell your personal information.
         </Section>
 
@@ -186,36 +200,96 @@ export default function PrivacyPolicyPage({ navigate }) {
           deletes its versions and notes with it, and deleting your account deletes all of it.</p>
         </Section>
 
-        <Section title="8. Data retention">
+        <Section title="8. Your school counselor, only if you join a school">
+          <p style={{ marginBottom: "0.9rem" }}><strong>Joining is your choice.</strong> A school counselor
+          can set up their school in Mentorable and get a join code. You are linked to a school only when
+          you enter its code on your Profile page and press Join. A join link only fills the code in for
+          you. You can be linked to one school at a time. We do not check that the person who set up a
+          school works there, so only enter a code that your own school counselor gave you.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>What a counselor always sees.</strong> While you are
+          linked, the counselors of that school can see your name, grade and graduation year, the date you
+          joined, and the meeting requests you send them.</p>
+          <p style={{ marginBottom: "0.4rem" }}><strong>What you may choose to share.</strong> Four parts of
+          your record, each with its own switch on your Profile page. All four are off until you turn them
+          on:</p>
+          <ul style={{ margin: "0 0 0.9rem", paddingLeft: "1.3rem" }}>
+            <li style={{ marginBottom: "0.4rem" }}><strong>College List:</strong> the schools on your list,
+            where each one is, whether it is sorted as a reach, target or likely and whether you or Mentorable
+            sorted it, with each school's published admission rate and net price.</li>
+            <li style={{ marginBottom: "0.4rem" }}><strong>Portfolio:</strong> your GPA and its scale, your
+            intended majors, test scores, courses, activities and awards, on a page your counselor can print
+            or save as a PDF.</li>
+            <li style={{ marginBottom: "0.4rem" }}><strong>Quest:</strong> your quest's title and summary, when
+            it started, its milestones and how far along they are, your streak, and how many check-ins you
+            have made and when the last one was. Never what you wrote in a check-in.</li>
+            <li><strong>Essay progress:</strong> for each essay, whether it is your personal statement or a
+            supplement, its stage, its word count and word limit, and when it last changed. Never its title,
+            the school it is for, its prompt, or a word of it.</li>
+          </ul>
+          <p style={{ marginBottom: "0.9rem" }}><strong>What a counselor's list points out.</strong> A
+          counselor's list of students marks three things for them: a meeting request that is waiting for an
+          answer and, only from what you share, a College List with no likely school on it and an active quest
+          that has gone a week without a check-in.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>What a counselor can never see.</strong> Your chats
+          with the advisor, what Mentorable remembers about you, the words, titles and prompts of your essays,
+          Quill's notes on them and your brainstorm answers, what you write in Quest check-ins, Beaker's
+          outreach board and emails, Talon's board, and any part of your record you have not switched on.
+          A counselor's pages cannot read our database directly. Each time one of them asks for something,
+          the database itself checks that you are linked to that counselor's school and that the part asked
+          for is switched on.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>Changing your mind.</strong> You can turn any switch
+          off, or leave the school, at any time from your Profile page. Either takes effect at once: the
+          next time your counselor opens or reloads a page, that part of your record, or all of it, is gone
+          from their view. Leaving also deletes your meeting requests at that school. A counselor can also
+          remove you from their school, which ends the link in the same way and deletes your meeting
+          requests there. We cannot take back what a counselor already saw, printed or saved while it was
+          shared.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>Meeting requests.</strong> While you are linked you
+          can ask your counselor for a meeting: a message of up to 300 characters and up to three times that
+          work for you. Your school's counselors can read the request, confirm one of your times or another
+          one, or decline with a short note, and you see their answer on your Profile page. You can cancel a
+          request. Requests are not read around the clock and are not a way to get help in an emergency.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>The daily email to counselors.</strong> When new
+          requests are waiting, we send a counselor at most one email a day, through our email provider,
+          Resend. It says how many students asked for a meeting and names the school, with a link to sign
+          in. It never contains a student's name, message or times.</p>
+          <p><strong>If you are a counselor.</strong> Students linked to your school can see the school's
+          name and your name as you entered it. What a student shares with you is the student's own record
+          as they entered it. We have not verified it, and it is not an official transcript.</p>
+        </Section>
+
+        <Section title="9. Data retention">
           We retain your account and profile data for as long as your account is active. Chat and
-          research history is retained to preserve product context unless you delete it. You can
+          research history is retained to preserve product context unless you delete it. Your school link
+          and your meeting requests there are kept until you leave the school, a counselor removes you, or
+          you delete your account. You can
           delete your account and associated data at any time from your Profile page.
         </Section>
 
-        <Section title="9. Your rights and choices">
+        <Section title="10. Your rights and choices">
           Depending on where you live, you may have the right to access, correct, export, or delete
           your personal information, and to object to or restrict certain processing. You can exercise
           most of these rights directly from your Profile page, or by contacting us at the email below.
         </Section>
 
-        <Section title="10. Children's privacy">
+        <Section title="11. Children's privacy">
           Mentorable is intended for users 13 years of age or older. We do not knowingly collect
           personal information from children under 13. If you believe a child under 13 has provided us
           information, contact us and we will delete it.
         </Section>
 
-        <Section title="11. Security">
+        <Section title="12. Security">
           We use industry-standard safeguards, including encryption in transit and access controls
           (row-level security on all database tables), to protect your information. No system is
           perfectly secure, and we cannot guarantee absolute security.
         </Section>
 
-        <Section title="12. Changes to this policy">
+        <Section title="13. Changes to this policy">
           We may update this policy from time to time. We'll update the "Last updated" date above and,
           for material changes, provide additional notice.
         </Section>
 
-        <Section title="13. Contact us">
+        <Section title="14. Contact us">
           Questions about this policy or your data? Reach us at{" "}
           <a href="mailto:app.mentora.ai@gmail.com" style={{ color: P }}>app.mentora.ai@gmail.com</a>.
         </Section>

@@ -39,6 +39,19 @@ GOOGLE_OAUTH_REDIRECT_URI: str = os.environ.get("GOOGLE_OAUTH_REDIRECT_URI", "")
 GMAIL_TOKEN_KEY: str = os.environ.get("GMAIL_TOKEN_KEY", "")
 # The web app, where the OAuth callback returns the student.
 APP_URL: str = os.environ.get("APP_URL", "https://mentorable.net").rstrip("/")
+# The counselors' daily email (app/nodes/counselor/digest.py), sent through
+# Resend. Optional: without the key nothing is sent and nothing is recorded as
+# sent. The default sender is Resend's shared test address, which delivers only
+# to the Resend account's own address; set RESEND_FROM to an address on a
+# verified domain before a real counselor can get mail.
+RESEND_API_KEY: str = os.environ.get("RESEND_API_KEY", "").strip()
+RESEND_FROM: str = os.environ.get("RESEND_FROM", "").strip() or "Mentorable <onboarding@resend.dev>"
+# The shared secret the database's scheduler sends with its daily call to
+# POST /internal/counselor-digest (the X-Digest-Secret header). Any long random
+# string; the same value is stored in Supabase Vault as counselor_digest_secret
+# (see the end of 20261012_counselor.sql). Optional, and closed without it: the
+# route answers 404 to every call until this is set.
+DIGEST_SECRET: str = os.environ.get("DIGEST_SECRET", "").strip()
 POSTHOG_PROJECT_TOKEN: str = os.environ.get("POSTHOG_PROJECT_TOKEN", "")
 POSTHOG_HOST: str = os.environ.get("POSTHOG_HOST", "https://us.i.posthog.com")
 DEV_BYPASS_EMAILS: list[str] = [

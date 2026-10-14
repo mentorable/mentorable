@@ -23,6 +23,10 @@ import FinderBoardPage from "./pages/FinderBoardPage.jsx";
 import FinderNewPage from "./pages/FinderNewPage.jsx";
 import EssayHomePage from "./pages/EssayHomePage.jsx";
 import EssayEditorPage from "./pages/EssayEditorPage.jsx";
+import CounselorPage from "./pages/CounselorPage.jsx";
+import CounselorSchedulePage from "./pages/CounselorSchedulePage.jsx";
+import CounselorStudentPage from "./pages/CounselorStudentPage.jsx";
+import CounselorRecordPage from "./pages/CounselorRecordPage.jsx";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage.jsx";
 import TermsOfServicePage from "./pages/TermsOfServicePage.jsx";
 import Sidebar from "./components/common/Sidebar.jsx";
@@ -31,10 +35,16 @@ import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 import { HOME_PATH, isEnabled } from "./lib/features.js";
 import { getValidUser } from "./lib/auth.js";
+import { rememberJoinCode } from "./lib/counselor.js";
 import { dropAllDrafts } from "./components/agents/essay/editor/useAutosave.js";
 
 // Routes that show the persistent sidebar
 const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/quest", "/college-list", "/roadmap", "/portfolio", "/agents"];
+
+// The counselor side (/counselor and everything under it) is unlisted and has
+// its own shell: it is never in SIDEBAR_ROUTES, and nothing in the student app
+// links to it.
+const onCounselorSide = (path) => path === "/counselor" || path.startsWith("/counselor/");
 
 // Captured at module load, before the Supabase client strips the URL hash.
 // After clicking the email-confirmation link the user lands here with auth
@@ -46,13 +56,30 @@ if (typeof window !== "undefined") warmBackend();
 
 // Decide where a freshly-authenticated user should land:
 // onboarded → scorecard (the home/welcome); not yet → continue onboarding.
-async function routeAfterAuth(userId, navigate) {
+// A counselor is left where they are: one who has just confirmed their email
+// lands on /counselor, and must stay there instead of being sent into the
+// student onboarding.
+//
+// That confirmation link only returns to /counselor when the address is on
+// Supabase's list of allowed redirects. When it is not, the link opens the
+// home page instead, so an account made on the counselor page carries a note
+// saying so (`counselor_signup`, set by CounselorPage's sign-up) and is sent
+// back there. The note is the account's own metadata, which its owner can
+// edit: it only picks the page a new account lands on, never what it may see.
+// Signing in on /auth is left alone: that page sends people on by itself.
+async function routeAfterAuth(user, navigate) {
+  if (onCounselorSide(window.location.pathname)) return;
+  const onAuthPage = window.location.pathname === "/auth";
   const { data: profile } = await supabase
     .from("profiles")
     .select("onboarding_completed")
-    .eq("id", userId)
+    .eq("id", user.id)
     .single();
-  navigate(profile?.onboarding_completed ? HOME_PATH : "/onboarding", { replace: true });
+  // Checked again: they may have opened the counselor side while that loaded.
+  if (onCounselorSide(window.location.pathname)) return;
+  if (profile?.onboarding_completed) { navigate(HOME_PATH, { replace: true }); return; }
+  const madeOnCounselorPage = !onAuthPage && user.user_metadata?.counselor_signup === true;
+  navigate(madeOnCounselorPage ? "/counselor" : "/onboarding", { replace: true });
 }
 
 function AppShell({ children }) {
@@ -75,14 +102,14 @@ function AppShell({ children }) {
       // else's are removed (their own stay, to be given back to them).
       dropAllDrafts({ keep: user.id });
       const path = window.location.pathname;
-      if (CAME_FROM_AUTH || path === "/auth") routeAfterAuth(user.id, navigate);
+      if (CAME_FROM_AUTH || path === "/auth") routeAfterAuth(user, navigate);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "SIGNED_IN" || !session?.user) return;
       dropAllDrafts({ keep: session.user.id });
       const path = window.location.pathname;
-      if (path === "/" || path === "/auth") routeAfterAuth(session.user.id, navigate);
+      if (path === "/" || path === "/auth") routeAfterAuth(session.user, navigate);
     });
     return () => subscription.unsubscribe();
   }, [navigate]);
@@ -221,6 +248,50 @@ function EssayEditorRoute() {
   return <EssayEditorPage key={essayId} navigate={navigate} essayId={essayId} />;
 }
 
+// ─── The counselor side (unlisted) ───────────────────────────────────────────
+
+function CounselorRoute() {
+  const navigate = useNavigate();
+  return <CounselorPage navigate={navigate} />;
+}
+
+function CounselorScheduleRoute() {
+  const navigate = useNavigate();
+  return <CounselorSchedulePage navigate={navigate} />;
+}
+
+// Both student pages are keyed on the student: opening another one starts the
+// page fresh, so one student's shared record is never left on screen under
+// the next student's name while theirs loads.
+function CounselorStudentRoute() {
+  const navigate = useNavigate();
+  const { studentId } = useParams();
+  return <CounselorStudentPage key={studentId} navigate={navigate} studentId={studentId} />;
+}
+
+function CounselorRecordRoute() {
+  const navigate = useNavigate();
+  const { studentId } = useParams();
+  return <CounselorRecordPage key={studentId} navigate={navigate} studentId={studentId} />;
+}
+
+// /join?code=XXXX: the link a counselor hands to students. It keeps the code
+// and opens Profile, where the "My school" card shows it filled in and says
+// what joining shares. Nothing is joined until the student presses Join there.
+// A signed-out student is sent to sign in by Profile as usual, and finds the
+// code waiting the next time they open it.
+function JoinRoute() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => {
+    let code = "";
+    try { code = new URLSearchParams(location.search).get("code") || ""; } catch { code = ""; }
+    rememberJoinCode(code);
+    navigate("/profile", { replace: true });
+  }, [location.search, navigate]);
+  return <div style={{ minHeight: "100vh", background: "#F5F5F5" }} />;
+}
+
 // True if a Supabase session is stored — checked synchronously so we never flash
 // the landing page to a logged-in user who's about to be redirected.
 function hasStoredSession() {
@@ -270,6 +341,11 @@ export default function App() {
         <Route path="/agents/finder/new" element={<ErrorBoundary><FinderNewRoute /></ErrorBoundary>} />
         <Route path="/agents/essay" element={<ErrorBoundary><EssayHomeRoute /></ErrorBoundary>} />
         <Route path="/agents/essay/:essayId" element={<ErrorBoundary><EssayEditorRoute /></ErrorBoundary>} />
+        <Route path="/join" element={<JoinRoute />} />
+        <Route path="/counselor" element={<ErrorBoundary><CounselorRoute /></ErrorBoundary>} />
+        <Route path="/counselor/schedule" element={<ErrorBoundary><CounselorScheduleRoute /></ErrorBoundary>} />
+        <Route path="/counselor/students/:studentId" element={<ErrorBoundary><CounselorStudentRoute /></ErrorBoundary>} />
+        <Route path="/counselor/students/:studentId/record" element={<ErrorBoundary><CounselorRecordRoute /></ErrorBoundary>} />
         <Route path="/privacy" element={<PrivacyPolicyRoute />} />
         <Route path="/terms" element={<TermsOfServiceRoute />} />
         <Route path="/" element={<RootRoute />} />
