@@ -1,15 +1,17 @@
 import { PixelArrow } from "../ui/PixelIcons.jsx";
 import {
-  BORDER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
+  AMBER_BG, AMBER_TEXT, BORDER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
 } from "../ui/tokens.js";
 import { formatTime, gradeText, shortName } from "./ScheduleLogic.js";
 
 // The small pieces the schedule's views share: the "Today" mark, a confirmed
 // meeting as a button (a compact one for the week grid, a full one for the
-// lists), the icon button, and the few rules inline styles cannot
-// express (hover, and a focus ring drawn inside a month square so it is never
-// cut off by its neighbours). The hover rules only touch properties the
-// inline styles leave alone: an inline border or background would win.
+// lists), a time a student offered drawn beside them (dashed amber, and
+// labelled "Offered", so it never reads as booked), the icon button, and the
+// few rules inline styles cannot express (hover, and a focus ring drawn
+// inside a month square so it is never cut off by its neighbours). The hover
+// rules only touch properties the inline styles leave alone: an inline
+// border or background would win.
 
 export const ROW_CLASS = "cs-row";
 export const DAY_CLASS = "cs-day";
@@ -102,11 +104,17 @@ export function CloseButton({ onClick, label = "Close" }) {
 /** How tall a compact meeting is, in rem, so the week grid can size its rows. */
 export const COMPACT_REM = 3.25;
 
+/** "10:15" from "10:15 AM", for the week grid's narrow squares: the row's own
+ *  hour label already says AM or PM, and the button's label and tooltip keep
+ *  the whole time. Without it "10:15 AM" does not fit a day column beside the
+ *  requests rail. */
+const clockOnly = (time) => time.replace(/\s*[AP]M$/i, "");
+
 /**
  * One confirmed meeting, as a button that opens it. `entry` is
  * { request, at } (see splitRequests). `compact` is the two-line form for a
- * square of the week grid: the time and a short name, with the full name in
- * the label. A meeting whose time has passed is drawn quietly and says so.
+ * square of the week grid: the time without AM or PM (its row says which) and
+ * a short name, with the full time and name in the label. A meeting whose time has passed is drawn quietly and says so.
  */
 export function MeetingButton({ entry, now, onOpen, compact = false }) {
   const ink = useAgentInk();
@@ -130,7 +138,7 @@ export function MeetingButton({ entry, now, onOpen, compact = false }) {
         title={label} onClick={() => onOpen(request)}
         style={{ ...base, height: `${COMPACT_REM}rem`, padding: "0.2rem 0.4rem", display: "flex", flexDirection: "column",
           justifyContent: "center", overflow: "hidden" }}>
-        <span style={{ ...oneLine, fontSize: "0.9rem", fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{time}</span>
+        <span style={{ ...oneLine, fontSize: "0.9rem", fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{clockOnly(time)}</span>
         <span style={{ ...oneLine, fontSize: "0.9rem", fontWeight: 600 }}>{shortName(name)}</span>
       </button>
     );
@@ -154,3 +162,71 @@ export function MeetingButton({ entry, now, onOpen, compact = false }) {
     </button>
   );
 }
+
+/** The look of an offered time: amber, a dashed edge all round where a
+ *  booked meeting has a solid one with a thick accent bar. */
+const OFFERED_EDGE = `1.5px dashed ${AMBER_TEXT}`;
+
+/**
+ * A time a student offered, drawn beside the booked meetings while their
+ * request is chosen. It is not a meeting, and it says so three ways: a
+ * dashed amber edge, the word "Offered" on it, and a label that reads
+ * "offered by <name>, not booked". Pressing it opens the request, where a
+ * time is confirmed. `entry` is { request, at, id } (see offeredByDay);
+ * `compact` is the two-line form for the week grid.
+ */
+export function OfferedButton({ entry, onOpen, compact = false }) {
+  const { request, at } = entry;
+  const name = request.student_name || "Student";
+  const time = formatTime(at);
+  const label = `${time}, offered by ${name}, not booked`;
+  const base = {
+    width: "100%", minWidth: 0, boxSizing: "border-box", textAlign: "left", cursor: "pointer", fontFamily: SANS,
+    borderRadius: 10, border: OFFERED_EDGE, background: AMBER_BG, color: AMBER_TEXT,
+  };
+  const oneLine = { display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.3 };
+
+  if (compact) {
+    return (
+      <button type="button" className={`${FOCUS_CLASS} ${MEETING_CLASS}`} data-offered={entry.id} aria-label={label}
+        title={label} onClick={() => onOpen(request)}
+        style={{ ...base, height: `${COMPACT_REM}rem`, padding: "0.2rem 0.4rem", display: "flex", flexDirection: "column",
+          justifyContent: "center", overflow: "hidden" }}>
+        <span style={{ ...oneLine, fontSize: "0.9rem", fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{clockOnly(time)}</span>
+        <span style={{ ...oneLine, fontSize: "0.9rem", fontWeight: 700 }}>Offered</span>
+      </button>
+    );
+  }
+  return (
+    <button type="button" className={`${FOCUS_CLASS} ${MEETING_CLASS}`} data-offered={entry.id} aria-label={label}
+      onClick={() => onOpen(request)}
+      style={{ ...base, minHeight: 56, padding: "8px 12px", display: "flex", alignItems: "center", gap: 12 }}>
+      <span style={{ flex: "0 0 auto", minWidth: "4.9rem", fontSize: "1rem", fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
+        {time}
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: "1rem", fontWeight: 700, lineHeight: 1.35, overflowWrap: "anywhere" }}>{name}</span>
+        <span style={{ display: "block", fontSize: "0.9rem", fontWeight: 700, lineHeight: 1.35 }}>Offered, not booked yet</span>
+      </span>
+      <PixelArrow size={16} />
+    </button>
+  );
+}
+
+/** A meeting or an offered time, whichever `entry` is. */
+export function EntryButton({ entry, now, onOpen, compact = false }) {
+  return entry.offered
+    ? <OfferedButton entry={entry} onOpen={onOpen} compact={compact} />
+    : <MeetingButton entry={entry} now={now} onOpen={onOpen} compact={compact} />;
+}
+
+/** A small dashed box for the line that explains the outlines. */
+export function OfferedSwatch() {
+  return (
+    <span aria-hidden="true" style={{ flexShrink: 0, display: "inline-block", width: 34, height: 18, boxSizing: "border-box",
+      borderRadius: 6, border: OFFERED_EDGE, background: AMBER_BG }} />
+  );
+}
+
+/** The React key of an entry: a meeting is its request, an offered time its own id. */
+export const entryKey = (entry) => (entry.offered ? `offered-${entry.id}` : entry.request.id);

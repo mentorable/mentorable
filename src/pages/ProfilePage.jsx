@@ -10,6 +10,7 @@ import MySchool from "../components/profile/MySchool.jsx";
 import ConnectedAccounts from "../components/profile/ConnectedAccounts.jsx";
 import { isEnabled } from "../lib/features.js";
 import { agentsApi } from "../lib/agentsApi.js";
+import { rememberJoinCode, takeJoinCode } from "../lib/counselor.js";
 import { dropAllDrafts } from "../components/agents/essay/editor/useAutosave.js";
 import {
   AMBER_TEXT, BORDER, DANGER, FOCUS_CLASS, RADIUS, SANS, TEXT, TEXT_MUTED, WHITE, useAgentInk,
@@ -43,6 +44,23 @@ const RESPONSE_STYLES = [
 ];
 const STYLE_CHOICES = RESPONSE_STYLES.map((s) => ({ key: s.value, label: s.label }));
 
+// A join link (/join?code=) opens this page to enter the code, and the My
+// school card is a long way down it. The page opens on that card instead, and
+// holds it in view while the sections above finish loading and grow, for a
+// few seconds or until the student scrolls, taps or types.
+const HOLD_IN_VIEW_MS = 4000;
+const HANDS_ON = ["wheel", "touchstart", "pointerdown", "keydown"];
+
+/** Whether a join link left a code waiting. Reading the code removes it, and
+ *  the card itself takes it only once the student is known to be signed in
+ *  (a signed-out visitor is sent to sign in and must find it still there), so
+ *  it is put straight back. */
+function joinCodeWaiting() {
+  const code = takeJoinCode();
+  if (code) rememberJoinCode(code);
+  return !!code;
+}
+
 // ─── Atom components ──────────────────────────────────────────────────────────
 
 const TEXT_SM = { fontFamily: SANS, fontSize: "0.92rem", color: TEXT_MUTED, lineHeight: 1.5, margin: 0 };
@@ -72,9 +90,9 @@ function Count({ value, max, warnAt }) {
 }
 
 /** One settings section: a white card with a pixel mark beside its heading. */
-function Section({ stamp, title, id, children, style }) {
+function Section({ stamp, title, id, children, style, sectionRef }) {
   return (
-    <Card as="section" aria-labelledby={id} style={{ padding: "1.25rem 1.3rem 1.4rem", ...style }}>
+    <Card as="section" ref={sectionRef} aria-labelledby={id} style={{ padding: "1.25rem 1.3rem 1.4rem", ...style }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: "1.25rem" }}>
         <StampTile kind={stamp} />
         <Heading id={id}>{title}</Heading>
@@ -133,6 +151,12 @@ export default function ProfilePage({ navigate }) {
   const nav = navigate || ((p) => { window.location.href = p; });
   const toastTimer = useRef(null);
 
+  // Arriving from a join link: open on the My school card (which focuses
+  // the code field once it has read the student's link).
+  const [joinWaiting] = useState(joinCodeWaiting);
+  const schoolRef = useRef(null);
+  const contentRef = useRef(null);
+
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     clearTimeout(toastTimer.current);
@@ -171,6 +195,29 @@ export default function ProfilePage({ navigate }) {
     load();
     return () => clearTimeout(toastTimer.current);
   }, []);
+
+  // The card is there once the page has loaded (at once, from the cache). It
+  // is scrolled to the top of the window, and scrolled back each time the
+  // page above it grows, until the hold ends or the student takes over.
+  useEffect(() => {
+    if (loading || !joinWaiting) return undefined;
+    const card = schoolRef.current;
+    if (!card) return undefined;
+    const show = () => card.scrollIntoView({ block: "start" });
+    show();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const watch = new ResizeObserver(show);
+    let timer = null;
+    const letGo = () => {
+      watch.disconnect();
+      clearTimeout(timer);
+      HANDS_ON.forEach((name) => window.removeEventListener(name, letGo));
+    };
+    timer = setTimeout(letGo, HOLD_IN_VIEW_MS);
+    HANDS_ON.forEach((name) => window.addEventListener(name, letGo, { passive: true }));
+    watch.observe(contentRef.current || document.body);
+    return letGo;
+  }, [loading, joinWaiting]);
 
   const handleSave = async () => {
     if (saving || !userId) return;
@@ -248,7 +295,7 @@ export default function ProfilePage({ navigate }) {
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div data-sidebar-offset className="ui-page" style={pageStyle({ isMobile, sidebar: SIDEBAR_WIDTH, ink })}>
-      <div style={{ maxWidth: 880, margin: "0 auto", width: "100%", paddingBottom: isMobile ? "3rem" : "4rem" }}>
+      <div ref={contentRef} style={{ maxWidth: 880, margin: "0 auto", width: "100%", paddingBottom: isMobile ? "3rem" : "4rem" }}>
 
         {/* Header */}
         {loading ? (
@@ -373,7 +420,7 @@ export default function ProfilePage({ navigate }) {
             </Section>
 
             {/* ── My school ────────────────────────────────────────────────── */}
-            <Section stamp="flag" title="My school" id="pf-school">
+            <Section stamp="flag" title="My school" id="pf-school" sectionRef={schoolRef} style={{ scrollMarginTop: 16 }}>
               <MySchool userId={userId} onToast={showToast} />
             </Section>
 

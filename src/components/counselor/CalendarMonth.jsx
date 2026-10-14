@@ -1,16 +1,23 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Button, SR_ONLY } from "../ui/kit.jsx";
-import { BORDER, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk } from "../ui/tokens.js";
 import {
-  addDays, addMonths, dayKey, formatDayLong, formatTime, givenName, meetingCount, monthWeeks, parseKey, sameMonth,
-  startOfWeek, weekdayLong, weekdayShort,
+  AMBER_BG, AMBER_TEXT, BORDER, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
+} from "../ui/tokens.js";
+import {
+  addDays, addMonths, dayEntries, dayKey, formatDayLong, formatTime, givenName, meetingCount, monthWeeks, parseKey,
+  sameMonth, startOfWeek, weekdayLong, weekdayShort,
 } from "./ScheduleLogic.js";
-import { DAY_CLASS, DayNumber, MeetingButton, TodayMark } from "./ScheduleParts.jsx";
+import { DAY_CLASS, DayNumber, EntryButton, TodayMark, entryKey } from "./ScheduleParts.jsx";
 
 // The month: a grid of days, each square one button showing how many
 // meetings it holds and the first two. Choosing a day lists all of its
 // meetings beside the grid (below it on a narrower screen), each one a
 // button that opens it.
+//
+// While a waiting request is chosen, a day holding one of the times that
+// student offered shows a dashed amber "Offered" mark, and the chosen day's
+// list has those times as dashed items beside its meetings. Nothing about
+// them is booked.
 //
 // The grid is one stop for Tab, as a date grid should be: the arrow keys
 // move between days, Home and End go to the ends of the week, Page Up and
@@ -20,7 +27,14 @@ import { DAY_CLASS, DayNumber, MeetingButton, TodayMark } from "./ScheduleParts.
 const FIRST_SHOWN = 2;     // meetings named in a square; the count says the rest
 const SQUARE = "7rem";
 
-export default function CalendarMonth({ anchor, byDay, now, selectedKey, onSelect, onShift, onOpen, onSeeWeek, labelledBy }) {
+/**
+ * byDay: meetingsByDay(). offered: offeredByDay() for the chosen request, or
+ * an empty Map. onOpen(request) opens a meeting or, from an offered time, its
+ * request.
+ */
+export default function CalendarMonth({
+  anchor, byDay, offered, now, selectedKey, onSelect, onShift, onOpen, onSeeWeek, labelledBy,
+}) {
   const ink = useAgentInk();
   const uid = useId();
   const hintId = `${uid}-hint`;
@@ -72,7 +86,7 @@ export default function CalendarMonth({ anchor, byDay, now, selectedKey, onSelec
 
   const line = `1px solid ${BORDER}`;
   const selectedDate = shown.has(selectedKey) ? parseKey(selectedKey) : null;
-  const selectedEntries = selectedDate ? byDay.get(selectedKey) || [] : [];
+  const selectedEntries = selectedDate ? dayEntries(byDay, offered, selectedKey) : [];
   const oneLine = { display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.35 };
 
   return (
@@ -99,13 +113,20 @@ export default function CalendarMonth({ anchor, byDay, now, selectedKey, onSelec
                   {week.map((day, col) => {
                     const key = dayKey(day);
                     const entries = byDay.get(key) || [];
+                    const extra = offered?.get(key) || [];
                     const isToday = key === todayKey;
                     const selected = key === selectedKey;
                     const outside = !sameMonth(day, anchor);
                     const named = entries.slice(0, 4)
                       .map((e) => `${formatTime(e.at)} ${e.request.student_name || "Student"}`).join(", ");
+                    const offeredWords = extra.length
+                      ? `. ${extra.map((e) => formatTime(e.at)).join(", ")} offered by ${extra[0].request.student_name || "Student"}, not booked`
+                      : "";
                     const label = `${formatDayLong(day)}${isToday ? ", today" : ""}, `
-                      + (entries.length ? `${meetingCount(entries.length)}: ${named}${entries.length > 4 ? `, and ${entries.length - 4} more` : ""}` : "no meetings");
+                      + (entries.length ? `${meetingCount(entries.length)}: ${named}${entries.length > 4 ? `, and ${entries.length - 4} more` : ""}` : "no meetings")
+                      + offeredWords;
+                    // Room in a square: the offered mark takes the place of one named meeting.
+                    const nameCount = extra.length ? FIRST_SHOWN - 1 : FIRST_SHOWN;
                     return (
                       <td key={key} style={{ padding: 0, verticalAlign: "top", borderRight: col < 6 ? line : "none",
                         borderBottom: row < weeks.length - 1 ? line : "none" }}>
@@ -126,12 +147,19 @@ export default function CalendarMonth({ anchor, byDay, now, selectedKey, onSelec
                               <span style={{ fontSize: "0.9rem", fontWeight: 800, color: ink.onSoft, whiteSpace: "nowrap" }}>Today</span>
                             )}
                           </span>
+                          {extra.length > 0 && (
+                            <span style={{ ...oneLine, alignSelf: "flex-start", maxWidth: "100%", boxSizing: "border-box",
+                              padding: "0 6px", borderRadius: 6, border: `1.5px dashed ${AMBER_TEXT}`, background: AMBER_BG,
+                              color: AMBER_TEXT, fontSize: "0.9rem", fontWeight: 800 }}>
+                              {extra.length === 1 ? "Offered" : `${extra.length} offered`}
+                            </span>
+                          )}
                           {entries.length > 0 && (
                             <span style={{ ...oneLine, fontSize: "0.9rem", fontWeight: 800, color: ink.onSoft }}>
                               {meetingCount(entries.length)}
                             </span>
                           )}
-                          {entries.slice(0, FIRST_SHOWN).map((e) => (
+                          {entries.slice(0, nameCount).map((e) => (
                             <span key={e.request.id} style={{ ...oneLine, fontSize: "0.9rem", fontWeight: 600 }}>
                               <span style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{formatTime(e.at)}</span>
                               {" "}{givenName(e.request.student_name)}
@@ -171,7 +199,7 @@ export default function CalendarMonth({ anchor, byDay, now, selectedKey, onSelec
         ) : (
           <ul role="list" style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
             {selectedEntries.map((entry) => (
-              <li key={entry.request.id}><MeetingButton entry={entry} now={now} onOpen={onOpen} /></li>
+              <li key={entryKey(entry)}><EntryButton entry={entry} now={now} onOpen={onOpen} /></li>
             ))}
           </ul>
         )}

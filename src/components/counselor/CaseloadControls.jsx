@@ -3,8 +3,9 @@ import { AMBER_BG, AMBER_TEXT, BORDER, FOCUS_CLASS, RADIUS, SANS, TEXT_MID, TEXT
 import { cleanSort } from "./caseloadRules.js";
 
 // What narrows and orders the caseload: a search by name, the grade, and
-// "Needs attention". On a wide screen the table's own headers sort it; on a
-// narrow one, where the students are cards, a Sort menu does (`showSort`).
+// "Needs attention", then how many students show. On a wide screen the grid's
+// own headers sort it; on a narrow one, where the students are cards, a Sort
+// menu does (`showSort`).
 
 const SORT_OPTIONS = [
   { value: "name:asc", label: "Name, A to Z" },
@@ -29,10 +30,12 @@ function SearchIcon() {
  * query / onQuery: the name search. grades: the grades anyone is in; grade
  * (a number, or null for all) / onGrade. onlyAttention / onAttention, with
  * attentionCount students flagged. sort ({ key, dir }) / onSort(sort), shown
- * as a menu when showSort.
+ * as a menu when showSort. summary: how many students show, said at the end
+ * of the row (and announced when it changes).
  */
 export default function CaseloadControls({
   query, onQuery, grades, grade, onGrade, onlyAttention, onAttention, attentionCount, sort, onSort, showSort, isMobile,
+  summary,
 }) {
   const gradeOptions = [
     { key: "all", label: isMobile ? "All" : "All grades" },
@@ -71,7 +74,7 @@ export default function CaseloadControls({
             lineHeight: 1.2, border: `1.5px solid ${onlyAttention ? AMBER_TEXT : BORDER}`,
             background: onlyAttention ? AMBER_BG : WHITE, color: onlyAttention ? AMBER_TEXT : TEXT_MID }}>
           Needs attention
-          <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>
+          <span style={{ fontVariantNumeric: "lining-nums tabular-nums", fontWeight: 800 }}>
             {attentionCount}
             <span style={SR_ONLY}> {attentionCount === 1 ? "student" : "students"}</span>
           </span>
@@ -90,6 +93,13 @@ export default function CaseloadControls({
           </div>
         )}
       </div>
+
+      {summary !== undefined && (
+        <p role="status" style={{ margin: isMobile ? "4px 2px 0" : "0 2px 0 auto", fontFamily: SANS, fontSize: "0.95rem",
+          fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.4, fontVariantNumeric: "lining-nums tabular-nums" }}>
+          {summary}
+        </p>
+      )}
     </div>
   );
 }

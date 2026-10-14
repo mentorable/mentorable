@@ -11,13 +11,18 @@ import {
 } from "../ui/tokens.js";
 import { Button, FieldLabel, Heading, INPUT_CLASS, Notice, SR_ONLY, inputStyle } from "../ui/kit.jsx";
 import { PixelStamp } from "../ui/PixelIcons.jsx";
+import SchoolShareStep, { JoinSteps, NEVER_SHARED, choiceOwed, forgetChoice, oweChoice } from "./SchoolShareStep.jsx";
 
 // "My school": the body of a Profile card, and the only place a student meets
 // the counselor feature. Not linked, it is one quiet field for a join code.
-// Linked, it is the student's control panel over what their counselor can
-// see: four switches (all off until they turn one on), meeting requests, and
-// the way out. Everything here saves the moment it is changed, unlike the rest
-// of Profile (Save changes).
+// The code links them at once, with every section off; then one screen
+// (SchoolShareStep) asks whether they want to share anything else, with the
+// four switches all off and Done working with everything off. Until they
+// answer, the card keeps asking, even after a reload. After that, it is the
+// student's control panel over what their counselor can see: the same four
+// switches, meeting requests, and the way out. Everything here, the step's
+// switches included, saves the moment it is changed, unlike the rest of
+// Profile (Save changes).
 //
 // The switches are the student's only view of what is shared, so they never
 // guess: a change shows at once, is saved in the order it was made, and when a
@@ -29,10 +34,6 @@ import { PixelStamp } from "../ui/PixelIcons.jsx";
 const REAL_API = { mySchool, joinSchool, setSharing, leaveSchool, requestMeeting, cancelRequest };
 
 const DAY_MS = 86400000;
-// After a join link scrolls the card into view, how long it is held there
-// while the sections above it finish loading.
-const HOLD_IN_VIEW_MS = 4000;
-const HANDS_ON = ["wheel", "touchstart", "pointerdown", "keydown"];
 // The switch's off track has to be visible against the card (3:1), not just tinted.
 const OFF_TRACK = "#86817a";
 
@@ -54,6 +55,13 @@ const CSS = `
 const lowerFirst = (s) => s.charAt(0).toLowerCase() + s.slice(1);
 const upperFirst = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const sameSharing = (a, b) => SHARES.every((s) => !!a?.[s.key] === !!b?.[s.key]);
+const anyShared = (sharing) => SHARES.some((s) => !!sharing?.[s.key]);
+
+/** Whether an element sits wholly inside the window. */
+function inView(el) {
+  const r = el.getBoundingClientRect();
+  return r.top >= 0 && r.bottom <= (window.innerHeight || document.documentElement.clientHeight);
+}
 
 /**
  * What one save of the switches carries: `sending` is how they should end up,
@@ -202,6 +210,7 @@ function JoinForm({ api, initialCode, onJoined, onAlreadyLinked }) {
 
   return (
     <div>
+      <JoinSteps at={1} />
       <form onSubmit={submit} noValidate>
         <FieldLabel htmlFor="ms-code" hint="If your school counselor gave you a join code, enter it here.">
           Join code
@@ -226,7 +235,8 @@ function JoinForm({ api, initialCode, onJoined, onAlreadyLinked }) {
       <div id="ms-code-shares" style={{ marginTop: "0.9rem" }}>
         <p style={{ ...HINT, marginTop: 0 }}>
           Joining shares one thing with your school's counselors: <strong style={{ color: TEXT }}>{lowerFirst(ALWAYS_SHARED)}</strong>.
-          {" "}Everything else stays off until you turn it on, and you can leave whenever you like.
+          {" "}Next, you choose whether to share anything else. Nothing more is shared unless you choose it, and you can
+          leave whenever you like.
         </p>
         <p style={HINT}>Only enter a code that your own school counselor gave you.</p>
       </div>
@@ -530,7 +540,17 @@ function RequestRow({ api, request, who, onCancelled, onGone, onStale }) {
 
 // ─── Linked: the whole panel ──────────────────────────────────────────────────
 
-function Linked({ api, link, onLink, onShareWrite, onLeft, onGone, refresh, announce, toast, waitingCode, onDropCode }) {
+/**
+ * The linked card. While `choosing` (the question right after joining is
+ * still open) it shows SchoolShareStep instead, built from the same switches,
+ * so a switch flipped there is saved exactly as one flipped here, and Done
+ * leaves this same panel, mid-save or not. `onTouch()` says a switch was
+ * flipped on that step; `onDone(sharing)` ends it.
+ */
+function Linked({
+  api, link, onLink, onShareWrite, onLeft, onGone, refresh, announce, toast, waitingCode, onDropCode,
+  choosing = false, onTouch, onDone,
+}) {
   const name = link.school.name;
   const who = link.counselors.length > 1 ? "your counselors" : "your counselor";
   const joined = shortDay(link.linked_at);
@@ -685,6 +705,7 @@ function Linked({ api, link, onLink, onShareWrite, onLeft, onGone, refresh, anno
     asked.current.add(key);
     setShown(next);
     setShareProblem("");
+    if (choosing) onTouch?.();
     flush();
   };
 
@@ -770,6 +791,20 @@ function Linked({ api, link, onLink, onShareWrite, onLeft, onGone, refresh, anno
     }
   };
 
+  const switchRows = SHARES.map((share) => (
+    <ShareSwitch key={share.key} share={share} on={!!shown[share.key]} who={who} onToggle={() => toggle(share.key)} />
+  ));
+  const shareNote = shareProblem && (
+    <Notice tone="error" onDismiss={() => setShareProblem("")} style={{ marginTop: "0.25rem" }}>{shareProblem}</Notice>
+  );
+
+  if (choosing) {
+    return (
+      <SchoolShareStep link={link} who={who} switches={switchRows} problem={shareNote}
+        onDone={() => onDone?.(shown)} waitingCode={waitingCode} onDropCode={onDropCode} />
+    );
+  }
+
   return (
     <div>
       {/* Who they are linked to */}
@@ -803,17 +838,11 @@ function Linked({ api, link, onLink, onShareWrite, onLeft, onGone, refresh, anno
             </div>
             <Tag tone="plain">Always on</Tag>
           </li>
-          {SHARES.map((share) => (
-            <ShareSwitch key={share.key} share={share} on={!!shown[share.key]} who={who} onToggle={() => toggle(share.key)} />
-          ))}
+          {switchRows}
         </ul>
-        {shareProblem && (
-          <Notice tone="error" onDismiss={() => setShareProblem("")} style={{ marginTop: "0.25rem" }}>{shareProblem}</Notice>
-        )}
+        {shareNote}
         <p style={{ ...HINT, marginTop: "0.9rem" }}>
-          <strong style={{ color: TEXT }}>Never shared:</strong> your chats with your advisor, what Mentorable remembers, the
-          words, titles and prompts of your essays and Quill's notes on them, what you write in Quest check-ins, and Beaker's
-          and Talon's boards.
+          <strong style={{ color: TEXT }}>Never shared:</strong> {NEVER_SHARED}
         </p>
         <p style={HINT}>
           {upperFirst(who)} can print or save what you share. Turning a switch off stops them seeing it from then on. It cannot
@@ -916,12 +945,14 @@ function Linked({ api, link, onLink, onShareWrite, onLeft, onGone, refresh, anno
 export default function MySchool({ userId, onToast, api = REAL_API }) {
   const [phase, setPhase] = useState("loading");   // "loading" | "failed" | "ready"
   const [link, setLink] = useState(null);          // my_school()'s answer, or null when not linked
+  const [owed, setOwed] = useState(false);         // they joined and have not yet said what else to share
+  const [touched, setTouched] = useState(false);   // a switch was flipped on that question, here
   const [waitingCode, setWaitingCode] = useState("");
   const [notice, setNotice] = useState("");
   const [said, setSaid] = useState({ text: "", n: 0 });
   const rootRef = useRef(null);
-  const wantFocus = useRef(false);
-  const fromLink = useRef(false);   // a join link's code has just been read: bring the card into view
+  const wantFocus = useRef("");     // "" | "root" | "step": where the focus goes once the card has changed
+  const fromLink = useRef(false);   // a join link's code has just been read: the code field takes the focus
   const alive = useRef(true);
   const reads = useRef(0);          // only the newest read of the link is used
   const shareWrites = useRef(0);    // bumped as each save of the switches starts and ends
@@ -940,6 +971,12 @@ export default function MySchool({ userId, onToast, api = REAL_API }) {
     try {
       const value = await api.mySchool();
       if (!alive.current || mine !== reads.current) return;
+      // The question after joining is still open only for this very link, and
+      // only while nothing is shared (something shared means it was answered,
+      // on a phone or in another tab).
+      const owes = !!value && choiceOwed(userId, value) && !anyShared(value.sharing);
+      if (!owes) forgetChoice(userId);
+      setOwed(owes);
       setLink(value);
       setPhase("ready");
     } catch {
@@ -948,6 +985,18 @@ export default function MySchool({ userId, onToast, api = REAL_API }) {
   }, [api, userId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // The question was answered somewhere else while it was open here: a fresh
+  // read shows something shared that no switch here turned on. The card stops
+  // asking and shows the switches. Once a switch on the question has been
+  // flipped here, it stays open until Done.
+  const asking = owed && !!link && (touched || !anyShared(link.sharing));
+  useEffect(() => {
+    if (owed && link && !touched && anyShared(link.sharing)) {
+      forgetChoice(userId);
+      setOwed(false);
+    }
+  }, [owed, link, userId, touched]);
 
   // A code left by a join link. Reading removes it, so it is read only once
   // the link itself has been read, which only a signed-in student can do:
@@ -959,50 +1008,42 @@ export default function MySchool({ userId, onToast, api = REAL_API }) {
     if (code) { fromLink.current = true; setWaitingCode(code); }
   }, [phase]);
 
-  // A join link is meant to take the student to the code, and this card is a
-  // long way down Profile. So it is scrolled into view and the code field
-  // takes the focus (already linked, the card does, with its note about the
-  // link). The sections above are often still loading and would push the card
-  // back out of view as they fill in, so it is held in place for a few
-  // seconds, or until the student scrolls, taps or types.
+  // A join link is meant to take the student to the code. Profile has already
+  // scrolled this card into view and holds it there while the sections above
+  // it load; here the code field takes the focus (already linked, the card
+  // does, with its note about the link). Should the card have been pushed out
+  // of view all the same, it is brought back first.
   useEffect(() => {
-    if (!waitingCode || !fromLink.current) return undefined;
+    if (!waitingCode || !fromLink.current) return;
     fromLink.current = false;
     const root = rootRef.current;
-    if (!root) return undefined;
-    const show = () => root.scrollIntoView({ block: "start" });
-    show();
-    (root.querySelector("#ms-code") || root).focus({ preventScroll: true });
-    if (typeof ResizeObserver === "undefined") return undefined;
-    const watch = new ResizeObserver(show);
-    let timer = null;
-    const letGo = () => {
-      watch.disconnect();
-      clearTimeout(timer);
-      HANDS_ON.forEach((name) => window.removeEventListener(name, letGo));
-    };
-    timer = setTimeout(letGo, HOLD_IN_VIEW_MS);
-    HANDS_ON.forEach((name) => window.addEventListener(name, letGo, { passive: true }));
-    watch.observe(document.body);
-    return letGo;
+    if (!root) return;
+    const target = root.querySelector("#ms-code") || root;
+    if (!inView(target)) root.scrollIntoView({ block: "start" });
+    target.focus({ preventScroll: true });
   }, [waitingCode]);
 
-  // After joining or leaving, the control that was used is gone: the card
-  // itself takes the focus, so a keyboard or a screen reader stays here.
+  // After joining, choosing, or leaving, the control that was used is gone.
+  // Just joined, the question's heading takes the focus (it says they joined);
+  // otherwise the card itself does, so a keyboard or a screen reader stays here.
   useEffect(() => {
-    if (!wantFocus.current) return;
-    wantFocus.current = false;
-    rootRef.current?.focus?.();
-  }, [link]);
+    const where = wantFocus.current;
+    if (!where) return;
+    wantFocus.current = "";
+    const root = rootRef.current;
+    ((where === "step" && root?.querySelector("#ms-step-title")) || root)?.focus?.();
+  }, [link, owed]);
 
   // The link was not there when something was tried: a counselor removed them,
   // or they left in another tab.
   const gone = useCallback(() => {
     reads.current += 1;          // a read still on its way is older than this
-    wantFocus.current = true;
+    wantFocus.current = "root";
+    forgetChoice(userId);
+    setOwed(false);
     setLink(null);
     setNotice("You are no longer linked to a school, so no counselor can see your record. A counselor may have removed you from theirs.");
-  }, []);
+  }, [userId]);
 
   // Read the link again after a change. Only the newest read counts, and one
   // that overlapped a save of the switches may be older than that save, so it
@@ -1018,20 +1059,46 @@ export default function MySchool({ userId, onToast, api = REAL_API }) {
     } catch { /* what is on screen stays */ }
   }, [api, gone]);
 
+  // Joined: linked at once with every section off, as the database does it.
+  // The card then asks what else to share, and keeps asking until answered.
   const joined = (value) => {
     if (!value) { load(); return; }
     reads.current += 1;
-    wantFocus.current = true;
+    wantFocus.current = "step";
+    oweChoice(userId, value);
+    setTouched(false);
+    setOwed(!anyShared(value.sharing));
     setNotice("");
     setWaitingCode("");
     setLink(value);
-    announce(`You joined ${value.school.name}. Your counselor can now see ${lowerFirst(ALWAYS_SHARED)}. Nothing else is shared until you turn it on.`);
+    const who = value.counselors.length > 1 ? "your counselors" : "your counselor";
+    announce(`${upperFirst(who)} can now see ${lowerFirst(ALWAYS_SHARED)}. Nothing else is shared unless you choose it next.`);
     toast(`You joined ${value.school.name}`);
+  };
+
+  // The question answered with Done. Each switch saved itself as it was
+  // flipped, so Done sends nothing: `sharing` is what the switches show, and
+  // the same switches carry on below, still saving if one is on its way.
+  const choiceDone = (sharing) => {
+    wantFocus.current = "root";
+    forgetChoice(userId);
+    setOwed(false);
+    setTouched(false);
+    const who = link?.counselors.length > 1 ? "your counselors" : "your counselor";
+    const shared = SHARES.filter((s) => sharing?.[s.key]).map((s) => s.label);
+    if (shared.length) {
+      announce(`Done. ${nameList(shared)} ${shared.length > 1 ? "are" : "is"} shared with ${who}. You can change this with the switches below.`);
+    } else {
+      announce(`Done. Nothing else is shared with ${who}. You can turn any part on later with the switches below.`);
+      toast("Everything else stays private");
+    }
   };
 
   const left = (name) => {
     reads.current += 1;          // so a read sent before leaving cannot bring the school back on screen
-    wantFocus.current = true;
+    wantFocus.current = "root";
+    forgetChoice(userId);
+    setOwed(false);
     setNotice("");
     setLink(null);
     announce(`You left ${name}. Nothing of yours is shared with a counselor now.`);
@@ -1042,7 +1109,7 @@ export default function MySchool({ userId, onToast, api = REAL_API }) {
     // The scroll margin leaves the card's own heading, which sits above this, on screen.
     <div ref={rootRef} tabIndex={-1} className={FOCUS_CLASS} style={{ borderRadius: 8, scrollMarginTop: 96 }}>
       <style>{CSS}</style>
-      <p aria-live="polite" style={SR_ONLY}>{said.text}{said.n % 2 ? "\u00a0" : ""}</p>
+      <p aria-live="polite" style={SR_ONLY}>{said.text}{said.n % 2 ? " " : ""}</p>
 
       {phase === "loading" && <Skeleton />}
 
@@ -1059,9 +1126,12 @@ export default function MySchool({ userId, onToast, api = REAL_API }) {
             <Notice tone="warn" onDismiss={() => setNotice("")} style={{ marginBottom: "1rem" }}>{notice}</Notice>
           )}
           {link ? (
+            // One Linked for the question and the panel after it, so Done
+            // keeps the switches (and a save still on its way) as they are.
             <Linked api={api} link={link} onLink={setLink} onShareWrite={() => { shareWrites.current += 1; }}
               onLeft={left} onGone={gone} refresh={refresh} announce={announce} toast={toast}
-              waitingCode={waitingCode} onDropCode={() => setWaitingCode("")} />
+              waitingCode={waitingCode} onDropCode={() => setWaitingCode("")}
+              choosing={asking} onTouch={() => setTouched(true)} onDone={choiceDone} />
           ) : (
             <JoinForm api={api} initialCode={waitingCode} onJoined={joined} onAlreadyLinked={load} />
           )}

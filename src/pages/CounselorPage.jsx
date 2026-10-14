@@ -9,7 +9,7 @@ import CounselorAuthCard from "../components/counselor/CounselorAuthCard.jsx";
 import SchoolSetup from "../components/counselor/SchoolSetup.jsx";
 import CaseloadControls from "../components/counselor/CaseloadControls.jsx";
 import CaseloadEmpty from "../components/counselor/CaseloadEmpty.jsx";
-import CaseloadTable, { CaseloadCards, CaseloadSkeleton } from "../components/counselor/CaseloadTable.jsx";
+import CaseloadTable, { CaseloadCards, CaseloadSkeleton, useGridFits } from "../components/counselor/CaseloadTable.jsx";
 import { cleanSort, filterRows, gradesIn, nextSort, sortRows } from "../components/counselor/caseloadRules.js";
 import { LoadingBlock, StateCard, nextFromUrl, plural } from "../components/counselor/counselorUi.jsx";
 import { Button, Card, Notice, PageHeader, SR_ONLY } from "../components/ui/kit.jsx";
@@ -79,7 +79,7 @@ function marksOf(row) {
 
 export default function CounselorPage({ navigate, api = REAL_API }) {
   const isMobile = useIsMobile();
-  const wide = !useIsMobile(1040);   // the table needs the room; below this the students are cards
+  const wide = useGridFits();   // the grid needs the room; below it the students are compact cards
   const { setAccent } = useTheme();
   const [prefs] = useState(readPrefs);
   const [phase, setPhase] = useState("loading");   // loading | signedout | setup | ready | error
@@ -255,14 +255,16 @@ export default function CounselorPage({ navigate, api = REAL_API }) {
 
   const schoolName = me?.school?.name || "your school";
   const total = rows.length;
+  const summary = (filtered ? `Showing ${shown.length} of ${plural(total, "student")}` : plural(total, "student"))
+    + (waiting > 0 && !filtered ? `, ${plural(waiting, "meeting request")} waiting` : "");
 
+  // With students, the page is the grid: a title, the controls and one line
+  // per student, so as many as possible fit before scrolling.
   return shell(
     <>
-      <PageHeader title="Caseload" isMobile={isMobile} style={{ margin: "0 0 1.25rem" }}
+      <PageHeader title="Caseload" isMobile={isMobile} style={{ margin: total > 0 ? "0 0 1rem" : "0 0 1.25rem" }}
         action={total > 0 && <Button kind="secondary" onClick={refresh} busy={refreshing}>Refresh</Button>}>
-        {total > 0
-          ? <>The students linked to {schoolName}. You see what each one chose to share, and nothing else.</>
-          : <>Students linked to {schoolName} show up here, with what each one chose to share.</>}
+        {total === 0 && <>Students linked to {schoolName} show up here, with what each one chose to share.</>}
       </PageHeader>
 
       {refreshError && (
@@ -275,27 +277,32 @@ export default function CounselorPage({ navigate, api = REAL_API }) {
         <>
           <CaseloadControls query={query} onQuery={setQuery} grades={grades} grade={gradeOn} onGrade={setGrade}
             onlyAttention={onlyAttention} onAttention={setOnlyAttention} attentionCount={attentionCount}
-            sort={sort} onSort={setSort} showSort={!wide} isMobile={isMobile} />
+            sort={sort} onSort={setSort} showSort={!wide} isMobile={isMobile} summary={summary} />
 
-          <p role="status" style={{ margin: "14px 2px 10px", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600,
-            color: TEXT_MUTED, fontVariantNumeric: "tabular-nums" }}>
-            {filtered ? `Showing ${shown.length} of ${plural(total, "student")}` : `${plural(total, "student")}`}
-            {waiting > 0 && !filtered ? `, ${plural(waiting, "meeting request")} waiting` : ""}
-          </p>
-
-          {shown.length === 0 ? (
-            <Card style={{ maxWidth: 560 }}>
-              <p style={{ margin: 0, fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT_MID, lineHeight: 1.5 }}>
-                No students match. Try another name, or clear the filters to see everyone.
-              </p>
-              <Button kind="secondary" onClick={clearFilters} style={{ marginTop: 12 }}>Clear filters</Button>
-            </Card>
-          ) : wide ? (
-            <CaseloadTable rows={shown} marksFor={marksFor} sort={sort} onSort={(key) => setSort((s) => nextSort(s, key))}
-              navigate={navigate} schoolName={me?.school?.name} />
-          ) : (
-            <CaseloadCards rows={shown} marksFor={marksFor} navigate={navigate} />
-          )}
+          <div style={{ marginTop: 14 }}>
+            {shown.length === 0 ? (
+              <Card style={{ maxWidth: 560 }}>
+                <p style={{ margin: 0, fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT_MID, lineHeight: 1.5 }}>
+                  No students match. Try another name, or clear the filters to see everyone.
+                </p>
+                <Button kind="secondary" onClick={clearFilters} style={{ marginTop: 12 }}>Clear filters</Button>
+              </Card>
+            ) : (
+              <>
+                {wide ? (
+                  <CaseloadTable rows={shown} marksFor={marksFor} sort={sort} onSort={(key) => setSort((s) => nextSort(s, key))}
+                    navigate={navigate} schoolName={me?.school?.name} />
+                ) : (
+                  <CaseloadCards rows={shown} marksFor={marksFor} navigate={navigate} />
+                )}
+                <p style={{ margin: "10px 2px 0", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 500, color: TEXT_MUTED,
+                  lineHeight: 1.5 }}>
+                  Open a student for the rest: their essays&apos; word counts and supplements, the note on their list&apos;s
+                  balance, and what is in their portfolio. You see only what each student chose to share.
+                </p>
+              </>
+            )}
+          </div>
         </>
       )}
 

@@ -1,18 +1,25 @@
 import { useId } from "react";
 import { SR_ONLY } from "../ui/kit.jsx";
 import { BORDER, RADIUS, SANS, TEXT_MUTED, WHITE, useAgentInk } from "../ui/tokens.js";
-import { dayKey, formatDayLong, hourLabel, meetingCount, weekHours, weekdayShort } from "./ScheduleLogic.js";
-import { COMPACT_REM, DayNumber, MeetingButton, TodayMark } from "./ScheduleParts.jsx";
+import {
+  dayEntries, dayKey, formatDayLong, hourLabel, meetingCount, offeredCount, weekHours, weekdayShort,
+} from "./ScheduleLogic.js";
+import { COMPACT_REM, DayNumber, EntryButton, TodayMark, entryKey } from "./ScheduleParts.jsx";
 
 // The week: seven days as columns, an hour to a row, each meeting in the row
 // of the hour it starts in. A request carries a time and no length, so a
 // meeting is a card in its hour, never a block drawn to a made-up duration;
 // two in the same hour stack, and that row grows for the whole week.
 //
+// While a waiting request is chosen, the times that student offered are drawn
+// in their hours too, dashed and amber and labelled "Offered", beside what is
+// already booked: a clash shows before a time is confirmed. Nothing about
+// them is booked. Pressing one opens the request.
+//
 // Every column lays its hours out on the same row heights (worked out here,
 // in rem so they follow the reader's text size), which is what keeps the
 // hour lines level across the days without one shared grid. In the page's
-// order a day's meetings come together, earliest first, so Tab walks Sunday,
+// order a day's entries come together, earliest first, so Tab walks Sunday,
 // then Monday, and so on, and each day is a group named by its heading.
 
 const ROW_MIN = 3.75;      // an empty hour, in rem
@@ -23,13 +30,19 @@ const HEAD = 4;            // a day's heading
 const HEAD_TODAY = 5.6;    // taller in the week that holds today, for its "Today" mark
 const GUTTER = "3.75rem";  // the hour labels
 
-export default function CalendarWeek({ days, byDay, now, onOpen, labelledBy }) {
+/**
+ * days: the seven Dates. byDay: meetingsByDay(). offered: offeredByDay() for
+ * the chosen request, or an empty Map. onOpen(request) opens a meeting or,
+ * from an offered time, the request it belongs to.
+ */
+export default function CalendarWeek({ days, byDay, offered, now, onOpen, labelledBy }) {
   const ink = useAgentInk();
   const uid = useId();
   const todayKey = dayKey(now);
   const columns = days.map((day) => {
     const key = dayKey(day);
-    return { day, key, entries: byDay.get(key) || [] };
+    const entries = dayEntries(byDay, offered, key);
+    return { day, key, entries, booked: (byDay.get(key) || []).length };
   });
   const hours = weekHours(columns.flatMap((c) => c.entries));
   const inHour = (entries, hour) => entries.filter((e) => e.at.getHours() === hour);
@@ -58,10 +71,11 @@ export default function CalendarWeek({ days, byDay, now, onOpen, labelledBy }) {
         </div>
       </div>
 
-      {columns.map(({ day, key, entries }) => {
+      {columns.map(({ day, key, entries, booked }) => {
         const isToday = key === todayKey;
         const headingId = `${uid}-${key}`;
-        const count = entries.length ? meetingCount(entries.length) : "no meetings";
+        const extra = entries.length - booked;
+        const count = `${booked ? meetingCount(booked) : "no meetings"}${extra ? `, and ${offeredCount(extra)}, not booked` : ""}`;
         return (
           <div key={key} role="group" aria-labelledby={headingId}
             style={{ flex: "1 1 0", minWidth: 0, borderLeft: line, background: isToday ? ink.softer : WHITE }}>
@@ -81,7 +95,7 @@ export default function CalendarWeek({ days, byDay, now, onOpen, labelledBy }) {
                 <div key={hour} style={{ boxSizing: "border-box", minWidth: 0, borderTop: i ? line : "none",
                   padding: `${PAD}rem 0.375rem`, display: "flex", flexDirection: "column", gap: `${GAP}rem` }}>
                   {inHour(entries, hour).map((entry) => (
-                    <MeetingButton key={entry.request.id} entry={entry} now={now} onOpen={onOpen} compact />
+                    <EntryButton key={entryKey(entry)} entry={entry} now={now} onOpen={onOpen} compact />
                   ))}
                 </div>
               ))}

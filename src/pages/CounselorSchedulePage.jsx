@@ -11,21 +11,29 @@ import CalendarAgenda from "../components/counselor/CalendarAgenda.jsx";
 import CalendarMonth from "../components/counselor/CalendarMonth.jsx";
 import CalendarToolbar from "../components/counselor/CalendarToolbar.jsx";
 import CalendarWeek from "../components/counselor/CalendarWeek.jsx";
-import RequestList, { ClosedRequests } from "../components/counselor/RequestList.jsx";
+import RequestList from "../components/counselor/RequestList.jsx";
 import RequestSheet from "../components/counselor/RequestSheet.jsx";
+import { OfferedSwatch } from "../components/counselor/ScheduleParts.jsx";
 import { ENTRY_PATH, SCHEDULE_PATH, entryPath } from "../components/counselor/counselorUi.jsx";
 import {
-  NOTE_MAX, dayKey, formatDayLong, meetingCount, meetingsByDay, monthDays, rangeSummary, rangeTitle, shiftAnchor,
-  splitRequests, startOfDay, toDate, weekDays, zoneName,
+  NOTE_MAX, dayKey, formatDayLong, meetingCount, meetingsByDay, monthDays, offeredByDay, offeredCount, offeredId,
+  offeredTimes, rangeSummary, rangeTitle, shiftAnchor, splitRequests, startOfDay, toDate, weekDays, zoneName,
 } from "../components/counselor/ScheduleLogic.js";
 
-// The counselor's schedule (/counselor/schedule): the meeting requests that
-// are waiting, oldest first, over a calendar of the meetings already
-// confirmed (a week or a month; an agenda list on a phone or any screen too
-// narrow for seven columns). Opening a request shows the whole inquiry in a
-// sheet, where it is confirmed for one of the offered times or another, or
-// declined; a confirmed meeting can be moved or declined later from the
-// calendar.
+// The counselor's schedule (/counselor/schedule): a calendar of the meetings
+// already confirmed (a week or a month; an agenda list on a phone or any
+// screen too narrow for seven columns), with the meeting requests that are
+// waiting, oldest first, in a rail beside it (above it on a narrower screen).
+//
+// Picking a request in the rail opens it there and draws the times that
+// student offered on the calendar, dashed and amber and labelled "Offered",
+// next to what is already booked, so a clash shows before a time is
+// confirmed. An offered time is not a meeting. Opening the request (its
+// "Answer this request" button, or one of its outlines) shows the whole
+// inquiry in a sheet, where it is confirmed for one of the offered times or
+// another, or declined; a confirmed meeting can be moved or declined later
+// from the calendar. The requests closed lately sit behind a disclosure
+// under the rail.
 //
 // Everything here comes from one SQL function, counselor_requests(), which
 // answers only for the signed-in counselor's own school and returns a
@@ -50,6 +58,10 @@ const REFRESH_AFTER_MS = 60000;   // coming back to the tab looks for new reques
 // Seven day columns need about 100px each to hold a time and a name. Below
 // this the calendar is the agenda list, on a phone and on a tablet held upright.
 const GRID_FROM_PX = 900;
+// The rail sits beside the calendar only where the week still has about 90px
+// a day beside it (the page at its full width); below this it sits above.
+const SIDE_FROM_PX = 1200;
+const RAIL_PX = 348;
 
 function readView() {
   try { return localStorage.getItem(VIEW_KEY) === "month" ? "month" : "week"; } catch { return "week"; }
@@ -58,9 +70,15 @@ function writeView(view) {
   try { localStorage.setItem(VIEW_KEY, view); } catch { /* storage blocked: the choice lasts this visit */ }
 }
 
+/** A student's name for a sentence. The database says "Student" when a name is not on file. */
+function nameFor(request) {
+  return request?.student_name && request.student_name !== "Student" ? request.student_name : "this student";
+}
+
 export default function CounselorSchedulePage({ navigate, api = REAL_API }) {
   const isMobile = useIsMobile();
   const asList = useIsMobile(GRID_FROM_PX);
+  const side = !useIsMobile(SIDE_FROM_PX);
   const ink = useAgentInk();
   const [phase, setPhase] = useState("loading");      // loading | ready | error
   const [me, setMe] = useState(null);                 // counselorMe(), for the shell
@@ -70,6 +88,7 @@ export default function CounselorSchedulePage({ navigate, api = REAL_API }) {
   const [anchor, setAnchor] = useState(() => startOfDay(new Date()));   // a day inside what the calendar shows
   const [selectedKey, setSelectedKey] = useState(() => dayKey(new Date()));   // the month view's chosen day
   const [openId, setOpenId] = useState(null);         // the request in the sheet
+  const [pickedId, setPickedId] = useState(null);     // the waiting request whose times are drawn on the calendar
   const [saving, setSaving] = useState(() => new Set());
   const [refreshing, setRefreshing] = useState(false);
   const [toast, setToast] = useState(null);           // { text, error, action }
@@ -86,7 +105,7 @@ export default function CounselorSchedulePage({ navigate, api = REAL_API }) {
   const refreshBusy = useRef(false);
   const loadedAt = useRef(0);
   const drafts = useRef(new Map());     // per request: notes typed and not sent, { answer, decline }
-  const focusAfter = useRef(null);      // { row, meeting, fallback }: where focus goes once the page has redrawn
+  const focusAfter = useRef(null);      // { row, meeting, offered, fallback }: where focus goes once the page has redrawn
   const toastTimer = useRef(null);
   const sayTimer = useRef(null);
   const waitingHeadRef = useRef(null);
@@ -205,10 +224,23 @@ export default function CounselorSchedulePage({ navigate, api = REAL_API }) {
   const countIn = (span) => span.reduce((n, day) => n + (byDay.get(dayKey(day))?.length || 0), 0);
   const daysOf = (v, a) => (v === "month" ? monthDays(a) : weekDays(a));
   const days = daysOf(view, anchor);
+  const shownKeys = new Set(days.map(dayKey));
+  const unit = view === "month" ? "month" : "week";
   const title = rangeTitle(view, anchor);
   const summary = rangeSummary(view, anchor, countIn(days));
-  // As a list: a week shows every day; a month shows the days that hold a meeting, and today.
-  const agendaDays = view === "month" ? days.filter((d) => byDay.has(dayKey(d)) || dayKey(d) === todayKey) : days;
+  // The picked request, while it is still waiting (an answer, or a refresh
+  // that finds it cancelled, takes its times off the calendar), and the times
+  // it offers that are still ahead, by day.
+  const picked = pickedId ? pending.find((r) => r.id === pickedId) || null : null;
+  const pickedName = nameFor(picked);
+  const offered = useMemo(() => offeredByDay(picked, now), [picked, now]);
+  const offeredAll = [...offered.values()].flat();
+  const offeredShown = offeredAll.filter((e) => shownKeys.has(dayKey(e.at))).length;
+  // As a list: a week shows every day; a month shows the days that hold a
+  // meeting or an offered time, and today.
+  const agendaDays = view === "month"
+    ? days.filter((d) => { const k = dayKey(d); return byDay.has(k) || offered.has(k) || k === todayKey; })
+    : days;
   const openRequest = openId ? requests.find((r) => r.id === openId) || null : null;
 
   // After an answer the row or meeting the sheet was opened from has moved,
@@ -219,7 +251,7 @@ export default function CounselorSchedulePage({ navigate, api = REAL_API }) {
     if (!target || phase !== "ready") return;
     focusAfter.current = null;
     const find = (attr, id) => (id ? [...document.querySelectorAll(`[${attr}]`)].find((n) => n.getAttribute(attr) === String(id)) || null : null);
-    const el = find("data-request-row", target.row) || find("data-meeting", target.meeting);
+    const el = find("data-request-row", target.row) || find("data-meeting", target.meeting) || find("data-offered", target.offered);
     if (el) el.focus();
     else (target.fallback === "waiting" ? waitingHeadRef : titleRef).current?.focus();
   });
@@ -230,7 +262,11 @@ export default function CounselorSchedulePage({ navigate, api = REAL_API }) {
   const show = (nextView, nextAnchor) => {
     setView(nextView);
     setAnchor(nextAnchor);
-    say(`Showing ${rangeTitle(nextView, nextAnchor)}. ${rangeSummary(nextView, nextAnchor, countIn(daysOf(nextView, nextAnchor)))}.`);
+    const span = daysOf(nextView, nextAnchor);
+    const keys = new Set(span.map(dayKey));
+    const o = offeredAll.filter((e) => keys.has(dayKey(e.at))).length;
+    const extra = o ? `, and ${offeredCount(o)} from ${pickedName}, not booked` : "";
+    say(`Showing ${rangeTitle(nextView, nextAnchor)}. ${rangeSummary(nextView, nextAnchor, countIn(span))}${extra}.`);
   };
   const changeView = (next) => {
     if (next !== "week" && next !== "month") return;
@@ -246,7 +282,9 @@ export default function CounselorSchedulePage({ navigate, api = REAL_API }) {
     const key = dayKey(date);
     setSelectedKey(key);
     const n = byDay.get(key)?.length || 0;
-    say(`${formatDayLong(date)}. ${n ? `${meetingCount(n)}, listed after the calendar` : "Nothing is booked"}.`);
+    const o = offered.get(key)?.length || 0;
+    const extra = o ? `, and ${offeredCount(o)} from ${pickedName}, not booked` : "";
+    say(`${formatDayLong(date)}. ${n ? meetingCount(n) : "Nothing is booked"}${extra}${n || o ? ", listed after the calendar" : ""}.`);
   };
   const seeWeek = (date) => {
     writeView("week");
@@ -263,6 +301,41 @@ export default function CounselorSchedulePage({ navigate, api = REAL_API }) {
     setAnchor(startOfDay(when));
     focusAfter.current = { meeting: id, fallback: "calendar" };
     say(`The calendar now shows ${formatDayLong(when)}.`);
+  };
+
+  // ── The rail: a picked request's times on the calendar ────────────────────
+
+  /** Pick a waiting request (or none): its offered times are drawn on the
+   *  calendar. The calendar stays where it is; a time it is not showing has
+   *  its own "Show on the calendar" in the rail. */
+  const pick = (id) => {
+    const request = id ? pending.find((r) => r.id === id) || null : null;
+    setPickedId(request ? request.id : null);
+    if (!request) { say("Offered times are no longer drawn on the calendar."); return; }
+    const name = nameFor(request);
+    const times = offeredTimes(request, now);
+    const ahead = times.filter((t) => !t.passed);
+    const inView = ahead.filter((t) => shownKeys.has(dayKey(t.at))).length;
+    if (!times.length) { say(`${name.charAt(0).toUpperCase()}${name.slice(1)} did not offer a time.`); return; }
+    if (!ahead.length) { say(times.length === 1 ? `The time ${name} offered has passed.` : `Every time ${name} offered has passed.`); return; }
+    if (inView === 0) {
+      say(ahead.length === 1
+        ? `The time ${name} offered is not in this ${unit}. It has a button to show it on the calendar.`
+        : `None of the times ${name} offered are in this ${unit}. Each has a button to show it on the calendar.`);
+      return;
+    }
+    const which = inView === ahead.length ? `The ${ahead.length === 1 ? "time" : `${ahead.length} times`} ${name} offered`
+      : `${inView} of the ${ahead.length} times ${name} offered`;
+    say(`${which} ${inView === 1 ? "is" : "are"} drawn dashed on the calendar: offered, not booked.`);
+  };
+
+  /** From the rail: move the calendar to an offered time it is not showing,
+   *  and put focus on that time's outline. */
+  const showOffered = (request, at) => {
+    setSelectedKey(dayKey(at));
+    setAnchor(startOfDay(at));
+    focusAfter.current = { offered: offeredId(request.id, at), fallback: "calendar" };
+    say(`The calendar now shows ${rangeTitle(view, at)}.`);
   };
 
   // ── Answering ─────────────────────────────────────────────────────────────
@@ -320,6 +393,9 @@ export default function CounselorSchedulePage({ navigate, api = REAL_API }) {
 
     if (!failed) {
       drafts.current.delete(id);
+      // Its times leave the calendar with it. (A failed answer brings the
+      // request back still picked, so its times come back too.)
+      setPickedId((p) => (p === id ? null : p));
       const row = saved && typeof saved === "object" && saved.id === id ? { ...next, ...saved } : next;
       setRequests((prev) => prev.map((r) => (r.id === id ? row : r)));
       if (action === "confirm") {
@@ -352,7 +428,7 @@ export default function CounselorSchedulePage({ navigate, api = REAL_API }) {
   const shell = (children) => (
     <CounselorShell me={me} active="schedule" navigate={navigate} pending={pending.length}>
       <div style={{ minWidth: 0, fontFamily: SANS, color: TEXT, ...ringVar(ink) }}>
-        <PageHeader title="Schedule" isMobile={isMobile}>
+        <PageHeader title="Schedule" isMobile={isMobile} style={{ margin: "0 0 1.3rem" }}>
           Meeting requests from your students, and the meetings you have confirmed.
           {zone ? ` Times are in your own time zone, ${zone}.` : ""}
         </PageHeader>
@@ -386,32 +462,62 @@ export default function CounselorSchedulePage({ navigate, api = REAL_API }) {
     );
   }
 
+  const openSheet = (request) => setOpenId(request.id);
+
+  // What the dashed outlines are, said in words beside them while a request
+  // is picked (above the list on a phone, under the grid on a wider screen).
+  const outside = offeredAll.length - offeredShown;
+  const legend = picked && offeredAll.length > 0 ? (
+    <p style={{ margin: asList ? "0 0 12px" : "12px 0 0", display: "flex", alignItems: "flex-start", gap: 10, fontFamily: SANS,
+      fontSize: "0.95rem", fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.5 }}>
+      <span style={{ display: "flex", marginTop: 2 }}><OfferedSwatch /></span>
+      <span style={{ minWidth: 0 }}>
+        {offeredAll.length === 1
+          ? `Dashed: the time ${pickedName} offered. Nothing is booked until you confirm it.`
+          : `Dashed: times ${pickedName} offered. Nothing is booked until you confirm one.`}
+        {outside > 0 && (offeredShown === 0
+          ? ` ${offeredAll.length === 1 ? "It is" : "They are"} not in this ${unit}.`
+          : ` ${outside} more ${outside === 1 ? "is" : "are"} not in this ${unit}.`)}
+      </span>
+    </p>
+  ) : null;
+
+  const pad = isMobile ? "1rem" : "1.1rem 1.2rem 1.25rem";
+  const calendarCard = (
+    <Card key="calendar" as="section" aria-labelledby="cs-calendar-heading" style={{ padding: pad }}>
+      <Heading id="cs-calendar-heading" style={{ marginBottom: 12 }}>Confirmed meetings</Heading>
+      <CalendarToolbar view={view} onView={changeView} title={title} summary={summary} titleId={TITLE_ID} titleRef={titleRef}
+        onPrev={() => show(view, shiftAnchor(view, anchor, -1))} onNext={() => show(view, shiftAnchor(view, anchor, 1))}
+        onToday={goToday} isMobile={isMobile} />
+      {asList && legend}
+      {asList ? (
+        <CalendarAgenda days={agendaDays} byDay={byDay} offered={offered} now={now} onOpen={openSheet} labelledBy={TITLE_ID}
+          emptyText={`${summary}.`} />
+      ) : view === "month" ? (
+        <CalendarMonth anchor={anchor} byDay={byDay} offered={offered} now={now} selectedKey={selectedKey} onSelect={selectDay}
+          onShift={(date) => show("month", startOfDay(date))} onOpen={openSheet} onSeeWeek={seeWeek} labelledBy={TITLE_ID} />
+      ) : (
+        <CalendarWeek days={days} byDay={byDay} offered={offered} now={now} onOpen={openSheet} labelledBy={TITLE_ID} />
+      )}
+      {!asList && legend}
+    </Card>
+  );
+  const railCard = (
+    <Card key="rail" style={{ padding: side ? "1.1rem 1rem" : pad }}>
+      <RequestList requests={pending} closed={closed} now={now} pickedId={picked ? picked.id : null} onPick={pick}
+        onOpen={openSheet} byDay={byDay} shownKeys={shownKeys} unit={unit} onShowTime={showOffered} headingRef={waitingHeadRef}
+        onRefresh={() => refresh(true)} refreshing={refreshing} />
+    </Card>
+  );
+
   return shell(
     <>
-      <Card style={{ padding: isMobile ? "1rem" : "1.1rem 1.2rem 1.25rem" }}>
-        <RequestList requests={pending} now={now} onOpen={(r) => setOpenId(r.id)} headingRef={waitingHeadRef}
-          onRefresh={() => refresh(true)} refreshing={refreshing} isMobile={isMobile} />
-      </Card>
-
-      <Card as="section" aria-labelledby="cs-calendar-heading"
-        style={{ marginTop: 20, padding: isMobile ? "1rem" : "1.1rem 1.2rem 1.25rem" }}>
-        <Heading id="cs-calendar-heading" style={{ marginBottom: 12 }}>Confirmed meetings</Heading>
-        <CalendarToolbar view={view} onView={changeView} title={title} summary={summary} titleId={TITLE_ID} titleRef={titleRef}
-          onPrev={() => show(view, shiftAnchor(view, anchor, -1))} onNext={() => show(view, shiftAnchor(view, anchor, 1))}
-          onToday={goToday} isMobile={isMobile} />
-        {asList ? (
-          <CalendarAgenda days={agendaDays} byDay={byDay} now={now} onOpen={(r) => setOpenId(r.id)} labelledBy={TITLE_ID}
-            emptyText={`${summary}.`} />
-        ) : view === "month" ? (
-          <CalendarMonth anchor={anchor} byDay={byDay} now={now} selectedKey={selectedKey} onSelect={selectDay}
-            onShift={(date) => show("month", startOfDay(date))} onOpen={(r) => setOpenId(r.id)} onSeeWeek={seeWeek}
-            labelledBy={TITLE_ID} />
-        ) : (
-          <CalendarWeek days={days} byDay={byDay} now={now} onOpen={(r) => setOpenId(r.id)} labelledBy={TITLE_ID} />
-        )}
-      </Card>
-
-      <ClosedRequests requests={closed} now={now} onOpen={(r) => setOpenId(r.id)} />
+      {/* The page reads in the order it is seen: the calendar then the rail
+          side by side, the rail first when it sits above. */}
+      <div style={{ display: "grid", gap: 20, alignItems: "start",
+        gridTemplateColumns: side ? `minmax(0, 1fr) ${RAIL_PX}px` : "minmax(0, 1fr)" }}>
+        {side ? [calendarCard, railCard] : [railCard, calendarCard]}
+      </div>
 
       <p aria-live="polite" style={SR_ONLY}>{announce}</p>
       <Toast notice={toast} onDismiss={dismissToast} />

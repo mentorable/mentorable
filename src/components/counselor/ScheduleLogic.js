@@ -199,8 +199,9 @@ export function meetingsByDay(meetings) {
   return byDay;
 }
 
-/** The hours the week grid shows for these meetings: the school day, made
- *  longer when a meeting is earlier or later than it. */
+/** The hours the week grid shows for these entries (meetings, and any offered
+ *  times drawn beside them): the school day, made longer when one is earlier
+ *  or later than it. */
 export function weekHours(entries) {
   let from = FIRST_HOUR;
   let to = LAST_HOUR;
@@ -226,15 +227,99 @@ export function offeredTimes(request, now) {
   return out.sort((a, b) => a.at.getTime() - b.at.getTime());
 }
 
-/** "Asked today", "Asked 3 days ago", "Asked Sep 28": by calendar days, here. */
-export function askedAgo(iso, now) {
+/** "today", "yesterday", "3 days ago", "Sep 28": by calendar days, here. */
+export function agoWords(iso, now) {
   const at = toDate(iso);
   if (!at) return "";
   const days = Math.round((startOfDay(now).getTime() - startOfDay(at).getTime()) / DAY_MS);
-  if (days <= 0) return "Asked today";
-  if (days === 1) return "Asked yesterday";
-  if (days < 14) return `Asked ${days} days ago`;
-  return `Asked ${at.toLocaleDateString(LOCALE, { month: "short", day: "numeric" })}`;
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days} days ago`;
+  return at.toLocaleDateString(LOCALE, { month: "short", day: "numeric" });
+}
+
+/** "Asked today", "Asked 3 days ago", "Asked Sep 28". */
+export function askedAgo(iso, now) {
+  const words = agoWords(iso, now);
+  return words ? `Asked ${words}` : "";
+}
+
+// ─── Offered times on the calendar ────────────────────────────────────────────
+// Choosing a waiting request draws the times that student offered on the
+// calendar beside what is already booked, so a clash shows before a time is
+// confirmed. An offered time is not a meeting: nothing is booked until the
+// counselor confirms one in the request itself.
+
+/** An offered time this close to a booked meeting, in minutes, is flagged. A
+ *  meeting carries no length, so this asks the counselor to look, no more. */
+export const NEAR_MINUTES = 60;
+
+/** What an offered time is called on the page (for focus): its request and its instant. */
+export const offeredId = (requestId, at) => `${requestId}:${at.getTime()}`;
+
+export const offeredCount = (n) => (n === 1 ? "1 offered time" : `${n} offered times`);
+
+/** The times a request offers that are still ahead, by the local day they
+ *  fall on: Map of day key to [{ request, at, id, offered: true }], in time
+ *  order. Empty when there is no request. */
+export function offeredByDay(request, now) {
+  const byDay = new Map();
+  if (!request) return byDay;
+  for (const t of offeredTimes(request, now)) {
+    if (t.passed) continue;
+    const key = dayKey(t.at);
+    if (!byDay.has(key)) byDay.set(key, []);
+    byDay.get(key).push({ request, at: t.at, id: offeredId(request.id, t.at), offered: true });
+  }
+  return byDay;
+}
+
+/** A day's meetings and offered times together, in time order. At the same
+ *  minute the booked meeting comes first. */
+export function dayEntries(byDay, offered, key) {
+  const booked = byDay.get(key) || [];
+  const extra = offered ? offered.get(key) || [] : [];
+  if (!extra.length) return booked;
+  return [...booked, ...extra].sort((a, b) => a.at.getTime() - b.at.getTime() || (a.offered ? 1 : 0) - (b.offered ? 1 : 0));
+}
+
+/** A name for a sentence: the student's, or "another student" when the
+ *  database had none ("Student"). */
+function whoOf(request) {
+  const name = String(request?.student_name || "").trim();
+  return name && name !== "Student" ? name : "another student";
+}
+
+function nameList(names) {
+  if (names.length <= 1) return names[0] || "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+/** How an offered time sits beside what is already booked: { warn, text }.
+ *  Read against every confirmed meeting, whether or not the calendar is
+ *  showing that day. `warn` is a meeting at the same time or within
+ *  NEAR_MINUTES of it. */
+export function clashNote(at, byDay) {
+  const day = byDay.get(dayKey(at)) || [];
+  const gaps = day.map((entry) => ({ entry, gap: Math.round((entry.at.getTime() - at.getTime()) / 60000) }));
+  const same = gaps.filter((g) => g.gap === 0);
+  if (same.length) {
+    return { warn: true, text: `The same time as your meeting with ${nameList(same.map((g) => whoOf(g.entry.request)))}` };
+  }
+  const near = gaps.filter((g) => Math.abs(g.gap) < NEAR_MINUTES).sort((a, b) => Math.abs(a.gap) - Math.abs(b.gap));
+  if (near.length) {
+    const { entry, gap } = near[0];
+    const mins = Math.abs(gap);
+    return {
+      warn: true,
+      text: `${mins === 1 ? "1 minute" : `${mins} minutes`} ${gap > 0 ? "before" : "after"} your meeting with `
+        + `${whoOf(entry.request)} at ${formatTime(entry.at)}`,
+    };
+  }
+  if (day.length) {
+    return { warn: false, text: `${day.length === 1 ? "1 other meeting" : `${day.length} other meetings`} that day, none within an hour` };
+  }
+  return { warn: false, text: "Nothing else is booked that day" };
 }
 
 /** A closed request, in a word or two. */

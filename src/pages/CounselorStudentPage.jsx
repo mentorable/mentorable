@@ -1,23 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { getValidUser } from "../lib/auth.js";
-import { SHARES, counselorErrorMessage, counselorMe, loadStudent, removeStudent } from "../lib/counselor.js";
+import { counselorErrorMessage, counselorMe, loadStudent, removeStudent } from "../lib/counselor.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import CounselorShell from "../components/counselor/CounselorShell.jsx";
 import {
-  CollegeListSection, EssaysSection, MeetingsSection, PortfolioSection, QuestSection,
+  CollegeListSection, EssaysSection, MeetingsSection, NothingShared, PortfolioSection, QuestSection,
 } from "../components/counselor/StudentSections.jsx";
+import {
+  STUDENT_SECTIONS, StudentStrip, panelId, tabId, useOpenSection,
+} from "../components/counselor/StudentStrip.jsx";
 import { useStudentDetail } from "../components/counselor/useStudentDetail.js";
 import {
   BackLink, ConfirmSheet, ENTRY_PATH, LoadingBlock, SCHEDULE_PATH, StateCard, firstName, gradeLine, linkProps,
   recordPath, shortDate, studentPath,
 } from "../components/counselor/counselorUi.jsx";
-import { Button, Heading, LinkButton, Notice, PageHeader } from "../components/ui/kit.jsx";
-import { BORDER, SANS, TEXT_MID } from "../components/ui/tokens.js";
+import { Button, LinkButton, Notice, PageHeader, SR_ONLY } from "../components/ui/kit.jsx";
+import { BORDER, FOCUS_CLASS, RADIUS, SANS, TEXT_MUTED } from "../components/ui/tokens.js";
 
-// One student, as their counselor sees them (/counselor/students/:studentId):
-// who they are, a card for each of the four sections they may share, and the
-// meeting requests they sent. Read-only. A section the student has not shared
-// says "Not shared" and why; it is never an error.
+// One student, as their counselor sees them (/counselor/students/:studentId),
+// on one screen before a meeting: who they are, a strip of four tiles saying
+// where each section they may share stands (or that it is not shared), the
+// section picked opened in full under the strip, and beside it the meeting
+// requests they sent. Read-only. A section the student has not shared says
+// "Not shared" and why; it is never an error.
 //
 // Everything on the page comes from one call, loadStudent (the
 // counselor_student SQL function), which answers only for a student linked to
@@ -29,28 +34,17 @@ import { BORDER, SANS, TEXT_MID } from "../components/ui/tokens.js";
 // made-up data when checking it by hand (see CollegeListPage).
 const REAL_API = { getValidUser, counselorMe, loadStudent, removeStudent };
 
-const joined = (parts) => (parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts.join(""));
-
-/** Which sections this student shares, in a sentence. A section counts as
- *  shared when the server sent it, whatever the switches say. */
-function SharingLine({ detail, who }) {
-  const shared = SHARES.filter((s) => detail[s.key]).map((s) => s.label);
-  const kept = SHARES.filter((s) => !detail[s.key]).map((s) => s.label);
-  let line;
-  if (!shared.length) {
-    line = `${who} has not shared any sections with you yet. You see their name, grade and graduation year, and any meeting requests they send.`;
-  } else if (!kept.length) {
-    line = `${who} shares all ${SHARES.length} sections with you.`;
-  } else {
-    line = `${who} shares ${joined(shared)} with you. ${joined(kept)} ${kept.length === 1 ? "is" : "are"} not shared.`;
-  }
-  return <p style={{ margin: "0 0 18px", fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT_MID, lineHeight: 1.55 }}>{line}</p>;
-}
-
 export default function CounselorStudentPage({ navigate, studentId, api = REAL_API }) {
   const isMobile = useIsMobile();
-  const twoColumns = !useIsMobile(1000);
+  const wide = !useIsMobile(1024);        // the requests beside the open section, not under it
+  const roomy = !useIsMobile(1180);       // room for the requests column at full width
+  const fourUp = !useIsMobile(860);       // the tiles in one row, not two by two
+  const tableRoom = !useIsMobile(700);
+  // The College list as one table where it has the room (full width, or the
+  // whole row), otherwise a list per group.
+  const tableView = roomy || (!wide && tableRoom);
   const { phase, me, detail, error, reload } = useStudentDetail({ api, navigate, studentId, here: studentPath(studentId) });
+  const [open, choose] = useOpenSection(studentId, detail);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState("");
@@ -141,26 +135,40 @@ export default function CounselorStudentPage({ navigate, studentId, api = REAL_A
   const name = student.name || "Student";
   const who = firstName(name);
   const requests = Array.isArray(detail.requests) ? detail.requests : [];
-  const waiting = requests.filter((r) => r.status === "pending").length;
+  const waiting = requests.filter((r) => r?.status === "pending").length;
   const since = shortDate(student.linked_at);
 
-  const list = <CollegeListSection data={detail.college_list} who={who} />;
-  const quest = <QuestSection data={detail.quest} who={who} />;
-  const essays = <EssaysSection data={detail.essays} who={who} />;
-  const portfolio = <PortfolioSection data={detail.portfolio} who={who} studentId={studentId} navigate={navigate} />;
-  const meetings = <MeetingsSection requests={requests} who={who} navigate={navigate} />;
-  const column = { display: "grid", gap: 16, alignContent: "start", minWidth: 0 };
+  // The open section, in full. The tiles are its tabs; with nothing shared
+  // there is no tab, and the space says so instead.
+  const sections = {
+    college_list: () => <CollegeListSection data={detail.college_list} who={who} table={tableView} />,
+    portfolio: () => <PortfolioSection data={detail.portfolio} who={who} studentId={studentId} navigate={navigate} />,
+    quest: () => <QuestSection data={detail.quest} who={who} />,
+    essays: () => <EssaysSection data={detail.essays} who={who} />,
+  };
+  const anyShared = STUDENT_SECTIONS.some((s) => detail[s.key]);
+  const shown = anyShared && Object.prototype.hasOwnProperty.call(sections, open) ? open : null;
+  const panel = shown ? (
+    <div role="tabpanel" id={panelId(shown)} aria-labelledby={tabId(shown)} tabIndex={0} className={FOCUS_CLASS}
+      style={{ minWidth: 0, borderRadius: RADIUS.card }}>
+      {sections[shown]()}
+    </div>
+  ) : (
+    <NothingShared who={who} />
+  );
 
   return shell(
     <>
-      <PageHeader title={name} isMobile={isMobile} style={{ margin: "0 0 1rem" }}
+      <PageHeader title={name} isMobile={isMobile} style={{ margin: "0 0 1.1rem" }}
         action={detail.portfolio && (
           <LinkButton {...linkProps(navigate, recordPath(studentId))}>Open the printable record</LinkButton>
         )}>
         {gradeLine(student)}{since ? `. Joined your school ${since}.` : "."}
       </PageHeader>
 
-      {waiting > 0 && (
+      {/* Beside the open section the waiting request is in view; under it, it
+          could be a long way down, so say so up here. */}
+      {!wide && waiting > 0 && (
         <Notice tone="warn" style={{ marginBottom: 16, maxWidth: 760 }}
           action={<LinkButton {...linkProps(navigate, SCHEDULE_PATH)}>Open the schedule</LinkButton>}>
           {waiting === 1
@@ -169,22 +177,22 @@ export default function CounselorStudentPage({ navigate, studentId, api = REAL_A
         </Notice>
       )}
 
-      <SharingLine detail={detail} who={who} />
+      <StudentStrip detail={detail} who={who} open={shown} onOpen={choose} fourUp={fourUp} />
 
-      {twoColumns ? (
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1fr)", gap: 16, alignItems: "start" }}>
-          <div style={column}>{list}{portfolio}</div>
-          <div style={column}>{quest}{essays}{meetings}</div>
-        </div>
-      ) : (
-        <div style={column}>{list}{quest}{essays}{portfolio}{meetings}</div>
-      )}
+      <div style={{ display: "grid", gridTemplateColumns: wide ? `minmax(0, 1fr) ${roomy ? 340 : 300}px` : "minmax(0, 1fr)", gap: 16,
+        alignItems: "start", marginTop: fourUp ? 20 : 16 }}>
+        {panel}
+        <MeetingsSection requests={requests} who={who} navigate={navigate} />
+      </div>
 
-      <section aria-labelledby="cs-remove" style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${BORDER}`, maxWidth: 760 }}>
-        <Heading id="cs-remove" style={{ fontSize: "1.15rem" }}>Remove from my school</Heading>
-        <p style={{ margin: "6px 0 14px", fontFamily: SANS, fontSize: "1rem", color: TEXT_MID, lineHeight: 1.6 }}>
-          This unlinks {name} from your school. You stop seeing everything they shared, and their meeting requests,
-          answered or not, are removed from your schedule. They can join again with your join code.
+      <section aria-labelledby="cs-remove" style={{ marginTop: 24, paddingTop: 16, borderTop: `1px solid ${BORDER}`,
+        display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "12px 16px" }}>
+        <h2 id="cs-remove" style={SR_ONLY}>Remove from my school</h2>
+        <p style={{ margin: 0, flex: "1 1 300px", maxWidth: "70ch", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 500,
+          color: TEXT_MUTED, lineHeight: 1.55 }}>
+          Removing {who === "This student" ? "this student" : name} unlinks them from your school: you stop seeing
+          everything they shared, and their meeting requests, answered or not, leave your schedule. They can join again
+          with your join code.
         </p>
         <Button kind="danger" onClick={() => { setRemoveError(""); setRemoveOpen(true); }}>Remove from my school</Button>
       </section>
