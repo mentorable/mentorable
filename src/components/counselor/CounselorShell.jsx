@@ -74,24 +74,59 @@ function NavLink({ to, on, navigate, compact, children }) {
   );
 }
 
-/** The join code and what can be done with it. */
-function JoinTools({ code, copied, onCopyCode, onCopyLink, onRotate, roomy }) {
-  const small = { padding: "0 10px", fontSize: "0.95rem" };
+/** The join code, as one button. It opens a small menu with the three things
+ *  that can be done with it: copy the code, copy the link, make a new one. */
+function JoinTools({ code, copied, onCopyCode, onCopyLink, onRotate }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef(null);
+  const trigger = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    wrap.current?.querySelector("[role=menuitem]")?.focus();
+    const onDown = (e) => { if (wrap.current && !wrap.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      trigger.current?.focus();
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const item = { minHeight: 44, width: "100%", padding: "0 14px", display: "flex", alignItems: "center", textAlign: "left",
+    background: "none", border: "none", borderRadius: 8, cursor: "pointer", fontFamily: SANS, fontSize: "1rem", fontWeight: 700,
+    color: TEXT_MID, boxSizing: "border-box" };
   return (
-    <div role="group" aria-label="Join code"
-      style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: roomy ? "4px 4px" : "0 2px", minWidth: 0 }}>
-      <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8, marginRight: 6 }}>
-        {/* Folded behind its own "Join code" button, the label would say it twice. */}
-        {!roomy && <span style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, color: TEXT_MUTED }}>Join code</span>}
+    <div ref={wrap} style={{ position: "relative", flexShrink: 0 }}>
+      <button ref={trigger} type="button" className={FOCUS_CLASS} aria-haspopup="menu" aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        style={{ minHeight: 44, padding: "0 12px", display: "inline-flex", alignItems: "center", gap: 8, borderRadius: 10,
+          border: `1.5px solid ${BORDER}`, background: WHITE, cursor: "pointer", boxSizing: "border-box", color: TEXT }}>
+        <span style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, color: TEXT_MUTED }}>Join code</span>
         <JoinCode code={code} />
-      </span>
-      <Button kind="quiet" onClick={onCopyCode} style={{ ...small, minWidth: 96 }}>
-        {copied === "code" ? "Copied" : "Copy code"}
-      </Button>
-      <Button kind="quiet" onClick={onCopyLink} style={{ ...small, minWidth: 92 }}>
-        {copied === "link" ? "Copied" : "Copy link"}
-      </Button>
-      <Button kind="quiet" onClick={onRotate} style={small}>New code</Button>
+        <Chevron up={open} />
+      </button>
+      {open && (
+        <div role="menu" aria-label="Join code" style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 70,
+          minWidth: 190, padding: 4, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 12,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}>
+          <button type="button" role="menuitem" className={FOCUS_CLASS} onClick={onCopyCode} style={item}>
+            {copied === "code" ? "Copied" : "Copy code"}
+          </button>
+          <button type="button" role="menuitem" className={FOCUS_CLASS} onClick={onCopyLink} style={item}>
+            {copied === "link" ? "Copied" : "Copy link"}
+          </button>
+          <button type="button" role="menuitem" className={FOCUS_CLASS} style={item}
+            onClick={() => { setOpen(false); onRotate(); }}>
+            New code
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -103,7 +138,6 @@ export default function CounselorShell({ me, active, navigate, children, pending
   const calls = useMemo(() => ({ ...REAL_API, ...(api || {}) }), [api]);
   const [copied, copy] = useCopy();
   const [toast, setToast] = useState(null);           // { text, error }
-  const [codeOpen, setCodeOpen] = useState(false);    // the folded join code, on a narrow bar
   const [rotateOpen, setRotateOpen] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [rotateError, setRotateError] = useState("");
@@ -266,8 +300,8 @@ export default function CounselorShell({ me, active, navigate, children, pending
     </Button>
   );
 
-  const tools = (roomy) => (
-    <JoinTools code={code} copied={copied} onCopyCode={copyCode} onCopyLink={copyLink} onRotate={openRotate} roomy={roomy} />
+  const tools = (
+    <JoinTools code={code} copied={copied} onCopyCode={copyCode} onCopyLink={copyLink} onRotate={openRotate} />
   );
 
   return (
@@ -280,26 +314,11 @@ export default function CounselorShell({ me, active, navigate, children, pending
           zIndex: 60 }}>
         {compact ? (
           // A narrow bar, in the order it is read: the name and the join
-          // code (folded behind a button, opening just under it), then the
-          // pages and Sign out.
+          // code button, then the pages and Sign out.
           <div style={{ maxWidth: 1180, margin: "0 auto", boxSizing: "border-box", padding: isMobile ? "8px 16px" : "8px 32px",
             display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 8px" }}>
             {identity}
-            {school && (
-              <button type="button" className={FOCUS_CLASS} aria-expanded={codeOpen} aria-controls="counselor-join-code"
-                onClick={() => setCodeOpen((o) => !o)}
-                style={{ minHeight: 44, padding: "0 12px", display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0,
-                  borderRadius: 10, border: `1.5px solid ${BORDER}`, background: WHITE, color: TEXT_MID, fontFamily: SANS,
-                  fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", boxSizing: "border-box" }}>
-                Join code
-                <Chevron up={codeOpen} />
-              </button>
-            )}
-            {school && (
-              <div id="counselor-join-code" hidden={!codeOpen} style={{ flexBasis: "100%" }}>
-                {codeOpen && tools(true)}
-              </div>
-            )}
+            {school && tools}
             {school ? (
               <div style={{ flexBasis: "100%", display: "flex", flexWrap: "wrap", alignItems: "center",
                 justifyContent: "space-between", gap: "4px 8px" }}>
@@ -313,7 +332,7 @@ export default function CounselorShell({ me, active, navigate, children, pending
             flexWrap: "wrap", alignItems: "center", gap: "4px 16px" }}>
             {identity}
             {nav}
-            {school && tools(false)}
+            {school && tools}
             {signOutButton}
           </div>
         )}
