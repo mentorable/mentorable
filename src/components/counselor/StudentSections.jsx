@@ -507,7 +507,7 @@ export function MeetingsSection({ requests, who, navigate }) {
   const waiting = list.filter((r) => r.status === "pending");
   const earlier = list.filter((r) => r.status !== "pending");
   return (
-    <SectionCard id="cs-meetings" title="Meeting requests"
+    <SectionCard id="cs-meetings" title="Meeting requests" accent={false}
       aside={waiting.length > 0 && <Pill tone="amber">{waiting.length} waiting</Pill>}>
       {list.length === 0 ? (
         <p style={{ ...body, margin: 0 }}>{who} has not asked for a meeting.</p>

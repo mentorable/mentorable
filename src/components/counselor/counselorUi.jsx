@@ -277,12 +277,13 @@ export function BackLink({ navigate, to, children }) {
 }
 
 /** One section of a student's page: a card with its pixel mark and heading. */
-export function SectionCard({ id, title, stamp, aside, children, style }) {
+export function SectionCard({ id, title, stamp, aside, children, style, accent = true }) {
+  const ink = useAgentInk();
   return (
     <Card as="section" aria-labelledby={id} style={{ padding: "1.1rem 1.2rem 1.25rem", ...style }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
         {stamp && <StampTile kind={stamp} size={40} />}
-        <Heading id={id} style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{title}</Heading>
+        <Heading id={id} style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere", ...(accent ? { color: ink.text } : null) }}>{title}</Heading>
         {aside}
       </div>
       {children}
