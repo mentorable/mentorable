@@ -14,8 +14,8 @@ import {
   BackLink, ConfirmSheet, ENTRY_PATH, LoadingBlock, SCHEDULE_PATH, StateCard, firstName, gradeLine, linkProps,
   recordPath, shortDate, studentPath,
 } from "../components/counselor/counselorUi.jsx";
-import { Button, LinkButton, Notice, PageHeader, SR_ONLY } from "../components/ui/kit.jsx";
-import { BORDER, FOCUS_CLASS, RADIUS, SANS, TEXT_MUTED } from "../components/ui/tokens.js";
+import { Button, LinkButton, Notice, PageHeader } from "../components/ui/kit.jsx";
+import { DANGER, FOCUS_CLASS, RADIUS, WHITE } from "../components/ui/tokens.js";
 
 // One student, as their counselor sees them (/counselor/students/:studentId),
 // on one screen before a meeting: who they are, a strip of four tiles saying
@@ -159,7 +159,21 @@ export default function CounselorStudentPage({ navigate, studentId, api = REAL_A
 
   return shell(
     <>
-      <PageHeader title={name} isMobile={isMobile} style={{ margin: "0 0 1.1rem" }}
+      <PageHeader isMobile={isMobile} style={{ margin: "0 0 1.1rem" }}
+        title={(
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            {name}
+            <button type="button" className={FOCUS_CLASS} aria-label={`Remove ${name} from my school`}
+              onClick={() => { setRemoveError(""); setRemoveOpen(true); }}
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, padding: 0,
+                background: WHITE, color: DANGER, border: `1.5px solid ${DANGER}`, borderRadius: RADIUS.control, cursor: "pointer" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5" />
+              </svg>
+            </button>
+          </span>
+        )}
         action={detail.portfolio && (
           <LinkButton {...linkProps(navigate, recordPath(studentId))}>Open the printable record</LinkButton>
         )}>
@@ -184,18 +198,6 @@ export default function CounselorStudentPage({ navigate, studentId, api = REAL_A
         {panel}
         <MeetingsSection requests={requests} who={who} navigate={navigate} />
       </div>
-
-      <section aria-labelledby="cs-remove" style={{ marginTop: 24, paddingTop: 16, borderTop: `1px solid ${BORDER}`,
-        display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "12px 16px" }}>
-        <h2 id="cs-remove" style={SR_ONLY}>Remove from my school</h2>
-        <p style={{ margin: 0, flex: "1 1 300px", maxWidth: "70ch", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 500,
-          color: TEXT_MUTED, lineHeight: 1.55 }}>
-          Removing {who === "This student" ? "this student" : name} unlinks them from your school: you stop seeing
-          everything they shared, and their meeting requests, answered or not, leave your schedule. They can join again
-          with your join code.
-        </p>
-        <Button kind="danger" onClick={() => { setRemoveError(""); setRemoveOpen(true); }}>Remove from my school</Button>
-      </section>
 
       <ConfirmSheet open={removeOpen} titleId="cs-remove-title" title={`Remove ${name} from your school?`}
         confirmLabel="Remove" kind="danger" busy={removing} error={removeError} onConfirm={remove}
