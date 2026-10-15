@@ -197,19 +197,19 @@ export function listCell(list) {
     words: `${reach} reach, ${target} target, ${likely} likely` };
 }
 
-/** An attention mark said short enough for the grid's last column: "Request",
- *  "2 requests", "No likely", "Quiet 9 days". The full label is for screen
- *  readers and the cards. */
+/** An attention mark said short enough for the grid's last column: "Meeting
+ *  request", "2 meeting requests", "No likely school", "No check-in in 9 days".
+ *  The full label is for screen readers and the cards. */
 export function shortMark(mark) {
   const label = String(mark?.label || "");
   if (mark?.key === "request") {
     const many = /^(\d+) meeting requests/.exec(label);
-    return many ? `${many[1]} requests` : "Request";
+    return many ? `${many[1]} meeting requests` : "Meeting request";
   }
-  if (mark?.key === "no_likely") return "No likely";
+  if (mark?.key === "no_likely") return "No likely school";
   if (mark?.key === "quest_quiet") {
     const days = /(\d+) days/.exec(label);
-    return days ? `Quiet ${days[1]} days` : "No check-ins";
+    return days ? `No check-in in ${days[1]} days` : "No check-in yet";
   }
   return label;
 }

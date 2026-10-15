@@ -38,7 +38,7 @@ const COLS = [
   { key: "list", width: 11 },
   { key: "essays", width: 9.75 },
   { key: "record", width: 7.5 },
-  { key: "attention", width: 9.5 },
+  { key: "attention", width: 11.5 },
 ];
 const STUDENT_MIN = 9.5;
 const GRID_REM = COLS.reduce((n, c) => n + c.width, 0) + STUDENT_MIN;
@@ -316,7 +316,7 @@ export default function CaseloadTable({ rows, marksFor, sort, onSort, navigate, 
     <Card style={{ padding: 0, overflow: "hidden" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
         <caption style={SR_ONLY}>
-          Students linked to {schoolName || "your school"}, one row each. The Student, Grade and Attention headers sort
+          Students linked to {schoolName || "your school"}, one row each. The Student, Grade and Needs attention headers sort
           the table.
         </caption>
         <colgroup>
@@ -331,7 +331,7 @@ export default function CaseloadTable({ rows, marksFor, sort, onSort, navigate, 
             <PlainHeader label="College list" counts />
             <PlainHeader label="Essays" note="statement stage" />
             <PlainHeader label="Portfolio" />
-            <SortHeader label="Attention" sortKey="attention" sort={sort} onSort={onSort} />
+            <SortHeader label="Needs attention" sortKey="attention" sort={sort} onSort={onSort} />
           </tr>
         </thead>
         <tbody>
