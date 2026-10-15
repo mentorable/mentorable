@@ -217,7 +217,7 @@ function RecordValue({ row, navigate, style }) {
 /** The marks, short, for the grid's last column: an icon and a word or two in
  *  amber, the full reason for a screen reader. */
 function ShortMarks({ marks }) {
-  if (!marks.length) return <span style={SR_ONLY}>Nothing flagged</span>;
+  if (!marks.length) return <span style={QUIET}>None</span>;
   return (
     <span style={{ display: "grid", gap: 2, padding: "2px 0" }}>
       {marks.map((m) => (
