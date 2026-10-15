@@ -198,10 +198,10 @@ export function useCopy() {
 
 /** A join code as it is shown: spaced for the eye, letter by letter for a
  *  screen reader. Selecting it selects the whole code. */
-export function JoinCode({ code, size = "1.1rem" }) {
+export function JoinCode({ code, size = "1.1rem", color = TEXT }) {
   const c = String(code || "");
   return (
-    <span style={{ fontFamily: SANS, fontSize: size, fontWeight: 800, color: TEXT, letterSpacing: "0.08em",
+    <span style={{ fontFamily: SANS, fontSize: size, fontWeight: 800, color, letterSpacing: "0.08em",
       fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
       <span aria-hidden="true" style={{ userSelect: "all" }}>{spacedCode(c)}</span>
       <span style={SR_ONLY}>{c.split("").join(" ")}</span>

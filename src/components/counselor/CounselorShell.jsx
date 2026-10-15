@@ -77,6 +77,7 @@ function NavLink({ to, on, navigate, compact, children }) {
 /** The join code, as one button. It opens a small menu with the three things
  *  that can be done with it: copy the code, copy the link, make a new one. */
 function JoinTools({ code, copied, onCopyCode, onCopyLink, onRotate }) {
+  const ink = useAgentInk();
   const [open, setOpen] = useState(false);
   const wrap = useRef(null);
   const trigger = useRef(null);
@@ -108,7 +109,7 @@ function JoinTools({ code, copied, onCopyCode, onCopyLink, onRotate }) {
         style={{ minHeight: 44, padding: "0 12px", display: "inline-flex", alignItems: "center", gap: 8, borderRadius: 10,
           border: `1.5px solid ${BORDER}`, background: WHITE, cursor: "pointer", boxSizing: "border-box", color: TEXT }}>
         <span style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, color: TEXT_MUTED }}>Join code</span>
-        <JoinCode code={code} />
+        <span style={{ color: ink.text, display: "inline-flex" }}><JoinCode code={code} color="currentColor" /></span>
         <Chevron up={open} />
       </button>
       {open && (
