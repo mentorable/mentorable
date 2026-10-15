@@ -5,7 +5,7 @@ import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { dropAllDrafts } from "../agents/essay/editor/useAutosave.js";
 import { Button, SR_ONLY, Toast } from "../ui/kit.jsx";
 import {
-  AMBER_BG, AMBER_TEXT, BG, BORDER, FOCUS_CLASS, SANS, TEXT, TEXT_MID, TEXT_MUTED, WHITE, ringVar, useAgentInk,
+  AMBER_BG, AMBER_TEXT, BG, BORDER, DANGER, FOCUS_CLASS, SANS, TEXT, TEXT_MID, TEXT_MUTED, WHITE, ringVar, useAgentInk,
 } from "../ui/tokens.js";
 import {
   BAR_CLASS, ConfirmSheet, ENTRY_PATH, JoinCode, MAIN_CLASS, NAV_CLASS, NO_PRINT, Pill, SCHEDULE_PATH, SHELL_CLASS,
@@ -296,7 +296,7 @@ export default function CounselorShell({ me, active, navigate, children, pending
   );
 
   const signOutButton = showSignOut && (
-    <Button kind="quiet" onClick={signOut} busy={leaving} style={{ padding: "0 10px", fontSize: "0.95rem", flexShrink: 0 }}>
+    <Button kind="quiet" onClick={signOut} busy={leaving} style={{ padding: "0 10px", fontSize: "0.95rem", flexShrink: 0, color: DANGER }}>
       Sign out
     </Button>
   );
