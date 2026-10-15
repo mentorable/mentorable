@@ -224,7 +224,7 @@ export function Pill({ tone = "neutral", children, style }) {
   );
 }
 
-const MARK_STAMP = { request: "letter", no_likely: "target", quest_quiet: "clock" };
+const MARK_STAMP = { request: "letter" };
 
 /** Why a student may need the counselor: each mark an icon and its words, in
  *  amber. `marks` is attention(row)'s list. Nothing when it is empty. */

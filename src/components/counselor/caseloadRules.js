@@ -41,7 +41,7 @@ export function gradesIn(rows) {
 
 // A waiting request outranks a list with no likely school, which outranks a
 // quiet quest; two marks outrank either of the lighter ones alone.
-const WEIGHT = { request: 4, no_likely: 2, quest_quiet: 1 };
+const WEIGHT = { request: 4 };
 
 /** How much a student needs the counselor, from their marks. 0 for none. */
 export function attentionScore(marks) {
@@ -197,19 +197,13 @@ export function listCell(list) {
     words: `${reach} reach, ${target} target, ${likely} likely` };
 }
 
-/** An attention mark said short enough for the grid's last column: "Meeting
- *  request", "2 meeting requests", "No likely school", "No check-in in 9 days".
- *  The full label is for screen readers and the cards. */
+/** A mark said short enough for the grid's last column: "Meeting request" or
+ *  "2 meeting requests". The full label is for screen readers and the cards. */
 export function shortMark(mark) {
   const label = String(mark?.label || "");
   if (mark?.key === "request") {
     const many = /^(\d+) meeting requests/.exec(label);
     return many ? `${many[1]} meeting requests` : "Meeting request";
-  }
-  if (mark?.key === "no_likely") return "No likely school";
-  if (mark?.key === "quest_quiet") {
-    const days = /(\d+) days/.exec(label);
-    return days ? `No check-in in ${days[1]} days` : "No check-in yet";
   }
   return label;
 }

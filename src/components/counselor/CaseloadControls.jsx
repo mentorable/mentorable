@@ -3,7 +3,7 @@ import { AMBER_BG, AMBER_TEXT, BORDER, FOCUS_CLASS, RADIUS, SANS, TEXT_MID, TEXT
 import { cleanSort } from "./caseloadRules.js";
 
 // What narrows and orders the caseload: a search by name, the grade, and
-// "Needs attention", then how many students show. On a wide screen the grid's
+// "Meeting requests", then how many students show. On a wide screen the grid's
 // own headers sort it; on a narrow one, where the students are cards, a Sort
 // menu does (`showSort`).
 
@@ -12,8 +12,8 @@ const SORT_OPTIONS = [
   { value: "name:desc", label: "Name, Z to A" },
   { value: "grade:asc", label: "Grade, lowest first" },
   { value: "grade:desc", label: "Grade, highest first" },
-  { value: "attention:desc", label: "Needs attention first" },
-  { value: "attention:asc", label: "Needs attention last" },
+  { value: "attention:desc", label: "Meeting requests first" },
+  { value: "attention:asc", label: "Meeting requests last" },
 ];
 
 function SearchIcon() {
@@ -73,7 +73,7 @@ export default function CaseloadControls({
             boxSizing: "border-box", borderRadius: RADIUS.pill, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700,
             lineHeight: 1.2, border: `1.5px solid ${onlyAttention ? AMBER_TEXT : BORDER}`,
             background: onlyAttention ? AMBER_BG : WHITE, color: onlyAttention ? AMBER_TEXT : TEXT_MID }}>
-          Needs attention
+          Meeting requests
           <span style={{ fontVariantNumeric: "lining-nums tabular-nums", fontWeight: 800 }}>
             {attentionCount}
             <span style={SR_ONLY}> {attentionCount === 1 ? "student" : "students"}</span>

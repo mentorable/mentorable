@@ -386,46 +386,17 @@ export function takeJoinCode() {
 
 // ─── The caseload, in words (pure) ────────────────────────────────────────────
 
-const QUIET_AFTER_DAYS = 7;
-const DAY_MS = 86400000;
-
 /**
- * Why a caseload row may need the counselor, as [{ key, label }], in this
- * order: "request" (a meeting request is waiting), "no_likely" (they share a
- * list that has schools and no likely one), "quest_quiet" (an active quest
- * with no check-in for 7 days or more: since the last one, or since the quest
- * started when there has been none). A quest that has just started is not
- * quiet, and one with no check-in and no start date on the row raises no
- * mark: a guess would flag every new quest. Empty when there is nothing. Only
- * what the student shares can raise a mark.
+ * Why a caseload row may need the counselor, as [{ key, label }]: today only
+ * "request" (a meeting request is waiting). Empty when there is nothing.
  */
-export function attention(row, now = new Date()) {
+export function attention(row) {
   const marks = [];
   if (!isObject(row)) return marks;
 
   const waiting = count(row.pending_requests);
   if (waiting > 0) {
     marks.push({ key: "request", label: waiting === 1 ? "Meeting request waiting" : `${waiting} meeting requests waiting` });
-  }
-
-  const list = row.college_list;
-  if (isObject(list)) {
-    const total = count(list.reach) + count(list.target) + count(list.likely);
-    if (total > 0 && count(list.likely) === 0) marks.push({ key: "no_likely", label: "No likely school on their list" });
-  }
-
-  const quest = row.quest;
-  if (isObject(quest) && quest.status === "active") {
-    const last = Date.parse(quest.last_checkin_at || "");
-    const started = Date.parse(quest.started_at || "");
-    const at = now instanceof Date ? now.getTime() : Date.now();
-    const quietFor = (since) => Math.floor((at - since) / DAY_MS);
-    if (Number.isFinite(last)) {
-      const days = quietFor(last);
-      if (days >= QUIET_AFTER_DAYS) marks.push({ key: "quest_quiet", label: `No Quest check-in in ${days} days` });
-    } else if (Number.isFinite(started) && quietFor(started) >= QUIET_AFTER_DAYS) {
-      marks.push({ key: "quest_quiet", label: "No Quest check-in yet" });
-    }
   }
   return marks;
 }

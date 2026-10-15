@@ -25,7 +25,7 @@ const RULE = "#f0ebe5";        // the faint line between columns
 const BAR_OFF = "#ddd7ce";     // a milestone or stage not reached yet
 const BAR_HELD = "#86817a";    // a paused quest's done milestones (3.9:1 on white)
 const AMBER_LINE = "#f3d9a4";
-const MARK_STAMP = { request: "letter", no_likely: "target", quest_quiet: "clock" };
+const MARK_STAMP = { request: "letter" };
 const NUMS = "lining-nums tabular-nums";
 
 // The grid's columns, in rem so they grow with the reader's font size. The
@@ -316,7 +316,7 @@ export default function CaseloadTable({ rows, marksFor, sort, onSort, navigate, 
     <Card style={{ padding: 0, overflow: "hidden" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
         <caption style={SR_ONLY}>
-          Students linked to {schoolName || "your school"}, one row each. The Student, Grade and Needs attention headers sort
+          Students linked to {schoolName || "your school"}, one row each. The Student, Grade and Meeting requests headers sort
           the table.
         </caption>
         <colgroup>
@@ -331,7 +331,7 @@ export default function CaseloadTable({ rows, marksFor, sort, onSort, navigate, 
             <PlainHeader label="College list" counts />
             <PlainHeader label="Essays" note="statement stage" />
             <PlainHeader label="Portfolio" />
-            <SortHeader label="Needs attention" sortKey="attention" sort={sort} onSort={onSort} />
+            <SortHeader label="Meeting requests" sortKey="attention" sort={sort} onSort={onSort} />
           </tr>
         </thead>
         <tbody>
