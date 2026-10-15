@@ -11,7 +11,7 @@ import CaseloadControls from "../components/counselor/CaseloadControls.jsx";
 import CaseloadEmpty from "../components/counselor/CaseloadEmpty.jsx";
 import CaseloadTable, { CaseloadCards, CaseloadSkeleton, useGridFits } from "../components/counselor/CaseloadTable.jsx";
 import { cleanSort, filterRows, gradesIn, nextSort, sortRows } from "../components/counselor/caseloadRules.js";
-import { LoadingBlock, StateCard, nextFromUrl, plural } from "../components/counselor/counselorUi.jsx";
+import { LoadingBlock, StateCard, nextFromUrl } from "../components/counselor/counselorUi.jsx";
 import { Button, Card, Notice, PageHeader, SR_ONLY } from "../components/ui/kit.jsx";
 import { SANS, TEXT_MID, TEXT_MUTED } from "../components/ui/tokens.js";
 
@@ -255,8 +255,6 @@ export default function CounselorPage({ navigate, api = REAL_API }) {
 
   const schoolName = me?.school?.name || "your school";
   const total = rows.length;
-  const summary = (filtered ? `Showing ${shown.length} of ${plural(total, "student")}` : plural(total, "student"))
-    + (waiting > 0 && !filtered ? `, ${plural(waiting, "meeting request")} waiting` : "");
 
   // With students, the page is the grid: a title, the controls and one line
   // per student, so as many as possible fit before scrolling.
@@ -277,7 +275,7 @@ export default function CounselorPage({ navigate, api = REAL_API }) {
         <>
           <CaseloadControls query={query} onQuery={setQuery} grades={grades} grade={gradeOn} onGrade={setGrade}
             onlyAttention={onlyAttention} onAttention={setOnlyAttention} attentionCount={attentionCount}
-            sort={sort} onSort={setSort} showSort={!wide} isMobile={isMobile} summary={summary} />
+            sort={sort} onSort={setSort} showSort={!wide} isMobile={isMobile} />
 
           <div style={{ marginTop: 14 }}>
             {shown.length === 0 ? (
