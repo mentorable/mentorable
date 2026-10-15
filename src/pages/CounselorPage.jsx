@@ -54,8 +54,9 @@ const REAL_API = {
   },
 };
 
-// The grade, the attention switch and the order, for this browser tab only,
+// The grade, the filters and the order, for this browser tab only,
 // so they are still set after a look at one student. Never a name or a search.
+const SHARE_KEYS = ["college_list", "portfolio", "quest", "essays"];
 const PREFS_KEY = "mentorable.counselorCaseload";
 function readPrefs() {
   try {
@@ -93,6 +94,7 @@ export default function CounselorPage({ navigate, api = REAL_API }) {
   const [query, setQuery] = useState("");
   const [grade, setGrade] = useState(() => (Number.isFinite(Number(prefs.grade)) && prefs.grade !== null ? Number(prefs.grade) : null));
   const [onlyAttention, setOnlyAttention] = useState(!!prefs.attention);
+  const [shares, setShares] = useState(() => (Array.isArray(prefs.shares) ? prefs.shares.filter((k) => SHARE_KEYS.includes(k)) : []));
   const [sort, setSort] = useState(() => cleanSort(prefs.sort));
   const alive = useRef(true);
   const phaseRef = useRef(phase);
@@ -165,8 +167,8 @@ export default function CounselorPage({ navigate, api = REAL_API }) {
   }, [api, load]);
 
   useEffect(() => {
-    writePrefs({ grade, attention: onlyAttention, sort });
-  }, [grade, onlyAttention, sort]);
+    writePrefs({ grade, attention: onlyAttention, shares, sort });
+  }, [grade, onlyAttention, shares, sort]);
 
   const onEntered = useCallback(async (signedIn) => {
     // The page's colour is the signed-in person's own; the app looked it up
@@ -204,13 +206,13 @@ export default function CounselorPage({ navigate, api = REAL_API }) {
   // A grade remembered from earlier that nobody is in now means every grade.
   const gradeOn = grade !== null && grades.includes(grade) ? grade : null;
   const shown = useMemo(
-    () => sortRows(filterRows(rows, { grade: gradeOn, onlyAttention, query }, marksFor), sort, marksFor),
-    [rows, gradeOn, onlyAttention, query, sort, marksFor],
+    () => sortRows(filterRows(rows, { grade: gradeOn, onlyAttention, shares, query }, marksFor), sort, marksFor),
+    [rows, gradeOn, onlyAttention, shares, query, sort, marksFor],
   );
   const attentionCount = useMemo(() => rows.filter((r) => marksFor(r).length > 0).length, [rows, marksFor]);
   const waiting = useMemo(() => rows.reduce((n, r) => n + (Number(r.pending_requests) > 0 ? Number(r.pending_requests) : 0), 0), [rows]);
-  const filtered = gradeOn !== null || onlyAttention || query.trim() !== "";
-  const clearFilters = () => { setQuery(""); setGrade(null); setOnlyAttention(false); };
+  const filtered = gradeOn !== null || onlyAttention || shares.length > 0 || query.trim() !== "";
+  const clearFilters = () => { setQuery(""); setGrade(null); setOnlyAttention(false); setShares([]); };
 
   const shell = (children, extra = {}) => (
     <CounselorShell me={me} active="caseload" navigate={navigate} pending={waiting} signedIn={!!user} api={api.shell}
@@ -275,6 +277,7 @@ export default function CounselorPage({ navigate, api = REAL_API }) {
         <>
           <CaseloadControls query={query} onQuery={setQuery} grades={grades} grade={gradeOn} onGrade={setGrade}
             onlyAttention={onlyAttention} onAttention={setOnlyAttention} attentionCount={attentionCount}
+            shares={shares} onShares={setShares}
             sort={sort} onSort={setSort} showSort={!wide} isMobile={isMobile} />
 
           <div style={{ marginTop: 14 }}>

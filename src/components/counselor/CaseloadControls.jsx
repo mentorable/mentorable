@@ -1,10 +1,11 @@
+import { useEffect, useRef, useState } from "react";
 import { ChoiceChips, INPUT_CLASS, SR_ONLY, inputStyle } from "../ui/kit.jsx";
-import { AMBER_BG, AMBER_TEXT, BORDER, FOCUS_CLASS, RADIUS, SANS, TEXT_MID, TEXT_MUTED, WHITE } from "../ui/tokens.js";
+import { BORDER, FOCUS_CLASS, RADIUS, SANS, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk } from "../ui/tokens.js";
 import { cleanSort } from "./caseloadRules.js";
 
-// What narrows and orders the caseload: a search by name, the grade, and
-// "Meeting requests", then how many students show. On a wide screen the grid's
-// own headers sort it; on a narrow one, where the students are cards, a Sort
+// What narrows and orders the caseload: a search by name, and everything else
+// (grade, meeting requests, which sections a student shares) behind one Filters
+// button. On a wide screen the grid's own headers sort it; on a narrow one, where the students are cards, a Sort
 // menu does (`showSort`).
 
 const SORT_OPTIONS = [
@@ -26,6 +27,105 @@ function SearchIcon() {
   );
 }
 
+const SHARE_OPTIONS = [
+  { key: "college_list", label: "Shares their College list" },
+  { key: "portfolio", label: "Shares their Portfolio" },
+  { key: "quest", label: "Shares their Quest" },
+  { key: "essays", label: "Shares their essay progress" },
+];
+
+function Check({ on, label, onToggle }) {
+  const ink = useAgentInk();
+  return (
+    <button type="button" role="checkbox" aria-checked={on} onClick={onToggle} className={FOCUS_CLASS}
+      style={{ width: "100%", minHeight: 44, padding: "0 4px", display: "flex", alignItems: "center", gap: 10, background: "none",
+        border: "none", cursor: "pointer", fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT_MID, textAlign: "left" }}>
+      <span aria-hidden="true" style={{ width: 20, height: 20, flexShrink: 0, boxSizing: "border-box", borderRadius: 5,
+        border: `1.5px solid ${on ? ink.text : BORDER}`, background: on ? ink.text : WHITE, display: "flex",
+        alignItems: "center", justifyContent: "center", color: WHITE, fontSize: "0.8rem", fontWeight: 800 }}>
+        {on ? "\u2713" : ""}
+      </span>
+      {label}
+    </button>
+  );
+}
+
+/** One button that opens everything that narrows the list. */
+function FiltersMenu({ grades, grade, onGrade, onlyAttention, onAttention, attentionCount, shares, onShares, isMobile }) {
+  const ink = useAgentInk();
+  const [open, setOpen] = useState(false);
+  const wrap = useRef(null);
+  const trigger = useRef(null);
+  const active = (grade !== null ? 1 : 0) + (onlyAttention ? 1 : 0) + shares.length;
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => { if (wrap.current && !wrap.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      trigger.current?.focus();
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const gradeOptions = [{ key: "all", label: "All" }, ...grades.map((g) => ({ key: String(g), label: String(g) }))];
+  const heading = { margin: "0 0 6px", fontFamily: SANS, fontSize: "0.9rem", fontWeight: 800, color: TEXT_MUTED };
+  const toggleShare = (key) => onShares(shares.includes(key) ? shares.filter((k) => k !== key) : [...shares, key]);
+  const clear = () => { onGrade(null); onAttention(false); onShares([]); };
+
+  return (
+    <div ref={wrap} style={{ position: "relative", flexShrink: 0 }}>
+      <button ref={trigger} type="button" className={FOCUS_CLASS} aria-haspopup="dialog" aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        style={{ minHeight: 44, padding: "0 16px", display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer",
+          boxSizing: "border-box", borderRadius: RADIUS.pill, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700,
+          border: `1.5px solid ${active ? ink.text : BORDER}`, background: WHITE, color: active ? ink.text : TEXT_MID }}>
+        Filters
+        {active > 0 && (
+          <span style={{ fontVariantNumeric: "lining-nums tabular-nums", fontWeight: 800 }}>
+            {active}<span style={SR_ONLY}> on</span>
+          </span>
+        )}
+      </button>
+      {open && (
+        <div role="dialog" aria-label="Filters" style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 50,
+          width: isMobile ? "min(340px, calc(100vw - 32px))" : 340, padding: 16, boxSizing: "border-box", background: WHITE,
+          border: `1px solid ${BORDER}`, borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}>
+          {grades.length > 1 && (
+            <div style={{ marginBottom: 14 }}>
+              <p style={heading}>Grade</p>
+              <ChoiceChips label="Grade" hideLabel options={gradeOptions} value={grade === null ? "all" : String(grade)}
+                onChange={(key) => onGrade(key === "all" ? null : Number(key))} />
+            </div>
+          )}
+          <div style={{ marginBottom: 14 }}>
+            <p style={heading}>Meetings</p>
+            <Check on={onlyAttention} onToggle={() => onAttention(!onlyAttention)}
+              label={`Has a meeting request waiting (${attentionCount})`} />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <p style={heading}>Sharing</p>
+            {SHARE_OPTIONS.map((o) => (
+              <Check key={o.key} on={shares.includes(o.key)} onToggle={() => toggleShare(o.key)} label={o.label} />
+            ))}
+          </div>
+          <button type="button" className={FOCUS_CLASS} onClick={clear} disabled={active === 0}
+            style={{ minHeight: 44, padding: 0, background: "none", border: "none", fontFamily: SANS, fontSize: "0.95rem",
+              fontWeight: 700, color: active ? TEXT : TEXT_MUTED, cursor: active ? "pointer" : "default", textDecoration: "underline" }}>
+            Clear filters
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * query / onQuery: the name search. grades: the grades anyone is in; grade
  * (a number, or null for all) / onGrade. onlyAttention / onAttention, with
@@ -34,13 +134,9 @@ function SearchIcon() {
  * of the row (and announced when it changes).
  */
 export default function CaseloadControls({
-  query, onQuery, grades, grade, onGrade, onlyAttention, onAttention, attentionCount, sort, onSort, showSort, isMobile,
-  summary,
+  query, onQuery, grades, grade, onGrade, onlyAttention, onAttention, attentionCount, shares = [], onShares = () => {},
+  sort, onSort, showSort, isMobile, summary,
 }) {
-  const gradeOptions = [
-    { key: "all", label: isMobile ? "All" : "All grades" },
-    ...grades.map((g) => ({ key: String(g), label: String(g) })),
-  ];
   const sortValue = `${sort.key}:${sort.dir}`;
   const pickSort = (value) => {
     const [key, dir] = String(value).split(":");
@@ -62,23 +158,9 @@ export default function CaseloadControls({
           style={{ ...inputStyle, paddingLeft: 40, fontWeight: 600 }} />
       </div>
 
-      {grades.length > 1 && (
-        <ChoiceChips label="Grade" options={gradeOptions} value={grade === null ? "all" : String(grade)}
-          onChange={(key) => onGrade(key === "all" ? null : Number(key))} isMobile={isMobile} />
-      )}
-
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
-        <button type="button" className={FOCUS_CLASS} aria-pressed={onlyAttention} onClick={() => onAttention(!onlyAttention)}
-          style={{ minHeight: 44, padding: "0 14px", display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer",
-            boxSizing: "border-box", borderRadius: RADIUS.pill, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700,
-            lineHeight: 1.2, border: `1.5px solid ${onlyAttention ? AMBER_TEXT : BORDER}`,
-            background: onlyAttention ? AMBER_BG : WHITE, color: onlyAttention ? AMBER_TEXT : TEXT_MID }}>
-          Meeting requests
-          <span style={{ fontVariantNumeric: "lining-nums tabular-nums", fontWeight: 800 }}>
-            {attentionCount}
-            <span style={SR_ONLY}> {attentionCount === 1 ? "student" : "students"}</span>
-          </span>
-        </button>
+        <FiltersMenu grades={grades} grade={grade} onGrade={onGrade} onlyAttention={onlyAttention} onAttention={onAttention}
+          attentionCount={attentionCount} shares={shares} onShares={onShares} isMobile={isMobile} />
 
         {showSort && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 200px", minWidth: 0 }}>

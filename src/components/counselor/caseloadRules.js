@@ -54,14 +54,17 @@ const byName = (a, b) => nameOf(a).localeCompare(nameOf(b), "en", { sensitivity:
 
 /**
  * The rows that pass the filters. `grade` is a number, or null for every
- * grade; `onlyAttention` keeps students with at least one mark; `query` is
+ * grade; `onlyAttention` keeps students with at least one mark; `shares` is
+ * section keys a student must share (a section they keep to themselves is
+ * null on the row); `query` is
  * matched against the name, ignoring case.
  */
-export function filterRows(rows, { grade = null, onlyAttention = false, query = "" } = {}, marksFor = () => []) {
+export function filterRows(rows, { grade = null, onlyAttention = false, shares = [], query = "" } = {}, marksFor = () => []) {
   const q = String(query || "").trim().toLowerCase();
   return (rows || []).filter((row) => {
     if (grade !== null && gradeOf(row) !== grade) return false;
     if (onlyAttention && attentionScore(marksFor(row)) === 0) return false;
+    if ((shares || []).some((key) => !row?.[key])) return false;
     if (q && !nameOf(row).toLowerCase().includes(q)) return false;
     return true;
   });
