@@ -21,7 +21,8 @@ import { AttentionMarks, ROW_CLASS, SKEL_CLASS, gradeLine, linkProps, recordPath
 // so the page never scrolls sideways. A section a student has not shared says
 // "Not shared", quietly: it is their choice, never a problem to fix.
 
-const RULE = "#f0ebe5";        // the faint line between columns
+const RULE = "#d9d0c6";        // the line between columns
+const ROW_LINE = "#d3cac0";    // the line between rows and under the header
 const BAR_OFF = "#ddd7ce";     // a milestone or stage not reached yet
 const BAR_HELD = "#86817a";    // a paused quest's done milestones (3.9:1 on white)
 const AMBER_LINE = "#f3d9a4";
@@ -245,7 +246,7 @@ function NothingShared() {
 // ─── The grid ─────────────────────────────────────────────────────────────────
 
 const HEAD = {
-  background: SURFACE, borderBottom: `1px solid ${BORDER}`, borderLeft: `1px solid ${RULE}`, verticalAlign: "top",
+  background: SURFACE, borderBottom: `1px solid ${ROW_LINE}`, borderLeft: `1px solid ${RULE}`, verticalAlign: "top",
   textAlign: "left", fontFamily: SANS, fontSize: "0.92rem", fontWeight: 800, color: TEXT_MID, lineHeight: 1.3,
   padding: "9px 12px 8px",
 };
@@ -341,7 +342,7 @@ export default function CaseloadTable({ rows, marksFor, sort, onSort, navigate, 
             const meeting = nextMeeting(row);
             return (
               <tr key={row.student_id} className={ROW_CLASS} onClick={(e) => openRow(e, row)}
-                style={{ borderTop: i ? `1px solid ${BORDER}` : "none", cursor: "pointer" }}>
+                style={{ borderTop: i ? `1px solid ${ROW_LINE}` : "none", cursor: "pointer" }}>
                 <th scope="row" style={{ ...CELL, padding: 0, borderLeft: "none",
                   boxShadow: marks.length ? `inset 3px 0 0 ${AMBER_TEXT}` : "none" }}>
                   {/* The meeting's date sits under the name inside the link, so the
