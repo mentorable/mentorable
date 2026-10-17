@@ -491,30 +491,33 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
   return (
     <div data-sidebar-offset className="ui-page" style={pagePad}>
       <div style={{ maxWidth: 1120, margin: "0 auto", width: "100%" }}>
+        {/* The promise on the left, the reviews left on the right, above the desk. */}
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between",
+          gap: "8px 24px", margin: "0 0 14px" }}>
+          <p style={{ display: "flex", alignItems: "flex-start", gap: 8, margin: 0, fontFamily: SANS, fontSize: "0.95rem",
+            fontWeight: 500, lineHeight: 1.5, color: TEXT_MID, maxWidth: "70ch", flex: "1 1 320px" }}>
+            <span aria-hidden="true" style={{ display: "flex", marginTop: 3, flexShrink: 0 }}><PixelStamp kind="lock" size={16} /></span>
+            <span>
+              <span style={SR_ONLY}>Quill: </span>
+              {QUILL_LINES.neverWrites}
+            </span>
+          </p>
+          {reviews && (
+            <p style={{ display: "flex", alignItems: "flex-start", gap: 8, margin: 0, fontFamily: SANS,
+              fontSize: "0.95rem", fontWeight: 700, lineHeight: 1.45, color: noReviews ? AMBER_TEXT : TEXT_MID,
+              fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+              <span aria-hidden="true" style={{ display: "flex", marginTop: 2 }}><PixelStamp kind="scroll" size={16} /></span>
+              <span>
+                {QUILL_LINES.reviewsLeft(reviews.left, reviews.limit)}
+                <span style={{ fontWeight: 500 }}>. Writing and saving never use one.</span>
+              </span>
+            </p>
+          )}
+        </div>
         {scene}
 
         {/* Quill's line is the one pixel bubble, aimed at the owl. The rest is plain text. */}
         <QuillSays center={isMobile ? 62 : 120}>{hello}</QuillSays>
-        <p style={{ display: "flex", alignItems: "flex-start", gap: 8, margin: "14px 0 0", fontFamily: SANS, fontSize: "0.95rem",
-          fontWeight: 500, lineHeight: 1.5, color: TEXT_MID, maxWidth: "70ch" }}>
-          <span aria-hidden="true" style={{ display: "flex", marginTop: 3, flexShrink: 0 }}><PixelStamp kind="lock" size={16} /></span>
-          <span>
-            <span style={SR_ONLY}>Quill: </span>
-            {QUILL_LINES.neverWrites}
-          </span>
-        </p>
-        {reviews && (
-          <p style={{ display: "flex", alignItems: "flex-start", gap: 8, margin: "8px 0 0", fontFamily: SANS,
-            fontSize: "0.95rem", fontWeight: 700, lineHeight: 1.45, color: noReviews ? AMBER_TEXT : TEXT_MID,
-            fontVariantNumeric: "tabular-nums" }}>
-            <span aria-hidden="true" style={{ display: "flex", marginTop: 2 }}><PixelStamp kind="scroll" size={16} /></span>
-            <span>
-              {QUILL_LINES.reviewsLeft(reviews.left, reviews.limit)}
-              <span style={{ fontWeight: 500 }}>. Writing and saving never use one.</span>
-            </span>
-          </p>
-        )}
-
         {/* With no essay yet, the invitation to start one. */}
         {!resuming && (
           <DeskInvitation onNew={() => openNewEssay(null)} onFindIdeas={goToIdeas} onBrainstorm={() => openBrainstorm(null)} />
