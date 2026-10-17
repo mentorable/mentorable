@@ -110,7 +110,7 @@ export const QUILL_LINES = {
   talkIntro: "Where should we start? Pick one and I'll ask a few short questions, one at a time. Stop whenever you like, and I'll keep what you said on a card.",
   talkDone: "That's a good place to stop. Your answers are on a card, ready when you are.",
 
-  essaysIntro: "Your essays. Write here, save versions as you go, and ask me to read a draft when you want a second pair of eyes.",
+  essaysIntro: "Write here, save versions as you go, and ask me to read a draft when you want a second pair of eyes.",
   essaysEmpty: "No essays yet. Start one when you're ready. A rough first draft is plenty for me to read.",
   newEssay: "What are we working on? Your personal statement, or a supplement for one of your schools?",
 
