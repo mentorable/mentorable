@@ -1,38 +1,14 @@
-import { useLayoutEffect, useRef, useState } from "react";
-import Mascot, { mascotFit } from "../../Mascot.jsx";
-import { SpeechBubble, TAIL_AT, TIP } from "../../../ui/SpeechBubble.jsx";
-import { SR_ONLY } from "../../../ui/kit.jsx";
-import { PixelArrow } from "../../../ui/PixelIcons.jsx";
-import { SANS } from "../../../ui/tokens.js";
+import AgentScene, { Pixels, sceneAnim } from "../../scene/AgentScene.jsx";
 
-// The night desk: a short band across the top of Quill's page. A night sky
-// with a few stars and a moon, a desk with a lamp, a stack of pages and a
-// pen, and Quill perched on the desk's edge. It is drawn the way the mascots
-// are (crisp SVG rects from character grids).
+// The night desk: the band across the top of Quill's page. A night sky with a
+// few stars and a moon, a desk with a lamp, a stack of pages and a pen, and
+// Quill perched on the desk's edge. The frame (title, back button, bubble) is
+// AgentScene's; this file is the night and the desk.
 //
-// It is a fixed dark band that deliberately does not follow the student's
-// accent; the page below it is the calm light shell. Everything in it is
-// decoration (aria-hidden) except the back button and the page's title, which
-// sit on the sky in light text. Stars twinkle slowly, and not at all under
-// reduced motion.
+// A fixed dark band that deliberately does not follow the student's accent.
 
 const SKY = "linear-gradient(to bottom, #1b1e3d 0 34%, #23264b 34% 68%, #2c2f5c 68%)";
-const DESK_TOP = "#5d4c7c";
-const DESK = "#3b2f52";
-
-const NIGHT_CLASS = "nd-night";
-const NIGHT_CSS = `
-.${NIGHT_CLASS}-star { animation: nd-twinkle 5s ease-in-out infinite; }
-@keyframes nd-twinkle { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
-.${NIGHT_CLASS}-focus:focus-visible { outline: 3px solid #ffffff; outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .${NIGHT_CLASS}-star { animation: none; } }
-`;
-if (typeof document !== "undefined" && !document.querySelector("style[data-quill-night]")) {
-  const el = document.createElement("style");
-  el.dataset.quillNight = "";
-  el.textContent = NIGHT_CSS;
-  document.head.appendChild(el);
-}
+const GROUND = { h: 16, mobileH: 12, color: "#3b2f52", top: "#5d4c7c" };
 
 // ── Pixel props, on a grid of one character a pixel ──────────────────────────
 
@@ -78,58 +54,6 @@ const PEN_INK = { k: "#12132a", b: "#7daaf2", y: "#e9b949" };
 const MOON = ["...yyyy..", "..yyyyyy.", ".yyyy....", "yyyy.....", "yyyy.....", "yyyy.....", ".yyyy....", "..yyyyyy.", "...yyyy.."];
 const STAR = [".y.", "ywy", ".y."];
 
-/** Quill's line in a pixel bubble, centred vertically in the band, its tail
- *  aimed at the owl's beak (the bubble's height is measured, so the tail
- *  follows the text however long it runs). */
-function SaysBeside({ children, bandH, deskH, quill, right }) {
-  const ref = useRef(null);
-  const [h, setH] = useState(0);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return undefined;
-    const read = () => setH(el.offsetHeight);
-    read();
-    if (typeof ResizeObserver === "undefined") return undefined;
-    const watch = new ResizeObserver(read);
-    watch.observe(el);
-    return () => watch.disconnect();
-  }, []);
-  const fit = mascotFit(quill, "quill");
-  const quillTop = bandH - (deskH - 4) - quill;
-  const beakY = quillTop + fit.top + fit.beakRow * fit.scale;
-  const top = Math.max(0, Math.round((bandH - h) / 2));
-  const tailAt = Math.min(Math.max(TAIL_AT, Math.round(beakY - top - TIP)), Math.max(TAIL_AT, h - TAIL_AT));
-  return (
-    <div ref={ref} style={{ position: "absolute", top, right, width: "min(440px, 46%)" }}>
-      <SpeechBubble side="right" tailAt={tailAt}>
-        <span style={SR_ONLY}>Quill says: </span>
-        {children}
-      </SpeechBubble>
-    </div>
-  );
-}
-
-/** A grid as crisp rects. Decorative. */
-function Pixels({ grid, ink, px, style }) {
-  const rects = [];
-  grid.forEach((row, y) => {
-    let x = 0;
-    while (x < row.length) {
-      const ch = row[x];
-      let end = x + 1;
-      while (end < row.length && row[end] === ch) end += 1;
-      if (ink[ch]) rects.push(<rect key={`${y}-${x}`} x={x} y={y} width={end - x} height={1} fill={ink[ch]} />);
-      x = end;
-    }
-  });
-  return (
-    <svg aria-hidden="true" focusable="false" width={grid[0].length * px} height={grid.length * px}
-      viewBox={`0 0 ${grid[0].length} ${grid.length}`} shapeRendering="crispEdges" style={{ display: "block", ...style }}>
-      {rects}
-    </svg>
-  );
-}
-
 // Stars: [left in %, top in px, big, twinkle delay in s]. They keep to the
 // right of the title, which sits top left.
 const STARS = [
@@ -137,76 +61,47 @@ const STARS = [
   [78, 64, 0, 2.9], [84, 26, 0, 0.3], [49, 94, 0, 3.6], [90, 70, 0, 1.5],
 ];
 
+function NightDecor({ px, groundH, isMobile }) {
+  const stars = isMobile ? STARS.filter((_, i) => i % 2 === 0 && STARS[i][1] < 90) : STARS;
+  return (
+    <>
+      {stars.map(([x, y, big, delay]) => (
+        <span key={`${x}-${y}`} className={sceneAnim("twinkle")}
+          style={{ position: "absolute", left: `${x}%`, top: y, animationDelay: `${delay}s` }}>
+          {big
+            ? <Pixels grid={STAR} ink={{ y: "#ffd779", w: "#ffffff" }} px={4} />
+            : <span style={{ display: "block", width: 4, height: 4, background: (x + y) % 3 ? "#c9cffb" : "#ffd779" }} />}
+        </span>
+      ))}
+      <span style={{ position: "absolute", right: isMobile ? 18 : 28, top: isMobile ? 14 : 20 }}>
+        <Pixels grid={MOON} ink={{ y: "#ffe9a8" }} px={px} />
+      </span>
+      {/* The lamp's light on the wall. */}
+      <span style={{ position: "absolute", left: isMobile ? -10 : 0, bottom: groundH, width: 200, height: 150,
+        background: "radial-gradient(ellipse at 30% 100%, rgba(255,215,121,0.22), rgba(255,215,121,0) 70%)" }} />
+      <span style={{ position: "absolute", left: isMobile ? 16 : 28, bottom: groundH }}>
+        <Pixels grid={LAMP} ink={LAMP_INK} px={px} />
+      </span>
+      <span style={{ position: "absolute", left: isMobile ? 66 : 96, bottom: groundH }}>
+        <Pixels grid={BOOKS} ink={BOOKS_INK} px={px} />
+      </span>
+      {!isMobile && (
+        <span style={{ position: "absolute", left: 200, bottom: groundH }}>
+          <Pixels grid={PEN} ink={PEN_INK} px={px} />
+        </span>
+      )}
+    </>
+  );
+}
+
 /**
  * title: the page's h1, set on the sky. onBack(): the "Agents" button.
  * state: Quill's pose ("idle", "thinking"). isMobile: the shorter band.
- * says: Quill's line, shown in a pixel bubble to the left of the owl inside the
- * band (wide screens only; a phone's band has no room, so the page shows it).
+ * says: Quill's line, in a bubble to the owl's left (wide screens only).
  */
 export default function NightScene({ title = "Essays", onBack, state = "idle", isMobile = false, says = null }) {
-  const px = isMobile ? 3 : 4;
-  const height = isMobile ? 150 : 200;
-  const deskH = isMobile ? 12 : 16;
-  const quill = isMobile ? 96 : 128;
-  const stars = isMobile ? STARS.filter((_, i) => i % 2 === 0 && STARS[i][1] < 90) : STARS;
-
   return (
-    <header style={{ position: "relative", height, marginBottom: 14, borderRadius: 16, overflow: "hidden",
-      background: SKY, boxSizing: "border-box" }}>
-      <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-        {stars.map(([x, y, big, delay]) => (
-          <span key={`${x}-${y}`} className={`${NIGHT_CLASS}-star`}
-            style={{ position: "absolute", left: `${x}%`, top: y, animationDelay: `${delay}s` }}>
-            {big
-              ? <Pixels grid={STAR} ink={{ y: "#ffd779", w: "#ffffff" }} px={4} />
-              : <span style={{ display: "block", width: 4, height: 4, background: (x + y) % 3 ? "#c9cffb" : "#ffd779" }} />}
-          </span>
-        ))}
-        <span style={{ position: "absolute", right: isMobile ? 18 : 28, top: isMobile ? 14 : 20 }}>
-          <Pixels grid={MOON} ink={{ y: "#ffe9a8" }} px={px} />
-        </span>
-        {/* The lamp's light on the wall. */}
-        <span style={{ position: "absolute", left: isMobile ? -10 : 0, bottom: deskH, width: 200, height: 150,
-          background: "radial-gradient(ellipse at 30% 100%, rgba(255,215,121,0.22), rgba(255,215,121,0) 70%)" }} />
-
-        {/* The desk and what is on it. */}
-        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: deskH, boxSizing: "border-box",
-          background: DESK, borderTop: `4px solid ${DESK_TOP}` }} />
-        <span style={{ position: "absolute", left: isMobile ? 16 : 28, bottom: deskH }}>
-          <Pixels grid={LAMP} ink={LAMP_INK} px={px} />
-        </span>
-        <span style={{ position: "absolute", left: isMobile ? 66 : 96, bottom: deskH }}>
-          <Pixels grid={BOOKS} ink={BOOKS_INK} px={px} />
-        </span>
-        {!isMobile && (
-          <span style={{ position: "absolute", left: 200, bottom: deskH }}>
-            <Pixels grid={PEN} ink={PEN_INK} px={px} />
-          </span>
-        )}
-        {/* Quill, perched on the desk's edge. */}
-        <div style={{ position: "absolute", right: isMobile ? 14 : 56, bottom: deskH - 4 }}>
-          <Mascot agent="quill" state={state} size={quill} title="" />
-        </div>
-      </div>
-
-      {says && !isMobile && (
-        // Quill's line, to the owl's left: centred in the band, its tail at the beak.
-        <SaysBeside bandH={height} deskH={deskH} quill={quill} right={56 + quill + 14}>{says}</SaysBeside>
-      )}
-
-      <div style={{ position: "relative", padding: isMobile ? "4px 16px 0" : "10px 26px 0" }}>
-        <button type="button" className={`${NIGHT_CLASS}-focus`} onClick={onBack}
-          style={{ minHeight: 44, display: "inline-flex", alignItems: "center", gap: 8, margin: "0 0 2px -8px", padding: "0 8px",
-            border: "none", background: "none", borderRadius: 10, cursor: "pointer", fontFamily: SANS, fontSize: "0.95rem",
-            fontWeight: 700, color: "#e4e6ff" }}>
-          <PixelArrow size={16} style={{ transform: "scaleX(-1)" }} />
-          Agents
-        </button>
-        <h1 style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: isMobile ? "2.1rem" : "2.5rem", color: "#ffffff",
-          letterSpacing: "-0.03em", lineHeight: 1.1 }}>
-          {title}
-        </h1>
-      </div>
-    </header>
+    <AgentScene title={title} onBack={onBack} agent="quill" state={state} says={says} isMobile={isMobile}
+      sky={SKY} ground={GROUND} decor={(p) => <NightDecor {...p} />} />
   );
 }

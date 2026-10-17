@@ -16,6 +16,7 @@ import BoardColumn from "../components/agents/outreach/BoardColumn.jsx";
 import BoardTabs, { PANEL_ID, tabId } from "../components/agents/outreach/BoardTabs.jsx";
 import BoardNudges from "../components/agents/outreach/BoardNudges.jsx";
 import BoardEmpty from "../components/agents/outreach/BoardEmpty.jsx";
+import BeachScene from "../components/agents/outreach/BeachScene.jsx";
 import BoardSkeleton from "../components/agents/outreach/BoardSkeleton.jsx";
 import BoardToast from "../components/agents/outreach/BoardToast.jsx";
 import ContactDrawer from "../components/agents/outreach/ContactDrawer.jsx";
@@ -347,27 +348,18 @@ export default function OutreachBoardPage({ navigate, api = REAL_API }) {
     "--ag-ring": boardRing(ink.accent),
   };
 
-  const header = (
-    <>
-      <button type="button" className={FOCUS_CLASS} onClick={() => navigate?.("/agents")}
-        style={{ minHeight: 44, display: "inline-flex", alignItems: "center", gap: 8, margin: "0 0 4px -8px", padding: "0 8px",
-          border: "none", background: "none", borderRadius: 10, cursor: "pointer", fontFamily: SANS, fontSize: "0.95rem",
-          fontWeight: 700, color: TEXT_MUTED }}>
-        <PixelArrow size={16} style={{ transform: "scaleX(-1)" }} />
-        Agents
-      </button>
-      <h1 style={{ fontFamily: SANS, fontWeight: 800, fontSize: isMobile ? "2.1rem" : "2.5rem", color: ink.title,
-        letterSpacing: "-0.03em", margin: "0 0 1rem", lineHeight: 1.1 }}>
-        Outreach
-      </h1>
-    </>
+  // The beach lab across the top: the title, the way back, and (on a wide
+  // screen) Beaker's line in a bubble beside it.
+  const header = (says = null) => (
+    <BeachScene title="Outreach" isMobile={isMobile} onBack={() => navigate?.("/agents")}
+      state={phase === "loading" ? "thinking" : "idle"} says={says} />
   );
 
   if (phase !== "ready") {
     return (
       <div data-sidebar-offset style={pagePad}>
         <div style={{ maxWidth: 1400, margin: "0 auto", width: "100%" }}>
-          {header}
+          {header()}
           {phase === "loading" ? (
             <div aria-busy="true">
               <p role="status" style={SR_ONLY}>Loading your board</p>
@@ -392,6 +384,7 @@ export default function OutreachBoardPage({ navigate, api = REAL_API }) {
   }
 
   const empty = cards.length === 0;
+  const hello = !empty && (stop || due.length === 0) ? (stop ? stop.line : BEAKER_LINES.boardHello) : null;
   const counts = Object.fromEntries(STAGES.map((s) => [s.key, grouped[s.key].length]));
   const columnProps = {
     today, stages: STAGES, busyIds: pending,
@@ -401,14 +394,15 @@ export default function OutreachBoardPage({ navigate, api = REAL_API }) {
   return (
     <div data-sidebar-offset style={pagePad}>
       <div style={{ maxWidth: 1400, margin: "0 auto", width: "100%" }}>
-        {header}
+        {header(hello && !isMobile ? hello : null)}
 
         {/* One Beaker at a time: when follow-ups are due, the nudge speaks
-            instead (unless the student needs to hear about their tries). */}
-        {!empty && (stop || due.length === 0) && (
+            instead (unless the student needs to hear about their tries). On
+            a wide screen the line is in the scene; on a phone it is here. */}
+        {hello && isMobile && (
           <div style={{ maxWidth: 760 }}>
             <MascotSays state="idle" size={72} layout="auto">
-              {stop ? stop.line : BEAKER_LINES.boardHello}
+              {hello}
             </MascotSays>
           </div>
         )}

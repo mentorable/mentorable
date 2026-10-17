@@ -8,7 +8,7 @@ import {
   updateItem,
 } from "../lib/finder.js";
 import { MascotSays } from "../components/agents/SpeechBubble.jsx";
-import { PixelArrow, PixelStamp } from "../components/agents/PixelIcons.jsx";
+import { PixelStamp } from "../components/agents/PixelIcons.jsx";
 import {
   AMBER_TEXT, BG, BORDER, FOCUS_CLASS, PRESS_CLASS, RADIUS, SANS, TEXT, TEXT_MUTED, WHITE, ringVar, useAgentInk,
 } from "../components/agents/agentUi.js";
@@ -16,6 +16,7 @@ import { Button, SR_ONLY } from "../components/agents/outreach/flowUi.jsx";
 import BoardToast from "../components/agents/outreach/BoardToast.jsx";
 import ListingDrawer from "../components/agents/finder/ListingDrawer.jsx";
 import FinderEmpty from "../components/agents/finder/FinderEmpty.jsx";
+import RidgeScene from "../components/agents/finder/RidgeScene.jsx";
 import DueSoon from "../components/agents/finder/DueSoon.jsx";
 import LaneFilter, { DismissedToggle } from "../components/agents/finder/LaneFilter.jsx";
 import SortingTray from "../components/agents/finder/SortingTray.jsx";
@@ -448,27 +449,18 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
     ...ringVar(ink),
   };
 
-  const header = (
-    <>
-      <button type="button" className={FOCUS_CLASS} onClick={() => navigate?.("/agents")}
-        style={{ minHeight: 44, display: "inline-flex", alignItems: "center", gap: 8, margin: "0 0 4px -8px", padding: "0 8px",
-          border: "none", background: "none", borderRadius: 10, cursor: "pointer", fontFamily: SANS, fontSize: "0.95rem",
-          fontWeight: 700, color: TEXT_MUTED }}>
-        <PixelArrow size={16} style={{ transform: "scaleX(-1)" }} />
-        Agents
-      </button>
-      <h1 style={{ fontFamily: SANS, fontWeight: 800, fontSize: isMobile ? "2.1rem" : "2.5rem", color: ink.title,
-        letterSpacing: "-0.03em", margin: "0 0 1rem", lineHeight: 1.1 }}>
-        Opportunities
-      </h1>
-    </>
+  // The dawn lookout across the top: the title, the way back, and (on a wide
+  // screen) Talon's line in a bubble beside it.
+  const header = (says = null) => (
+    <RidgeScene title="Opportunities" isMobile={isMobile} onBack={() => navigate?.("/agents")}
+      state={phase === "loading" ? "thinking" : "idle"} says={says} />
   );
 
   if (phase !== "ready") {
     return (
       <div data-sidebar-offset style={pagePad}>
         <div style={{ maxWidth: 1120, margin: "0 auto", width: "100%" }}>
-          {header}
+          {header()}
           {phase === "loading" ? (
             <div aria-busy="true">
               <p role="status" style={SR_ONLY}>Loading your board</p>
@@ -487,17 +479,20 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
     );
   }
 
+  const hello = !empty && (stop || due.length === 0) ? (stop ? stop.line : TALON_LINES.boardHello) : null;
+
   return (
     <div data-sidebar-offset style={pagePad}>
       <div style={{ maxWidth: 1120, margin: "0 auto", width: "100%" }}>
-        {header}
+        {header(hello && !isMobile ? hello : null)}
 
         {/* One Talon at a time: when deadlines are close the nudge speaks
-            instead (unless the student needs to hear that finds ran out). */}
-        {!empty && (stop || due.length === 0) && (
+            instead (unless the student needs to hear that finds ran out). On
+            a wide screen the line is in the scene; on a phone it is here. */}
+        {hello && isMobile && (
           <div style={{ maxWidth: 760 }}>
             <MascotSays agent={TALON} state="idle" size={72} layout="auto">
-              {stop ? stop.line : TALON_LINES.boardHello}
+              {hello}
             </MascotSays>
           </div>
         )}
