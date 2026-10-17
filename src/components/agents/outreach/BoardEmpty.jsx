@@ -20,16 +20,17 @@ export default function BoardEmpty({ stopLine = null, onGoal }) {
   const ink = useAgentInk();
   return (
     <section aria-labelledby="ob-empty-title" style={{ background: WHITE, border: `1px dashed ${BORDER}`,
-      borderRadius: RADIUS.card, padding: "1.4rem 1.3rem 1.5rem", maxWidth: 760 }}>
+      borderRadius: RADIUS.card, padding: "1.4rem 1.3rem 1.5rem", maxWidth: 760, margin: "0 auto",
+      textAlign: "center" }}>
       <h2 id="ob-empty-title" style={{ margin: "0 0 14px", fontFamily: SANS, fontSize: "1.2rem", fontWeight: 800, color: TEXT }}>
         Your board is empty
       </h2>
-      <MascotSays state={stopped ? "idle" : "delivering"} size={96} layout="auto">
+      <MascotSays style={{ justifyContent: "center" }} state={stopped ? "idle" : "delivering"} size={96} layout="auto">
         {stopped ? stopLine : BEAKER_LINES.boardEmpty}
       </MascotSays>
       {!stopped && (
         <div style={{ marginTop: 20 }}>
-          <p id="ob-examples" style={{ margin: "0 0 10px", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, color: TEXT_MUTED }}>
+          <p id="ob-examples" style={{ margin: "0 0 10px", textAlign: "center", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, color: TEXT_MUTED }}>
             Try a goal like one of these:
           </p>
           <ul aria-labelledby="ob-examples" style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 10 }}>
