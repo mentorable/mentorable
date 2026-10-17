@@ -1,5 +1,6 @@
-import Mascot from "../../Mascot.jsx";
-import { SpeechBubble, TAIL_AT } from "../../../ui/SpeechBubble.jsx";
+import { useLayoutEffect, useRef, useState } from "react";
+import Mascot, { mascotFit } from "../../Mascot.jsx";
+import { SpeechBubble, TAIL_AT, TIP } from "../../../ui/SpeechBubble.jsx";
 import { SR_ONLY } from "../../../ui/kit.jsx";
 import { PixelArrow } from "../../../ui/PixelIcons.jsx";
 import { SANS } from "../../../ui/tokens.js";
@@ -76,6 +77,37 @@ const PEN_INK = { k: "#12132a", b: "#7daaf2", y: "#e9b949" };
 
 const MOON = ["...yyyy..", "..yyyyyy.", ".yyyy....", "yyyy.....", "yyyy.....", "yyyy.....", ".yyyy....", "..yyyyyy.", "...yyyy.."];
 const STAR = [".y.", "ywy", ".y."];
+
+/** Quill's line in a pixel bubble, centred vertically in the band, its tail
+ *  aimed at the owl's beak (the bubble's height is measured, so the tail
+ *  follows the text however long it runs). */
+function SaysBeside({ children, bandH, deskH, quill, right }) {
+  const ref = useRef(null);
+  const [h, setH] = useState(0);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const read = () => setH(el.offsetHeight);
+    read();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const watch = new ResizeObserver(read);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
+  const fit = mascotFit(quill, "quill");
+  const quillTop = bandH - (deskH - 4) - quill;
+  const beakY = quillTop + fit.top + fit.beakRow * fit.scale;
+  const top = Math.max(0, Math.round((bandH - h) / 2));
+  const tailAt = Math.min(Math.max(TAIL_AT, Math.round(beakY - top - TIP)), Math.max(TAIL_AT, h - TAIL_AT));
+  return (
+    <div ref={ref} style={{ position: "absolute", top, right, width: "min(440px, 46%)" }}>
+      <SpeechBubble side="right" tailAt={tailAt}>
+        <span style={SR_ONLY}>Quill says: </span>
+        {children}
+      </SpeechBubble>
+    </div>
+  );
+}
 
 /** A grid as crisp rects. Decorative. */
 function Pixels({ grid, ink, px, style }) {
@@ -158,13 +190,8 @@ export default function NightScene({ title = "Essays", onBack, state = "idle", i
       </div>
 
       {says && !isMobile && (
-        // Sits on the desk, left of the owl, its tail (near the top) at the beak's height.
-        <div style={{ position: "absolute", bottom: deskH + 8, right: 56 + quill + 14, width: "min(440px, 46%)" }}>
-          <SpeechBubble side="right" tailAt={TAIL_AT}>
-            <span style={SR_ONLY}>Quill says: </span>
-            {says}
-          </SpeechBubble>
-        </div>
+        // Quill's line, to the owl's left: centred in the band, its tail at the beak.
+        <SaysBeside bandH={height} deskH={deskH} quill={quill} right={56 + quill + 14}>{says}</SaysBeside>
       )}
 
       <div style={{ position: "relative", padding: isMobile ? "4px 16px 0" : "10px 26px 0" }}>
