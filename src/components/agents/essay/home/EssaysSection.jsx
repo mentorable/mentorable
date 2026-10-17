@@ -40,7 +40,7 @@ export function NewEssayButton({ full, limit, onNew, id = "eq-essays-full" }) {
 
 /**
  * essays: rows without their text (loadHome), newest work first.
- * skip: the id of the essay the desk is resuming above, left out here.
+ * skip: an essay id to leave out (none by default).
  * status: agentsApi.essayStatus(), or null while unknown.
  * onNew(): open the new-essay sheet. onOpen(essay): go to its page.
  */

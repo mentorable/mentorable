@@ -14,7 +14,7 @@ import IdeasSection from "../components/agents/essay/home/IdeasSection.jsx";
 import EssaysSection, { NewEssayButton } from "../components/agents/essay/home/EssaysSection.jsx";
 import NightScene from "../components/agents/essay/home/NightScene.jsx";
 import DeskTabs, { panelId, tabId } from "../components/agents/essay/home/DeskTabs.jsx";
-import { DeskInvitation, DeskResume } from "../components/agents/essay/home/DeskResume.jsx";
+import { DeskInvitation } from "../components/agents/essay/home/DeskResume.jsx";
 import BrainstormSheet from "../components/agents/essay/home/BrainstormSheet.jsx";
 import NewEssaySheet from "../components/agents/essay/home/NewEssaySheet.jsx";
 import { DeskSkeleton, QuillLine, QuillSays } from "../components/agents/essay/home/homeParts.jsx";
@@ -515,10 +515,10 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
           </p>
         )}
 
-        {/* The essay in progress first, or the invitation to start one. */}
-        {resuming
-          ? <DeskResume essay={resuming} today={today} onOpen={openEssay} />
-          : <DeskInvitation onNew={() => openNewEssay(null)} onFindIdeas={goToIdeas} onBrainstorm={() => openBrainstorm(null)} />}
+        {/* With no essay yet, the invitation to start one. */}
+        {!resuming && (
+          <DeskInvitation onNew={() => openNewEssay(null)} onFindIdeas={goToIdeas} onBrainstorm={() => openBrainstorm(null)} />
+        )}
 
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "10px 16px",
           marginTop: 24 }}>
@@ -538,7 +538,7 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
 
         <div role="tabpanel" id={panelId(TAB_PREFIX, "essays")} aria-labelledby={tabId(TAB_PREFIX, "essays")}
           hidden={tab !== "essays"} style={{ marginTop: 18 }}>
-          <EssaysSection essays={essays} skip={resuming?.id} status={status} today={today}
+          <EssaysSection essays={essays} status={status} today={today}
             onNew={() => openNewEssay(null)} onOpen={openEssay} />
         </div>
         <div role="tabpanel" id={panelId(TAB_PREFIX, "ideas")} aria-labelledby={tabId(TAB_PREFIX, "ideas")}
