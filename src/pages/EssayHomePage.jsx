@@ -457,8 +457,11 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
 
   const pagePad = pageStyle({ isMobile, sidebar: SIDEBAR_WIDTH, ink });
 
+  const hello = noReviews ? QUILL_LINES.noReviews : deskEmpty ? QUILL_LINES.homeEmpty : QUILL_LINES.homeHello;
+
   const scene = (
-    <NightScene title="Essays" isMobile={isMobile} state={finding ? "thinking" : "idle"} onBack={() => navigate?.("/agents")} />
+    <NightScene title="Essays" isMobile={isMobile} state={finding ? "thinking" : "idle"} onBack={() => navigate?.("/agents")}
+      says={phase === "ready" ? hello : null} />
   );
 
   if (phase !== "ready") {
@@ -486,7 +489,6 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
   }
 
   const full = essaysFull;
-  const hello = noReviews ? QUILL_LINES.noReviews : deskEmpty ? QUILL_LINES.homeEmpty : QUILL_LINES.homeHello;
 
   return (
     <div data-sidebar-offset className="ui-page" style={pagePad}>
@@ -516,8 +518,8 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
         </div>
         {scene}
 
-        {/* Quill's line is the one pixel bubble, aimed at the owl. The rest is plain text. */}
-        <QuillSays center={isMobile ? 62 : 120}>{hello}</QuillSays>
+        {/* Quill's line is the one pixel bubble: inside the desk scene on a wide screen, under it on a phone. */}
+        {isMobile && <QuillSays center={62}>{hello}</QuillSays>}
         {/* With no essay yet, the invitation to start one. */}
         {!resuming && (
           <DeskInvitation onNew={() => openNewEssay(null)} onFindIdeas={goToIdeas} onBrainstorm={() => openBrainstorm(null)} />

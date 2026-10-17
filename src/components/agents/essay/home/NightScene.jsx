@@ -1,4 +1,6 @@
 import Mascot from "../../Mascot.jsx";
+import { SpeechBubble, TAIL_AT } from "../../../ui/SpeechBubble.jsx";
+import { SR_ONLY } from "../../../ui/kit.jsx";
 import { PixelArrow } from "../../../ui/PixelIcons.jsx";
 import { SANS } from "../../../ui/tokens.js";
 
@@ -106,8 +108,10 @@ const STARS = [
 /**
  * title: the page's h1, set on the sky. onBack(): the "Agents" button.
  * state: Quill's pose ("idle", "thinking"). isMobile: the shorter band.
+ * says: Quill's line, shown in a pixel bubble to the left of the owl inside the
+ * band (wide screens only; a phone's band has no room, so the page shows it).
  */
-export default function NightScene({ title = "Essays", onBack, state = "idle", isMobile = false }) {
+export default function NightScene({ title = "Essays", onBack, state = "idle", isMobile = false, says = null }) {
   const px = isMobile ? 3 : 4;
   const height = isMobile ? 150 : 200;
   const deskH = isMobile ? 12 : 16;
@@ -152,6 +156,16 @@ export default function NightScene({ title = "Essays", onBack, state = "idle", i
           <Mascot agent="quill" state={state} size={quill} title="" />
         </div>
       </div>
+
+      {says && !isMobile && (
+        // Sits on the desk, left of the owl, its tail (near the top) at the beak's height.
+        <div style={{ position: "absolute", bottom: deskH + 8, right: 56 + quill + 14, width: "min(440px, 46%)" }}>
+          <SpeechBubble side="right" tailAt={TAIL_AT}>
+            <span style={SR_ONLY}>Quill says: </span>
+            {says}
+          </SpeechBubble>
+        </div>
+      )}
 
       <div style={{ position: "relative", padding: isMobile ? "4px 16px 0" : "10px 26px 0" }}>
         <button type="button" className={`${NIGHT_CLASS}-focus`} onClick={onBack}
