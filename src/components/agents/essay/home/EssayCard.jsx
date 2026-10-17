@@ -125,7 +125,7 @@ export default function EssayCard({ essay, today = new Date(), onOpen, look = "c
   const title = (
     <button ref={titleRef} type="button" className={FOCUS_CLASS} data-essay-title={essay.id}
       onClick={() => onOpen?.(essay)}
-      style={{ display: "inline", padding: 0, margin: 0, border: "none", background: "none", textAlign: "left",
+      style={{ display: "inline", padding: 0, margin: 0, border: "none", background: "none", textAlign: "inherit",
         font: "inherit", color: "inherit", cursor: "pointer", borderRadius: 4, overflowWrap: "anywhere" }}>
       {essay.title || "Untitled essay"}
     </button>
@@ -136,10 +136,10 @@ export default function EssayCard({ essay, today = new Date(), onOpen, look = "c
   return (
     <article aria-labelledby={titleId} className={CARD_CLASS} onClick={onCardClick}
       style={sheet
-        // A sheet of paper: a margin line down the left and a folded top corner.
+        // A sheet of paper with a folded top corner, its text centered.
         ? { position: "relative", height: "100%", boxSizing: "border-box", minWidth: 0, display: "flex",
-            flexDirection: "column", cursor: "pointer", padding: "16px 16px 10px 38px",
-            background: `linear-gradient(to right, transparent 22px, ${ink.soft} 22px, ${ink.soft} 24px, transparent 24px), ${WHITE}`,
+            flexDirection: "column", cursor: "pointer", padding: "16px 16px 10px", textAlign: "center",
+            background: WHITE,
             border: `1px solid ${BORDER}`, borderRadius: "4px 0 12px 12px",
             clipPath: "polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%)" }
         : { background: WHITE, border: `1px solid ${BORDER}`, borderRadius: RADIUS.card, boxSizing: "border-box",
@@ -152,7 +152,7 @@ export default function EssayCard({ essay, today = new Date(), onOpen, look = "c
       )}
       {sheet ? (
         <>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingRight: 22 }}>{tags}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, padding: "0 22px" }}>{tags}</div>
           <h3 id={titleId} style={{ ...titleStyle, marginTop: 10 }}>{title}</h3>
         </>
       ) : (
@@ -169,7 +169,7 @@ export default function EssayCard({ essay, today = new Date(), onOpen, look = "c
         {answers ? (
           <p style={{ ...line, fontWeight: 700, color: TEXT }}>{answers}</p>
         ) : (
-          <p style={{ ...line, display: "flex", alignItems: "flex-start", gap: 8, fontWeight: 700, color: TEXT_MID }}>
+          <p style={{ ...line, display: "flex", alignItems: "flex-start", justifyContent: sheet ? "center" : "flex-start", gap: 8, fontWeight: 700, color: TEXT_MID }}>
             <span aria-hidden="true" style={{ display: "flex", marginTop: 3, flexShrink: 0 }}><PixelStamp kind="question" size={16} /></span>
             <span>No prompt picked yet</span>
           </p>
@@ -192,8 +192,8 @@ export default function EssayCard({ essay, today = new Date(), onOpen, look = "c
       <div style={{ flex: 1 }} />
       <div aria-hidden="true" style={{ height: 2, margin: "12px 0 4px",
         background: "linear-gradient(90deg, #d6d1c9 50%, transparent 50%) left top / 4px 2px repeat-x" }} />
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "2px 12px",
-        minHeight: 32 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: sheet ? "center" : "space-between",
+        gap: "2px 12px", minHeight: 32 }}>
         <span style={{ ...line, fontSize: "0.92rem", fontWeight: 600, color: TEXT_MUTED }}>
           {readLine}
         </span>
