@@ -467,8 +467,8 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
   if (phase !== "ready") {
     return (
       <div data-sidebar-offset className="ui-page" style={pagePad}>
+        <div style={{ maxWidth: 1400, margin: "0 auto", width: "100%" }}>{scene}</div>
         <div style={{ maxWidth: 1120, margin: "0 auto", width: "100%" }}>
-          {scene}
           {phase === "loading" ? (
             <div aria-busy="true">
               <p role="status" style={SR_ONLY}>Loading your desk</p>
@@ -492,7 +492,8 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
 
   return (
     <div data-sidebar-offset className="ui-page" style={pagePad}>
-      <div style={{ maxWidth: 1120, margin: "0 auto", width: "100%" }}>
+      {/* The promise row and the scene run the width of the page (as Beaker's do); the desk keeps its column. */}
+      <div style={{ maxWidth: 1400, margin: "0 auto", width: "100%" }}>
         {/* The promise on the left, the reviews left on the right, above the desk. */}
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between",
           gap: "8px 24px", margin: "0 0 14px" }}>
@@ -517,6 +518,8 @@ export default function EssayHomePage({ navigate, api = REAL_API }) {
           )}
         </div>
         {scene}
+      </div>
+      <div style={{ maxWidth: 1120, margin: "0 auto", width: "100%" }}>
 
         {/* Quill's line is the one pixel bubble: inside the desk scene on a wide screen, under it on a phone. */}
         {isMobile && <QuillSays center={62}>{hello}</QuillSays>}

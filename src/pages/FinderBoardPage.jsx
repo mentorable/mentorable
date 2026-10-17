@@ -459,8 +459,8 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
   if (phase !== "ready") {
     return (
       <div data-sidebar-offset style={pagePad}>
+        <div style={{ maxWidth: 1400, margin: "0 auto", width: "100%" }}>{header()}</div>
         <div style={{ maxWidth: 1120, margin: "0 auto", width: "100%" }}>
-          {header()}
           {phase === "loading" ? (
             <div aria-busy="true">
               <p role="status" style={SR_ONLY}>Loading your board</p>
@@ -483,8 +483,11 @@ export default function FinderBoardPage({ navigate, api = REAL_API }) {
 
   return (
     <div data-sidebar-offset style={pagePad}>
-      <div style={{ maxWidth: 1120, margin: "0 auto", width: "100%" }}>
+      {/* The scene runs the width of the page (as Beaker's does); the board keeps its column. */}
+      <div style={{ maxWidth: 1400, margin: "0 auto", width: "100%" }}>
         {header(hello && !isMobile ? hello : null)}
+      </div>
+      <div style={{ maxWidth: 1120, margin: "0 auto", width: "100%" }}>
 
         {/* One Talon at a time: when deadlines are close the nudge speaks
             instead (unless the student needs to hear that finds ran out). On
