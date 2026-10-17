@@ -47,7 +47,6 @@ export function NewEssayButton({ full, limit, onNew, id = "eq-essays-full" }) {
 export default function EssaysSection({ essays, skip = null, status, today = new Date(), onNew, onOpen }) {
   const budget = budgetOf(status?.essays);
   const limit = budget?.limit || ESSAYS_MAX;
-  const full = essays.length >= limit || (!!budget && budget.left <= 0);
   const others = essays.filter((e) => e.id !== skip);
 
   return (
@@ -79,22 +78,6 @@ export default function EssaysSection({ essays, skip = null, status, today = new
               <EssayCard essay={essay} today={today} onOpen={onOpen} look="sheet" />
             </li>
           ))}
-          {/* A blank page: the way to the next essay, unless the desk is full. */}
-          {!full && (
-            <li style={{ minWidth: 0, display: "grid" }}>
-              <button type="button" className={FOCUS_CLASS} onClick={() => onNew?.()}
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10,
-                  minHeight: 200, padding: 16, boxSizing: "border-box", textAlign: "center", cursor: "pointer",
-                  border: "1.5px dashed #b9b3aa", borderRadius: 12, background: "transparent", color: TEXT_MID,
-                  fontFamily: SANS }}>
-                <PixelStamp kind="sparkle" size={24} />
-                <span style={{ fontSize: "1.05rem", fontWeight: 800 }}>A blank page</span>
-                <span style={{ fontSize: "0.95rem", fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.5, maxWidth: "24ch" }}>
-                  A rough first draft is plenty for me to read.
-                </span>
-              </button>
-            </li>
-          )}
         </ul>
       )}
     </section>
