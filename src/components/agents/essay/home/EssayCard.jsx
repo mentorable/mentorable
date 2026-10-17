@@ -28,6 +28,26 @@ export function Tag({ children, style }) {
   );
 }
 
+// The sheet lifts a little on hover, its border takes the accent, and the
+// "Open" arrow steps forward. (A shadow would be cut off by the folded corner.)
+const SHEET_CLASS = "eq-sheet";
+const SHEET_CSS = `
+.${SHEET_CLASS} { transition: transform 0.18s ease, border-color 0.18s ease; }
+.${SHEET_CLASS}:hover { transform: translateY(-3px); border-color: var(--eq-accent) !important; }
+.${SHEET_CLASS} .eq-open { transition: transform 0.18s ease; }
+.${SHEET_CLASS}:hover .eq-open { transform: translateX(3px); }
+@media (prefers-reduced-motion: reduce) {
+  .${SHEET_CLASS}, .${SHEET_CLASS} .eq-open { transition: none; }
+  .${SHEET_CLASS}:hover, .${SHEET_CLASS}:hover .eq-open { transform: none; }
+}
+`;
+if (typeof document !== "undefined" && !document.querySelector("style[data-essay-sheet]")) {
+  const el = document.createElement("style");
+  el.dataset.essaySheet = "";
+  el.textContent = SHEET_CSS;
+  document.head.appendChild(el);
+}
+
 /** The essay's length against its limit: the words, then a bar. A personal
  *  statement's bar also marks where its minimum sits. */
 export function WordMeter({ essay }) {
@@ -134,11 +154,11 @@ export default function EssayCard({ essay, today = new Date(), onOpen, look = "c
     lineHeight: 1.3, letterSpacing: "-0.01em", overflowWrap: "anywhere" };
 
   return (
-    <article aria-labelledby={titleId} className={CARD_CLASS} onClick={onCardClick}
+    <article aria-labelledby={titleId} className={sheet ? `${CARD_CLASS} ${SHEET_CLASS}` : CARD_CLASS} onClick={onCardClick}
       style={sheet
         // A sheet of paper with a folded top corner, its text centered.
         ? { position: "relative", height: "100%", boxSizing: "border-box", minWidth: 0, display: "flex",
-            flexDirection: "column", cursor: "pointer", padding: "16px 16px 10px", textAlign: "center",
+            flexDirection: "column", cursor: "pointer", padding: "16px 16px 10px", textAlign: "center", "--eq-accent": ink.text,
             background: WHITE,
             border: `1px solid ${BORDER}`, borderRadius: "4px 0 12px 12px",
             clipPath: "polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%)" }
@@ -200,7 +220,7 @@ export default function EssayCard({ essay, today = new Date(), onOpen, look = "c
         <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS,
           fontSize: "0.95rem", fontWeight: 800, color: ink.text }}>
           Open
-          <PixelArrow size={16} />
+          <span className="eq-open" style={{ display: "inline-flex" }}><PixelArrow size={16} /></span>
         </span>
       </div>
     </article>
