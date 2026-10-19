@@ -5,6 +5,7 @@ import { PixelStamp } from "../ui/PixelIcons.jsx";
 import { RADIUS, SURFACE } from "../ui/tokens.js";
 import { darken, lighten } from "../../lib/theme.js";
 import { StampTile } from "../ui/kit.jsx";
+import { PixelStone, UNIT, pictureFor } from "./PixelStone.jsx";
 import {
   SANS, WHITE, INK, MID, MUTED, FAINT, LINE, STONE, STONE_EDGE, AMBER, AMBER_EDGE, AMBER_WASH,
   Chunky, Flame, useQuestColors,
@@ -35,23 +36,6 @@ function padTopFor(slot, amp, size) {
   return Math.max(GAP, Math.round(rise - size - GAP));
 }
 
-/** The raised stones' own icons: round-capped line drawings, as they were
- *  before the pixel marks (the plates and other pieces keep the pixel ones). */
-function StoneIcon({ name, color, size = 22 }) {
-  const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color,
-    strokeWidth: 3, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true };
-  if (name === "check") return <svg {...common}><polyline points="5 12.5 10 17 19 7" /></svg>;
-  if (name === "lock") return (
-    <svg {...common} strokeWidth={2.4}><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
-  );
-  if (name === "star") return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path fill={color} d="M12 2.8l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-2.9-5.4 2.9 1.1-6L3.2 9.2l6.1-.8L12 2.8z" />
-    </svg>
-  );
-  return null;
-}
-
 /** A pixel mark, in the colour given. */
 function Mark({ kind, color, size = 24 }) {
   return <PixelStamp kind={kind} size={size} style={{ color }} />;
@@ -59,33 +43,32 @@ function Mark({ kind, color, size = 24 }) {
 
 // ─── A stone ──────────────────────────────────────────────────────────────────
 
-const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, amp, label }, ref) {
+const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, amp, label, height }, ref) {
   const ink = useQuestColors();
   const reduce = useReducedMotion();
   const { state, doable } = stone;
   const isToday = state === "today" || (todayState === "done" && stone.isTodaySlot);
-  const size = isToday ? 70 : state === "future" ? 46 : 56;
+  const cells = isToday ? 18 : state === "future" ? 12 : 14;
+  const size = cells * UNIT;
   // The raised stones' own colours, from the accent: a solid bottom edge, not the kit's flat tints.
   const c = { accent: ink.accent, edge: darken(ink.accent, 0.28), soft: lighten(ink.accent, 0.55) };
 
-  let bg = STONE, edge = STONE_EDGE, border = "none", icon = null, cursor = "default";
+  // Future days show their picture faintly; a done day shows it in white on the accent.
+  let look = { fill: STONE, edge: STONE_EDGE, ink: STONE_EDGE, picture: pictureFor(stone.slot, height) };
+  let cursor = "default";
   if (state === "done") {
-    bg = c.accent; edge = c.edge; icon = <StoneIcon name="check" color={WHITE} />; cursor = "pointer";
+    look = { ...look, fill: c.accent, edge: c.edge, ink: WHITE }; cursor = "pointer";
   } else if (state === "late") {
-    bg = c.soft; edge = c.accent; icon = <StoneIcon name="check" color={c.edge} />; cursor = "pointer";
+    look = { ...look, fill: c.soft, edge: c.accent, ink: c.edge }; cursor = "pointer";
   } else if (state === "missed") {
-    bg = doable ? AMBER_WASH : "#f0f0ee";
-    edge = doable ? AMBER_EDGE : STONE_EDGE;
-    border = `3px dashed ${doable ? AMBER_EDGE : STONE_EDGE}`;
-    icon = doable ? null : <StoneIcon name="lock" color={FAINT} size={18} />;
+    look = doable
+      ? { ...look, fill: AMBER_WASH, edge: AMBER_EDGE, ink: AMBER_EDGE, ring: "dashed", ringColor: AMBER_EDGE }
+      : { fill: "#f0f0ee", edge: STONE_EDGE, ink: FAINT, picture: "lock", ring: "dashed", ringColor: STONE_EDGE };
     cursor = "pointer";
   } else if (state === "today") {
-    if (doable) {
-      bg = WHITE; edge = c.edge; border = `4px solid ${c.accent}`;
-      icon = <StoneIcon name="star" color={c.accent} size={28} />;
-    } else {
-      bg = "#efefed"; edge = STONE_EDGE; icon = <StoneIcon name="lock" color={FAINT} size={24} />;
-    }
+    look = doable
+      ? { fill: WHITE, edge: c.edge, ink: c.accent, picture: "star", ring: "solid", ringColor: c.accent }
+      : { fill: "#efefed", edge: STONE_EDGE, ink: FAINT, picture: "lock" };
     cursor = "pointer";
   }
 
@@ -103,14 +86,10 @@ const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, a
           initial={pop ? { scale: 0.55 } : false}
           animate={pop ? { scale: [0.55, 1.15, 1] } : { scale: 1 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          style={{
-            width: size, height: size, borderRadius: "50%", cursor,
-            background: bg, border, boxSizing: "border-box",
-            boxShadow: state === "future" ? `0 4px 0 ${edge}` : `0 5px 0 ${edge}`,
-            display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
-          }}
+          style={{ width: size, height: size + UNIT, cursor, background: "none", border: "none",
+            borderRadius: "50%", display: "block", padding: 0 }}
         >
-          {icon}
+          <PixelStone cells={cells} {...look} />
         </motion.button>
       </div>
     </div>
@@ -283,6 +262,7 @@ export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartTo
               justDone={justDone === s.slot}
               amp={amp}
               label={stoneLabel(s, state.today)}
+              height={stones.length > 1 ? (s.slot - 1) / (stones.length - 1) : 0}
             />
           </Fragment>
         ))}

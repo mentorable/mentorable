@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { formatDay, relativeDay } from "../../lib/quest.js";
 import { PixelStamp } from "../ui/PixelIcons.jsx";
 import { FOCUS_CLASS, RADIUS, SURFACE } from "../ui/tokens.js";
-import { INPUT_CLASS, StampTile } from "../ui/kit.jsx";
+import { INPUT_CLASS, StampTile, Tip } from "../ui/kit.jsx";
 import {
   SANS, WHITE, INK, MID, MUTED, LINE, AMBER, AMBER_LINE, AMBER_WASH, DANGER,
   Chunky, DayToggles, ErrorLine, Flame, LevelChip, Modal, Segmented, TextButton,
@@ -123,36 +123,39 @@ export function CatchUpBanner({ state, onCatchUp }) {
   );
 }
 
+/** The comeback line, in the game dialog box the Agents pages speak in. */
 export function WelcomeBack({ state, onCatchUp, onBreak, onLighter, busy }) {
   const w = state.welcome_back || {};
   if (!w.show) return null;
   const b = state.backlog || {};
   return (
-    <Strip tone="accent">
-      <strong>Welcome back.</strong> You have {b.count} task{b.count === 1 ? "" : "s"} to catch up on
-      {b.unlocks_milestone ? ` and Milestone ${b.unlocks_milestone} is waiting.` : "."}
-      {w.offer_break ? (
-        <>
-          <span style={{ display: "block", color: MUTED, fontSize: "0.92rem", marginTop: 6, lineHeight: 1.5 }}>
-            That is a lot to make up. You can count the time away as a break: the missed days move to start
-            from today, and your streak starts fresh.
-          </span>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-            <Chunky small onClick={onBreak} disabled={busy}>Count it as a break</Chunky>
-            {state.quest?.daily_minutes > 15 && (
-              <Chunky small tone="quiet" onClick={onLighter} disabled={busy}>Switch to 15 min a day</Chunky>
-            )}
-            {b.oldest_doable_slot && <TextButton onClick={onCatchUp}>Catch up instead</TextButton>}
-          </div>
-        </>
-      ) : (
-        b.oldest_doable_slot && (
-          <div style={{ marginTop: 10 }}>
-            <Chunky small tone="amber" onClick={onCatchUp}>Catch up</Chunky>
-          </div>
-        )
-      )}
-    </Strip>
+    <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
+      <Tip name="Welcome back" stamp="flag" style={{ marginTop: 14 }}>
+        You have {b.count} task{b.count === 1 ? "" : "s"} to catch up on
+        {b.unlocks_milestone ? ` and Milestone ${b.unlocks_milestone} is waiting.` : "."}
+        {w.offer_break ? (
+          <>
+            <span style={{ display: "block", color: MID, fontSize: "0.95rem", marginTop: 6, lineHeight: 1.5 }}>
+              That is a lot to make up. You can count the time away as a break: the missed days move to start
+              from today, and your streak starts fresh.
+            </span>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 12 }}>
+              <Chunky small onClick={onBreak} disabled={busy}>Count it as a break</Chunky>
+              {state.quest?.daily_minutes > 15 && (
+                <Chunky small tone="quiet" onClick={onLighter} disabled={busy}>Switch to 15 min a day</Chunky>
+              )}
+              {b.oldest_doable_slot && <TextButton onClick={onCatchUp}>Catch up instead</TextButton>}
+            </div>
+          </>
+        ) : (
+          b.oldest_doable_slot && (
+            <div style={{ marginTop: 10 }}>
+              <Chunky small tone="amber" onClick={onCatchUp}>Catch up</Chunky>
+            </div>
+          )
+        )}
+      </Tip>
+    </motion.div>
   );
 }
 
