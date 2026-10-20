@@ -4,7 +4,6 @@ import { formatDay, relativeDay } from "../../lib/quest.js";
 import { PixelStamp } from "../ui/PixelIcons.jsx";
 import { FOCUS_CLASS, RADIUS, SURFACE } from "../ui/tokens.js";
 import { INPUT_CLASS, StampTile } from "../ui/kit.jsx";
-import { SpeechBubble, TAIL_AT, TIP } from "../ui/SpeechBubble.jsx";
 import {
   SANS, WHITE, INK, MID, MUTED, LINE, AMBER, AMBER_LINE, AMBER_WASH, DANGER,
   Chunky, DayToggles, ErrorLine, Flame, LevelChip, Modal, Segmented, TextButton,
@@ -124,27 +123,13 @@ export function CatchUpBanner({ state, onCatchUp }) {
   );
 }
 
-/** A line in the pixel dialog box the agents greet with, its tail aimed at a
- *  pixel stamp where an agent page has its mascot. */
-function QuestSays({ stamp, children }) {
-  return (
-    <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-      style={{ display: "flex", alignItems: "flex-start", gap: 14, minWidth: 0, marginTop: 14 }}>
-      <StampTile kind={stamp} size={44} />
-      <SpeechBubble side="left" tailAt={Math.max(TAIL_AT, Math.round(22 - TIP))} style={{ flex: "1 1 auto", maxWidth: 640 }}>
-        {children}
-      </SpeechBubble>
-    </motion.div>
-  );
-}
-
-/** The comeback line, in the agents' speech bubble. */
+/** The comeback line: a plain card, like the other notices on this page. */
 export function WelcomeBack({ state, onCatchUp, onBreak, onLighter, busy }) {
   const w = state.welcome_back || {};
   if (!w.show) return null;
   const b = state.backlog || {};
   return (
-    <QuestSays stamp="flag">
+    <Strip tone="accent">
       <strong>Welcome back.</strong> You have {b.count} task{b.count === 1 ? "" : "s"} to catch up on
       {b.unlocks_milestone ? ` and Milestone ${b.unlocks_milestone} is waiting.` : "."}
       {w.offer_break ? (
@@ -168,7 +153,7 @@ export function WelcomeBack({ state, onCatchUp, onBreak, onLighter, busy }) {
           </div>
         )
       )}
-    </QuestSays>
+    </Strip>
   );
 }
 
