@@ -94,10 +94,10 @@ function Strip({ tone = "amber", children, action }) {
   const amber = tone === "amber";
   return (
     <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-      style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 14,
-        background: amber ? AMBER_WASH : WHITE, borderRadius: RADIUS.card, padding: "14px 16px", boxSizing: "border-box",
+      style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", margin: "14px auto 0", maxWidth: 640,
+        background: amber ? AMBER_WASH : WHITE, borderRadius: RADIUS.card, padding: "18px 20px", boxSizing: "border-box",
         border: `1px solid ${amber ? AMBER_LINE : LINE}` }}>
-      <div style={{ flex: "1 1 220px", fontFamily: SANS, fontSize: "0.98rem", color: INK, lineHeight: 1.5 }}>
+      <div style={{ flex: "1 1 240px", fontFamily: SANS, fontSize: "1.12rem", fontWeight: 500, color: INK, lineHeight: 1.55 }}>
         {children}
       </div>
       {action}
@@ -115,7 +115,7 @@ export function CatchUpBanner({ state, onCatchUp }) {
     <Strip action={b.oldest_doable_slot ? <Chunky small tone="amber" onClick={onCatchUp}>Catch up</Chunky> : null}>
       <strong>You're {b.count} task{b.count === 1 ? "" : "s"} behind.</strong>{gate}
       {b.catch_up_by && (
-        <span style={{ display: "block", color: MUTED, fontSize: "0.92rem", marginTop: 2 }}>
+        <span style={{ display: "block", color: MUTED, fontSize: "1rem", marginTop: 4 }}>
           Two a day clears it by {relativeDay(b.catch_up_by, state.today)}.
         </span>
       )}
@@ -134,7 +134,7 @@ export function WelcomeBack({ state, onCatchUp, onBreak, onLighter, busy }) {
       {b.unlocks_milestone ? ` and Milestone ${b.unlocks_milestone} is waiting.` : "."}
       {w.offer_break ? (
         <>
-          <span style={{ display: "block", color: MID, fontSize: "0.95rem", marginTop: 6, lineHeight: 1.5 }}>
+          <span style={{ display: "block", color: MID, fontSize: "1.02rem", marginTop: 8, lineHeight: 1.55 }}>
             That is a lot to make up. You can count the time away as a break: the missed days move to start
             from today, and your streak starts fresh.
           </span>
