@@ -113,10 +113,16 @@ const PICTURES = {
 // Bottom to top: two pictures a stretch, alternating stone to stone.
 const ZONES = [["tulip", "mushroom"], ["pine", "tree"], ["rock", "pebbles"], ["summit", "cloud"]];
 
-/** The picture for a stone `height` of the way up the quest (0 at the start, 1 at the finish). */
+/** Which stretch of the climb (0 meadow, 1 forest, 2 rock, 3 snow) a stone
+ *  `height` of the way up is in (0 at the start, 1 at the finish). The
+ *  mountain behind the map draws its layers from the same split. */
+export function zoneOf(height) {
+  return Math.min(ZONES.length - 1, Math.floor(Math.max(0, height) * ZONES.length));
+}
+
+/** The picture for a stone `height` of the way up the quest. */
 export function pictureFor(slot, height) {
-  const zone = ZONES[Math.min(ZONES.length - 1, Math.floor(Math.max(0, height) * ZONES.length))];
-  return zone[slot % 2];
+  return ZONES[zoneOf(height)][slot % 2];
 }
 
 // One path per shape: a 1-pixel-tall rectangle per run of cells.

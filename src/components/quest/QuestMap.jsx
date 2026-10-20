@@ -1,11 +1,12 @@
-import { Fragment, forwardRef } from "react";
+import { Fragment, forwardRef, useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { formatDay, relativeDay } from "../../lib/quest.js";
 import { PixelStamp } from "../ui/PixelIcons.jsx";
 import { RADIUS, SURFACE } from "../ui/tokens.js";
 import { darken, lighten } from "../../lib/theme.js";
 import { StampTile } from "../ui/kit.jsx";
-import { PixelStone, UNIT, pictureFor } from "./PixelStone.jsx";
+import { PixelStone, UNIT, pictureFor, zoneOf } from "./PixelStone.jsx";
+import MountainBackdrop from "./MountainBackdrop.jsx";
 import {
   SANS, WHITE, INK, MID, MUTED, FAINT, LINE, STONE, STONE_EDGE, AMBER, AMBER_EDGE, AMBER_WASH,
   Chunky, Flame, useQuestColors,
@@ -74,7 +75,7 @@ const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, a
 
   const pop = justDone && !reduce;
   return (
-    <div style={{ display: "flex", justifyContent: "center", padding: `${padTopFor(stone.slot, amp, size)}px 0 ${GAP}px` }}>
+    <div data-slot={stone.slot} style={{ display: "flex", justifyContent: "center", padding: `${padTopFor(stone.slot, amp, size)}px 0 ${GAP}px` }}>
       <div style={{ position: "relative", transform: `translateX(${offsetFor(stone.slot, amp)}px)` }}>
         <motion.button
           ref={ref}
@@ -241,6 +242,14 @@ export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartTo
   const stones = state.stones || [];
   const milestones = state.milestones || [];
   const todaySlot = state.today_slot;
+  const heightOf = (slot) => (stones.length > 1 ? (slot - 1) / (stones.length - 1) : 0);
+  const zoneOfSlot = useCallback((slot) => zoneOf(stones.length > 1 ? (slot - 1) / (stones.length - 1) : 0), [stones.length]);
+  // The highest layer of the mountain the student has got to: where their
+  // furthest done day, or today, sits. A finished quest has reached them all.
+  const finished = state.view === "completed";
+  const reached = finished ? 3 : Math.max(0, ...stones
+    .filter((s) => s.state === "done" || s.state === "late" || s.slot === todaySlot)
+    .map((s) => zoneOfSlot(s.slot)));
 
   // Top to bottom: the last milestone (the finish) down to the start.
   const blocks = [...milestones].reverse().map((m, i) => {
@@ -262,7 +271,7 @@ export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartTo
               justDone={justDone === s.slot}
               amp={amp}
               label={stoneLabel(s, state.today)}
-              height={stones.length > 1 ? (s.slot - 1) / (stones.length - 1) : 0}
+              height={heightOf(s.slot)}
             />
           </Fragment>
         ))}
@@ -271,7 +280,8 @@ export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartTo
   });
 
   return (
-    <div style={{ position: "relative", padding: "8px 0 24px" }}>
+    <div style={{ position: "relative", isolation: "isolate", padding: "8px 0 24px" }}>
+      <MountainBackdrop stones={stones} zoneOfSlot={zoneOfSlot} reached={reached} px={isMobile ? 6 : 8} />
       {blocks}
       <div style={{ display: "flex", justifyContent: "center", paddingTop: 12 }}>
         <span style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, color: MUTED,
