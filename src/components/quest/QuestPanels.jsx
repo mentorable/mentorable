@@ -146,13 +146,7 @@ export function WelcomeBack({ state, onCatchUp, onBreak, onLighter, busy }) {
             {b.oldest_doable_slot && <TextButton onClick={onCatchUp}>Catch up instead</TextButton>}
           </div>
         </>
-      ) : (
-        b.oldest_doable_slot && (
-          <div style={{ marginTop: 10 }}>
-            <Chunky small tone="amber" onClick={onCatchUp}>Catch up</Chunky>
-          </div>
-        )
-      )}
+      ) : null}
     </Strip>
   );
 }
