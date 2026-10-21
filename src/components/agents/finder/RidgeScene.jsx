@@ -155,9 +155,10 @@ function RidgeDecor({ px, groundH, isMobile }) {
  * title: the page's h1. onBack(): the "Agents" button. state: Talon's pose.
  * isMobile: the shorter band. says: Talon's line (wide screens only).
  */
-export default function RidgeScene({ title = "Opportunities", onBack, state = "idle", isMobile = false, says = null }) {
+export default function RidgeScene({ title = "Opportunities", onBack, state = "idle", isMobile = false, says = null,
+  headingAs = "h1", animate = true }) {
   return (
     <AgentScene title={title} onBack={onBack} agent="talon" state={state} says={says} isMobile={isMobile}
-      sky={SKY} ground={GROUND} backColor="#eef0ff" flip lift={6} decor={(p) => <RidgeDecor {...p} />} />
+      headingAs={headingAs} animate={animate} sky={SKY} ground={GROUND} backColor="#eef0ff" flip lift={6} decor={(p) => <RidgeDecor {...p} />} />
   );
 }

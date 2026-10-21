@@ -1,0 +1,1493 @@
+{
+ "today": "2026-10-20",
+ "chat": {
+  "question": "I just started volunteering at the library help desk on Sundays. Can you add it? Also is my college list okay?",
+  "turn1": "Nice, adding that to your activities now.",
+  "turn2": "Done: **Library help desk** is in your Portfolio as a volunteer activity for grade 11. Tell me your hours once you have a few Sundays in and I'll add them.\n\nYour list is 2 reaches, 3 targets and 1 likely, and your SAT 1450 is inside the middle 50% at all three targets. Two things I'd look at:\n\n- **One likely school.** Cincinnati is your only one. A second likely you'd be happy to attend gives you a real choice in the spring.\n- **Cost.** Net price is what families pay after grants and scholarships, not the sticker price. Purdue ($14,851) and Georgia Tech ($12,028) look cheap, but at a public school that average is for in-state students. From Ohio you'd likely pay out-of-state rates, so expect more. Ohio State ($17,269) and Cincinnati ($24,917) are in-state for you.\n\nEach school's **net price calculator** will give your family a closer number, and the FAFSA in your senior year is what unlocks most aid.\n\nHas anyone at home talked about what you can spend each year?",
+  "tool_input": {
+   "kind": "activity",
+   "title": "Library help desk",
+   "category": "Community Service (Volunteer)",
+   "position": "Volunteer",
+   "description": "Volunteer at the library help desk on Sundays.",
+   "grade_levels": [
+    11
+   ]
+  },
+  "source": "demo-video:demo-video/gen/chat/gen.py (scripted reply checked against the College List rows)"
+ },
+ "quest": {
+  "state_opened": {
+   "today": "2026-10-20",
+   "timezone": "America/New_York",
+   "stats": {
+    "xp": 30,
+    "level": 1,
+    "into_level": 30,
+    "level_span": 50,
+    "next_level_at": 50,
+    "streak": 3,
+    "best_streak": 3
+   },
+   "view": "active",
+   "quest": {
+    "id": "d0000000-0000-4000-8000-0000000e0001",
+    "title": "BusBuddy, live for your school",
+    "summary": "A working BusBuddy web app that shows your school's bus routes and pickup times on a map and lets riders report a late bus, used by real students.",
+    "goal_kind": "passion_project",
+    "status": "active",
+    "daily_minutes": 30,
+    "rest_days": [
+     0,
+     6
+    ],
+    "start_date": "2026-10-15",
+    "paused_on": null,
+    "ended_on": null,
+    "hard_deadline": null,
+    "add_to_portfolio": true,
+    "portfolio_activity_id": null,
+    "has_portfolio_draft": false,
+    "direction": "By the end you will have BusBuddy running for your school: every route on a map with its scheduled times, and a way for riders to flag a late bus so parents can see it too. You are starting from an empty project, with Java from robotics but no map work yet. It is for the kids at your stop who wait in the cold with no idea when the bus is coming."
+   },
+   "ever": true,
+   "milestones": [
+    {
+     "id": "d0000000-0000-4000-8000-0000000e0002",
+     "position": 1,
+     "title": "Route 12 on a map with its pickup times",
+     "description": "A web page with a map that shows every stop on one route and its scheduled pickup time, loaded from the district's published schedule.",
+     "expected_days": 6,
+     "first_slot": 1,
+     "last_slot": 6,
+     "state": "current",
+     "completed_at": null,
+     "lines": []
+    },
+    {
+     "id": "d0000000-0000-4000-8000-0000000e0003",
+     "position": 2,
+     "title": "Riders can report a late bus",
+     "description": "A button on each stop saves a late report with the time to a free database, and the map shows the reports from the last hour.",
+     "expected_days": 7,
+     "first_slot": 7,
+     "last_slot": 13,
+     "state": "locked",
+     "completed_at": null,
+     "lines": []
+    },
+    {
+     "id": "d0000000-0000-4000-8000-0000000e0004",
+     "position": 3,
+     "title": "Every route at your school",
+     "description": "All of your school's routes load from the schedule, and anyone can pick their route and stop to see only what matters to them.",
+     "expected_days": 5,
+     "first_slot": 14,
+     "last_slot": 18,
+     "state": "locked",
+     "completed_at": null,
+     "lines": []
+    },
+    {
+     "id": "d0000000-0000-4000-8000-0000000e0005",
+     "position": 4,
+     "title": "A week of testing with real riders",
+     "description": "Five to ten students on one route use it for a week, and you write down what confused them and what broke.",
+     "expected_days": 6,
+     "first_slot": 19,
+     "last_slot": 24,
+     "state": "locked",
+     "completed_at": null,
+     "lines": []
+    },
+    {
+     "id": "d0000000-0000-4000-8000-0000000e0006",
+     "position": 5,
+     "title": "BusBuddy ready to share",
+     "description": "Fix what testers found, put it on a free host with a short link, and share it with students and parents on your routes.",
+     "expected_days": 5,
+     "first_slot": 25,
+     "last_slot": 29,
+     "state": "locked",
+     "completed_at": null,
+     "lines": []
+    }
+   ],
+   "stones": [
+    {
+     "slot": 1,
+     "date": "2026-10-15",
+     "milestone": 0,
+     "state": "done",
+     "doable": false,
+     "task": {
+      "id": "d0000000-0000-4000-8000-0000000e0007",
+      "title": "Find your district's bus schedule and save route 12"
+     }
+    },
+    {
+     "slot": 2,
+     "date": "2026-10-16",
+     "milestone": 0,
+     "state": "done",
+     "doable": false,
+     "task": {
+      "id": "d0000000-0000-4000-8000-0000000e0009",
+      "title": "Set up the project and show a map of your town"
+     }
+    },
+    {
+     "slot": 3,
+     "date": "2026-10-19",
+     "milestone": 0,
+     "state": "done",
+     "doable": false,
+     "task": {
+      "id": "d0000000-0000-4000-8000-0000000e000b",
+      "title": "Add coordinates to every stop on route 12"
+     }
+    },
+    {
+     "slot": 4,
+     "date": "2026-10-20",
+     "milestone": 0,
+     "state": "today",
+     "doable": true,
+     "task": {
+      "id": "d0000000-0000-4000-8000-0000000e000d",
+      "title": "Load route 12's stops and pickup times onto the map"
+     }
+    },
+    {
+     "slot": 5,
+     "date": "2026-10-21",
+     "milestone": 0,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 6,
+     "date": "2026-10-22",
+     "milestone": 0,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 7,
+     "date": "2026-10-23",
+     "milestone": 1,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 8,
+     "date": "2026-10-26",
+     "milestone": 1,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 9,
+     "date": "2026-10-27",
+     "milestone": 1,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 10,
+     "date": "2026-10-28",
+     "milestone": 1,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 11,
+     "date": "2026-10-29",
+     "milestone": 1,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 12,
+     "date": "2026-10-30",
+     "milestone": 1,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 13,
+     "date": "2026-11-02",
+     "milestone": 1,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 14,
+     "date": "2026-11-03",
+     "milestone": 2,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 15,
+     "date": "2026-11-04",
+     "milestone": 2,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 16,
+     "date": "2026-11-05",
+     "milestone": 2,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 17,
+     "date": "2026-11-06",
+     "milestone": 2,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 18,
+     "date": "2026-11-09",
+     "milestone": 2,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 19,
+     "date": "2026-11-10",
+     "milestone": 3,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 20,
+     "date": "2026-11-11",
+     "milestone": 3,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 21,
+     "date": "2026-11-12",
+     "milestone": 3,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 22,
+     "date": "2026-11-13",
+     "milestone": 3,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 23,
+     "date": "2026-11-16",
+     "milestone": 3,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 24,
+     "date": "2026-11-17",
+     "milestone": 3,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 25,
+     "date": "2026-11-18",
+     "milestone": 4,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 26,
+     "date": "2026-11-19",
+     "milestone": 4,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 27,
+     "date": "2026-11-20",
+     "milestone": 4,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 28,
+     "date": "2026-11-23",
+     "milestone": 4,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 29,
+     "date": "2026-11-24",
+     "milestone": 4,
+     "state": "future",
+     "doable": false,
+     "task": null
+    }
+   ],
+   "today_slot": 4,
+   "today_state": "open",
+   "today_task": {
+    "id": "d0000000-0000-4000-8000-0000000e000d",
+    "slot": 4,
+    "title": "Load route 12's stops and pickup times onto the map",
+    "detail": "Read your CSV in the page's code and put a marker on each stop, with its pickup time in the popup. Done when clicking any stop shows its time.",
+    "est_minutes": 25,
+    "fallback": false,
+    "status": "open",
+    "checkin": null,
+    "resources": null
+   },
+   "backlog": {
+    "count": 0,
+    "in_current": 0,
+    "oldest_doable_slot": null,
+    "unlocks_milestone": 2,
+    "catch_up_by": null
+   },
+   "projected_finish": "2026-11-24",
+   "nominal_finish": "2026-11-24",
+   "deadline_risk": false,
+   "welcome_back": {
+    "show": false,
+    "offer_break": false,
+    "gap": 0,
+    "last_active": "2026-10-19"
+   },
+   "next_work_date": null,
+   "remaining": 26,
+   "total": 29
+  },
+  "state_after": {
+   "today": "2026-10-20",
+   "timezone": "America/New_York",
+   "stats": {
+    "xp": 40,
+    "level": 1,
+    "into_level": 40,
+    "level_span": 50,
+    "next_level_at": 50,
+    "streak": 4,
+    "best_streak": 4
+   },
+   "view": "active",
+   "quest": {
+    "id": "d0000000-0000-4000-8000-0000000e0001",
+    "title": "BusBuddy, live for your school",
+    "summary": "A working BusBuddy web app that shows your school's bus routes and pickup times on a map and lets riders report a late bus, used by real students.",
+    "goal_kind": "passion_project",
+    "status": "active",
+    "daily_minutes": 30,
+    "rest_days": [
+     0,
+     6
+    ],
+    "start_date": "2026-10-15",
+    "paused_on": null,
+    "ended_on": null,
+    "hard_deadline": null,
+    "add_to_portfolio": true,
+    "portfolio_activity_id": null,
+    "has_portfolio_draft": false,
+    "direction": "By the end you will have BusBuddy running for your school: every route on a map with its scheduled times, and a way for riders to flag a late bus so parents can see it too. You are starting from an empty project, with Java from robotics but no map work yet. It is for the kids at your stop who wait in the cold with no idea when the bus is coming."
+   },
+   "ever": true,
+   "milestones": [
+    {
+     "id": "d0000000-0000-4000-8000-0000000e0002",
+     "position": 1,
+     "title": "Route 12 on a map with its pickup times",
+     "description": "A web page with a map that shows every stop on one route and its scheduled pickup time, loaded from the district's published schedule.",
+     "expected_days": 6,
+     "first_slot": 1,
+     "last_slot": 6,
+     "state": "current",
+     "completed_at": null,
+     "lines": []
+    },
+    {
+     "id": "d0000000-0000-4000-8000-0000000e0003",
+     "position": 2,
+     "title": "Riders can report a late bus",
+     "description": "A button on each stop saves a late report with the time to a free database, and the map shows the reports from the last hour.",
+     "expected_days": 7,
+     "first_slot": 7,
+     "last_slot": 13,
+     "state": "locked",
+     "completed_at": null,
+     "lines": []
+    },
+    {
+     "id": "d0000000-0000-4000-8000-0000000e0004",
+     "position": 3,
+     "title": "Every route at your school",
+     "description": "All of your school's routes load from the schedule, and anyone can pick their route and stop to see only what matters to them.",
+     "expected_days": 5,
+     "first_slot": 14,
+     "last_slot": 18,
+     "state": "locked",
+     "completed_at": null,
+     "lines": []
+    },
+    {
+     "id": "d0000000-0000-4000-8000-0000000e0005",
+     "position": 4,
+     "title": "A week of testing with real riders",
+     "description": "Five to ten students on one route use it for a week, and you write down what confused them and what broke.",
+     "expected_days": 6,
+     "first_slot": 19,
+     "last_slot": 24,
+     "state": "locked",
+     "completed_at": null,
+     "lines": []
+    },
+    {
+     "id": "d0000000-0000-4000-8000-0000000e0006",
+     "position": 5,
+     "title": "BusBuddy ready to share",
+     "description": "Fix what testers found, put it on a free host with a short link, and share it with students and parents on your routes.",
+     "expected_days": 5,
+     "first_slot": 25,
+     "last_slot": 29,
+     "state": "locked",
+     "completed_at": null,
+     "lines": []
+    }
+   ],
+   "stones": [
+    {
+     "slot": 1,
+     "date": "2026-10-15",
+     "milestone": 0,
+     "state": "done",
+     "doable": false,
+     "task": {
+      "id": "d0000000-0000-4000-8000-0000000e0007",
+      "title": "Find your district's bus schedule and save route 12"
+     }
+    },
+    {
+     "slot": 2,
+     "date": "2026-10-16",
+     "milestone": 0,
+     "state": "done",
+     "doable": false,
+     "task": {
+      "id": "d0000000-0000-4000-8000-0000000e0009",
+      "title": "Set up the project and show a map of your town"
+     }
+    },
+    {
+     "slot": 3,
+     "date": "2026-10-19",
+     "milestone": 0,
+     "state": "done",
+     "doable": false,
+     "task": {
+      "id": "d0000000-0000-4000-8000-0000000e000b",
+      "title": "Add coordinates to every stop on route 12"
+     }
+    },
+    {
+     "slot": 4,
+     "date": "2026-10-20",
+     "milestone": 0,
+     "state": "done",
+     "doable": false,
+     "task": {
+      "id": "d0000000-0000-4000-8000-0000000e000d",
+      "title": "Load route 12's stops and pickup times onto the map"
+     }
+    },
+    {
+     "slot": 5,
+     "date": "2026-10-21",
+     "milestone": 0,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 6,
+     "date": "2026-10-22",
+     "milestone": 0,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 7,
+     "date": "2026-10-23",
+     "milestone": 1,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 8,
+     "date": "2026-10-26",
+     "milestone": 1,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 9,
+     "date": "2026-10-27",
+     "milestone": 1,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 10,
+     "date": "2026-10-28",
+     "milestone": 1,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 11,
+     "date": "2026-10-29",
+     "milestone": 1,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 12,
+     "date": "2026-10-30",
+     "milestone": 1,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 13,
+     "date": "2026-11-02",
+     "milestone": 1,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 14,
+     "date": "2026-11-03",
+     "milestone": 2,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 15,
+     "date": "2026-11-04",
+     "milestone": 2,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 16,
+     "date": "2026-11-05",
+     "milestone": 2,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 17,
+     "date": "2026-11-06",
+     "milestone": 2,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 18,
+     "date": "2026-11-09",
+     "milestone": 2,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 19,
+     "date": "2026-11-10",
+     "milestone": 3,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 20,
+     "date": "2026-11-11",
+     "milestone": 3,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 21,
+     "date": "2026-11-12",
+     "milestone": 3,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 22,
+     "date": "2026-11-13",
+     "milestone": 3,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 23,
+     "date": "2026-11-16",
+     "milestone": 3,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 24,
+     "date": "2026-11-17",
+     "milestone": 3,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 25,
+     "date": "2026-11-18",
+     "milestone": 4,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 26,
+     "date": "2026-11-19",
+     "milestone": 4,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 27,
+     "date": "2026-11-20",
+     "milestone": 4,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 28,
+     "date": "2026-11-23",
+     "milestone": 4,
+     "state": "future",
+     "doable": false,
+     "task": null
+    },
+    {
+     "slot": 29,
+     "date": "2026-11-24",
+     "milestone": 4,
+     "state": "future",
+     "doable": false,
+     "task": null
+    }
+   ],
+   "today_slot": 4,
+   "today_state": "done",
+   "today_task": {
+    "id": "d0000000-0000-4000-8000-0000000e000d",
+    "slot": 4,
+    "title": "Load route 12's stops and pickup times onto the map",
+    "detail": "Read your CSV in the page's code and put a marker on each stop, with its pickup time in the popup. Done when clicking any stop shows its time.",
+    "est_minutes": 25,
+    "fallback": false,
+    "status": "done",
+    "checkin": {
+     "id": "d0000000-0000-4000-8000-0000000e000e",
+     "body": "Got the bus times loading from the district's schedule file and showing on the map.",
+     "reply": "Real pickup times from the district's own file, showing on your map, is the heart of BusBuddy. Click a few stops and check them against the file so you know every time landed on the right stop.",
+     "followup": null,
+     "followup_answer": null,
+     "thin": false,
+     "on_time": true,
+     "xp_awarded": 10
+    },
+    "resources": null
+   },
+   "backlog": {
+    "count": 0,
+    "in_current": 0,
+    "oldest_doable_slot": null,
+    "unlocks_milestone": 2,
+    "catch_up_by": null
+   },
+   "projected_finish": "2026-11-24",
+   "nominal_finish": "2026-11-24",
+   "deadline_risk": false,
+   "welcome_back": {
+    "show": false,
+    "offer_break": false,
+    "gap": 0,
+    "last_active": "2026-10-20"
+   },
+   "next_work_date": "2026-10-21",
+   "remaining": 25,
+   "total": 29
+  },
+  "checkin": {
+   "body": "Got the bus times loading from the district's schedule file and showing on the map.",
+   "reply": "Real pickup times from the district's own file, showing on your map, is the heart of BusBuddy. Click a few stops and check them against the file so you know every time landed on the right stop.",
+   "xp_awarded": 10
+  },
+  "source": "demo-video:demo-video/gen/quest/payloads.json (real backend service output for the demo student)"
+ },
+ "colleges": {
+  "stats": {
+   "sat": 1450,
+   "act": null,
+   "gpa": 3.86
+  },
+  "list": [
+   {
+    "id": "d0000000-0000-4000-8000-0000000e0001",
+    "name": "Carnegie Mellon University",
+    "city": "Pittsburgh",
+    "state": "PA",
+    "admission_rate": 0.1166,
+    "sat_25": 1500,
+    "sat_75": 1570,
+    "act_25": 34,
+    "act_75": 35,
+    "net_price": 35780,
+    "enrollment": 7304,
+    "category": "reach",
+    "category_source": "suggested",
+    "created_at": "2026-10-07T23:12:00.000Z"
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000e0002",
+    "name": "Georgia Institute of Technology-Main Campus",
+    "city": "Atlanta",
+    "state": "GA",
+    "admission_rate": 0.1407,
+    "sat_25": 1370,
+    "sat_75": 1540,
+    "act_25": 30,
+    "act_75": 34,
+    "net_price": 12028,
+    "enrollment": 18785,
+    "category": "reach",
+    "category_source": "suggested",
+    "created_at": "2026-10-07T23:14:00.000Z"
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000e0003",
+    "name": "Purdue University-Main Campus",
+    "city": "West Lafayette",
+    "state": "IN",
+    "admission_rate": 0.4987,
+    "sat_25": 1200,
+    "sat_75": 1480,
+    "act_25": 27,
+    "act_75": 34,
+    "net_price": 14851,
+    "enrollment": 44503,
+    "category": "target",
+    "category_source": "suggested",
+    "created_at": "2026-10-07T23:17:00.000Z"
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000e0004",
+    "name": "Ohio State University-Main Campus",
+    "city": "Columbus",
+    "state": "OH",
+    "admission_rate": 0.6057,
+    "sat_25": 1310,
+    "sat_75": 1480,
+    "act_25": 28,
+    "act_75": 32,
+    "net_price": 17269,
+    "enrollment": 45638,
+    "category": "target",
+    "category_source": "suggested",
+    "created_at": "2026-10-09T00:40:00.000Z"
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000e0005",
+    "name": "Case Western Reserve University",
+    "city": "Cleveland",
+    "state": "OH",
+    "admission_rate": 0.3654,
+    "sat_25": 1430,
+    "sat_75": 1540,
+    "act_25": 32,
+    "act_75": 34,
+    "net_price": 44622,
+    "enrollment": 6437,
+    "category": "target",
+    "category_source": "suggested",
+    "created_at": "2026-10-11T19:05:00.000Z"
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000e0006",
+    "name": "University of Cincinnati-Main Campus",
+    "city": "Cincinnati",
+    "state": "OH",
+    "admission_rate": 0.8529,
+    "sat_25": 1160,
+    "sat_75": 1370,
+    "act_25": 24,
+    "act_75": 29,
+    "net_price": 24917,
+    "enrollment": 29882,
+    "category": "likely",
+    "category_source": "suggested",
+    "created_at": "2026-10-11T19:09:00.000Z"
+   }
+  ],
+  "added": {
+   "id": "lp-ohio-university",
+   "scorecard_id": 204857,
+   "name": "Ohio University-Main Campus",
+   "city": "Athens",
+   "state": "OH",
+   "admission_rate": 0.8499,
+   "sat_25": 1090,
+   "sat_75": 1290,
+   "act_25": 22,
+   "act_75": 28,
+   "net_price": 20666,
+   "enrollment": 19633,
+   "category": "likely",
+   "category_source": "suggested",
+   "created_at": "2026-10-20T16:12:00.000Z"
+  },
+  "search_query": "Ohio University",
+  "search_results": [
+   {
+    "scorecard_id": 204857,
+    "name": "Ohio University-Main Campus",
+    "city": "Athens",
+    "state": "OH",
+    "admission_rate": 0.8499,
+    "sat_25": 1090,
+    "sat_75": 1290,
+    "act_25": 22,
+    "act_75": 28,
+    "net_price": 20666,
+    "enrollment": 19633
+   },
+   {
+    "scorecard_id": 204820,
+    "name": "Ohio University-Chillicothe Campus",
+    "city": "Chillicothe",
+    "state": "OH",
+    "admission_rate": 1,
+    "sat_25": null,
+    "sat_75": null,
+    "act_25": null,
+    "act_75": null,
+    "net_price": 6719,
+    "enrollment": 833
+   }
+  ],
+  "source": "College Scorecard API (api.data.gov, DEMO_KEY), fetched 2026-10-20; list rows from demo-video:demo-video/gen/colleges/list_rows.json; search ranked and cleaned exactly as supabase/functions/_shared/scorecard.ts cleanResults/cleanSchool"
+ },
+ "agents": {
+  "finder_items": [
+   {
+    "provider": "Calvin Coolidge Presidential Fund",
+    "summary": "The 2026-27 Coolidge Scholarship application is open. After the December 1 deadline, some applicants are invited to a virtual Second Assessment, and finalists interview in Vermont in spring 2027.",
+    "deadline_text": "December 1, 2026 at 5:00 PM Pacific Time",
+    "amount_text": "",
+    "cost_text": "",
+    "dates_text": "",
+    "location_text": "",
+    "kind": "scholarship",
+    "verified": true,
+    "deadline": "2026-12-01",
+    "deadline_kind": "date",
+    "amount_usd": null,
+    "cost_usd": null,
+    "aid": null,
+    "eligibility": [],
+    "requirements": [
+     "All application materials, including letters of reference must be submitted by the deadline."
+    ],
+    "title": "Coolidge Scholarship",
+    "url": "https://coolidgescholars.org/selection-timeline/",
+    "source_url": "https://coolidgescholars.org/selection-timeline/",
+    "canonical_url": "https://coolidgescholars.org/selection-timeline",
+    "confirm": [],
+    "fit_reason": "Matches what you asked for: Big scholarships I can apply for as a junior",
+    "record_ref": "",
+    "user_id": "d0000000-0000-4000-8000-000000000001",
+    "search_id": "d0000000-0000-4000-8000-0000000a9001",
+    "lane": "scholarship",
+    "status": "saved",
+    "checked_at": "2026-10-09T21:10:00+00:00",
+    "updated_at": "2026-10-09T21:14:00+00:00",
+    "position": -1,
+    "id": "d0000000-0000-4000-8000-0000000a9002",
+    "created_at": "2026-10-09T21:10:00+00:00"
+   },
+   {
+    "provider": "MIT PRIMES",
+    "summary": "A nationwide research program in mathematics and bioinformatics for high school juniors and sophomores outside Greater Boston. Applicants list their math courses and experiences, such as competitions, and solve an entrance problem set.",
+    "deadline_text": "The deadline for applications is 11:59 pm EST on November 2, 2026.",
+    "amount_text": "",
+    "cost_text": "",
+    "dates_text": "",
+    "location_text": "",
+    "kind": "research",
+    "verified": true,
+    "deadline": "2026-11-02",
+    "deadline_kind": "date",
+    "amount_usd": null,
+    "cost_usd": null,
+    "aid": null,
+    "eligibility": [
+     "High school juniors and sophomores (including home schooled) residing in the United States are eligible."
+    ],
+    "requirements": [
+     "Name 2-3 recommenders",
+     "Submit a personal statement",
+     "List the math books you have read and the math courses your have taken",
+     "List your other math experiences (math camps, competitions) and computing skills",
+     "Submit your solutions to the entrance problem set",
+     "Online interview"
+    ],
+    "title": "PRIMES-USA",
+    "url": "https://math.mit.edu/research/highschool/primes/usa/apply-usa.html",
+    "source_url": "https://math.mit.edu/research/highschool/primes/usa/apply-usa.html",
+    "canonical_url": "https://math.mit.edu/research/highschool/primes/usa/apply-usa.html",
+    "confirm": [],
+    "fit_reason": "Your Math Team competitions are the kind of math experience PRIMES-USA asks applicants to list, along with an entrance problem set.",
+    "record_ref": "Math Team",
+    "user_id": "d0000000-0000-4000-8000-000000000001",
+    "search_id": "d0000000-0000-4000-8000-0000000a9003",
+    "lane": "activity",
+    "status": "applying",
+    "checked_at": "2026-10-16T22:40:00+00:00",
+    "updated_at": "2026-10-17T15:05:00+00:00",
+    "position": -1,
+    "id": "d0000000-0000-4000-8000-0000000a9004",
+    "created_at": "2026-10-16T22:40:00+00:00",
+    "req_done": [
+     0,
+     1
+    ]
+   },
+   {
+    "provider": "Center for Excellence in Education",
+    "summary": "A cost-free summer program at MIT: a week of STEM classes with professors, then a five week research internship on an individual project with a mentor, ending in written and oral reports.",
+    "deadline_text": "Applications for RSI 2027 are open through 11:59pm December 11, 2026",
+    "amount_text": "",
+    "cost_text": "cost-free to students",
+    "dates_text": "",
+    "location_text": "Massachusetts Institute of Technology (MIT)",
+    "kind": "research",
+    "verified": true,
+    "deadline": "2026-12-11",
+    "deadline_kind": "date",
+    "amount_usd": null,
+    "cost_usd": 0,
+    "aid": null,
+    "eligibility": [
+     "High school juniors are eligible.",
+     "High school seniors are not."
+    ],
+    "requirements": [],
+    "title": "Research Science Institute",
+    "url": "https://www.cee.org/programs/research-science-institute",
+    "source_url": "https://www.cee.org/programs/research-science-institute",
+    "canonical_url": "https://cee.org/programs/research-science-institute",
+    "confirm": [],
+    "fit_reason": "You wrote the autonomous routines for your FIRST Tech Challenge team, and RSI is built around five weeks on your own research project with a mentor.",
+    "record_ref": "FIRST Tech Challenge team",
+    "user_id": "d0000000-0000-4000-8000-000000000001",
+    "search_id": "d0000000-0000-4000-8000-0000000a9003",
+    "lane": "activity",
+    "status": "saved",
+    "checked_at": "2026-10-16T22:40:00+00:00",
+    "updated_at": "2026-10-16T22:46:00+00:00",
+    "position": -2,
+    "id": "d0000000-0000-4000-8000-0000000a9005",
+    "created_at": "2026-10-16T22:40:00+00:00",
+    "notes": "Ask my AP Calc teacher and my FTC coach for the two recommendations."
+   },
+   {
+    "provider": "Carnegie Mellon University",
+    "summary": "A fully funded six week program at Carnegie Mellon with math and science seminars, a research project and a research symposium. It selects students with a strong interest in STEM and a commitment to their community through extra-curricular activities.",
+    "deadline_text": "Application Deadline February 1, 2027",
+    "amount_text": "",
+    "cost_text": "There is no cost for scholars to participate beyond their travel to and from Pittsburgh, PA.",
+    "dates_text": "June 26 to August 7, 2027 (6 weeks)",
+    "location_text": "Pittsburgh, PA",
+    "kind": "summer_program",
+    "verified": true,
+    "deadline": "2027-02-01",
+    "deadline_kind": "date",
+    "amount_usd": null,
+    "cost_usd": 0,
+    "aid": null,
+    "eligibility": [
+     "Be at least 16 years old by the program start date.",
+     "Be a U.S. citizen or permanent resident.",
+     "Be in 11th grade in high school at the time of application submission."
+    ],
+    "requirements": [
+     "Online application",
+     "Unofficial high school transcript",
+     "Standardized test scores",
+     "Two (2) letters of recommendation (one must be from a current math instructor*)",
+     "Completion of two essay prompts indicated in the application",
+     "financial documentation is required for application submission"
+    ],
+    "title": "Summer Academy for Math and Science",
+    "url": "https://www.cmu.edu/pre-college/academic-programs/sams.html",
+    "source_url": "https://www.cmu.edu/pre-college/academic-programs/sams.html",
+    "canonical_url": "https://cmu.edu/pre-college/academic-programs/sams.html",
+    "confirm": [
+     "Open to students with financial need. You'd need to confirm this."
+    ],
+    "fit_reason": "Your Code Club for middle schoolers is the kind of community commitment SAMS selects for, next to six weeks of math and science at Carnegie Mellon.",
+    "record_ref": "Code Club for middle schoolers",
+    "user_id": "d0000000-0000-4000-8000-000000000001",
+    "search_id": "d0000000-0000-4000-8000-0000000a9003",
+    "lane": "activity",
+    "status": "new",
+    "checked_at": "2026-10-16T22:40:00+00:00",
+    "updated_at": "2026-10-16T22:40:00+00:00",
+    "position": 0.0,
+    "id": "d0000000-0000-4000-8000-0000000a9006",
+    "created_at": "2026-10-16T22:40:00+00:00"
+   }
+  ],
+  "essay": {
+   "kind": "personal_statement",
+   "title": "Thirty seconds",
+   "prompt_key": "2",
+   "prompt_text": "The lessons we take from obstacles we encounter can be fundamental to later success. Recount a time when you faced a challenge, setback, or failure. How did it affect you, and what did you learn from the experience?",
+   "college_id": null,
+   "school_name": "",
+   "word_limit": 650,
+   "topic_id": "d0000000-0000-4000-8000-0000000a9007",
+   "user_id": "d0000000-0000-4000-8000-000000000001",
+   "updated_at": "2026-10-18T23:20:00+00:00",
+   "id": "d0000000-0000-4000-8000-0000000a9011",
+   "created_at": "2026-10-12T00:30:00+00:00",
+   "body": "For the first thirty seconds of every FTC match, nobody is allowed to touch the robot. It runs on whatever code you gave it, and you just stand behind the line and watch.\n\nAt our first qualifier sophomore year, I watched our robot drive straight past the scoring zone and into the wall. Then it did it again the next match. I had written that autonomous routine, and I had tested it in our practice room maybe fifty times. Every time it worked. On the real field it didn't, and I had no idea why.\n\nOn the bus home I kept replaying it. I had been so sure the code was right that I never wrote down what I changed between tests. When something broke, I fixed it from memory and moved on. So when it failed at the qualifier, I had nothing to look back at. I couldn't even tell which version was running.\n\nThe team decided to rebuild the whole autonomous program from scratch, and everyone stayed late every night that week.\n\nThe next Monday I started a log. Every test got a line: the date, the battery level, what I changed, and what the robot actually did. It was boring. Some nights the log said the same thing ten times in a row. But after two weeks the pattern was obvious. Our practice room had carpet tiles, the competition field had foam mats, and the wheels slipped just enough on the foam that every turn came up short. The code was never wrong. My idea of where the robot was standing was wrong.\n\nWe fixed it by having the robot check its position with a sensor instead of trusting how far the wheels had turned. At the state championship that spring, our autonomous scored in every match, and the judges gave us the Think Award for our engineering notebook, which was mostly my log, cleaned up.\n\nI learned a lot about perseverance and teamwork that season.\n\nI think about that log on Saturdays now, at the Code Club I started at the library. When one of the middle schoolers says their Scratch game is broken, the old me would have grabbed the mouse and fixed it. Now I ask them what they expected to happen and what happened instead, and we write it on a sticky note. Usually they find the bug before I do. One girl kept a stack of sticky notes on her laptop for a month, then started her own log in a notebook with a dinosaur on the cover.\n\nBeing wrong in front of everyone is not fun. But I would rather find out exactly how I was wrong than be right by accident. That is why I want to study computer science.",
+   "word_count": 460,
+   "status": "revising"
+  },
+  "essay_review": {
+   "summary": "The draft tells how your autonomous routine failed at a qualifier, how the test log you started found the cause, and how that log now shapes the way you help kids at Code Club.",
+   "word_count": 460,
+   "word_limit": 650,
+   "word_min": 250,
+   "checks": [
+    {
+     "check": "prompt",
+     "verdict": "ok",
+     "line": "The draft recounts a failure and says what you did after it and how it affected you."
+    },
+    {
+     "check": "specificity",
+     "verdict": "flag",
+     "line": "Most of the draft is concrete, and one sentence near the middle sums up the season in general words."
+    },
+    {
+     "check": "presence",
+     "verdict": "flag",
+     "line": "You are in almost every paragraph, and one sentence about the rebuild is about the team alone."
+    },
+    {
+     "check": "point",
+     "verdict": "flag",
+     "line": "The draft says why this matters to you only in its final sentence."
+    },
+    {
+     "check": "length",
+     "verdict": "ok",
+     "line": "460 words, within the limit of 650."
+    },
+    {
+     "check": "consistency",
+     "verdict": "ok",
+     "line": "The draft's robot team, Think Award and Code Club match your record."
+    },
+    {
+     "check": "overlap",
+     "verdict": "ok",
+     "line": "No passage only repeats what an activity or award entry already says."
+    }
+   ],
+   "notes": [
+    {
+     "id": "n1",
+     "check": "presence",
+     "quote": "The team decided to rebuild the whole autonomous program from scratch, and everyone stayed late every night that week.",
+     "start": 802,
+     "end": 920,
+     "observation": "In this sentence the team decides and everyone stays late, and you are not in it as someone who did or chose something.",
+     "question": "Where were you during that week, and which part of the rebuild was yours?",
+     "record_says": "",
+     "other": null
+    },
+    {
+     "id": "n2",
+     "check": "specificity",
+     "quote": "I learned a lot about perseverance and teamwork that season.",
+     "start": 1705,
+     "end": 1765,
+     "observation": "This sentence names what the season taught you in general words, and it sits right after a paragraph built from exact details.",
+     "question": "Which moment from that season shows you what you mean by perseverance?",
+     "record_says": "",
+     "other": null
+    },
+    {
+     "id": "n3",
+     "check": "point",
+     "quote": "That is why I want to study computer science.",
+     "start": 2376,
+     "end": 2421,
+     "observation": "This last sentence is the only place the draft says why the story matters to you, and it names a subject to study.",
+     "question": "What does finding out exactly how you were wrong have to do with why you write code?",
+     "record_says": "",
+     "other": null
+    }
+   ],
+   "cuts": [],
+   "prompt_key": "2",
+   "prompt_text": "The lessons we take from obstacles we encounter can be fundamental to later success. Recount a time when you faced a challenge, setback, or failure. How did it affect you, and what did you learn from the experience?",
+   "essay_id": "d0000000-0000-4000-8000-0000000a9011",
+   "version_id": "d0000000-0000-4000-8000-0000000a9012",
+   "user_id": "d0000000-0000-4000-8000-000000000001",
+   "id": "d0000000-0000-4000-8000-0000000a9013",
+   "created_at": "2026-10-18T23:12:41+00:00"
+  },
+  "essay_body": "For the first thirty seconds of every FTC match, nobody is allowed to touch the robot. It runs on whatever code you gave it, and you just stand behind the line and watch.\n\nAt our first qualifier sophomore year, I watched our robot drive straight past the scoring zone and into the wall. Then it did it again the next match. I had written that autonomous routine, and I had tested it in our practice room maybe fifty times. Every time it worked. On the real field it didn't, and I had no idea why.\n\nOn the bus home I kept replaying it. I had been so sure the code was right that I never wrote down what I changed between tests. When something broke, I fixed it from memory and moved on. So when it failed at the qualifier, I had nothing to look back at. I couldn't even tell which version was running.\n\nThe team decided to rebuild the whole autonomous program from scratch, and everyone stayed late every night that week.\n\nThe next Monday I started a log. Every test got a line: the date, the battery level, what I changed, and what the robot actually did. It was boring. Some nights the log said the same thing ten times in a row. But after two weeks the pattern was obvious. Our practice room had carpet tiles, the competition field had foam mats, and the wheels slipped just enough on the foam that every turn came up short. The code was never wrong. My idea of where the robot was standing was wrong.\n\nWe fixed it by having the robot check its position with a sensor instead of trusting how far the wheels had turned. At the state championship that spring, our autonomous scored in every match, and the judges gave us the Think Award for our engineering notebook, which was mostly my log, cleaned up.\n\nI learned a lot about perseverance and teamwork that season.\n\nI think about that log on Saturdays now, at the Code Club I started at the library. When one of the middle schoolers says their Scratch game is broken, the old me would have grabbed the mouse and fixed it. Now I ask them what they expected to happen and what happened instead, and we write it on a sticky note. Usually they find the bug before I do. One girl kept a stack of sticky notes on her laptop for a month, then started her own log in a notebook with a dinosaur on the cover.\n\nBeing wrong in front of everyone is not fun. But I would rather find out exactly how I was wrong than be right by accident. That is why I want to study computer science.\n",
+  "source": "demo-video:demo-video/gen/agents/fixtures.json"
+ },
+ "student": {
+  "profile": {
+   "full_name": "Demo Student",
+   "grade_level": 11,
+   "graduation_year": 2028,
+   "location_general": "Ohio",
+   "gpa_unweighted": 3.86,
+   "gpa_weighted": 4.31,
+   "gpa_scale": "4.0",
+   "candidate_majors": [
+    "Computer Science"
+   ],
+   "narrative": {
+    "theme": "Builds software that solves problems for the people around them",
+    "theme_evidence": [
+     "Wrote the autonomous code for the FTC robot and taught Java to new members",
+     "Started a free Saturday Code Club at the public library",
+     "Building BusBuddy so families know when the school bus is late"
+    ],
+    "detailed_activity_ids": [
+     "d0000000-0000-4000-8000-0000000a0001",
+     "d0000000-0000-4000-8000-0000000a0002",
+     "d0000000-0000-4000-8000-0000000a0003",
+     "d0000000-0000-4000-8000-0000000a0004",
+     "d0000000-0000-4000-8000-0000000a0005"
+    ],
+    "concerns": [
+     "Works weekend shifts, which limits time for summer programs that charge tuition"
+    ],
+    "gaps": [
+     "No research or internship experience yet"
+    ],
+    "student_voice": [
+     "I like it when something I wrote actually gets used by someone who isn't me.",
+     "The kids at Code Club ask better questions than I did at their age."
+    ],
+    "summary": "A junior who learns by building: robot code, a library coding club for younger kids, and now an app for late school buses, all while working weekend shifts."
+   }
+  },
+  "activities": [
+   {
+    "id": "d0000000-0000-4000-8000-0000000a0001",
+    "order_index": 1,
+    "detail_level": "enriched",
+    "continue_in_college": true,
+    "created_at": "2026-10-06T16:00:00.000Z",
+    "category": "Robotics",
+    "title": "FIRST Tech Challenge team",
+    "position": "Programming lead",
+    "organization": "Westview High School Robotics",
+    "description": "Lead a 4-person software group; wrote the autonomous routines and taught Java to 6 new members.",
+    "grade_levels": [
+     9,
+     10,
+     11
+    ],
+    "timing": "school_year",
+    "hours_per_week": 8,
+    "weeks_per_year": 30
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000a0002",
+    "order_index": 2,
+    "detail_level": "enriched",
+    "continue_in_college": true,
+    "created_at": "2026-10-06T16:00:00.000Z",
+    "category": "Community Service (Volunteer)",
+    "title": "Code Club for middle schoolers",
+    "position": "Founder and teacher",
+    "organization": "Northside Public Library",
+    "description": "Started a free Saturday club teaching Scratch and Python; 14 regulars this fall.",
+    "grade_levels": [
+     10,
+     11
+    ],
+    "timing": "school_year",
+    "hours_per_week": 3,
+    "weeks_per_year": 28
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000a0003",
+    "order_index": 3,
+    "detail_level": "enriched",
+    "continue_in_college": false,
+    "created_at": "2026-10-06T16:00:00.000Z",
+    "category": "Work (Paid)",
+    "title": "Cashier",
+    "position": "Part-time cashier",
+    "organization": "Corner Market grocery",
+    "description": "Weekend shifts; trained two new cashiers on the register system.",
+    "grade_levels": [
+     10,
+     11
+    ],
+    "timing": "all_year",
+    "hours_per_week": 10,
+    "weeks_per_year": 48
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000a0004",
+    "order_index": 4,
+    "detail_level": "enriched",
+    "continue_in_college": false,
+    "created_at": "2026-10-06T16:00:00.000Z",
+    "category": "Science/Math",
+    "title": "Math Team",
+    "position": "Member",
+    "organization": "Westview High School",
+    "description": "Compete in the county league and the AMC; top scorer on the junior team.",
+    "grade_levels": [
+     9,
+     10,
+     11
+    ],
+    "timing": "school_year",
+    "hours_per_week": 2,
+    "weeks_per_year": 25
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000a0005",
+    "order_index": 5,
+    "detail_level": "enriched",
+    "continue_in_college": true,
+    "created_at": "2026-10-06T16:00:00.000Z",
+    "category": "Computer/Technology",
+    "title": "BusBuddy app",
+    "position": "Creator",
+    "organization": "Personal project",
+    "description": "Building a web app that shows when each school bus is running late, for students and parents.",
+    "grade_levels": [
+     11
+    ],
+    "timing": "all_year",
+    "hours_per_week": 4,
+    "weeks_per_year": 20
+   }
+  ],
+  "awards": [
+   {
+    "id": "d0000000-0000-4000-8000-0000000b0001",
+    "order_index": 1,
+    "title": "FTC State Championship, Think Award",
+    "level": "state",
+    "grade_level": 10,
+    "year": 2026,
+    "description": "For the engineering notebook documenting our autonomous code."
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000b0002",
+    "order_index": 2,
+    "title": "AMC 10 Honor Roll",
+    "level": "national",
+    "grade_level": 10,
+    "year": 2026,
+    "description": "Top 5% of AMC 10 scores nationally."
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000b0003",
+    "order_index": 3,
+    "title": "Library Youth Volunteer of the Year",
+    "level": "regional",
+    "grade_level": 10,
+    "year": 2026,
+    "description": "For founding the Saturday Code Club."
+   }
+  ],
+  "courses": [
+   {
+    "id": "d0000000-0000-4000-8000-0000000c0001",
+    "order_index": 1,
+    "name": "AP Computer Science A",
+    "level": "ap",
+    "grade_level": 10,
+    "year": null,
+    "planned": false
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000c0002",
+    "order_index": 2,
+    "name": "AP World History",
+    "level": "ap",
+    "grade_level": 10,
+    "year": null,
+    "planned": false
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000c0003",
+    "order_index": 3,
+    "name": "Honors Chemistry",
+    "level": "honors",
+    "grade_level": 10,
+    "year": null,
+    "planned": false
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000c0004",
+    "order_index": 4,
+    "name": "AP Calculus BC",
+    "level": "ap",
+    "grade_level": 11,
+    "year": null,
+    "planned": false
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000c0005",
+    "order_index": 5,
+    "name": "AP Physics 1",
+    "level": "ap",
+    "grade_level": 11,
+    "year": null,
+    "planned": false
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000c0006",
+    "order_index": 6,
+    "name": "AP English Language",
+    "level": "ap",
+    "grade_level": 11,
+    "year": null,
+    "planned": false
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000c0007",
+    "order_index": 7,
+    "name": "AP Computer Science Principles",
+    "level": "ap",
+    "grade_level": 11,
+    "year": null,
+    "planned": false
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000c0008",
+    "order_index": 8,
+    "name": "Multivariable Calculus",
+    "level": "dual_enrollment",
+    "grade_level": 12,
+    "year": null,
+    "planned": true
+   }
+  ],
+  "test_scores": [
+   {
+    "id": "d0000000-0000-4000-8000-0000000d0001",
+    "test_type": "sat",
+    "score": 1450,
+    "section_scores": {
+     "reading_writing": 690,
+     "math": 760
+    },
+    "subject": null,
+    "test_date": "2026-08-23",
+    "attempt": 1
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000d0002",
+    "test_type": "ap",
+    "score": 5,
+    "section_scores": {},
+    "subject": "Computer Science A",
+    "test_date": "2026-05-08",
+    "attempt": 1
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000d0003",
+    "test_type": "ap",
+    "score": 4,
+    "section_scores": {},
+    "subject": "World History",
+    "test_date": "2026-05-14",
+    "attempt": 1
+   }
+  ],
+  "source": "demo-video:demo-video/gen/agents/student.json"
+ },
+ "interview": {
+  "transcript": "Interviewer: Let's start with FIRST Tech Challenge team. What was your own role on the team?\n\nStudent: I wrote the autonomous code for our robot and now I teach the new kids Java.\n\nInterviewer: Got it, so you own the robot's code and train the new members. Next, Code Club for middle schoolers. What's your part in it?\n\nStudent: I started a free coding club at the library because my little cousin had nowhere to learn.\n\nInterviewer: So you founded it. About how many hours a week do you spend on Code Club for middle schoolers?",
+  "source": "demo-video:demo-video/gen/onboarding/generated.json (real interviewer replies, scripted answers)"
+ }
+}

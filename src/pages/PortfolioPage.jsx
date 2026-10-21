@@ -391,7 +391,7 @@ function ActivityCard({ activity, onPatch, onDelete }) {
   const meta = [
     a.position, a.organization,
     a.hours_per_week && a.weeks_per_year ? `${a.hours_per_week} hrs/wk, ${a.weeks_per_year} wks/yr` : null,
-    (a.grade_levels || []).length ? `Grades ${(a.grade_levels || []).join(", ")}` : null,
+    (a.grade_levels || []).length ? `${(a.grade_levels || []).length === 1 ? "Grade" : "Grades"} ${(a.grade_levels || []).join(", ")}` : null,
   ].filter(Boolean);
 
   return (

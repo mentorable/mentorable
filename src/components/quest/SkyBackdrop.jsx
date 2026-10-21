@@ -54,6 +54,11 @@ const SKY_CSS = `
   .${SKY_CLASS}-glow, .${SKY_CLASS}-glide { animation: none; }
   .${SKY_CLASS}-shoot { animation: none; opacity: 0; }
 }
+.${SKY_CLASS}-still .${SKY_CLASS}-twinkle, .${SKY_CLASS}-still .${SKY_CLASS}-drift, .${SKY_CLASS}-still .${SKY_CLASS}-bob,
+.${SKY_CLASS}-still .${SKY_CLASS}-sway, .${SKY_CLASS}-still .${SKY_CLASS}-fly, .${SKY_CLASS}-still .${SKY_CLASS}-wave,
+.${SKY_CLASS}-still .${SKY_CLASS}-lap, .${SKY_CLASS}-still .${SKY_CLASS}-flame, .${SKY_CLASS}-still .${SKY_CLASS}-rise,
+.${SKY_CLASS}-still .${SKY_CLASS}-turn, .${SKY_CLASS}-still .${SKY_CLASS}-glow, .${SKY_CLASS}-still .${SKY_CLASS}-glide,
+.${SKY_CLASS}-still .${SKY_CLASS}-shoot { animation-play-state: paused; }
 `;
 if (typeof document !== "undefined" && !document.querySelector("style[data-quest-sky]")) {
   const el = document.createElement("style");
@@ -246,9 +251,11 @@ function Starfish({ x, y }) {
 // ── The scene ────────────────────────────────────────────────────────────────
 
 /** Measures the map (and how far past its column the page reaches) and draws
- *  the climb behind it. Rendered as the map's first child. */
-export default function SkyBackdrop({ isMobile = false }) {
-  const still = useReducedMotion();
+ *  the climb behind it. Rendered as the map's first child.
+ *  showAgents: draw the three agents on the wing. still: hold every motion
+ *  (the landing page sets it once a mockup has settled or is off screen). */
+export default function SkyBackdrop({ isMobile = false, showAgents = true, still: hold = false }) {
+  const still = useReducedMotion() || hold;
   const ref = useRef(null);
   const [box, setBox] = useState(null);   // { w, h, l, r }
 
@@ -302,7 +309,8 @@ export default function SkyBackdrop({ isMobile = false }) {
   }
 
   return (
-    <div ref={ref} aria-hidden="true" style={{ position: "absolute", top: 0, bottom: 0, left: -(box?.l || 0), right: -(box?.r || 0),
+    <div ref={ref} aria-hidden="true" className={hold ? `${SKY_CLASS}-still` : undefined}
+      style={{ position: "absolute", top: 0, bottom: 0, left: -(box?.l || 0), right: -(box?.r || 0),
       zIndex: -1, pointerEvents: "none", overflow: "hidden", borderRadius: 28 }}>
       {box && (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: "block", position: "absolute", inset: 0 }}>
@@ -430,16 +438,16 @@ export default function SkyBackdrop({ isMobile = false }) {
 
       {/* Our agents along the way: Beaker over the beach, Talon high in the
           day sky, Quill out at dusk. */}
-      {box && (
+      {box && showAgents && (
         <>
           <div className={`${SKY_CLASS}-glide`} style={{ position: "absolute", left: onRight(0.25) - mascot / 2, top: at(isMobile ? 0.77 : 0.74) - mascot / 2 }}>
-            <Mascot agent="beaker" state="flying" size={mascot} title="" style={{ transform: "scaleX(-1)" }} />
+            <Mascot agent="beaker" state="flying" size={mascot} title="" animate={!hold} style={{ transform: "scaleX(-1)" }} />
           </div>
           <div className={`${SKY_CLASS}-glide`} style={{ position: "absolute", left: onLeft(0.6) - mascot / 2, top: at(isMobile ? 0.6 : 0.535) - mascot / 2, animationDelay: "-1.4s" }}>
-            <Mascot agent="talon" state="flying" size={mascot} title="" />
+            <Mascot agent="talon" state="flying" size={mascot} title="" animate={!hold} />
           </div>
           <div className={`${SKY_CLASS}-glide`} style={{ position: "absolute", left: onRight(0.6) - mascot / 2, top: at(isMobile ? 0.44 : 0.37) - mascot / 2, animationDelay: "-2.6s" }}>
-            <Mascot agent="quill" state="flying" size={mascot} title="" style={{ transform: "scaleX(-1)" }} />
+            <Mascot agent="quill" state="flying" size={mascot} title="" animate={!hold} style={{ transform: "scaleX(-1)" }} />
           </div>
         </>
       )}

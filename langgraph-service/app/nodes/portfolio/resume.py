@@ -278,7 +278,7 @@ def _activities_section(activities: list[dict]) -> str:
             trailing.append(f"{_num(hrs)} hrs/wk, {_num(wks)} wks/yr")
         grades = [g for g in (a.get("grade_levels") or []) if g]
         if grades:
-            trailing.append("Grades " + ", ".join(str(g) for g in sorted(grades)))
+            trailing.append(("Grade " if len(grades) == 1 else "Grades ") + ", ".join(str(g) for g in sorted(grades)))
 
         # Escape each part, then join with the raw LaTeX separator. Escaping the
         # joined string first would turn the "$|$" math delimiters into literal
