@@ -1,91 +1,143 @@
 // A day on the map as a pixel stone: a stepped disc on a 4px grid, raised by
-// one pixel row of its edge colour, with an 8 by 8 picture inside. The
-// pictures follow the climb (meadow at the start, then forest, rocks, and the
-// snowy top near the finish), so a stone says roughly how high up it sits.
+// one pixel row of its edge colour, with an 8 by 8 picture inside. The picture
+// says what kind of work the day's task is (code, research, reading, writing,
+// practice, reaching out, testing, data, planning, building, sharing), read
+// from its title; a day whose task is not written yet shows a small ring.
 
 export const UNIT = 4;                      // CSS px per pixel, the stamps' own grid at 32px
 const PIC = 8;
 
 // "x" is the picture's main tone, "o" its soft tone.
 const PICTURES = {
-  tulip: [
-    ".x.xx.x.",
-    ".xxxxxx.",
-    ".xxxxxx.",
-    "..xxxx..",
-    "...oo...",
-    "oo.oo.oo",
-    ".oooooo.",
-    "...oo...",
+  code: [
+    "........",
+    "..x.ox..",
+    ".x..o.x.",
+    "x..o...x",
+    ".x.o..x.",
+    "..x..x..",
+    "........",
+    "........",
   ],
-  mushroom: [
-    "..xxxx..",
-    ".xxoxxx.",
-    "xxxxxxox",
-    "xoxxxxxx",
-    "...oo...",
-    "...oo...",
-    "...oo...",
-    ".oooooo.",
+  search: [
+    ".xxxx...",
+    "xo...x..",
+    "x....x..",
+    "x....x..",
+    ".xxxx...",
+    ".....xx.",
+    "......xx",
+    "........",
   ],
-  pine: [
+  book: [
+    "........",
+    ".xx..xx.",
+    "xooxxoox",
+    "xooxxoox",
+    "xooxxoox",
+    "xxxxxxxx",
     "...xx...",
-    "..xxxx..",
-    "...xx...",
-    "..xxxx..",
-    ".xxxxxx.",
-    "xxxxxxxx",
-    "...oo...",
-    "...oo...",
-  ],
-  tree: [
-    "..xxxx..",
-    ".xxxxxx.",
-    "xxxxxxxx",
-    "xxxxxxxx",
-    ".xxxxxx.",
-    "...oo...",
-    "...oo...",
-    "..oooo..",
-  ],
-  rock: [
-    "........",
-    "...xxx..",
-    "..xoxxx.",
-    ".xooxxxx",
-    ".xxxxxxx",
-    "xxxxxxxx",
-    "xxxxxxxx",
     "........",
   ],
-  pebbles: [
-    "........",
-    "........",
+  pencil: [
+    "......xx",
+    ".....xxx",
     "....xxx.",
-    "...xxoxx",
-    ".xx.xxxx",
-    "xoxxxxxx",
-    "xxxxxxxx",
-    "........",
+    "...xxx..",
+    "..xxx...",
+    ".oxx....",
+    ".oo.....",
+    "o.......",
   ],
-  summit: [
+  target: [
+    "..xxxx..",
+    ".x....x.",
+    "x..xx..x",
+    "x.xoox.x",
+    "x.xoox.x",
+    "x..xx..x",
+    ".x....x.",
+    "..xxxx..",
+  ],
+  chat: [
+    "........",
+    ".xxxxxx.",
+    "xxxxxxxx",
+    "xx.xx.xx",
+    "xxxxxxxx",
+    ".xxxxxx.",
+    ".xx.....",
+    ".x......",
+  ],
+  flask: [
+    "..xxxx..",
     "...xx...",
+    "...xx...",
+    "..xxxx..",
+    ".xooooo.",
+    "xoooooox",
+    "xoooooox",
+    ".xxxxxx.",
+  ],
+  chart: [
+    "........",
+    "......xx",
+    "......xx",
+    "...xx.xx",
+    "...xx.xx",
+    "xx.xx.xx",
+    "xx.xx.xx",
+    "oooooooo",
+  ],
+  list: [
+    "..xxxx..",
+    "xxxooxxx",
+    "x......x",
+    "x.xxxx.x",
+    "x......x",
+    "x.xxxx.x",
+    "x......x",
+    "xxxxxxxx",
+  ],
+  hammer: [
+    "xxxxx...",
+    "xxxxxx..",
+    "xxxxx...",
+    "..oo....",
+    "...oo...",
+    "....oo..",
+    ".....oo.",
+    "......oo",
+  ],
+  rocket: [
+    "...xx...",
+    "..xxxx..",
     "..xoox..",
     "..xxxx..",
     ".xxxxxx.",
-    ".xxxxxxx",
-    "xxxxxxxx",
-    "xxxxxxxx",
+    "x.xxxx.x",
+    "...oo...",
+    "..o..o..",
+  ],
+  spark: [
+    "...x....",
+    "...x....",
+    "..xxx...",
+    "xxxxxxx.",
+    "..xxx...",
+    "...x....",
+    "...x....",
     "........",
   ],
-  cloud: [
+  // A day whose task is not written yet (each day's task is made when it comes).
+  upcoming: [
+    "........",
     "........",
     "...xx...",
-    "..xxxx..",
-    ".xxxxxxx",
-    "xxxxxxxx",
-    "xxxxxxxx",
-    ".oooooo.",
+    "..x..x..",
+    "..x..x..",
+    "...xx...",
+    "........",
     "........",
   ],
   star: [
@@ -110,19 +162,32 @@ const PICTURES = {
   ],
 };
 
-// Bottom to top: two pictures a stretch, alternating stone to stone.
-const ZONES = [["tulip", "mushroom"], ["pine", "tree"], ["rock", "pebbles"], ["summit", "cloud"]];
+// What kind of work a task is, read from its title: the first rule whose
+// words appear wins, so the more specific kinds come first.
+const KINDS = [
+  ["code", /\b(code|coding|program|script|function|api|database|deploy|debug|python|java(script)?|html|css|app|website|web ?page|load|import|upload|commit)\b/i],
+  ["flask", /\b(test|tests|testing|experiment|try out|trial|measure|verify|check)\b/i],
+  ["chart", /\b(data|spreadsheet|chart|graph|analy[sz]e|analysis|numbers|stats|statistics|results)\b/i],
+  ["pencil", /\b(write|writing|draft|outline|essay|journal|edit|revise|notes?|blog|caption|summary|summari[sz]e)\b/i],
+  ["search", /\b(find|research|look up|search|explore|gather|collect|investigate|compare|scout|list of)\b/i],
+  ["book", /\b(read|reading|learn|watch|study|course|tutorial|lesson|chapter|video)\b/i],
+  ["target", /\b(practice|practise|solve|problems?|drill|rehearse|exercise|quiz|review|memori[sz]e)\b/i],
+  ["chat", /\b(email|ask|reach out|contact|message|call|interview|meet|meeting|talk|survey|mentor|teacher)\b/i],
+  ["list", /\b(plan|planning|schedule|organi[sz]e|decide|choose|pick|goals?|checklist|map out|prioriti[sz]e)\b/i],
+  ["hammer", /\b(build|make|set up|setup|create|design|prototype|assemble|craft|draw|sketch|paint|add|install|wire)\b/i],
+  ["rocket", /\b(share|post|present|presentation|publish|launch|show|demo|submit|send|announce)\b/i],
+];
 
-/** Which stretch of the climb (0 meadow, 1 forest, 2 rock, 3 snow) a stone
- *  `height` of the way up is in (0 at the start, 1 at the finish). The
- *  mountain behind the map draws its layers from the same split. */
-export function zoneOf(height) {
-  return Math.min(ZONES.length - 1, Math.floor(Math.max(0, height) * ZONES.length));
+/** The picture for a task title: its kind of work, or a spark for anything else. */
+export function kindOf(title) {
+  const t = String(title || "");
+  for (const [kind, re] of KINDS) if (re.test(t)) return kind;
+  return "spark";
 }
 
-/** The picture for a stone `height` of the way up the quest. */
-export function pictureFor(slot, height) {
-  return ZONES[zoneOf(height)][slot % 2];
+/** A stone's picture: the kind of its task, or "upcoming" before it has one. */
+export function pictureFor(stone) {
+  return stone?.task?.title ? kindOf(stone.task.title) : "upcoming";
 }
 
 // One path per shape: a 1-pixel-tall rectangle per run of cells.

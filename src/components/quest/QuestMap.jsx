@@ -43,7 +43,7 @@ function Mark({ kind, color, size = 24 }) {
 
 // ─── A stone ──────────────────────────────────────────────────────────────────
 
-const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, amp, label, height }, ref) {
+const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, amp, label }, ref) {
   const ink = useQuestColors();
   const reduce = useReducedMotion();
   const { state, doable } = stone;
@@ -54,7 +54,7 @@ const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, a
   const c = { accent: ink.accent, edge: darken(ink.accent, 0.28), soft: lighten(ink.accent, 0.55) };
 
   // Future days show their picture faintly; a done day shows it in white on the accent.
-  let look = { fill: STONE, edge: STONE_EDGE, ink: STONE_EDGE, picture: pictureFor(stone.slot, height) };
+  let look = { fill: STONE, edge: STONE_EDGE, ink: STONE_EDGE, picture: pictureFor(stone) };
   let cursor = "default";
   if (state === "done") {
     look = { ...look, fill: c.accent, edge: c.edge, ink: WHITE }; cursor = "pointer";
@@ -206,7 +206,7 @@ function Plate({ milestone, isLast, state, glow }) {
         border: `${current ? 1.5 : 1}px solid ${done ? c.soft : current ? c.text : LINE}`,
         boxShadow: glow ? `0 0 0 6px rgba(${c.accentRgb},0.18)` : "none",
       }}>
-        <StampTile kind="flag" size={42} lit={!locked} />
+        <StampTile kind="flag" size={42} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700,
             color: done ? c.onSoft : current ? c.text : MUTED }}>
@@ -241,7 +241,6 @@ export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartTo
   const stones = state.stones || [];
   const milestones = state.milestones || [];
   const todaySlot = state.today_slot;
-  const heightOf = (slot) => (stones.length > 1 ? (slot - 1) / (stones.length - 1) : 0);
   // Top to bottom: the last milestone (the finish) down to the start.
   const blocks = [...milestones].reverse().map((m, i) => {
     const mine = stones.filter((s) => s.slot >= m.first_slot && s.slot <= m.last_slot).reverse();
@@ -262,7 +261,6 @@ export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartTo
               justDone={justDone === s.slot}
               amp={amp}
               label={stoneLabel(s, state.today)}
-              height={heightOf(s.slot)}
             />
           </Fragment>
         ))}
