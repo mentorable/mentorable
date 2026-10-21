@@ -4,9 +4,9 @@ import { Mockup, PlayPill } from "../frames.jsx";
 import ChatScreen from "../screens/ChatScreen.jsx";
 import HeroImage, { HeroActions, HeroCaption, HeroKicker, HeroSub, HeroTitle } from "./HeroImage.jsx";
 import Perch, { PerchLayer, useBox, usePerches } from "./Perch.jsx";
-import { useFlight } from "./FlyOut.jsx";
+import { useFlight } from "./useFlight.js";
 
-// Hero a, "Birds on the window": the copy centred across the page, the
+// The hero, "Birds on the window": the copy centred across the page, the
 // headline on one line, then a photo plate as wide as the container (a sea
 // of clouds at dusk) with the Chat card in its middle, and Beaker, Talon
 // and Quill perched on the card's top edge like birds on a wire. The
@@ -65,14 +65,14 @@ export default function HeroA() {
   const plate = (
     <div ref={plateRef} style={{ position: "relative", height: L.plateH }}>
       <div style={{ position: "absolute", inset: 0, borderRadius: L.radius, overflow: "hidden", background: "#a9b8cf" }}>
-        <HeroImage which="a" sizes="(min-width: 1440px) 1312px, 100vw" position="50% 100%" />
+        <HeroImage sizes="(min-width: 1440px) 1312px, 100vw" position="50% 100%" />
         <span aria-hidden="true" style={{ position: "absolute", inset: 0, borderRadius: L.radius, boxShadow: "inset 0 0 0 1px rgba(20,20,19,.06)",
           pointerEvents: "none" }} />
       </div>
       <Mockup label={LABEL} settled={settled}
         style={{ position: "absolute", left: sides, right: sides, top: L.top, bottom: L.bottom, borderRadius: 16,
           boxShadow: SHADOW.device }}>
-        <ChatScreen variant="card" layout={phone ? "mobile" : "desktop"} step={tl.step} t={tl.t} still={settled} />
+        <ChatScreen layout={phone ? "mobile" : "desktop"} step={tl.step} t={tl.t} still={settled} />
       </Mockup>
       <PerchLayer open={perches.open} boxRef={layerRef} style={{ left: sides, right: sides, top: L.top, height: 0 }}>
         <Perch agent="beaker" size={size} state="idle" facing="right" settled={settled} onPoke={onPoke} open={perches.open === "beaker"}
@@ -102,7 +102,7 @@ export default function HeroA() {
       <div style={{ maxWidth: CONTAINER, margin: "0 auto" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
           <HeroKicker />
-          <HeroTitle line style={{ marginTop: stacked ? 16 : 20 }} />
+          <HeroTitle style={{ marginTop: stacked ? 16 : 20 }} />
           <HeroSub style={{ marginTop: stacked ? 20 : 24, fontSize: stacked ? "1.0625rem" : "1.2rem", maxWidth: "46rem" }} />
           <HeroActions stacked={phone} style={{ marginTop: stacked ? 24 : 32, justifyContent: "center", alignSelf: phone ? "stretch" : "center" }} />
         </div>

@@ -7,7 +7,7 @@ import TalonScreen from "../screens/TalonScreen.jsx";
 import BeakerScreen from "../screens/BeakerScreen.jsx";
 import QuillScreen from "../screens/QuillScreen.jsx";
 import { Caption } from "../features/StepList.jsx";
-import { useBox } from "../features/Plates.jsx";
+import { useBox } from "../features/Inline.jsx";
 import BandEdge from "./BandEdge.jsx";
 
 // The page's one bold moment (PLAN.md 4.5): a full-bleed blue band with a

@@ -21,20 +21,16 @@ if (typeof document !== "undefined" && !document.querySelector("style[data-lp-na
   document.head.appendChild(el);
 }
 
-function anchorsFor(hero) {
-  return [
-    { id: "record", label: "Your record" },
-    ...(hero === "a" ? [] : [{ id: "chat", label: "Chat" }]),
-    { id: "colleges", label: "College List" },
-    { id: "quest", label: "Quest" },
-    { id: "agents", label: "Agents" },
-  ];
-}
+const ANCHORS = [
+  { id: "record", label: "Your record" },
+  { id: "colleges", label: "College List" },
+  { id: "quest", label: "Quest" },
+  { id: "agents", label: "Agents" },
+];
 
-export default function Nav({ hero = "a" }) {
+export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [current, setCurrent] = useState(null);
-  const anchors = anchorsFor(hero);
 
   useEffect(() => {
     const read = () => setScrolled(window.scrollY > 8);
@@ -52,12 +48,12 @@ export default function Nav({ hero = "a" }) {
     const seen = new Map();
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) seen.set(e.target.id, e.isIntersecting);
-      const hit = anchors.find((a) => seen.get(a.id));
+      const hit = ANCHORS.find((a) => seen.get(a.id));
       setCurrent(hit ? hit.id : null);
     }, { rootMargin: "-45% 0px -50% 0px", threshold: 0 });
     const watched = new Set();
     const observe = () => {
-      for (const a of anchors) {
+      for (const a of ANCHORS) {
         const el = document.getElementById(a.id);
         if (el && !watched.has(el)) { watched.add(el); io.observe(el); }
       }
@@ -65,7 +61,7 @@ export default function Nav({ hero = "a" }) {
     observe();
     const again = setTimeout(observe, 800);
     return () => { clearTimeout(again); io.disconnect(); };
-  }, [hero]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <nav aria-label="Site" style={{ position: "fixed", top: 0, left: 0, right: 0, height: NAV_H, zIndex: 100,
@@ -81,7 +77,7 @@ export default function Nav({ hero = "a" }) {
         </a>
 
         <div className="lp-nav-links" style={{ alignItems: "center", gap: 28, position: "absolute", left: "50%", transform: "translateX(-50%)" }}>
-          {anchors.map((a) => {
+          {ANCHORS.map((a) => {
             const on = current === a.id;
             return (
               <a key={a.id} href={`#${a.id}`} className={`${FOCUS_CLASS} lp-nav-link`} aria-current={on ? "location" : undefined}

@@ -1,17 +1,16 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import QuestMap from "../../quest/QuestMap.jsx";
 import SkyBackdrop from "../../quest/SkyBackdrop.jsx";
 import { StickyHeader, TopBar } from "../../quest/QuestPanels.jsx";
 import {
   BG, Chunky, Flame, INK, LINE, MID, MUTED, QuestStyles, SANS, WHITE, fieldStyle, useQuestColors,
 } from "../../quest/questUi.jsx";
-import { AppSidebar, Cursor, MobileTabBar } from "../frames.jsx";
+import { Cursor, MobileTabBar } from "../frames.jsx";
 import { clamp01, seg, smooth, typed, useReduce } from "../kit.js";
 import { QUEST } from "../data.js";
 
 // The Quest screen (PLAN.md 6.4.4): the real map, sky and title bar with the
-// demo student's quest, in a phone (the Quest story, hero c, Plates) or on the
-// desktop (hero b, the Stage option). A pure function of (step, t):
+// demo student's quest, in the Quest story's phone. A pure function of (step, t):
 //   step 0  Check in        the sheet rises, the check-in is typed, Check in is pressed
 //   step 1  Keep the streak +10 XP, the flame lights, the reply, Done, the stone fills
 //   step 2  See the whole climb   the scroller climbs from today to the finish line
@@ -31,12 +30,9 @@ function offsetWithin(el, ancestor) {
   return y;
 }
 
-export default function QuestScreen({
-  step = 0, t = 0, layout = "mobile", still = false, variant = "phone", showAgents = true, onBeat,
-}) {
+export default function QuestScreen({ step = 0, t = 0, still = false }) {
   const reduce = useReduce();
   const c = useQuestColors();
-  const phone = variant === "phone" || (variant !== "desktop" && layout === "mobile");
   const tt = clamp01(t);
   const tr = (v) => (reduce ? "none" : v);
 
@@ -44,14 +40,14 @@ export default function QuestScreen({
   const after = step >= 2 || (step === 1 && tt >= 0.82);
   const state = after ? QUEST.after : QUEST.opened;
   const task = QUEST.opened.today_task;
-  // The title bar, the sidebar and the tab bar light a beat after the stone.
+  // The title bar and the tab bar light a beat after the stone.
   const chipState = step >= 2 || (step === 1 && tt >= 0.9) ? QUEST.after : QUEST.opened;
   const streakLit = ["done", "rest"].includes(chipState.today_state);
   const justDone = step === 1 && tt >= 0.82 && tt < 0.97 ? state.today_slot : null;
 
-  // ── The sheet's beats (phone only) ──────────────────────────────────────────
-  const sheetMounted = phone && ((step === 0 && tt >= 0.18) || (step === 1 && tt < 0.82));
-  const sheetOpen = phone && ((step === 0 && tt >= 0.2) || (step === 1 && tt < 0.65));
+  // ── The sheet's beats ──────────────────────────────────────────────────────
+  const sheetMounted = (step === 0 && tt >= 0.18) || (step === 1 && tt < 0.82);
+  const sheetOpen = (step === 0 && tt >= 0.2) || (step === 1 && tt < 0.65);
   const focused = step === 0 && tt >= 0.32;
   const body = step === 0 && tt >= 0.35 ? typed(QUEST.checkin.body, seg(tt, 0.35, 0.8)) : "";
   const checkinPressed = step === 0 && tt >= 0.85;
@@ -60,21 +56,13 @@ export default function QuestScreen({
   const xp = Math.round(QUEST.checkin.xp_awarded * seg(tt, 0.05, 0.2));
   const donePressed = step === 1 && tt >= 0.6 && tt < 0.68;
 
-  // "+10 XP" first shows: tell the caller once per rising edge (hero c's cheer).
-  const xpShown = phone && step === 1 && tt >= 0.15;
-  const xpWas = useRef(false);
-  useEffect(() => {
-    if (xpShown && !xpWas.current && typeof onBeat === "function") onBeat("xp");
-    xpWas.current = xpShown;
-  }, [xpShown, onBeat]);
-
   // The pointer: a tap ring on Start, on Check in, then on Done.
   let anchor = null;
   let press = false;
-  if (phone && step === 0) {
+  if (step === 0) {
     if (tt >= 0.15 && tt < 0.75) { anchor = "quest-start"; press = tt < 0.22; }
     else if (tt >= 0.75) { anchor = "quest-checkin"; press = tt >= 0.85; }
-  } else if (phone && step === 1 && tt >= 0.5 && tt < 0.82) {
+  } else if (step === 1 && tt >= 0.5 && tt < 0.82) {
     anchor = "quest-done";
     press = tt >= 0.6 && tt < 0.68;
   }
@@ -114,7 +102,7 @@ export default function QuestScreen({
   useLayoutEffect(() => {
     measure();
     apply(step, tt);
-  }, [measure, apply, step, tt, state, phone]);
+  }, [measure, apply, step, tt, state]);
 
   // Late layout (fonts, the sky measuring itself): measure again and hold the place.
   useLayoutEffect(() => {
@@ -124,7 +112,7 @@ export default function QuestScreen({
     ro.observe(sc);
     if (sc.firstElementChild) ro.observe(sc.firstElementChild);
     return () => ro.disconnect();
-  }, [measure, apply, phone]);
+  }, [measure, apply]);
 
   // The tap ring needs a target: mark the map's own Start button.
   useLayoutEffect(() => {
@@ -132,31 +120,29 @@ export default function QuestScreen({
     const callout = stone?.closest("[data-slot]")?.previousElementSibling;
     const btn = callout?.querySelector("button");
     if (btn) btn.setAttribute("data-lp-anchor", "quest-start");
-  }, [state, phone]);
+  }, [state]);
 
   // ── The real map, memoised on its beats ────────────────────────────────────
-  const sky = useMemo(() => <SkyBackdrop isMobile={phone} still={still} showAgents={showAgents} />, [phone, still, showAgents]);
-  // On a phone the map is scrolled to today, so whatever sits above it would
-  // show around the stuck bar: the screen's own grey runs behind the bar
-  // and fades into the sky under it (the scroller clips its sides).
+  const sky = useMemo(() => <SkyBackdrop isMobile still={still} />, [still]);
+  // The map is scrolled to today, so whatever sits above it would show
+  // around the stuck bar: the screen's own grey runs behind the bar and
+  // fades into the sky under it (the scroller clips its sides).
   const header = useMemo(() => (
     <StickyHeader>
-      {phone && (
-        <span ref={bandRef} aria-hidden="true" style={{ position: "absolute", left: -48, right: -48, top: -10, bottom: -28,
-          background: `linear-gradient(to bottom, ${BG} 0, ${BG} calc(100% - 18px), rgba(245,245,245,0) 100%)` }} />
-      )}
+      <span ref={bandRef} aria-hidden="true" style={{ position: "absolute", left: -48, right: -48, top: -10, bottom: -28,
+        background: `linear-gradient(to bottom, ${BG} 0, ${BG} calc(100% - 18px), rgba(245,245,245,0) 100%)` }} />
       <div style={{ position: "relative" }}>
-        <TopBar title={chipState.quest.title} stats={chipState.stats} streakLit={streakLit} menu={MENU} isMobile={phone} headingAs="p" />
+        <TopBar title={chipState.quest.title} stats={chipState.stats} streakLit={streakLit} menu={MENU} isMobile headingAs="p" />
       </div>
     </StickyHeader>
-  ), [chipState, streakLit, phone]);
+  ), [chipState, streakLit]);
   const map = useMemo(() => (
     <QuestMap state={state} todayRef={todayRef} focusSlot={state.today_slot} onOpen={noop} onStartToday={noop}
-      onCatchUp={noop} justDone={justDone} glowMilestone={null} isMobile={phone} />
-  ), [state, justDone, phone]);
+      onCatchUp={noop} justDone={justDone} glowMilestone={null} isMobile />
+  ), [state, justDone]);
 
   const mapSection = (
-    <div style={{ position: "relative", isolation: "isolate", marginTop: phone ? 10 : 18, padding: phone ? "10px 10px 0" : "14px 16px 0" }}>
+    <div style={{ position: "relative", isolation: "isolate", marginTop: 10, padding: "10px 10px 0" }}>
       <QuestStyles />
       {sky}
       {header}
@@ -223,19 +209,6 @@ export default function QuestScreen({
   );
 
   const root = { position: "absolute", inset: 0, overflow: "hidden", background: BG, fontFamily: SANS, "--ag-ring": c.ring };
-
-  if (!phone) {
-    return (
-      <div className="ui-page" style={{ ...root, display: "flex" }}>
-        <AppSidebar active="quest" streak={chipState.stats.streak} lit={streakLit} level={chipState.stats.level} />
-        <div style={{ position: "relative", flex: 1, minWidth: 0, height: "100%" }}>
-          <div ref={scrollerRef} style={{ position: "absolute", inset: 0, overflow: "hidden", padding: "0 32px 64px", boxSizing: "border-box" }}>
-            <div style={{ maxWidth: 880, margin: "0 auto", width: "100%" }}>{mapSection}</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="ui-page" style={root}>

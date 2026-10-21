@@ -252,9 +252,9 @@ function Starfish({ x, y }) {
 
 /** Measures the map (and how far past its column the page reaches) and draws
  *  the climb behind it. Rendered as the map's first child.
- *  showAgents: draw the three agents on the wing. still: hold every motion
- *  (the landing page sets it once a mockup has settled or is off screen). */
-export default function SkyBackdrop({ isMobile = false, showAgents = true, still: hold = false }) {
+ *  still: hold every motion (the landing page sets it once a mockup has
+ *  settled or is off screen). */
+export default function SkyBackdrop({ isMobile = false, still: hold = false }) {
   const still = useReducedMotion() || hold;
   const ref = useRef(null);
   const [box, setBox] = useState(null);   // { w, h, l, r }
@@ -265,16 +265,22 @@ export default function SkyBackdrop({ isMobile = false, showAgents = true, still
     if (!map) return undefined;
     const measure = () => {
       const mr = map.getBoundingClientRect();
+      // The scene is drawn in layout pixels, but a CSS scale on an ancestor
+      // (the landing page's scaled mockups) shrinks the rects: undo it. In the
+      // app nothing is scaled, and the near-1 ratio a fractional width gives
+      // (offsetWidth rounds) is treated as exactly 1.
+      const ratio = map.offsetWidth > 0 ? mr.width / map.offsetWidth : 1;
+      const k = Math.abs(ratio - 1) < 0.01 ? 1 : ratio;
       const page = map.closest("[data-sidebar-offset]");
       let l = 0, r = 0;
       if (page) {
         const pr = page.getBoundingClientRect();
         const cs = getComputedStyle(page);
         // Out to the page's content edges (inside its padding), clear of the sidebar.
-        l = Math.max(0, Math.round(mr.left - (pr.left + parseFloat(cs.paddingLeft))));
-        r = Math.max(0, Math.round(pr.right - parseFloat(cs.paddingRight) - mr.right));
+        l = Math.max(0, Math.round((mr.left - pr.left) / k - parseFloat(cs.paddingLeft)));
+        r = Math.max(0, Math.round((pr.right - mr.right) / k - parseFloat(cs.paddingRight)));
       }
-      const next = { w: Math.round(mr.width) + l + r, h: Math.round(mr.height), l, r };
+      const next = { w: Math.round(mr.width / k) + l + r, h: Math.round(mr.height / k), l, r };
       setBox((prev) => (prev && prev.w === next.w && prev.h === next.h && prev.l === next.l && prev.r === next.r ? prev : next));
     };
     measure();
@@ -438,7 +444,7 @@ export default function SkyBackdrop({ isMobile = false, showAgents = true, still
 
       {/* Our agents along the way: Beaker over the beach, Talon high in the
           day sky, Quill out at dusk. */}
-      {box && showAgents && (
+      {box && (
         <>
           <div className={`${SKY_CLASS}-glide`} style={{ position: "absolute", left: onRight(0.25) - mascot / 2, top: at(isMobile ? 0.77 : 0.74) - mascot / 2 }}>
             <Mascot agent="beaker" state="flying" size={mascot} title="" animate={!hold} style={{ transform: "scaleX(-1)" }} />

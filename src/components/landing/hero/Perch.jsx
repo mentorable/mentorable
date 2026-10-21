@@ -15,7 +15,7 @@ import { useReduce } from "../kit.js";
 // `usePerches` keeps one bubble open at a time (Escape, a tap elsewhere or
 // another bird closes it); `PerchLayer` is the box the birds are placed in
 // and carries the polite live region that mirrors the open bubble's text.
-// `useBox` measures an element, for the heroes that place birds in px.
+// `useBox` measures an element, for the hero, which places birds in px.
 
 export const PERCH_AGENTS = {
   beaker: { name: "Beaker", role: "the outreach pelican", line: BEAKER_LINES.hubTagline },
@@ -25,13 +25,12 @@ export const PERCH_AGENTS = {
 
 const POSE_MS = 5000;
 const HOP_MS = 240;
+const BUBBLE_W = 340;
 
 const PERCH_CSS = `
 @keyframes lp-hop { 0%, 100% { transform: translateY(0); } 25% { transform: translateY(-3px); } 50% { transform: translateY(-6px); } 75% { transform: translateY(-3px); } }
 .lp-hop { animation: lp-hop ${HOP_MS}ms steps(1, end); }
-@keyframes lp-glide { 0%, 100% { transform: translateY(calc(-1 * var(--lp-glide, 12px))); } 50% { transform: translateY(var(--lp-glide, 12px)); } }
-.lp-glide { animation: lp-glide 9s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .lp-hop, .lp-glide { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .lp-hop { animation: none; } }
 `;
 if (typeof document !== "undefined" && !document.querySelector("style[data-lp-perch]")) {
   const el = document.createElement("style");
@@ -85,7 +84,7 @@ export function useBox(ref) {
   return box;
 }
 
-/** The box the birds are placed in (absolute; the heroes set its bounds).
+/** The box the birds are placed in (absolute; the hero sets its bounds).
  *  Bubbles are kept inside it, and it carries the live region. */
 export function PerchLayer({ open, children, style, boxRef }) {
   const info = open ? PERCH_AGENTS[open] : null;
@@ -101,11 +100,11 @@ export function PerchLayer({ open, children, style, boxRef }) {
  * agent: "beaker" | "talon" | "quill". size: the button's box (96 or 64).
  * state: the resting pose. facing: "right" (as drawn) or "left" (mirrored).
  * settled: sprites hold frame 0. onPoke(agent): the tap, after the hop
- * starts. bubbleWidth: at most this, and never wider than the layer less 24.
- * open: whether this bird's bubble shows. style / className: placement.
+ * starts. open: whether this bird's bubble shows (at most 340 wide, and
+ * never wider than the layer less 24). style: placement.
  */
 export default function Perch({ agent = "beaker", size = 96, state = "idle", facing = "right", settled = false, onPoke,
-  bubbleWidth = 340, open = false, style, className }) {
+  open = false, style }) {
   const reduce = useReduce();
   const info = PERCH_AGENTS[agent] || PERCH_AGENTS.beaker;
   const wrap = useRef(null);
@@ -133,16 +132,16 @@ export default function Perch({ agent = "beaker", size = 96, state = "idle", fac
     const layer = el.closest("[data-lp-perch-layer]");
     const r = el.getBoundingClientRect();
     const lr = layer ? layer.getBoundingClientRect() : r;
-    const w = Math.max(160, Math.min(bubbleWidth, Math.round(lr.width) - 24));
+    const w = Math.max(160, Math.min(BUBBLE_W, Math.round(lr.width) - 24));
     const center = r.left + r.width / 2;
     const minLeft = lr.left + 12;
     const maxLeft = Math.max(minLeft, lr.right - 12 - w);
     const pageLeft = Math.max(minLeft, Math.min(maxLeft, center - w / 2));
     setBubble({ left: Math.round(pageLeft - r.left), width: w, tailAt: Math.round(center - pageLeft - TIP) });
-  }, [open, bubbleWidth, size]);
+  }, [open, size]);
 
   return (
-    <div ref={wrap} data-lp-perch="" className={className}
+    <div ref={wrap} data-lp-perch=""
       style={{ position: "absolute", width: size, height: size, pointerEvents: "auto", ...style }}>
       <button type="button" className={FOCUS_CLASS} onClick={onClick} aria-expanded={open}
         aria-label={`${info.name}, ${info.role}. Show what ${info.name} does.`}

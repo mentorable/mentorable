@@ -22,17 +22,16 @@ export const C = {
   surface: "#faf9f5",     // inset panels, sidebar
   stone: "#e6e3de",       // empty pixel markers
   accent: "#1d4ed8",      // links, primary button, markers
-  accentDark: "#15389c",  // headline accent on photo b only
+  accentDark: "#15389c",  // the edge of today's stone in the closing card
   soft: "#dfe6fa",        // tiles
   softer: "#eff3fc",      // flashes
   onBlue: "#ffffff",      // text on the blue band
   onBlueSoft: "#d2dcf7",  // the soft text on the blue band (4.9:1)
 };
 
-// Story plates, in page order (Record, Chat, College List, Quest).
+// Story plates, in page order (Record, College List, Quest).
 export const TINT = {
   morning: "#eaf1f8",
-  lateMorning: "#e1ecf8",
   afternoon: "#f6eee2",
   golden: "#f6e4d3",
 };
@@ -59,7 +58,6 @@ export const TYPE = {
   caption: { fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.5, color: C.muted, margin: 0 },
 };
 
-export const EASE = [0.2, 0, 0, 1];
 export const EASE_CSS = "cubic-bezier(.2,0,0,1)";
 
 export const NAV_H = 64;
@@ -69,7 +67,6 @@ export const TODAY = "2026-10-20";   // the frozen day every mockup lives on
 export const SETTLE_MS = 5000;
 
 export const STICKY_QUERY = "(min-width: 1100px) and (min-height: 740px)";
-export const STAGE_QUERY = "(min-width: 1400px) and (min-height: 740px)";
 export const MOBILE_MAX = 767;
 
 // ─── Pure helpers ────────────────────────────────────────────────────────────
@@ -336,19 +333,4 @@ export function useSettle(ref, { ms = SETTLE_MS } = {}) {
   useEffect(() => () => clearTimeout(timer.current), []);
 
   return { settled, poke };
-}
-
-/** A page option from the query string, read once on mount. An unknown or
- *  missing value falls back. */
-export function useOption(name, allowed, fallback) {
-  const [value] = useState(() => {
-    if (typeof window === "undefined") return fallback;
-    try {
-      const v = new URLSearchParams(window.location.search).get(name);
-      return v !== null && (allowed || []).includes(v) ? v : fallback;
-    } catch {
-      return fallback;
-    }
-  });
-  return value;
 }

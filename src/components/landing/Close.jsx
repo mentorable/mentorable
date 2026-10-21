@@ -2,16 +2,13 @@ import { useId, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase.js";
 import Mascot from "../agents/Mascot.jsx";
 import { PixelStone } from "../quest/PixelStone.jsx";
-import { PixelStamp } from "../ui/PixelIcons.jsx";
 import { INPUT_CLASS } from "../ui/kit.jsx";
 import { C, CONTAINER, GUTTER, MOBILE_MAX, SANS, SHADOW, go, useMedia, useSettle } from "./kit.js";
 import { LpButton, Signpost, SrOnly, TextLink, TwoTone } from "./frames.jsx";
 
-// The closing call to action, in two options, both ending with the waitlist.
-// a "Start here": a faithful copy of Quest's own Today callout, with a real
-// Get started button in it, today's stone and two future ones under it.
-// b "Postcard": Beaker's postal language, a white card with a perforated
-// "Free" stamp and Beaker standing on its top edge.
+// The closing call to action, "Start here": a faithful copy of Quest's own
+// Today callout, with a real Get started button in it, today's stone and two
+// future ones under it, then the waitlist.
 //
 // The waitlist insert is the only Supabase call on the landing page.
 
@@ -66,7 +63,7 @@ export function Waitlist() {
   );
 }
 
-// ─── a: Start here ───────────────────────────────────────────────────────────
+// ─── Start here ──────────────────────────────────────────────────────────────
 
 const FUTURE = { fill: "#e6e3de", edge: "#cfcac2", ink: "#b9b3a8" };
 
@@ -122,48 +119,14 @@ function CloseA({ settled, phone }) {
   );
 }
 
-// ─── b: Postcard ─────────────────────────────────────────────────────────────
-
-// The perforated postage stamp, as BoardCard.jsx draws it.
-const DOT = "#a9a39a";
-const dots = (dir, pos, size) => `linear-gradient(${dir}, ${DOT} 50%, transparent 50%) ${pos} / ${size} repeat-${dir === "90deg" ? "x" : "y"}`;
-const PERFORATED = [
-  dots("90deg", "left top", "4px 2px"), dots("90deg", "left bottom", "4px 2px"),
-  dots("180deg", "left top", "2px 4px"), dots("180deg", "right top", "2px 4px"),
-].join(", ") + ", #faf9f5";
-
-function CloseB({ settled, phone }) {
-  const beaker = phone ? 96 : 128;
-  return (
-    <div style={{ position: "relative", width: "min(880px, 100%)", margin: `${beaker - 4}px auto 0`, background: "#ffffff", borderRadius: 16,
-      border: `1px solid ${C.line}`, padding: phone ? 28 : 56, boxSizing: "border-box" }}>
-      <div aria-hidden="true" style={{ position: "absolute", left: phone ? 16 : 40, top: -(beaker - 4) }}>
-        <Mascot agent="beaker" state="delivering" size={beaker} title="" animate={!settled} />
-      </div>
-      <span aria-hidden="true" style={{ position: "absolute", right: phone ? 16 : 28, top: phone ? 16 : 28, display: "inline-flex", alignItems: "center",
-        gap: 6, padding: "5px 9px 5px 7px", background: PERFORATED, color: C.mid, fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700 }}>
-        <PixelStamp kind="letter" size={16} />
-        Free
-      </span>
-      <div style={{ paddingTop: phone ? 36 : 8 }}>
-        <TwoTone lead={H2.lead} rest={H2.rest} style={{ maxWidth: "24ch" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap", marginTop: 28 }}>
-          <LpButton onClick={() => go("/auth")}>Get started</LpButton>
-          <TextLink onClick={() => go("/auth")}>Log in</TextLink>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function Close({ option = "a" }) {
+export default function Close() {
   const ref = useRef(null);
   const { settled } = useSettle(ref);
   const phone = useMedia(`(max-width: ${MOBILE_MAX}px)`);
   return (
     <section ref={ref} id="start" aria-label="Get started" style={{ padding: `120px ${GUTTER}` }}>
       <div style={{ maxWidth: CONTAINER, margin: "0 auto" }}>
-        {option === "b" ? <CloseB settled={settled} phone={phone} /> : <CloseA settled={settled} phone={phone} />}
+        <CloseA settled={settled} phone={phone} />
         <Waitlist />
       </div>
     </section>

@@ -2,14 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { C, CONTAINER, GUTTER, NAV_H, clamp01, quantize, useNear, useReduce, useSettle } from "../kit.js";
 import { Mockup, Plate } from "../frames.jsx";
 import StepList, { Caption, StoryIntro } from "./StepList.jsx";
-import { DEVICE, DeviceFrame, fitScale, useBox } from "./Plates.jsx";
+import { DEVICE, DeviceFrame, fitScale, useBox } from "./Inline.jsx";
 
-// Features a, "Sticky stories" (PLAN.md 6.5): each story a tall section
-// whose stage pins under the nav while the visitor scrolls through its
-// steps. No timers: on every scroll frame the section's position gives
-// `step` and `t`, so typing, streaming and the Quest climb follow the
-// scroll both ways. Under reduced motion the scroll still picks the step
-// and every screen shows that step's final state.
+// The sticky stories (PLAN.md 6.5): each story a tall section whose stage
+// pins under the nav while the visitor scrolls through its steps. No timers:
+// on every scroll frame the section's position gives `step` and `t`, so
+// typing, streaming and the Quest climb follow the scroll both ways. Under
+// reduced motion the scroll still picks the step and every screen shows
+// that step's final state.
 
 // How far RecordScreen.Paper (a 360px sheet, 120px of it behind the lid)
 // reaches past the laptop lid's right edge.
@@ -39,7 +39,7 @@ export function scrollTarget(section, stage, n, i, at = 0.5) {
 }
 
 /** step and t for a pinned section of n steps, read on scroll and resize. */
-export function useScrub(sectionRef, stageRef, n) {
+function useScrub(sectionRef, stageRef, n) {
   const reduce = useReduce();
   const [pos, setPos] = useState({ step: 0, t: reduce ? 1 : 0 });
   useEffect(() => {
@@ -149,7 +149,7 @@ function StickyStory({ story }) {
   );
 }
 
-/** Three (or four) pinned stories, scrubbed by scroll. */
+/** The pinned stories, scrubbed by scroll. */
 export default function StickyStories({ stories = [] }) {
   return (
     <div style={{ background: C.page }}>

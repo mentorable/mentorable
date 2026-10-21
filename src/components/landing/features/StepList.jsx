@@ -2,9 +2,9 @@ import { FOCUS_CLASS } from "../../ui/tokens.js";
 import { C, EASE_CSS, SANS, TYPE, useReduce } from "../kit.js";
 import { Signpost, TwoTone } from "../frames.jsx";
 
-// The step rows under each story's text (PLAN.md 6.3), shared by every
-// option, plus the two text pieces that sit around them in every layout:
-// the story's intro (signpost, two-tone heading, body) and its caption.
+// The step rows under each story's text (PLAN.md 6.3), shared by both
+// layouts, plus the two text pieces that sit around them: the story's
+// intro (signpost, two-tone heading, body) and its caption.
 
 /**
  * The step rows. Each is a button: a 12px square marker (accent when done
@@ -13,10 +13,10 @@ import { Signpost, TwoTone } from "../frames.jsx";
  * instant under reduced motion). `aria-current="step"` marks the active
  * row. Enter and Space activate, as on any button.
  */
-export default function StepList({ steps = [], active = 0, onPick, style }) {
+export default function StepList({ steps = [], active = 0, onPick }) {
   const reduce = useReduce();
   return (
-    <ol style={{ listStyle: "none", margin: "20px 0 0", padding: 0, ...style }}>
+    <ol style={{ listStyle: "none", margin: "20px 0 0", padding: 0 }}>
       {steps.map((s, i) => {
         const on = i === active;
         const ahead = i > active;

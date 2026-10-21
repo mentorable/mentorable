@@ -13,7 +13,7 @@ import { INTERVIEW, LIBRARY_ROW, RESUME_IMAGE, STUDENT, STUDENT_RECORD } from ".
 //   step 0  Talk it through    the first question, the answer typed and sent, the next question
 //   step 1  Check what it heard the review; the role field corrected to "Programming lead"
 //   step 2  Keep it in one place the Portfolio's ECs tab; Export resume pressed (the sheet is `Paper`);
-//                               with `withChatRow`, the Library help desk row the hero's advisor added
+//                               the Library help desk row the hero's advisor added scrolls into view
 //
 // Desktop fills the laptop's 860 x 538 screen; mobile fills a 340 to 360 box at the app's own
 // phone layouts. Strings are the app's (TextInterview, IntakeReview, PortfolioPage, kit); the
@@ -416,10 +416,10 @@ function SectionHeader({ title, stamp, count, hint, action, mobile }) {
   );
 }
 
-function Portfolio({ t, mobile, withChatRow, opacity }) {
+function Portfolio({ t, mobile, opacity }) {
   const ink = useAgentInk();
   const scroller = useRef(null);
-  const rowIn = withChatRow && t >= 0.75;
+  const rowIn = t >= 0.75;
   const flash = rowIn && t < 0.9;
   const pressed = t >= 0.38 && t < 0.45;
   const resumeIn = mobile && t >= 0.45;
@@ -532,7 +532,7 @@ function Portfolio({ t, mobile, withChatRow, opacity }) {
 
 // ─── The screen ──────────────────────────────────────────────────────────────
 
-export default function RecordScreen({ step = 0, t = 0, layout = "desktop", withChatRow = false }) {
+export default function RecordScreen({ step = 0, t = 0, layout = "desktop" }) {
   const mobile = layout === "mobile";
   const s = Math.max(0, Math.min(2, Math.floor(Number(step) || 0)));
   const tt = clamp01(t);
@@ -544,7 +544,7 @@ export default function RecordScreen({ step = 0, t = 0, layout = "desktop", with
       <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: BG, fontFamily: SANS, color: TEXT }}>
         {showInterview && <Interview t={s === 0 ? tt : 1} mobile={mobile} active={s === 0} />}
         {showReview && <Review t={s === 1 ? tt : 1} mobile={mobile} active={s === 1} opacity={s === 1 ? seg(tt, 0, 0.2) : 1} />}
-        {s === 2 && <Portfolio t={tt} mobile={mobile} withChatRow={withChatRow} opacity={seg(tt, 0, 0.1)} />}
+        {s === 2 && <Portfolio t={tt} mobile={mobile} opacity={seg(tt, 0, 0.1)} />}
       </div>
     </>
   );
@@ -558,13 +558,13 @@ export default function RecordScreen({ step = 0, t = 0, layout = "desktop", with
  *
  * place "side": it slides out past the lid's right edge (240px of it shows).
  * place "top", where the page has no room beside the laptop: it rises out of
- * the lid's top edge by `rise` px, its right edge `inset` px in from the
- * lid's right edge.
+ * the lid's top edge by `rise` px, its right edge 24px in from the lid's
+ * right edge.
  */
 const LID_H = 558;   // Laptop's lid: a 538 screen in a 10px bezel
 const SHEET_W = 360;
 
-export function Paper({ step = 0, t = 0, place = "side", rise = 120, inset = 24 }) {
+export function Paper({ step = 0, t = 0, place = "side", rise = 120 }) {
   const reduce = useReduce();
   if (Math.floor(Number(step) || 0) < 2) return null;
   const p = reduce ? 1 : smooth(seg(clamp01(t), 0.45, 0.7));
@@ -574,7 +574,7 @@ export function Paper({ step = 0, t = 0, place = "side", rise = 120, inset = 24 
     const y = Math.round((rise + 24) * (1 - p));
     return (
       <img src={RESUME_IMAGE.src} width={RESUME_IMAGE.w} height={RESUME_IMAGE.h} alt="" aria-hidden="true" draggable={false}
-        style={{ ...sheet, left: -inset - SHEET_W, top: -(LID_H + rise), transform: `translateY(${y}px) rotate(2deg)`,
+        style={{ ...sheet, left: -24 - SHEET_W, top: -(LID_H + rise), transform: `translateY(${y}px) rotate(2deg)`,
           transformOrigin: "50% 100%" }} />
     );
   }

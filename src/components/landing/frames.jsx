@@ -144,7 +144,7 @@ export function PlayPill({ state = "playing", onPause, onPlay, onReplay, tone = 
  * sibling the screen reader can reach. `isolation` keeps a screen's own
  * z-indexes (a sticky title bar, a toast) inside it, so they never paint
  * over the birds or bubbles placed beside the mockup; each device screen
- * does the same, so a laptop's screen never paints over the phone in front.
+ * does the same.
  */
 export function Mockup({ label, settled = false, children, style, className }) {
   const cls = `${settled ? "lp-still " : ""}${className || ""}`.trim();
@@ -234,15 +234,13 @@ const PHONE = { bezel: 12, status: 40, radius: 46, innerRadius: 34 };
 /**
  * A phone: a 12px ink bezel around a status row (40px, "9:41") and the app
  * area, appWidth x appHeight. Default outer 384 x 764. `translateZ(0)` makes
- * the frame the containing block for anything fixed inside. `cropBottom`
- * cuts that many px off the frame's bottom (the frame, never the UI).
+ * the frame the containing block for anything fixed inside.
  */
-export function Phone({ children, time = "9:41", appWidth = 360, appHeight = 700, cropBottom = 0, style }) {
+export function Phone({ children, time = "9:41", appWidth = 360, appHeight = 700, style }) {
   const outerW = appWidth + 2 * PHONE.bezel;
   const outerH = appHeight + PHONE.status + 2 * PHONE.bezel;
-  const crop = Math.max(0, Math.min(outerH, cropBottom));
   return (
-    <div style={{ width: outerW, height: outerH - crop, overflow: crop ? "hidden" : "visible", flexShrink: 0, ...style }}>
+    <div style={{ width: outerW, height: outerH, flexShrink: 0, ...style }}>
       <div style={{ width: outerW, height: outerH, background: INK, borderRadius: PHONE.radius, padding: PHONE.bezel,
         boxSizing: "border-box", boxShadow: SHADOW.device, transform: "translateZ(0)", position: "relative" }}>
         <div style={{ width: appWidth, height: appHeight + PHONE.status, borderRadius: PHONE.innerRadius, overflow: "hidden",

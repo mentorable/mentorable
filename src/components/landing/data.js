@@ -114,14 +114,8 @@ export const BEAKER_SAMPLE = {
 /** The draft's body as the review page would count it (split on whitespace). */
 export const BEAKER_DRAFT_TEXT = BEAKER_SAMPLE.paragraphs.map((p) => p.map((s) => s.text).join("")).join("\n\n");
 
-// Hero photos. a: Paxson Woelber, "Sea of clouds", Haleakala, Maui. https://unsplash.com/photos/nv7WX42LKjU (Unsplash License)
-// b: ExtraCheese, https://www.pexels.com/photo/fluffy-clouds-and-blue-sky-17584946/ (Pexels License; dust healed, mirrored)
-// c: Danielle Kirk, https://www.pexels.com/photo/serene-beach-sunrise-with-gentle-waves-36646802/ (Pexels License)
-export const HERO_IMAGES = {
-  a: { base: "/landing/hero-dusk", w: 2400, h: 1248, credit: "Paxson Woelber, Unsplash License" },
-  b: { base: "/landing/hero-day", w: 2400, h: 1440, credit: "ExtraCheese, Pexels License" },
-  c: { base: "/landing/hero-shore", w: 2400, h: 1144, credit: "Danielle Kirk, Pexels License" },
-};
+// The hero photo: Paxson Woelber, "Sea of clouds", Haleakala, Maui. https://unsplash.com/photos/nv7WX42LKjU (Unsplash License)
+export const HERO_IMAGE = { base: "/landing/hero-dusk", w: 2400, h: 1248, credit: "Paxson Woelber, Unsplash License" };
 
 /** The resume render (720 x 428), cropped above the "Grades 11" row. */
 export const RESUME_IMAGE = { src: "/landing/resume-sample.jpg", w: 720, h: 428 };

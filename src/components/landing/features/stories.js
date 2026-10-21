@@ -1,11 +1,10 @@
-// The stories' copy and shape (PLAN.md 6.2). Every option of the features
-// showcase and the one-stage pair read the same list:
+// The stories' copy and shape (PLAN.md 6.2), read by both layouts of the
+// features showcase:
 // { id, anchor, stamp, signpost, lead, rest, body, device, address, tint,
 //   Screen, screenProps, useExtra, steps: [{ title, desc, ms }], caption }.
 // A caption's bold lead phrase is marked with ** and rendered in ink.
 import { TINT } from "../kit.js";
 import RecordScreen from "../screens/RecordScreen.jsx";
-import ChatScreen from "../screens/ChatScreen.jsx";
 import CollegeScreen from "../screens/CollegeScreen.jsx";
 import QuestScreen from "../screens/QuestScreen.jsx";
 import { useSat } from "../screens/SatSlider.jsx";
@@ -21,18 +20,6 @@ const RECORD = {
     { title: "Keep it in one place.", desc: "Grades, scores, courses, activities and awards in the Common App's format, ready to export as a one-page resume.", ms: 3600 },
   ],
   caption: "A sample student throughout. **Every screen is drawn from the app as it works today.**",
-};
-
-const CHAT = {
-  id: "chat", anchor: "chat", stamp: "chat", signpost: "Chat",
-  lead: "Ask about your actual situation.", rest: "It answers with your numbers.",
-  body: "Chat reads your grades, scores, activities, College List and Quest before it answers. It brings up cost before you ask, and flags a list that is too thin at the bottom as firmly as one that is too high. Tell it something new and it can add it to your record, and it tells you when it has. It never guesses your odds.",
-  device: "window", address: "mentorable.net/chat", tint: TINT.lateMorning, Screen: ChatScreen, screenProps: { variant: "window" },
-  steps: [
-    { title: "Ask anything about your applications.", desc: "It reads your whole record first, so the answer uses your schools and your scores.", ms: 3600 },
-    { title: "It keeps your record current.", desc: "When you tell it something new, it adds it and says so.", ms: 1600 },
-  ],
-  caption: "A sample conversation on the Chat screen.",
 };
 
 const COLLEGES = {
@@ -52,7 +39,7 @@ const QUEST = {
   id: "quest", anchor: "quest", stamp: "flag", signpost: "Quest",
   lead: "One project.", rest: "One small task a day.",
   body: "Pick something to build, prepare for or investigate. Quest asks a few quick questions, splits it into 3 to 8 milestones, and gives you one small task on each day you choose.",
-  device: "phone", address: null, tint: TINT.golden, Screen: QuestScreen, screenProps: { variant: "phone" },
+  device: "phone", address: null, tint: TINT.golden, Screen: QuestScreen, screenProps: {},
   steps: [
     { title: "Check in.", desc: "Each task is sized to the time you set. When it's done, say what you did in a line or two.", ms: 3000 },
     { title: "Keep the streak.", desc: "Your streak and XP go up, and your advisor replies to what you did.", ms: 2800 },
@@ -61,10 +48,9 @@ const QUEST = {
   caption: "Day 4 of 29, on pace for Tue, Nov 24.",
 };
 
-/** The stories in page order: Record, Chat (only when the hero does not
- *  show Chat), College List, Quest. Record's Library help desk row (the one
- *  the hero's advisor adds) shows only with hero a. */
-export function storiesFor({ hero = "a" } = {}) {
-  const record = { ...RECORD, screenProps: { withChatRow: hero === "a" } };
-  return hero === "a" ? [record, COLLEGES, QUEST] : [record, CHAT, COLLEGES, QUEST];
+/** The stories in page order: Record, College List, Quest. Chat has none,
+ *  since the hero shows it, and Record shows the Library help desk row the
+ *  hero's advisor adds. */
+export function storiesFor() {
+  return [RECORD, COLLEGES, QUEST];
 }
