@@ -19,7 +19,6 @@ export const MINUTE_OPTIONS = [
 // ─── Top bar ──────────────────────────────────────────────────────────────────
 
 export function TopBar({ title, stats, streakLit, menu, isMobile }) {
-  const c = useQuestColors();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -29,50 +28,56 @@ export function TopBar({ title, stats, streakLit, menu, isMobile }) {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
+  // A dark glass bar over the scene: the quest's name, the streak, the level
+  // and the options menu, all on one line.
+  const glass = "rgba(255,255,255,0.12)";
+  const glassLine = "rgba(255,255,255,0.2)";
   return (
-    <div style={{ padding: isMobile ? "16px 0 12px" : "28px 0 14px", borderBottom: `1px solid ${LINE}` }}>
-      <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 14 }}>
-        <h1 title={title} style={{ flex: 1, minWidth: 0, margin: 0, fontFamily: SANS, fontWeight: 800,
-          fontSize: isMobile ? "1.5rem" : "2.1rem", color: c.title, letterSpacing: "-0.03em", lineHeight: 1.15,
-          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-          overflowWrap: "anywhere" }}>
-          {title}
-        </h1>
-        <span title={`${stats?.streak || 0} day streak`}
-          style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: SANS, fontWeight: 800,
-            fontSize: "1.1rem", color: streakLit ? c.page : MUTED, fontVariantNumeric: "tabular-nums" }}>
-          <Flame size={24} lit={streakLit} animate={streakLit} streak={stats?.streak || 0} /> {stats?.streak || 0}
-        </span>
-        <LevelChip stats={stats} compact={isMobile} />
-        {menu && menu.length > 0 && (
-          <div ref={ref} style={{ position: "relative" }}>
-            <button type="button" aria-label="Quest options" aria-expanded={open} onClick={() => setOpen((o) => !o)}
-              className={FOCUS_CLASS}
-              style={{ width: 44, height: 44, borderRadius: RADIUS.control, border: `1.5px solid ${LINE}`, background: WHITE,
-                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill={MID} aria-hidden="true">
-                <circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" />
-              </svg>
-            </button>
-            {open && (
-              <div role="menu" style={{ position: "absolute", right: 0, top: 50, minWidth: 200, background: WHITE,
-                borderRadius: RADIUS.control, border: `1px solid ${LINE}`, boxShadow: "0 12px 30px rgba(20,20,19,0.12)", padding: 6, zIndex: 30 }}>
-                {menu.map((m) => (
-                  <button key={m.label} type="button" role="menuitem" className={FOCUS_CLASS}
-                    onClick={() => { setOpen(false); m.onClick(); }}
-                    style={{ display: "block", width: "100%", textAlign: "left", fontFamily: SANS, fontWeight: 700,
-                      fontSize: "0.95rem", color: m.danger ? DANGER : INK, background: "none", border: "none",
-                      borderRadius: 10, padding: "10px 12px", minHeight: 44, cursor: "pointer" }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = SURFACE; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}>
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+    <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12, boxSizing: "border-box",
+      padding: isMobile ? "10px 10px 10px 14px" : "12px 14px 12px 22px", borderRadius: 20,
+      background: "rgba(38,50,112,0.9)", border: "1px solid rgba(255,255,255,0.28)",
+      backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 12px 32px rgba(12,16,44,0.28)" }}>
+      <h1 title={title} style={{ flex: 1, minWidth: 0, margin: 0, fontFamily: SANS, fontWeight: 800,
+        fontSize: isMobile ? "1.15rem" : "1.6rem", color: "#ffffff", letterSpacing: "-0.02em", lineHeight: 1.2,
+        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {title}
+      </h1>
+      <span title={`${stats?.streak || 0} day streak`}
+        style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, fontFamily: SANS, fontWeight: 800,
+          fontSize: isMobile ? "1rem" : "1.1rem", color: streakLit ? "#ffd27a" : "rgba(255,255,255,0.75)",
+          fontVariantNumeric: "tabular-nums", background: glass, border: `1px solid ${glassLine}`, borderRadius: 999,
+          padding: isMobile ? "3px 10px 3px 7px" : "4px 12px 4px 8px" }}>
+        <Flame size={isMobile ? 20 : 22} lit={streakLit} animate={streakLit} streak={stats?.streak || 0} /> {stats?.streak || 0}
+      </span>
+      <div style={{ flexShrink: 0 }}><LevelChip stats={stats} compact={isMobile} onDark /></div>
+      {menu && menu.length > 0 && (
+        <div ref={ref} style={{ position: "relative", flexShrink: 0 }}>
+          <button type="button" aria-label="Quest options" aria-expanded={open} onClick={() => setOpen((o) => !o)}
+            className={FOCUS_CLASS}
+            style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${glassLine}`, background: glass,
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffffff" aria-hidden="true">
+              <circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" />
+            </svg>
+          </button>
+          {open && (
+            <div role="menu" style={{ position: "absolute", right: 0, top: 48, minWidth: 200, background: WHITE,
+              borderRadius: RADIUS.control, border: `1px solid ${LINE}`, boxShadow: "0 12px 30px rgba(20,20,19,0.12)", padding: 6, zIndex: 30 }}>
+              {menu.map((m) => (
+                <button key={m.label} type="button" role="menuitem" className={FOCUS_CLASS}
+                  onClick={() => { setOpen(false); m.onClick(); }}
+                  style={{ display: "block", width: "100%", textAlign: "left", fontFamily: SANS, fontWeight: 700,
+                    fontSize: "0.95rem", color: m.danger ? DANGER : INK, background: "none", border: "none",
+                    borderRadius: 10, padding: "10px 12px", minHeight: 44, cursor: "pointer" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = SURFACE; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -80,8 +85,7 @@ export function TopBar({ title, stats, streakLit, menu, isMobile }) {
 /** Pins the top bar, and the catch-up banner under it, while the map scrolls. */
 export function StickyHeader({ children }) {
   return (
-    <div style={{ position: "sticky", top: 0, zIndex: 20, background: "rgba(245,245,245,0.94)",
-      backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", paddingBottom: 10 }}>
+    <div style={{ position: "sticky", top: 10, zIndex: 20, paddingBottom: 10 }}>
       {children}
     </div>
   );
@@ -107,7 +111,7 @@ function Strip({ tone = "amber", children, action }) {
 
 export function CatchUpBanner({ state, onCatchUp }) {
   const b = state.backlog || {};
-  if (!b.count || state.welcome_back?.show || state.today_state === "blocked") return null;
+  if (!b.count || state.today_state === "blocked") return null;
   const gate = b.unlocks_milestone && b.in_current
     ? ` Clear ${b.in_current === b.count ? "them" : `the ${b.in_current} in this milestone`} to unlock Milestone ${b.unlocks_milestone}.`
     : "";
@@ -119,34 +123,6 @@ export function CatchUpBanner({ state, onCatchUp }) {
           Two a day clears it by {relativeDay(b.catch_up_by, state.today)}.
         </span>
       )}
-    </Strip>
-  );
-}
-
-/** The comeback line: a plain card, like the other notices on this page. */
-export function WelcomeBack({ state, onCatchUp, onBreak, onLighter, busy }) {
-  const w = state.welcome_back || {};
-  if (!w.show) return null;
-  const b = state.backlog || {};
-  return (
-    <Strip tone="accent">
-      <strong>Welcome back.</strong> You have {b.count} task{b.count === 1 ? "" : "s"} to catch up on
-      {b.unlocks_milestone ? ` and Milestone ${b.unlocks_milestone} is waiting.` : "."}
-      {w.offer_break ? (
-        <>
-          <span style={{ display: "block", color: MID, fontSize: "1.02rem", marginTop: 8, lineHeight: 1.55 }}>
-            That is a lot to make up. You can count the time away as a break: the missed days move to start
-            from today, and your streak starts fresh.
-          </span>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 12 }}>
-            <Chunky small onClick={onBreak} disabled={busy}>Count it as a break</Chunky>
-            {state.quest?.daily_minutes > 15 && (
-              <Chunky small tone="quiet" onClick={onLighter} disabled={busy}>Switch to 15 min a day</Chunky>
-            )}
-            {b.oldest_doable_slot && <TextButton onClick={onCatchUp}>Catch up instead</TextButton>}
-          </div>
-        </>
-      ) : null}
     </Strip>
   );
 }

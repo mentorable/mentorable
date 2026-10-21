@@ -7,10 +7,11 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import Spinner from "../components/common/Spinner.jsx";
 import QuestMap from "../components/quest/QuestMap.jsx";
+import SkyBackdrop from "../components/quest/SkyBackdrop.jsx";
 import CheckInSheet from "../components/quest/CheckInSheet.jsx";
 import { QuestSetup, DraftReview } from "../components/quest/QuestSetup.jsx";
 import {
-  TopBar, StickyHeader, CatchUpBanner, WelcomeBack, DeadlineNotice, RestNote, PausedCard, Notice,
+  TopBar, StickyHeader, CatchUpBanner, DeadlineNotice, RestNote, PausedCard, Notice,
   MilestoneCard, FinishCard, ConfirmModal, PaceModal, PortfolioDraftModal,
 } from "../components/quest/QuestPanels.jsx";
 import { BG, SANS, INK, MUTED, Chunky, QuestStyles, useQuestColors } from "../components/quest/questUi.jsx";
@@ -263,6 +264,12 @@ export default function QuestPage({ navigate }) {
       <QuestStyles />
       <div style={{ maxWidth: 880, margin: "0 auto", width: "100%" }}>
 
+        {/* With a quest on the map, the whole section (the bar, the notices
+            and the map) sits in the beach-to-space scene. */}
+        <div style={showMap ? { position: "relative", isolation: "isolate", marginTop: isMobile ? 10 : 18,
+          padding: isMobile ? "10px 10px 0" : "14px 16px 0" } : undefined}>
+        {showMap && <SkyBackdrop isMobile={isMobile} />}
+
         {showMap && (
           <StickyHeader>
             <TopBar title={q.title} stats={state.stats} streakLit={streakLit} menu={menu} isMobile={isMobile} />
@@ -301,9 +308,6 @@ export default function QuestPage({ navigate }) {
             )}
             {view === "active" && (
               <>
-                <WelcomeBack state={state} busy={busy} onCatchUp={catchUp}
-                  onBreak={() => run(() => questApi.takeBreak(q.id))}
-                  onLighter={() => run(() => questApi.settings(q.id, { daily_minutes: 15 }))} />
                 <DeadlineNotice state={state} onAskAdvisor={() => navigate("/chat")} />
                 <RestNote state={state} />
               </>
@@ -327,6 +331,7 @@ export default function QuestPage({ navigate }) {
             />
           </>
         )}
+        </div>
       </div>
 
       <AnimatePresence>

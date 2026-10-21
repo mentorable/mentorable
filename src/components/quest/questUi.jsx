@@ -206,7 +206,7 @@ export function TextButton({ children, onClick, color, style, disabled, ...rest 
 
 // ─── Level ────────────────────────────────────────────────────────────────────
 
-export function LevelChip({ stats, compact }) {
+export function LevelChip({ stats, compact, onDark = false }) {
   const c = useQuestColors();
   if (!stats) return null;
   const pct = stats.level_span ? Math.min(100, Math.round((stats.into_level / stats.level_span) * 100)) : 0;
@@ -221,7 +221,7 @@ export function LevelChip({ stats, compact }) {
         Lv {stats.level}
       </span>
       {!compact && (
-        <span aria-hidden="true" style={{ width: 64, height: 8, borderRadius: 99, background: STONE, overflow: "hidden" }}>
+        <span aria-hidden="true" style={{ width: 64, height: 8, borderRadius: 99, background: onDark ? "rgba(255,255,255,0.22)" : STONE, overflow: "hidden" }}>
           <motion.span
             initial={false}
             animate={{ width: `${pct}%` }}

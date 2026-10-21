@@ -6,7 +6,6 @@ import { RADIUS, SURFACE } from "../ui/tokens.js";
 import { darken, lighten } from "../../lib/theme.js";
 import { StampTile } from "../ui/kit.jsx";
 import { PixelStone, UNIT, pictureFor } from "./PixelStone.jsx";
-import SkyBackdrop from "./SkyBackdrop.jsx";
 import {
   SANS, WHITE, INK, MID, MUTED, FAINT, LINE, STONE, STONE_EDGE, AMBER, AMBER_EDGE, AMBER_WASH,
   Chunky, Flame, useQuestColors,
@@ -272,8 +271,7 @@ export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartTo
   });
 
   return (
-    <div style={{ position: "relative", isolation: "isolate", padding: "8px 0 24px" }}>
-      <SkyBackdrop isMobile={isMobile} />
+    <div style={{ position: "relative", padding: "8px 0 24px" }}>
       {blocks}
       <div style={{ display: "flex", justifyContent: "center", paddingTop: 12 }}>
         <span style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, color: MUTED,

@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { useReducedMotion } from "framer-motion";
 import Mascot from "../agents/Mascot.jsx";
 
 // The scene behind the Quest map: the climb starts on a beach and goes all the
@@ -8,9 +9,14 @@ import Mascot from "../agents/Mascot.jsx";
 // moon, planets, a satellite and rockets at the finish line.
 //
 // Drawn smooth (gradients and rounded shapes, like the agents' scene bands),
-// not on a pixel grid. It is measured to the map, so its height follows the
-// quest's length, and on a wide screen it runs past the map's column to the
-// page's edges. Things sit to the sides, clear of the path of stones in the
+// not on a pixel grid. Everything moves a little: gulls flap and fly across,
+// waves roll, clouds drift, the plane crosses, the kite and the palm sway,
+// rockets rise with flickering flames, the satellite turns, stars twinkle and
+// a shooting star passes now and then; under reduced motion it holds still.
+//
+// It is measured to the section it sits in (the Quest page's bar, notices and
+// map), so its height follows the quest's length, and on a wide screen it runs
+// past the column to the page's content edges. Things sit to the sides, clear of the path of stones in the
 // middle. Everything is decoration: drawn behind the stones and plates,
 // aria-hidden, and its small motions stop under reduced motion.
 
@@ -19,11 +25,34 @@ const SKY_CSS = `
 .${SKY_CLASS}-twinkle { animation: qs-twinkle 4.5s ease-in-out infinite; }
 @keyframes qs-twinkle { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
 .${SKY_CLASS}-drift { animation: qs-drift 22s ease-in-out infinite alternate; }
-@keyframes qs-drift { from { transform: translateX(-14px); } to { transform: translateX(14px); } }
+@keyframes qs-drift { from { transform: translateX(-24px); } to { transform: translateX(24px); } }
 .${SKY_CLASS}-bob { animation: qs-bob 3.6s ease-in-out infinite alternate; }
-@keyframes qs-bob { from { transform: translateY(0); } to { transform: translateY(-6px); } }
+@keyframes qs-bob { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+.${SKY_CLASS}-sway { animation: qs-sway 5s ease-in-out infinite alternate; transform-box: fill-box; }
+@keyframes qs-sway { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+.${SKY_CLASS}-fly { animation: qs-fly var(--dur, 30s) linear infinite; }
+@keyframes qs-fly { from { transform: translateX(var(--from)); } to { transform: translateX(var(--to)); } }
+.${SKY_CLASS}-wave { animation: qs-wave var(--dur, 3s) linear infinite; }
+@keyframes qs-wave { from { transform: translateX(0); } to { transform: translateX(var(--step, -40px)); } }
+.${SKY_CLASS}-lap { animation: qs-lap 3.2s ease-in-out infinite alternate; }
+@keyframes qs-lap { from { transform: translateY(0); } to { transform: translateY(5px); } }
+.${SKY_CLASS}-flame { animation: qs-flame 0.28s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 0; }
+@keyframes qs-flame { from { transform: scaleY(0.75); opacity: 0.8; } to { transform: scaleY(1.15); opacity: 1; } }
+.${SKY_CLASS}-rise { animation: qs-rise 4.5s ease-in-out infinite alternate; }
+@keyframes qs-rise { from { transform: translate(0, 0); } to { transform: translate(10px, -22px); } }
+.${SKY_CLASS}-turn { animation: qs-turn 8s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes qs-turn { from { transform: rotate(-10deg); } to { transform: rotate(10deg); } }
+.${SKY_CLASS}-glow { animation: qs-glow 4s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes qs-glow { from { transform: scale(0.94); opacity: 0.8; } to { transform: scale(1.06); opacity: 1; } }
+.${SKY_CLASS}-shoot { animation: qs-shoot 9s ease-out infinite; opacity: 0; }
+@keyframes qs-shoot { 0% { opacity: 0; transform: translate(0, 0); } 3% { opacity: 1; } 14% { opacity: 0; transform: translate(-280px, 130px); } 100% { opacity: 0; transform: translate(-280px, 130px); } }
+.${SKY_CLASS}-glide { animation: qs-glide 9s ease-in-out infinite alternate; }
+@keyframes qs-glide { from { transform: translate(-36px, 6px); } to { transform: translate(36px, -6px); } }
 @media (prefers-reduced-motion: reduce) {
-  .${SKY_CLASS}-twinkle, .${SKY_CLASS}-drift, .${SKY_CLASS}-bob { animation: none; }
+  .${SKY_CLASS}-twinkle, .${SKY_CLASS}-drift, .${SKY_CLASS}-bob, .${SKY_CLASS}-sway, .${SKY_CLASS}-fly,
+  .${SKY_CLASS}-wave, .${SKY_CLASS}-lap, .${SKY_CLASS}-flame, .${SKY_CLASS}-rise, .${SKY_CLASS}-turn,
+  .${SKY_CLASS}-glow, .${SKY_CLASS}-glide { animation: none; }
+  .${SKY_CLASS}-shoot { animation: none; opacity: 0; }
 }
 `;
 if (typeof document !== "undefined" && !document.querySelector("style[data-quest-sky]")) {
@@ -56,10 +85,14 @@ function Cloud({ x, y, s = 1, o = 0.95 }) {
   );
 }
 
-function Gull({ x, y, s = 1, c = "#3d4a66" }) {
+function Gull({ x, y, s = 1, c = "#3d4a66", still = false, delay = 0 }) {
+  const up = "M-12 0 Q-6 -8 0 0 Q6 -8 12 0";
+  const down = "M-12 -2 Q-6 4 0 0 Q6 4 12 -2";
   return (
-    <path transform={`translate(${x} ${y}) scale(${s})`} d="M-12 0 Q-6 -7 0 0 Q6 -7 12 0"
-      fill="none" stroke={c} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    <path transform={`translate(${x} ${y}) scale(${s})`} d={up}
+      fill="none" stroke={c} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      {!still && <animate attributeName="d" dur="0.7s" values={`${up};${down};${up}`} repeatCount="indefinite" begin={`${-delay}s`} />}
+    </path>
   );
 }
 
@@ -103,7 +136,7 @@ function Plane({ x, y }) {
 function Rocket({ x, y, s = 1, angle = -32 }) {
   return (
     <g transform={`translate(${x} ${y}) rotate(${angle}) scale(${s})`}>
-      <path d="M0 46 Q-12 74 0 98 Q12 74 0 46 Z" fill="url(#qs-flame)" />
+      <path className={`${SKY_CLASS}-flame`} d="M0 46 Q-12 74 0 98 Q12 74 0 46 Z" fill="url(#qs-flame)" />
       <path d="M-16 20 L-30 46 L-14 40 Z" fill="#e86f6f" />
       <path d="M16 20 L30 46 L14 40 Z" fill="#e86f6f" />
       <path d="M0 -58 C20 -36 22 0 16 46 L-16 46 C-22 0 -20 -36 0 -58 Z" fill="#f4f6fb" />
@@ -156,7 +189,7 @@ function Palm({ x, y }) {
     <g transform={`translate(${x} ${y})`}>
       <path d="M0 0 C-4 -40 6 -90 22 -128" stroke="#a9763f" strokeWidth="10" fill="none" strokeLinecap="round" />
       {[-24, -48, -72, -96].map((t) => <path key={t} d={`M${-3 + t * -0.12} ${t} q7 -3 13 0`} stroke="#8a5d30" strokeWidth="2" fill="none" />)}
-      <g transform="translate(22 -128)">
+      <g transform="translate(22 -128)"><g className={`${SKY_CLASS}-sway`} style={{ transformOrigin: "50% 60%", animationDuration: "4.2s" }}>
         <path d="M0 0 C-30 -22 -64 -10 -82 14 C-56 -2 -30 -2 0 0 Z" fill="#3f9a5a" />
         <path d="M0 0 C-22 -40 -54 -48 -76 -36 C-48 -30 -24 -18 0 0 Z" fill="#4fb36a" />
         <path d="M0 0 C16 -38 46 -48 70 -40 C42 -30 20 -18 0 0 Z" fill="#4fb36a" />
@@ -164,7 +197,7 @@ function Palm({ x, y }) {
         <path d="M0 0 C4 -30 -2 -60 -14 -76 C-2 -52 0 -26 0 0 Z" fill="#5cc078" />
         <circle cx="-4" cy="6" r="6" fill="#7a4e26" />
         <circle cx="6" cy="8" r="6" fill="#6b4220" />
-      </g>
+      </g></g>
     </g>
   );
 }
@@ -215,6 +248,7 @@ function Starfish({ x, y }) {
 /** Measures the map (and how far past its column the page reaches) and draws
  *  the climb behind it. Rendered as the map's first child. */
 export default function SkyBackdrop({ isMobile = false }) {
+  const still = useReducedMotion();
   const ref = useRef(null);
   const [box, setBox] = useState(null);   // { w, h, l, r }
 
@@ -314,40 +348,73 @@ export default function SkyBackdrop({ isMobile = false }) {
           <rect width={W} height={H} fill="url(#qs-sky)" />
 
           {/* Space */}
-          {stars.map((s, i) => (
-            <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#ffffff" className={s.tw ? `${SKY_CLASS}-twinkle` : undefined}
-              style={s.tw ? { animationDelay: `${s.d}s` } : undefined} opacity={s.tw ? undefined : 0.75} />
+          {stars.map((st, i) => (
+            <circle key={i} cx={st.x} cy={st.y} r={st.r} fill="#ffffff" className={st.tw ? `${SKY_CLASS}-twinkle` : undefined}
+              style={st.tw ? { animationDelay: `${st.d}s` } : undefined} opacity={st.tw ? undefined : 0.75} />
           ))}
-          <Planet x={right(0.55)} y={at(0.05)} r={isMobile ? 26 : 40} />
+          {[[0.82, 0.04, 0], [0.4, 0.13, -4.5]].map(([fx, fy, delay]) => (
+            <g key={fx} className={`${SKY_CLASS}-shoot`} style={{ animationDelay: `${delay}s` }}>
+              <path d={`M${W * fx} ${at(fy)} l46 -21`} stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
+            </g>
+          ))}
+          <g className={`${SKY_CLASS}-bob`} style={{ animationDuration: "7s" }}><Planet x={right(0.55)} y={at(0.05)} r={isMobile ? 26 : 40} /></g>
           <Moon x={left(0.45)} y={at(0.11)} r={isMobile ? 22 : 32} />
           <g transform={`translate(${left(0.8)} ${at(0.035)})`}><circle r={isMobile ? 9 : 14} fill="url(#qs-planet2)" /></g>
-          <Satellite x={right(0.35)} y={at(0.17)} />
-          <g className={`${SKY_CLASS}-bob`}><Rocket x={left(0.6)} y={at(0.24)} s={isMobile ? 0.7 : 0.9} /></g>
-          <Rocket x={right(0.7)} y={at(0.3)} s={isMobile ? 0.45 : 0.55} angle={-48} />
+          <g className={`${SKY_CLASS}-glide`} style={{ animationDuration: "14s" }}>
+            <g className={`${SKY_CLASS}-turn`}><Satellite x={right(0.35)} y={at(0.17)} /></g>
+          </g>
+          <g className={`${SKY_CLASS}-rise`}><Rocket x={left(0.6)} y={at(0.24)} s={isMobile ? 0.7 : 0.9} /></g>
+          <g className={`${SKY_CLASS}-rise`} style={{ animationDelay: "-2s", animationDuration: "5.5s" }}>
+            <Rocket x={right(0.7)} y={at(0.3)} s={isMobile ? 0.45 : 0.55} angle={-48} />
+          </g>
 
           {/* Dusk */}
-          <Cloud x={right(0.4)} y={at(0.43)} s={0.9} o={0.55} />
-          <Cloud x={left(0.35)} y={at(0.49)} s={0.75} o={0.6} />
-          <circle cx={right(0.75)} cy={at(0.5)} r={isMobile ? 46 : 70} fill="url(#qs-sun)" opacity="0.9" />
+          <g className={`${SKY_CLASS}-drift`} style={{ animationDuration: "30s" }}><Cloud x={right(0.4)} y={at(0.43)} s={0.9} o={0.55} /></g>
+          <g className={`${SKY_CLASS}-drift`} style={{ animationDuration: "26s", animationDelay: "-9s" }}><Cloud x={left(0.35)} y={at(0.49)} s={0.75} o={0.6} /></g>
+          <g className={`${SKY_CLASS}-glow`}><circle cx={right(0.75)} cy={at(0.5)} r={isMobile ? 46 : 70} fill="url(#qs-sun)" opacity="0.9" /></g>
 
           {/* Day */}
           <g className={`${SKY_CLASS}-drift`}><Cloud x={left(0.55)} y={at(0.58)} s={1.1} /></g>
-          <Plane x={right(0.45)} y={at(0.6)} />
-          <g className={`${SKY_CLASS}-bob`}><Balloon x={left(0.25)} y={at(0.67)} /></g>
+          <g className={`${SKY_CLASS}-fly`} style={{ "--from": `${-W * 0.25}px`, "--to": `${W * 0.35}px`, "--dur": "38s" }}>
+            <Plane x={right(0.45)} y={at(0.6)} />
+          </g>
+          <g className={`${SKY_CLASS}-bob`}>
+            <g className={`${SKY_CLASS}-sway`} style={{ transformOrigin: "50% 0", animationDuration: "6s" }}><Balloon x={left(0.25)} y={at(0.67)} /></g>
+          </g>
           <g className={`${SKY_CLASS}-drift`} style={{ animationDelay: "-8s" }}><Cloud x={right(0.6)} y={at(0.7)} s={0.85} /></g>
-          <Cloud x={left(0.7)} y={at(0.77)} s={0.7} o={0.85} />
-          <Gull x={right(0.3)} y={at(0.8)} />
-          <Gull x={right(0.38)} y={at(0.8) + 16} s={0.75} />
-          <Gull x={left(0.4)} y={at(0.84)} s={0.85} />
-          <Kite x={right(0.8)} y={sea - 120} />
+          <g className={`${SKY_CLASS}-drift`} style={{ animationDuration: "28s", animationDelay: "-14s" }}><Cloud x={left(0.7)} y={at(0.77)} s={0.7} o={0.85} /></g>
+          {/* Two little flocks crossing the sky, wings flapping. */}
+          <g className={`${SKY_CLASS}-fly`} style={{ "--from": `${-W * 0.6}px`, "--to": `${W * 0.6}px`, "--dur": "26s" }}>
+            <Gull x={right(0.3)} y={at(0.8)} still={still} />
+            <Gull x={right(0.3) + 26} y={at(0.8) + 14} s={0.75} still={still} delay={0.25} />
+            <Gull x={right(0.3) - 22} y={at(0.8) + 18} s={0.7} still={still} delay={0.4} />
+          </g>
+          <g className={`${SKY_CLASS}-fly`} style={{ "--from": `${W * 0.5}px`, "--to": `${-W * 0.7}px`, "--dur": "34s", animationDelay: "-12s" }}>
+            <Gull x={left(0.4)} y={at(0.84)} s={0.85} still={still} delay={0.15} />
+            <Gull x={left(0.4) + 24} y={at(0.84) - 10} s={0.65} still={still} delay={0.5} />
+          </g>
+          <g className={`${SKY_CLASS}-fly`} style={{ "--from": `${-W * 0.3}px`, "--to": `${W * 0.5}px`, "--dur": "22s", animationDelay: "-6s" }}>
+            <Gull x={left(0.5)} y={at(0.63)} s={0.8} c="#4b5878" still={still} delay={0.3} />
+          </g>
+          <g className={`${SKY_CLASS}-sway`} style={{ transformOrigin: "50% 100%", animationDuration: "3.4s" }}>
+            <Kite x={right(0.8)} y={sea - 120} />
+          </g>
 
-          {/* The sea and the beach */}
+          {/* The sea, its waves rolling, and the beach */}
           <rect x="0" y={sea} width={W} height={SEA_H + 8} fill="url(#qs-sea)" />
-          <path d={`M0 ${sea} ${Array.from({ length: Math.ceil(W / 40) + 1 }, (_, i) => `Q${i * 40 + 20} ${sea - 6} ${i * 40 + 40} ${sea}`).join(" ")} V${sea + 8} H0 Z`} fill="#8fd0f5" />
-          {Array.from({ length: Math.ceil(W / 90) }, (_, i) => (
-            <path key={i} d={`M${i * 90 + (i % 2) * 30} ${sea + 22 + (i % 3) * 12} q10 -5 20 0`} stroke="#bfe6fb" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-          ))}
-          <path d={`M0 ${ground + 4} ${Array.from({ length: Math.ceil(W / 60) + 1 }, (_, i) => `Q${i * 60 + 30} ${ground - 10} ${i * 60 + 60} ${ground + 4}`).join(" ")} V${H} H0 Z`} fill="#ffffff" opacity="0.85" />
+          <g className={`${SKY_CLASS}-wave`} style={{ "--dur": "2.8s", "--step": "-40px" }}>
+            <path d={`M-40 ${sea} ${Array.from({ length: Math.ceil(W / 40) + 3 }, (_, i) => `Q${i * 40 - 20} ${sea - 7} ${i * 40} ${sea}`).join(" ")} V${sea + 8} H-40 Z`} fill="#8fd0f5" />
+          </g>
+          <g className={`${SKY_CLASS}-wave`} style={{ "--dur": "7s", "--step": "-90px" }}>
+            {Array.from({ length: Math.ceil(W / 90) + 2 }, (_, i) => (
+              <path key={i} d={`M${i * 90 + (i % 2) * 30} ${sea + 22 + (i % 3) * 12} q10 -5 20 0`} stroke="#bfe6fb" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+            ))}
+          </g>
+          <g className={`${SKY_CLASS}-lap`}>
+            <g className={`${SKY_CLASS}-wave`} style={{ "--dur": "5s", "--step": "-60px" }}>
+              <path d={`M-60 ${ground + 4} ${Array.from({ length: Math.ceil(W / 60) + 3 }, (_, i) => `Q${i * 60 - 30} ${ground - 10} ${i * 60} ${ground + 4}`).join(" ")} V${ground + 30} H-60 Z`} fill="#ffffff" opacity="0.85" />
+            </g>
+          </g>
           <rect x="0" y={ground + 6} width={W} height={SAND_H} fill="url(#qs-sand)" />
           {Array.from({ length: Math.ceil(W / 26) }, (_, i) => (
             <circle key={i} cx={(rnd(i * 2.2) * W)} cy={ground + 20 + rnd(i * 3.3) * (SAND_H - 30)} r="1.6" fill="#d9ad66" opacity="0.7" />
@@ -365,13 +432,13 @@ export default function SkyBackdrop({ isMobile = false }) {
           day sky, Quill out at dusk. */}
       {box && (
         <>
-          <div className={`${SKY_CLASS}-bob`} style={{ position: "absolute", left: onRight(0.25) - mascot / 2, top: at(isMobile ? 0.77 : 0.74) - mascot / 2 }}>
+          <div className={`${SKY_CLASS}-glide`} style={{ position: "absolute", left: onRight(0.25) - mascot / 2, top: at(isMobile ? 0.77 : 0.74) - mascot / 2 }}>
             <Mascot agent="beaker" state="flying" size={mascot} title="" style={{ transform: "scaleX(-1)" }} />
           </div>
-          <div className={`${SKY_CLASS}-bob`} style={{ position: "absolute", left: onLeft(0.6) - mascot / 2, top: at(isMobile ? 0.6 : 0.535) - mascot / 2, animationDelay: "-1.4s" }}>
+          <div className={`${SKY_CLASS}-glide`} style={{ position: "absolute", left: onLeft(0.6) - mascot / 2, top: at(isMobile ? 0.6 : 0.535) - mascot / 2, animationDelay: "-1.4s" }}>
             <Mascot agent="talon" state="flying" size={mascot} title="" />
           </div>
-          <div className={`${SKY_CLASS}-bob`} style={{ position: "absolute", left: onRight(0.6) - mascot / 2, top: at(isMobile ? 0.44 : 0.37) - mascot / 2, animationDelay: "-2.6s" }}>
+          <div className={`${SKY_CLASS}-glide`} style={{ position: "absolute", left: onRight(0.6) - mascot / 2, top: at(isMobile ? 0.44 : 0.37) - mascot / 2, animationDelay: "-2.6s" }}>
             <Mascot agent="quill" state="flying" size={mascot} title="" style={{ transform: "scaleX(-1)" }} />
           </div>
         </>
