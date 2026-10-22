@@ -82,15 +82,6 @@ const stagItem = {
 };
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
-function Label({ children }) {
-  return (
-    <span style={{ display: "inline-block", fontFamily: SANS, fontSize: "0.72rem", fontWeight: 700,
-      letterSpacing: "0.18em", textTransform: "uppercase", color: P, marginBottom: "1.1rem" }}>
-      {children}
-    </span>
-  );
-}
-
 function Heading({ italic, rest, size = "clamp(2.4rem,4.4vw,3.5rem)" }) {
   return (
     <h2 style={{ margin: 0, lineHeight: 1.08, letterSpacing: "-0.02em" }}>
@@ -749,7 +740,7 @@ function Hero() {
 }
 
 // ─── Feature row ──────────────────────────────────────────────────────────────
-function FeatureRow({ label, italic, rest, body, items, visual, flip, center }) {
+function FeatureRow({ italic, rest, body, items, visual, flip, center }) {
   return (
     <ScrollScale>
       <div className="lp-row" style={{ display: "flex", alignItems: "center",
@@ -758,7 +749,6 @@ function FeatureRow({ label, italic, rest, body, items, visual, flip, center }) 
         <div className="lp-textcol" style={{ flex: "0 0 46%", textAlign: center ? "center" : "left",
           display: "flex", flexDirection: "column", alignItems: center ? "center" : "flex-start" }}>
           <FadeUp>
-            <Label>{label}</Label>
             <Heading italic={italic} rest={rest} size="clamp(2rem,3.6vw,2.9rem)"/>
             <p style={{ fontFamily: BODY, fontWeight: 300, fontSize: "1.02rem", color: MUT,
               lineHeight: 1.85, margin: "1.6rem 0 0", maxWidth: 420, marginLeft: center ? "auto" : 0,
@@ -924,32 +914,31 @@ export default function LandingPage() {
 
       <div id="features">
         <FeatureRow
-          label="Step 01" italic="Build" rest="your record."
+          italic="Build" rest="your record."
           body="Add your grades, test scores, classes and activities once, then tell the story behind them in a short text or voice interview. It all lands in one record you can edit any time."
           visual={<LaptopRecord/>}
           center
           flip={false}/>
 
         <FeatureRow
-          label="Step 02" italic="Sort" rest="your college list."
+          italic="Sort" rest="your college list."
           body="Add the schools you're considering and see their admit rates, score ranges and costs from the U.S. Department of Education. Each one is sorted reach, target or likely against your own scores, with the reason shown."
           visual={<CollegeListCard/>}
           flip={true}/>
 
         <div style={{ marginTop: "-6.5rem" }}>
           <FeatureRow
-            label="Step 03" italic="Move" rest="forward every day."
+            italic="Move" rest="forward every day."
             body="Pick one project and Quest splits it into milestones, then hands you one small task each day. Check in with what you did to keep your streak going."
             visual={<PhoneQuest/>}
             flip={false}/>
         </div>
       </div>
 
-      {/* Step 04 — centered climax */}
+      {/* Centered climax */}
       <ScrollScale>
         <section style={{ maxWidth: 900, margin: "0 auto", padding: "4.5rem clamp(1.25rem,4vw,2.5rem) 5rem", textAlign: "center" }}>
           <FadeUp style={{ marginBottom: "2.8rem", display: "inline-block" }}>
-            <Label>Step 04</Label>
             <Heading italic="Ask" rest="anything, anytime." size="clamp(2rem,3.6vw,2.9rem)"/>
             <p style={{ fontFamily: BODY, fontWeight: 300, fontSize: "1.02rem", color: MUT,
               lineHeight: 1.85, margin: "1.6rem auto 0", maxWidth: 480 }}>
