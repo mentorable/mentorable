@@ -19,7 +19,6 @@ const BDR  = "rgba(37,99,235,0.1)";
 const BDR2 = "rgba(37,99,235,0.18)";
 const FOOT = "#2563eb";
 const SH   = "0 4px 32px rgba(37,99,235,0.10),0 1px 4px rgba(0,0,0,0.05)";
-const SH_LG= "0 24px 64px rgba(37,99,235,0.24),0 4px 20px rgba(0,0,0,0.10)";
 const EASE = [0.22, 1, 0.36, 1];
 const CARD = "#faf9f5";
 const DOT_BG = "radial-gradient(circle, rgba(59,130,246,0.05) 1px, transparent 1px)";
@@ -65,21 +64,6 @@ function ScrollScale({ children, style = {} }) {
   return <motion.div ref={ref} style={{ scale, opacity, ...style }}>{children}</motion.div>;
 }
 
-function Stagger({ children, style = {}, className }) {
-  const ref = useRef(null);
-  const iv  = useInView(ref, { once: true, margin: "-80px" });
-  return (
-    <motion.div ref={ref} className={className} style={style}
-      variants={{ hidden: {}, show: { transition: { staggerChildren: 0.12 } } }}
-      initial="hidden" animate={iv ? "show" : "hidden"}>
-      {children}
-    </motion.div>
-  );
-}
-const stagItem = {
-  hidden: { opacity: 0, y: 22, scale: 0.96 },
-  show:   { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: EASE } },
-};
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 function Heading({ italic, rest, size = "clamp(2.4rem,4.4vw,3.5rem)" }) {
@@ -344,57 +328,6 @@ function LaptopRecord() {
   );
 }
 
-// ─── Visual 2: College List ───────────────────────────────────────────────────
-// Mirrors the real page: a heading and count per group, then each school with
-// its admit rate in heavy type and the reason it was sorted there.
-const COLLEGE_GROUPS = [
-  { label: "Reach", schools: [
-    { name: "Carnegie Mellon University", admit: 11, reason: "They admit 11%. Under 20% is a reach for everyone, whatever the scores." },
-    { name: "University of Michigan", admit: 18 },
-  ] },
-  { label: "Target", schools: [
-    { name: "University of Illinois Urbana-Champaign", admit: 44, reason: "Your SAT 1480 is in their middle 50%, and they admit 44%." },
-    { name: "University of Wisconsin–Madison", admit: 43 },
-  ] },
-  { label: "Likely", schools: [
-    { name: "Arizona State University", admit: 90, reason: "Your SAT 1480 is above their middle 50%, and they admit 90%." },
-  ] },
-];
-
-function CollegeListCard() {
-  return (
-    <div aria-hidden="true" style={{ position: "relative", width: "100%", maxWidth: 440, margin: "0 auto" }}>
-      <div style={{ position: "absolute", inset: "8%", borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(37,99,235,0.16), transparent 66%)",
-        filter: "blur(38px)", pointerEvents: "none" }}/>
-      <Stagger style={{ position: "relative", background: "#F5F5F5", borderRadius: 20, border: `1px solid ${BDR}`,
-        boxShadow: SH_LG, padding: "1.3rem 1.2rem 1.1rem", textAlign: "left" }}>
-        <motion.div variants={stagItem} style={{ fontFamily: SANS, fontSize: "1.35rem", fontWeight: 800, color: P, letterSpacing: "-0.03em" }}>
-          College List
-        </motion.div>
-        {COLLEGE_GROUPS.map((g) => (
-          <motion.div key={g.label} variants={stagItem} style={{ marginTop: "0.95rem" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 7, fontFamily: SANS, fontSize: "0.95rem", marginBottom: 6 }}>
-              <span style={{ fontWeight: 700, color: FG }}>{g.label}</span>
-              <span style={{ fontWeight: 500, color: MUT }}>{g.schools.length}</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {g.schools.map((sc) => (
-                <div key={sc.name} style={{ background: "#fff", border: "1px solid #e4e2dd", borderRadius: 12, padding: "0.6rem 0.75rem" }}>
-                  <div style={{ fontFamily: SANS, fontSize: "0.86rem", fontWeight: 700, color: FG, lineHeight: 1.3 }}>{sc.name}</div>
-                  <div style={{ fontFamily: SANS, fontSize: "0.8rem", fontWeight: 800, color: FG, marginTop: 2 }}>{sc.admit}% admitted</div>
-                  {sc.reason && (
-                    <div style={{ fontFamily: SANS, fontSize: "0.74rem", fontWeight: 500, color: FG, lineHeight: 1.45, marginTop: 4 }}>{sc.reason}</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        ))}
-      </Stagger>
-    </div>
-  );
-}
 
 // ─── Visual 3: Phone showing Quest ────────────────────────────────────────────
 // Stones along a winding path: done, today (larger, ringed), then locked.
@@ -920,18 +853,12 @@ export default function LandingPage() {
           center
           flip={false}/>
 
-        <FeatureRow
-          italic="Sort" rest="your college list."
-          body="Add the schools you're considering and see their admit rates, score ranges and costs from the U.S. Department of Education. Each one is sorted reach, target or likely against your own scores, with the reason shown."
-          visual={<CollegeListCard/>}
-          flip={true}/>
-
         <div style={{ marginTop: "-6.5rem" }}>
           <FeatureRow
             italic="Move" rest="forward every day."
             body="Pick one project and Quest splits it into milestones, then hands you one small task each day. Check in with what you did to keep your streak going."
             visual={<PhoneQuest/>}
-            flip={false}/>
+            flip={true}/>
         </div>
       </div>
 
