@@ -54,11 +54,6 @@ const SKY_CSS = `
   .${SKY_CLASS}-glow, .${SKY_CLASS}-glide { animation: none; }
   .${SKY_CLASS}-shoot { animation: none; opacity: 0; }
 }
-.${SKY_CLASS}-still .${SKY_CLASS}-twinkle, .${SKY_CLASS}-still .${SKY_CLASS}-drift, .${SKY_CLASS}-still .${SKY_CLASS}-bob,
-.${SKY_CLASS}-still .${SKY_CLASS}-sway, .${SKY_CLASS}-still .${SKY_CLASS}-fly, .${SKY_CLASS}-still .${SKY_CLASS}-wave,
-.${SKY_CLASS}-still .${SKY_CLASS}-lap, .${SKY_CLASS}-still .${SKY_CLASS}-flame, .${SKY_CLASS}-still .${SKY_CLASS}-rise,
-.${SKY_CLASS}-still .${SKY_CLASS}-turn, .${SKY_CLASS}-still .${SKY_CLASS}-glow, .${SKY_CLASS}-still .${SKY_CLASS}-glide,
-.${SKY_CLASS}-still .${SKY_CLASS}-shoot { animation-play-state: paused; }
 `;
 if (typeof document !== "undefined" && !document.querySelector("style[data-quest-sky]")) {
   const el = document.createElement("style");
@@ -251,11 +246,9 @@ function Starfish({ x, y }) {
 // ── The scene ────────────────────────────────────────────────────────────────
 
 /** Measures the map (and how far past its column the page reaches) and draws
- *  the climb behind it. Rendered as the map's first child.
- *  still: hold every motion (the landing page sets it once a mockup has
- *  settled or is off screen). */
-export default function SkyBackdrop({ isMobile = false, still: hold = false }) {
-  const still = useReducedMotion() || hold;
+ *  the climb behind it. Rendered as the map's first child. */
+export default function SkyBackdrop({ isMobile = false }) {
+  const still = useReducedMotion();
   const ref = useRef(null);
   const [box, setBox] = useState(null);   // { w, h, l, r }
 
@@ -265,22 +258,16 @@ export default function SkyBackdrop({ isMobile = false, still: hold = false }) {
     if (!map) return undefined;
     const measure = () => {
       const mr = map.getBoundingClientRect();
-      // The scene is drawn in layout pixels, but a CSS scale on an ancestor
-      // (the landing page's scaled mockups) shrinks the rects: undo it. In the
-      // app nothing is scaled, and the near-1 ratio a fractional width gives
-      // (offsetWidth rounds) is treated as exactly 1.
-      const ratio = map.offsetWidth > 0 ? mr.width / map.offsetWidth : 1;
-      const k = Math.abs(ratio - 1) < 0.01 ? 1 : ratio;
       const page = map.closest("[data-sidebar-offset]");
       let l = 0, r = 0;
       if (page) {
         const pr = page.getBoundingClientRect();
         const cs = getComputedStyle(page);
         // Out to the page's content edges (inside its padding), clear of the sidebar.
-        l = Math.max(0, Math.round((mr.left - pr.left) / k - parseFloat(cs.paddingLeft)));
-        r = Math.max(0, Math.round((pr.right - mr.right) / k - parseFloat(cs.paddingRight)));
+        l = Math.max(0, Math.round(mr.left - (pr.left + parseFloat(cs.paddingLeft))));
+        r = Math.max(0, Math.round(pr.right - parseFloat(cs.paddingRight) - mr.right));
       }
-      const next = { w: Math.round(mr.width / k) + l + r, h: Math.round(mr.height / k), l, r };
+      const next = { w: Math.round(mr.width) + l + r, h: Math.round(mr.height), l, r };
       setBox((prev) => (prev && prev.w === next.w && prev.h === next.h && prev.l === next.l && prev.r === next.r ? prev : next));
     };
     measure();
@@ -315,8 +302,7 @@ export default function SkyBackdrop({ isMobile = false, still: hold = false }) {
   }
 
   return (
-    <div ref={ref} aria-hidden="true" className={hold ? `${SKY_CLASS}-still` : undefined}
-      style={{ position: "absolute", top: 0, bottom: 0, left: -(box?.l || 0), right: -(box?.r || 0),
+    <div ref={ref} aria-hidden="true" style={{ position: "absolute", top: 0, bottom: 0, left: -(box?.l || 0), right: -(box?.r || 0),
       zIndex: -1, pointerEvents: "none", overflow: "hidden", borderRadius: 28 }}>
       {box && (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: "block", position: "absolute", inset: 0 }}>
@@ -447,13 +433,13 @@ export default function SkyBackdrop({ isMobile = false, still: hold = false }) {
       {box && (
         <>
           <div className={`${SKY_CLASS}-glide`} style={{ position: "absolute", left: onRight(0.25) - mascot / 2, top: at(isMobile ? 0.77 : 0.74) - mascot / 2 }}>
-            <Mascot agent="beaker" state="flying" size={mascot} title="" animate={!hold} style={{ transform: "scaleX(-1)" }} />
+            <Mascot agent="beaker" state="flying" size={mascot} title="" style={{ transform: "scaleX(-1)" }} />
           </div>
           <div className={`${SKY_CLASS}-glide`} style={{ position: "absolute", left: onLeft(0.6) - mascot / 2, top: at(isMobile ? 0.6 : 0.535) - mascot / 2, animationDelay: "-1.4s" }}>
-            <Mascot agent="talon" state="flying" size={mascot} title="" animate={!hold} />
+            <Mascot agent="talon" state="flying" size={mascot} title="" />
           </div>
           <div className={`${SKY_CLASS}-glide`} style={{ position: "absolute", left: onRight(0.6) - mascot / 2, top: at(isMobile ? 0.44 : 0.37) - mascot / 2, animationDelay: "-2.6s" }}>
-            <Mascot agent="quill" state="flying" size={mascot} title="" animate={!hold} style={{ transform: "scaleX(-1)" }} />
+            <Mascot agent="quill" state="flying" size={mascot} title="" style={{ transform: "scaleX(-1)" }} />
           </div>
         </>
       )}

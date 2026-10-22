@@ -117,15 +117,10 @@ function SaysBeside({ children, agent, bandH, mascotBottom, size, right }) {
  * button's text. flip: turn the mascot to face the bubble. lift: how far the
  * mascot's box sinks into the ground (its feet sit on the ground's top).
  * decor({ px, groundH, isMobile }): the agent's props, absolutely placed.
- *
- * headingAs: the title's tag (an "h1" on its own page; a page that already
- * has an h1, like the landing, passes "p"). animate: the mascot's frames
- * play. The back button renders only when `onBack` is a function.
  */
 export default function AgentScene({
   title, onBack, agent, state = "idle", says = null, isMobile = false,
   sky, ground, backColor = "#e4e6ff", flip = false, lift = 4, decor,
-  headingAs: Heading = "h1", animate = true,
 }) {
   const px = isMobile ? 3 : 4;
   const height = isMobile ? 150 : 200;
@@ -142,8 +137,7 @@ export default function AgentScene({
           background: ground.color, borderTop: `4px solid ${ground.top}` }} />
         {decor?.({ px, groundH, isMobile })}
         <div style={{ position: "absolute", right: mascotRight, bottom: mascotBottom }}>
-          <Mascot agent={agent} state={state} size={size} title="" animate={animate}
-            style={flip ? { transform: "scaleX(-1)" } : undefined} />
+          <Mascot agent={agent} state={state} size={size} title="" style={flip ? { transform: "scaleX(-1)" } : undefined} />
         </div>
       </div>
 
@@ -154,19 +148,17 @@ export default function AgentScene({
       )}
 
       <div style={{ position: "relative", padding: isMobile ? "4px 16px 0" : "10px 26px 0" }}>
-        {typeof onBack === "function" && (
-          <button type="button" className={`${SCENE_CLASS}-focus`} onClick={onBack}
-            style={{ minHeight: 44, display: "inline-flex", alignItems: "center", gap: 8, margin: "0 0 2px -8px", padding: "0 8px",
-              border: "none", background: "none", borderRadius: 10, cursor: "pointer", fontFamily: SANS, fontSize: "0.95rem",
-              fontWeight: 700, color: backColor }}>
-            <PixelArrow size={16} style={{ transform: "scaleX(-1)" }} />
-            Agents
-          </button>
-        )}
-        <Heading style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: isMobile ? "2.1rem" : "2.5rem", color: "#ffffff",
+        <button type="button" className={`${SCENE_CLASS}-focus`} onClick={onBack}
+          style={{ minHeight: 44, display: "inline-flex", alignItems: "center", gap: 8, margin: "0 0 2px -8px", padding: "0 8px",
+            border: "none", background: "none", borderRadius: 10, cursor: "pointer", fontFamily: SANS, fontSize: "0.95rem",
+            fontWeight: 700, color: backColor }}>
+          <PixelArrow size={16} style={{ transform: "scaleX(-1)" }} />
+          Agents
+        </button>
+        <h1 style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: isMobile ? "2.1rem" : "2.5rem", color: "#ffffff",
           letterSpacing: "-0.03em", lineHeight: 1.1, textShadow: "0 2px 0 rgba(0,0,0,0.18)" }}>
           {title}
-        </Heading>
+        </h1>
       </div>
     </header>
   );

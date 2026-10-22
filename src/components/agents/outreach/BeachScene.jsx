@@ -201,10 +201,9 @@ function Bubbles({ px, left = 3 * px }) {
  * title: the page's h1. onBack(): the "Agents" button. state: Beaker's pose.
  * isMobile: the shorter band. says: Beaker's line (wide screens only).
  */
-export default function BeachScene({ title = "Outreach", onBack, state = "idle", isMobile = false, says = null,
-  headingAs = "h1", animate = true }) {
+export default function BeachScene({ title = "Outreach", onBack, state = "idle", isMobile = false, says = null }) {
   return (
     <AgentScene title={title} onBack={onBack} agent="beaker" state={state} says={says} isMobile={isMobile}
-      headingAs={headingAs} animate={animate} sky={SKY} ground={GROUND} backColor="#eaf5ff" flip lift={6} decor={(p) => <BeachDecor {...p} />} />
+      sky={SKY} ground={GROUND} backColor="#eaf5ff" flip lift={6} decor={(p) => <BeachDecor {...p} />} />
   );
 }

@@ -221,11 +221,11 @@ const card = (border = LINE) => ({
 /** The school's facts as chips. Each one is a button that shows what it
  *  means underneath, so the definitions work on touch and from the keyboard,
  *  not only on hover. `only` limits the chips (the compact card shows fewer). */
-export function Facts({ school, only, defaultOpen }) {
+function Facts({ school, only }) {
   const ink = useAccentInk();
   const touch = useTouch();
   const base = useId();
-  const [open, setOpen] = useState(defaultOpen ?? null);
+  const [open, setOpen] = useState(null);
   const list = facts(school).filter((f, i) => !only || only.includes(i));
   if (!list.length) return null;
   const shown = list.find((f) => f.text === open);
@@ -259,7 +259,7 @@ export function Facts({ school, only, defaultOpen }) {
 
 /** Reach / Target / Likely as three raised tiles, each a toggle button. The
  *  pressed one shows a spinner while its save is on the way. */
-export function CategoryPicker({ value, onChange, saving, label, stretch }) {
+function CategoryPicker({ value, onChange, saving, label, stretch }) {
   const ink = useAccentInk();
   const touch = useTouch();
   return (
@@ -298,7 +298,7 @@ function Banner({ error, children, action, onDismiss }) {
 
 /** The three groups as raised tiles, each filling toward its goal and each a
  *  jump to its group. */
-export function Scoreboard({ counts, isMobile, reduce }) {
+function Scoreboard({ counts, isMobile, reduce }) {
   const ink = useAccentInk();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -375,7 +375,7 @@ function HowItWorks({ navigate }) {
 
 /** Why the school sits where it does, and the card's lead line. A school the
  *  student sorted keeps our suggestion beside theirs, with a way back to it. */
-export function Reason({ item, stats, onRestore, saving }) {
+function Reason({ item, stats, onRestore, saving }) {
   const ink = useAccentInk();
   const lead = { margin: "10px 0 0", fontFamily: SANS, lineHeight: 1.5, fontWeight: 600, fontSize: "1.05rem", color: INK };
   if (item.category_source !== "student") {
@@ -409,7 +409,7 @@ export function Reason({ item, stats, onRestore, saving }) {
   );
 }
 
-export function SchoolCard({ item, stats, onSetCategory, onRestore, onRemove, isMobile, saving, flash, compact }) {
+function SchoolCard({ item, stats, onSetCategory, onRestore, onRemove, isMobile, saving, flash, compact }) {
   const ink = useAccentInk();
   const reduce = useReducedMotion();
   const touch = useTouch();
@@ -511,7 +511,7 @@ export function SchoolCard({ item, stats, onSetCategory, onRestore, onRemove, is
 
 // ─── Search and add ───────────────────────────────────────────────────────────
 
-export function SearchResult({ school, stats, counts, onList, adding, onAdd, first }) {
+function SearchResult({ school, stats, counts, onList, adding, onAdd, first }) {
   const ink = useAccentInk();
   const suggestion = suggestCategory(stats, school);
   // What this add would do to the list, so the balance is visible before it changes.

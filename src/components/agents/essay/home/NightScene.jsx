@@ -99,10 +99,9 @@ function NightDecor({ px, groundH, isMobile }) {
  * state: Quill's pose ("idle", "thinking"). isMobile: the shorter band.
  * says: Quill's line, in a bubble to the owl's left (wide screens only).
  */
-export default function NightScene({ title = "Essays", onBack, state = "idle", isMobile = false, says = null,
-  headingAs = "h1", animate = true }) {
+export default function NightScene({ title = "Essays", onBack, state = "idle", isMobile = false, says = null }) {
   return (
     <AgentScene title={title} onBack={onBack} agent="quill" state={state} says={says} isMobile={isMobile}
-      headingAs={headingAs} animate={animate} sky={SKY} ground={GROUND} decor={(p) => <NightDecor {...p} />} />
+      sky={SKY} ground={GROUND} decor={(p) => <NightDecor {...p} />} />
   );
 }

@@ -18,9 +18,7 @@ export const MINUTE_OPTIONS = [
 
 // ─── Top bar ──────────────────────────────────────────────────────────────────
 
-// headingAs: the title's tag (a copy of the bar inside a page that has its
-// own h1, like the landing's mockups, passes "p").
-export function TopBar({ title, stats, streakLit, menu, isMobile, headingAs: Heading = "h1" }) {
+export function TopBar({ title, stats, streakLit, menu, isMobile }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -39,11 +37,11 @@ export function TopBar({ title, stats, streakLit, menu, isMobile, headingAs: Hea
       padding: isMobile ? "10px 10px 10px 14px" : "12px 14px 12px 22px", borderRadius: 20,
       background: "rgba(38,50,112,0.9)", border: "1px solid rgba(255,255,255,0.28)",
       backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 12px 32px rgba(12,16,44,0.28)" }}>
-      <Heading title={title} style={{ flex: 1, minWidth: 0, margin: 0, fontFamily: SANS, fontWeight: 800,
+      <h1 title={title} style={{ flex: 1, minWidth: 0, margin: 0, fontFamily: SANS, fontWeight: 800,
         fontSize: isMobile ? "1.15rem" : "1.6rem", color: "#ffffff", letterSpacing: "-0.02em", lineHeight: 1.2,
         whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {title}
-      </Heading>
+      </h1>
       <span title={`${stats?.streak || 0} day streak`}
         style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, fontFamily: SANS, fontWeight: 800,
           fontSize: isMobile ? "1rem" : "1.1rem", color: streakLit ? "#ffd27a" : "rgba(255,255,255,0.75)",
