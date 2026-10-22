@@ -23,7 +23,8 @@ const EASE = [0.22, 1, 0.36, 1];
 const CARD = "#faf9f5";
 const DOT_BG = "radial-gradient(circle, rgba(59,130,246,0.05) 1px, transparent 1px)";
 
-const HERO_IMG = "/hero-mountains.png";
+// Billy Huynh, https://unsplash.com/photos/v9bnfMCyKbg (Unsplash License)
+const HERO_IMG = "/hero-clouds.jpg";
 
 // ─── Motion primitives ────────────────────────────────────────────────────────
 function FadeUp({ children, delay = 0, y = 24, style = {} }) {
