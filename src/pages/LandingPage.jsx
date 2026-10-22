@@ -654,7 +654,7 @@ function Hero() {
         <p style={{ ...enter(0.22), fontFamily: BODY, fontSize: "clamp(1rem,1.5vw,1.2rem)", lineHeight: 1.7,
           color: "#000000", fontWeight: 600, maxWidth: 540, margin: "1.8rem 0 0",
           textShadow: "0 1px 18px rgba(255,255,255,0.7)" }}>
-          Your personal college application advisor. The kind of support that used to cost $300 a session, now free.
+          Your personal college application advisor. Closing the gap between expert guidance and what families can afford.
         </p>
         <div style={{ ...enter(0.38), display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 14, marginTop: "2.4rem" }}>
           <SolidBtn onClick={() => go("/auth")}>Get Started <ArrowRight/></SolidBtn>
