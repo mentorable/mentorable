@@ -691,8 +691,29 @@ function Footer() {
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
+// The color behind the page, which shows when a browser lets you scroll past
+// either end (the rubber band): the hero's top edge above, the footer's blue
+// below. Set from where the page is scrolled to, and put back on leaving.
+const HERO_EDGE = "#f3f6fb";
+
 export default function LandingPage() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
+  useEffect(() => {
+    const root = document.documentElement;
+    const before = root.style.backgroundColor;
+    const paint = () => {
+      const max = root.scrollHeight - window.innerHeight;
+      root.style.backgroundColor = window.scrollY > max / 2 ? FOOT : HERO_EDGE;
+    };
+    paint();
+    window.addEventListener("scroll", paint, { passive: true });
+    window.addEventListener("resize", paint);
+    return () => {
+      window.removeEventListener("scroll", paint);
+      window.removeEventListener("resize", paint);
+      root.style.backgroundColor = before;
+    };
+  }, []);
   return (
     <div style={{ background: BG, minHeight: "100vh", color: FG, fontFamily: BODY, overflowX: "hidden" }}>
       <style>{`
