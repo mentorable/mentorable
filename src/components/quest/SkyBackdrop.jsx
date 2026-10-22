@@ -267,7 +267,11 @@ export default function SkyBackdrop({ isMobile = false }) {
         l = Math.max(0, Math.round(mr.left - (pr.left + parseFloat(cs.paddingLeft))));
         r = Math.max(0, Math.round(pr.right - parseFloat(cs.paddingRight) - mr.right));
       }
-      const next = { w: Math.round(mr.width) + l + r, h: Math.round(mr.height), l, r };
+      // Outside the app's page (the landing page's phone, which is scaled and
+      // tilted) the on-screen rect is distorted: use the layout size instead.
+      const next = page
+        ? { w: Math.round(mr.width) + l + r, h: Math.round(mr.height), l, r }
+        : { w: map.offsetWidth, h: map.offsetHeight, l, r };
       setBox((prev) => (prev && prev.w === next.w && prev.h === next.h && prev.l === next.l && prev.r === next.r ? prev : next));
     };
     measure();

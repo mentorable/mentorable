@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useContext, createContext } from "react";
 import { motion, AnimatePresence, useInView, useScroll, useTransform, useSpring } from "framer-motion";
 import { supabase } from "../lib/supabase";
-import { Flame, TreasureMapIcon } from "../components/quest/questUi.jsx";
+import { FixedTheme } from "../lib/ThemeContext.jsx";
+import PortfolioShot, { PORTFOLIO_SHOT } from "../components/landingShots/PortfolioShot.jsx";
+import QuestShot, { QUEST_SHOT } from "../components/landingShots/QuestShot.jsx";
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 const SANS = "'Raleway', sans-serif";
@@ -198,62 +200,9 @@ function TypingDots({ color = "#5b6188" }) {
 }
 
 // ─── Visual 1: Laptop showing the Portfolio record ────────────────────────────
-const RECORD_COURSES = ["AP Calculus BC", "AP Computer Science A", "Honors Chemistry", "AP English Language"];
-const RECORD_ACTIVITIES = [
-  { title: "Robotics Team", meta: "Captain · 10 hrs/week · Grades 9–11" },
-  { title: "Peer Math Tutoring", meta: "Founder · 4 hrs/week · Grades 10–11" },
-];
-
-function RecordCard({ title, children, style = {} }) {
-  return (
-    <div style={{ background: "#fff", border: "1px solid #e4e2dd", borderRadius: 7, padding: "7px 9px", ...style }}>
-      <div style={{ fontFamily: SANS, fontSize: 7.5, fontWeight: 700, color: FG, marginBottom: 5 }}>{title}</div>
-      {children}
-    </div>
-  );
-}
-
-function RecordScreen() {
-  return (
-    <div style={{ width: "100%", height: "100%", background: "#F5F5F5", padding: "14px 16px", overflow: "hidden",
-      display: "flex", flexDirection: "column", gap: 7 }}>
-      <div>
-        <div style={{ fontFamily: SANS, fontSize: 15, fontWeight: 700, color: P, letterSpacing: "-0.03em" }}>Portfolio</div>
-        <div style={{ fontFamily: SANS, fontSize: 7.5, color: MUT, marginTop: 2 }}>
-          Your grades, scores, classes, activities and awards, all in one place.
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 7 }}>
-        <RecordCard title="GPA" style={{ flex: 1 }}>
-          <div style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: FG, letterSpacing: "-0.02em" }}>
-            3.86 <span style={{ fontSize: 7, fontWeight: 500, color: MUT, letterSpacing: 0 }}>unweighted</span>
-          </div>
-        </RecordCard>
-        <RecordCard title="Test scores" style={{ flex: 1 }}>
-          <div style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: FG, letterSpacing: "-0.02em" }}>
-            1480 <span style={{ fontSize: 7, fontWeight: 500, color: MUT, letterSpacing: 0 }}>SAT</span>
-          </div>
-        </RecordCard>
-      </div>
-      <RecordCard title="Coursework">
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-          {RECORD_COURSES.map((c) => (
-            <span key={c} style={{ fontFamily: SANS, fontSize: 6.5, fontWeight: 600, color: P,
-              background: "rgba(37,99,235,0.07)", border: `1px solid ${BDR2}`, borderRadius: 99, padding: "2px 6px" }}>{c}</span>
-          ))}
-        </div>
-      </RecordCard>
-      <RecordCard title="Activities">
-        {RECORD_ACTIVITIES.map((a, i) => (
-          <div key={a.title} style={{ paddingTop: i ? 5 : 0, marginTop: i ? 5 : 0, borderTop: i ? "1px solid #efede9" : "none" }}>
-            <div style={{ fontFamily: SANS, fontSize: 7.5, fontWeight: 700, color: FG }}>{a.title}</div>
-            <div style={{ fontFamily: SANS, fontSize: 6.5, color: MUT, marginTop: 1 }}>{a.meta}</div>
-          </div>
-        ))}
-      </RecordCard>
-    </div>
-  );
-}
+// The real Portfolio page (landingShots/PortfolioShot.jsx), laid out at a
+// 1000 x 650 screen and scaled into the 400 x 260 lid.
+const LID_SCREEN = { w: 400, h: 260 };
 
 function LaptopRecord() {
   const ref = useRef(null);
@@ -282,7 +231,12 @@ function LaptopRecord() {
             width: 5, height: 5, borderRadius: "50%", background: "#2a2a3a", zIndex: 11 }}/>
           <div style={{ position: "absolute", inset: "10px", borderRadius: 8,
             background: "#fafbff", overflow: "hidden" }}>
-            <RecordScreen/>
+            <FixedTheme>
+              <div style={{ width: PORTFOLIO_SHOT.w, height: PORTFOLIO_SHOT.h, transform: `scale(${LID_SCREEN.w / PORTFOLIO_SHOT.w})`,
+                transformOrigin: "0 0" }}>
+                <PortfolioShot/>
+              </div>
+            </FixedTheme>
           </div>
         </div>
         {/* Hinge */}
@@ -341,24 +295,13 @@ function LaptopRecord() {
 
 
 // ─── Visual 3: Phone showing Quest ────────────────────────────────────────────
-// Stones along a winding path: done, today (larger, ringed), then locked.
-const QUEST_STONES = [
-  { st: "done", x: 60, y: 0 }, { st: "done", x: 118, y: 36 }, { st: "done", x: 150, y: 84 },
-  { st: "today", x: 100, y: 128 }, { st: "locked", x: 48, y: 184 }, { st: "locked", x: 96, y: 228 },
-];
-
-const PHONE_NAV = [
-  { key: "quest", active: true },
-  { key: "colleges", d: ["M21.42 10.92a1 1 0 0 0-.02-1.84L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.83l8.57 3.91a2 2 0 0 0 1.66 0z", "M22 10v6", "M6 12.5V16a6 3 0 0 0 12 0v-3.5"] },
-  { key: "chat", d: ["M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"] },
-  { key: "portfolio", d: ["M4 7h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z", "M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"] },
-  { key: "profile", d: ["M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2", "M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"] },
-];
+// The real Quest home screen (landingShots/QuestShot.jsx), laid out at a
+// 360 x 725 phone and scaled into the 268 x 540 screen.
+const PHONE_SCREEN = { w: 268, h: 540 };
 
 function PhoneQuest() {
   const ref = useRef(null);
   const iv  = useInView(ref, { once: true, margin: "-50px" });
-  const edge = "#1e3a8a";
   return (
     <div ref={ref} aria-hidden="true" style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", padding: "3rem 0 1rem" }}>
       <div style={{ position: "absolute", width: 520, height: 400, borderRadius: "50%",
@@ -382,78 +325,13 @@ function PhoneQuest() {
               width: 110, height: 28, borderRadius: 999, background: "#000", border: "1px solid rgba(255,255,255,0.07)" }}/>
             <span style={{ position: "absolute", left: 14, top: 15, fontFamily: SANS, fontSize: "0.6rem", fontWeight: 700, color: "rgba(255,255,255,0.9)" }}>9:41</span>
           </div>
-          <div style={{ height: 540, position: "relative", overflow: "hidden", background: "#F5F5F5" }}>
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}>
-              <div style={{ flex: 1, overflow: "hidden", padding: "16px 16px 6px" }}>
-                <motion.div initial={{ opacity: 0, y: 6 }} animate={iv ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.4, delay: 0.2 }}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                  <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: P, letterSpacing: "-0.03em" }}>Quest</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#fff", border: "1.5px solid #e4e2dd",
-                    borderBottomWidth: 3, borderRadius: 99, padding: "3px 9px 3px 6px" }}>
-                    <Flame size={15} streak={12} animate={iv}/>
-                    <span style={{ fontFamily: SANS, fontSize: "0.72rem", fontWeight: 800, color: FG }}>12</span>
-                  </div>
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={iv ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.4, delay: 0.32 }}>
-                  <div style={{ fontFamily: SANS, fontSize: "0.56rem", fontWeight: 700, color: MUT }}>Milestone 2 of 4</div>
-                  <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.86rem", color: FG, letterSpacing: "-0.02em", lineHeight: 1.25, margin: "2px 0 12px" }}>
-                    Build a website for my robotics team
-                  </div>
-                </motion.div>
-
-                {/* The path of day stones */}
-                <div style={{ position: "relative", height: 266, marginBottom: 12 }}>
-                  {QUEST_STONES.map(({ st, x, y }, i) => {
-                    const today = st === "today";
-                    const size = today ? 44 : 34;
-                    return (
-                      <motion.div key={i} initial={{ opacity: 0, scale: 0.6 }} animate={iv ? { opacity: 1, scale: 1 } : {}}
-                        transition={{ duration: 0.35, delay: 0.45 + i * 0.08, ease: EASE }}
-                        style={{ position: "absolute", left: x, top: y, width: size, height: size, borderRadius: "50%",
-                          background: st === "locked" ? "#e3e3e1" : P,
-                          borderBottom: `4px solid ${st === "locked" ? "#cfcfcc" : edge}`,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          boxShadow: today ? "0 0 0 4px rgba(37,99,235,0.18)" : "none" }}>
-                        {st === "done" && <Check color="#fff" size={13}/>}
-                        {today && <span style={{ fontFamily: SANS, fontSize: "0.7rem", fontWeight: 800, color: "#fff" }}>13</span>}
-                        {st === "locked" && (
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#a9a49a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/>
-                          </svg>
-                        )}
-                      </motion.div>
-                    );
-                  })}
-                </div>
-
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={iv ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.4, delay: 0.95 }}
-                  style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #e4e2dd", borderBottomWidth: 4, padding: "10px 11px 11px" }}>
-                  <div style={{ fontFamily: SANS, fontSize: "0.56rem", fontWeight: 700, color: P }}>Today · 20 min</div>
-                  <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.7rem", color: FG, lineHeight: 1.35, margin: "3px 0 9px" }}>
-                    Draft the About page: who the team is and what you build
-                  </div>
-                  <div style={{ background: P, borderBottom: `4px solid ${edge}`, borderRadius: 11, padding: "6px 0",
-                    textAlign: "center", fontFamily: SANS, fontSize: "0.66rem", fontWeight: 800, color: "#fff" }}>
-                    Check in
-                  </div>
-                </motion.div>
+          <div style={{ height: PHONE_SCREEN.h, position: "relative", overflow: "hidden", background: "#F5F5F5" }}>
+            <FixedTheme>
+              <div style={{ width: QUEST_SHOT.w, height: QUEST_SHOT.h, transform: `scale(${PHONE_SCREEN.w / QUEST_SHOT.w})`,
+                transformOrigin: "0 0" }}>
+                <QuestShot/>
               </div>
-
-              {/* Bottom nav, matching the live app */}
-              <div style={{ flexShrink: 0, borderTop: "1px solid #e4e2dd", background: "rgba(255,255,255,0.92)",
-                padding: "7px 6px 6px", display: "flex", justifyContent: "space-around", alignItems: "center", color: "#a9a49a" }}>
-                {PHONE_NAV.map((n) => (
-                  <div key={n.key} style={{ display: "flex", color: n.active ? P : "#a9a49a" }}>
-                    {n.active ? <TreasureMapIcon size={13} strokeWidth={2.4}/> : (
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        {n.d.map((d) => <path key={d} d={d}/>)}
-                      </svg>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+            </FixedTheme>
           </div>
           <div style={{ height: 20, background: "#000", display: "flex", alignItems: "center", justifyContent: "center",
             borderBottomLeftRadius: 41, borderBottomRightRadius: 41 }}>

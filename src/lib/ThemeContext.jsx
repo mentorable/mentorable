@@ -55,6 +55,19 @@ export function ThemeProvider({ children }) {
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
+// A fixed accent for a subtree, whatever the student picked: the landing page
+// wraps its app mockups in it so they always show the brand blue. It never
+// touches the CSS variables on <html>, and `setAccent` is a no-op.
+export function FixedTheme({ accent = DEFAULT_ACCENT, children }) {
+  const value = useMemo(() => ({
+    accent,
+    accentLight: lighten(accent, 0.35),
+    accentRgb: hexToRgbString(accent),
+    setAccent: () => {},
+  }), [accent]);
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
 const FALLBACK = {
   accent: DEFAULT_ACCENT,
   accentLight: lighten(DEFAULT_ACCENT, 0.35),

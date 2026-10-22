@@ -1,0 +1,610 @@
+{
+ "quest": {
+  "today": "2026-10-20",
+  "timezone": "America/New_York",
+  "stats": {
+   "xp": 30,
+   "level": 1,
+   "into_level": 30,
+   "level_span": 50,
+   "next_level_at": 50,
+   "streak": 3,
+   "best_streak": 3
+  },
+  "view": "active",
+  "quest": {
+   "id": "d0000000-0000-4000-8000-0000000e0001",
+   "title": "BusBuddy, live for your school",
+   "summary": "A working BusBuddy web app that shows your school's bus routes and pickup times on a map and lets riders report a late bus, used by real students.",
+   "goal_kind": "passion_project",
+   "status": "active",
+   "daily_minutes": 30,
+   "rest_days": [
+    0,
+    6
+   ],
+   "start_date": "2026-10-15",
+   "paused_on": null,
+   "ended_on": null,
+   "hard_deadline": null,
+   "add_to_portfolio": true,
+   "portfolio_activity_id": null,
+   "has_portfolio_draft": false,
+   "direction": "By the end you will have BusBuddy running for your school: every route on a map with its scheduled times, and a way for riders to flag a late bus so parents can see it too. You are starting from an empty project, with Java from robotics but no map work yet. It is for the kids at your stop who wait in the cold with no idea when the bus is coming."
+  },
+  "ever": true,
+  "milestones": [
+   {
+    "id": "d0000000-0000-4000-8000-0000000e0002",
+    "position": 1,
+    "title": "Route 12 on a map with its pickup times",
+    "description": "A web page with a map that shows every stop on one route and its scheduled pickup time, loaded from the district's published schedule.",
+    "expected_days": 6,
+    "first_slot": 1,
+    "last_slot": 6,
+    "state": "current",
+    "completed_at": null,
+    "lines": []
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000e0003",
+    "position": 2,
+    "title": "Riders can report a late bus",
+    "description": "A button on each stop saves a late report with the time to a free database, and the map shows the reports from the last hour.",
+    "expected_days": 7,
+    "first_slot": 7,
+    "last_slot": 13,
+    "state": "locked",
+    "completed_at": null,
+    "lines": []
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000e0004",
+    "position": 3,
+    "title": "Every route at your school",
+    "description": "All of your school's routes load from the schedule, and anyone can pick their route and stop to see only what matters to them.",
+    "expected_days": 5,
+    "first_slot": 14,
+    "last_slot": 18,
+    "state": "locked",
+    "completed_at": null,
+    "lines": []
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000e0005",
+    "position": 4,
+    "title": "A week of testing with real riders",
+    "description": "Five to ten students on one route use it for a week, and you write down what confused them and what broke.",
+    "expected_days": 6,
+    "first_slot": 19,
+    "last_slot": 24,
+    "state": "locked",
+    "completed_at": null,
+    "lines": []
+   },
+   {
+    "id": "d0000000-0000-4000-8000-0000000e0006",
+    "position": 5,
+    "title": "BusBuddy ready to share",
+    "description": "Fix what testers found, put it on a free host with a short link, and share it with students and parents on your routes.",
+    "expected_days": 5,
+    "first_slot": 25,
+    "last_slot": 29,
+    "state": "locked",
+    "completed_at": null,
+    "lines": []
+   }
+  ],
+  "stones": [
+   {
+    "slot": 1,
+    "date": "2026-10-15",
+    "milestone": 0,
+    "state": "done",
+    "doable": false,
+    "task": {
+     "id": "d0000000-0000-4000-8000-0000000e0007",
+     "title": "Find your district's bus schedule and save route 12"
+    }
+   },
+   {
+    "slot": 2,
+    "date": "2026-10-16",
+    "milestone": 0,
+    "state": "done",
+    "doable": false,
+    "task": {
+     "id": "d0000000-0000-4000-8000-0000000e0009",
+     "title": "Set up the project and show a map of your town"
+    }
+   },
+   {
+    "slot": 3,
+    "date": "2026-10-19",
+    "milestone": 0,
+    "state": "done",
+    "doable": false,
+    "task": {
+     "id": "d0000000-0000-4000-8000-0000000e000b",
+     "title": "Add coordinates to every stop on route 12"
+    }
+   },
+   {
+    "slot": 4,
+    "date": "2026-10-20",
+    "milestone": 0,
+    "state": "today",
+    "doable": true,
+    "task": {
+     "id": "d0000000-0000-4000-8000-0000000e000d",
+     "title": "Load route 12's stops and pickup times onto the map"
+    }
+   },
+   {
+    "slot": 5,
+    "date": "2026-10-21",
+    "milestone": 0,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 6,
+    "date": "2026-10-22",
+    "milestone": 0,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 7,
+    "date": "2026-10-23",
+    "milestone": 1,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 8,
+    "date": "2026-10-26",
+    "milestone": 1,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 9,
+    "date": "2026-10-27",
+    "milestone": 1,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 10,
+    "date": "2026-10-28",
+    "milestone": 1,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 11,
+    "date": "2026-10-29",
+    "milestone": 1,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 12,
+    "date": "2026-10-30",
+    "milestone": 1,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 13,
+    "date": "2026-11-02",
+    "milestone": 1,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 14,
+    "date": "2026-11-03",
+    "milestone": 2,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 15,
+    "date": "2026-11-04",
+    "milestone": 2,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 16,
+    "date": "2026-11-05",
+    "milestone": 2,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 17,
+    "date": "2026-11-06",
+    "milestone": 2,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 18,
+    "date": "2026-11-09",
+    "milestone": 2,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 19,
+    "date": "2026-11-10",
+    "milestone": 3,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 20,
+    "date": "2026-11-11",
+    "milestone": 3,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 21,
+    "date": "2026-11-12",
+    "milestone": 3,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 22,
+    "date": "2026-11-13",
+    "milestone": 3,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 23,
+    "date": "2026-11-16",
+    "milestone": 3,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 24,
+    "date": "2026-11-17",
+    "milestone": 3,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 25,
+    "date": "2026-11-18",
+    "milestone": 4,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 26,
+    "date": "2026-11-19",
+    "milestone": 4,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 27,
+    "date": "2026-11-20",
+    "milestone": 4,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 28,
+    "date": "2026-11-23",
+    "milestone": 4,
+    "state": "future",
+    "doable": false,
+    "task": null
+   },
+   {
+    "slot": 29,
+    "date": "2026-11-24",
+    "milestone": 4,
+    "state": "future",
+    "doable": false,
+    "task": null
+   }
+  ],
+  "today_slot": 4,
+  "today_state": "open",
+  "today_task": {
+   "id": "d0000000-0000-4000-8000-0000000e000d",
+   "slot": 4,
+   "title": "Load route 12's stops and pickup times onto the map",
+   "detail": "Read your CSV in the page's code and put a marker on each stop, with its pickup time in the popup. Done when clicking any stop shows its time.",
+   "est_minutes": 25,
+   "fallback": false,
+   "status": "open",
+   "checkin": null,
+   "resources": null
+  },
+  "backlog": {
+   "count": 0,
+   "in_current": 0,
+   "oldest_doable_slot": null,
+   "unlocks_milestone": 2,
+   "catch_up_by": null
+  },
+  "projected_finish": "2026-11-24",
+  "nominal_finish": "2026-11-24",
+  "deadline_risk": false,
+  "welcome_back": {
+   "show": false,
+   "offer_break": false,
+   "gap": 0,
+   "last_active": "2026-10-19"
+  },
+  "next_work_date": null,
+  "remaining": 26,
+  "total": 29
+ },
+ "activities": [
+  {
+   "id": "d0000000-0000-4000-8000-0000000a0001",
+   "order_index": 1,
+   "detail_level": "enriched",
+   "continue_in_college": true,
+   "created_at": "2026-10-06T16:00:00.000Z",
+   "category": "Robotics",
+   "title": "FIRST Tech Challenge team",
+   "position": "Programming lead",
+   "organization": "Westview High School Robotics",
+   "description": "Lead a 4-person software group; wrote the autonomous routines and taught Java to 6 new members.",
+   "grade_levels": [
+    9,
+    10,
+    11
+   ],
+   "timing": "school_year",
+   "hours_per_week": 8,
+   "weeks_per_year": 30
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000a0002",
+   "order_index": 2,
+   "detail_level": "enriched",
+   "continue_in_college": true,
+   "created_at": "2026-10-06T16:00:00.000Z",
+   "category": "Community Service (Volunteer)",
+   "title": "Code Club for middle schoolers",
+   "position": "Founder and teacher",
+   "organization": "Northside Public Library",
+   "description": "Started a free Saturday club teaching Scratch and Python; 14 regulars this fall.",
+   "grade_levels": [
+    10,
+    11
+   ],
+   "timing": "school_year",
+   "hours_per_week": 3,
+   "weeks_per_year": 28
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000a0003",
+   "order_index": 3,
+   "detail_level": "enriched",
+   "continue_in_college": false,
+   "created_at": "2026-10-06T16:00:00.000Z",
+   "category": "Work (Paid)",
+   "title": "Cashier",
+   "position": "Part-time cashier",
+   "organization": "Corner Market grocery",
+   "description": "Weekend shifts; trained two new cashiers on the register system.",
+   "grade_levels": [
+    10,
+    11
+   ],
+   "timing": "all_year",
+   "hours_per_week": 10,
+   "weeks_per_year": 48
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000a0004",
+   "order_index": 4,
+   "detail_level": "enriched",
+   "continue_in_college": false,
+   "created_at": "2026-10-06T16:00:00.000Z",
+   "category": "Science/Math",
+   "title": "Math Team",
+   "position": "Member",
+   "organization": "Westview High School",
+   "description": "Compete in the county league and the AMC; top scorer on the junior team.",
+   "grade_levels": [
+    9,
+    10,
+    11
+   ],
+   "timing": "school_year",
+   "hours_per_week": 2,
+   "weeks_per_year": 25
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000a0005",
+   "order_index": 5,
+   "detail_level": "enriched",
+   "continue_in_college": true,
+   "created_at": "2026-10-06T16:00:00.000Z",
+   "category": "Computer/Technology",
+   "title": "BusBuddy app",
+   "position": "Creator",
+   "organization": "Personal project",
+   "description": "Building a web app that shows when each school bus is running late, for students and parents.",
+   "grade_levels": [
+    11
+   ],
+   "timing": "all_year",
+   "hours_per_week": 4,
+   "weeks_per_year": 20
+  }
+ ],
+ "awards": [
+  {
+   "id": "d0000000-0000-4000-8000-0000000b0001",
+   "order_index": 1,
+   "title": "FTC State Championship, Think Award",
+   "level": "state",
+   "grade_level": 10,
+   "year": 2026,
+   "description": "For the engineering notebook documenting our autonomous code."
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000b0002",
+   "order_index": 2,
+   "title": "AMC 10 Honor Roll",
+   "level": "national",
+   "grade_level": 10,
+   "year": 2026,
+   "description": "Top 5% of AMC 10 scores nationally."
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000b0003",
+   "order_index": 3,
+   "title": "Library Youth Volunteer of the Year",
+   "level": "regional",
+   "grade_level": 10,
+   "year": 2026,
+   "description": "For founding the Saturday Code Club."
+  }
+ ],
+ "courses": [
+  {
+   "id": "d0000000-0000-4000-8000-0000000c0001",
+   "order_index": 1,
+   "name": "AP Computer Science A",
+   "level": "ap",
+   "grade_level": 10,
+   "year": null,
+   "planned": false
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000c0002",
+   "order_index": 2,
+   "name": "AP World History",
+   "level": "ap",
+   "grade_level": 10,
+   "year": null,
+   "planned": false
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000c0003",
+   "order_index": 3,
+   "name": "Honors Chemistry",
+   "level": "honors",
+   "grade_level": 10,
+   "year": null,
+   "planned": false
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000c0004",
+   "order_index": 4,
+   "name": "AP Calculus BC",
+   "level": "ap",
+   "grade_level": 11,
+   "year": null,
+   "planned": false
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000c0005",
+   "order_index": 5,
+   "name": "AP Physics 1",
+   "level": "ap",
+   "grade_level": 11,
+   "year": null,
+   "planned": false
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000c0006",
+   "order_index": 6,
+   "name": "AP English Language",
+   "level": "ap",
+   "grade_level": 11,
+   "year": null,
+   "planned": false
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000c0007",
+   "order_index": 7,
+   "name": "AP Computer Science Principles",
+   "level": "ap",
+   "grade_level": 11,
+   "year": null,
+   "planned": false
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000c0008",
+   "order_index": 8,
+   "name": "Multivariable Calculus",
+   "level": "dual_enrollment",
+   "grade_level": 12,
+   "year": null,
+   "planned": true
+  }
+ ],
+ "test_scores": [
+  {
+   "id": "d0000000-0000-4000-8000-0000000d0001",
+   "test_type": "sat",
+   "score": 1450,
+   "section_scores": {
+    "reading_writing": 690,
+    "math": 760
+   },
+   "subject": null,
+   "test_date": "2026-08-23",
+   "attempt": 1
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000d0002",
+   "test_type": "ap",
+   "score": 5,
+   "section_scores": {},
+   "subject": "Computer Science A",
+   "test_date": "2026-05-08",
+   "attempt": 1
+  },
+  {
+   "id": "d0000000-0000-4000-8000-0000000d0003",
+   "test_type": "ap",
+   "score": 4,
+   "section_scores": {},
+   "subject": "World History",
+   "test_date": "2026-05-14",
+   "attempt": 1
+  }
+ ]
+}
