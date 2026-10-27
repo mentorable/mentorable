@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Mascot from "../agents/Mascot.jsx";
+import { SpeechBubble, TIP } from "../ui/SpeechBubble.jsx";
 import { BEACH_SCENE } from "../agents/outreach/BeachScene.jsx";
 import { RIDGE_SCENE } from "../agents/finder/RidgeScene.jsx";
 import { NIGHT_SCENE } from "../agents/essay/home/NightScene.jsx";
@@ -7,7 +8,7 @@ import { NIGHT_SCENE } from "../agents/essay/home/NightScene.jsx";
 // The landing page's agents: three tall cards, each on its own scene from
 // the app (Beaker's beach lab, Talon's dawn ridge, Quill's night desk). Point
 // at one (or focus it) and it widens into a square, its scene opening out
-// and its description appearing; the others narrow to make room. The mascot
+// and the agent saying what it does in a speech bubble; the others narrow to make room. The mascot
 // plays while the card is widening and holds still once it has settled, and
 // the scene's own loops (clouds, stars, bubbles) do the same. On a phone the
 // cards stack, open, and hold still.
@@ -19,15 +20,15 @@ const EASE = "cubic-bezier(.33,0,.2,1)";   // gentle in, long soft settle
 const AGENTS = [
   {
     id: "beaker", name: "Beaker", role: "Outreach pelican", scene: BEACH_SCENE, ink: "#ffffff",
-    body: "Helps you reach professors and professionals. It finds the right people, reads up on each one, and drafts a short email where every fact links to its source. You read it, change it, and send it yourself.",
+    says: "I find the right professors and professionals for you to reach, read up on each one, and draft a short email where every fact links to its source. You read it, change it, and send it yourself.",
   },
   {
     id: "talon", name: "Talon", role: "Opportunity hawk", scene: RIDGE_SCENE, ink: "#ffffff",
-    body: "Finds scholarships, summer programs and competitions that fit your record. Every listing is checked on its own page, and scams and expired deadlines are left out, with the reason shown.",
+    says: "I find scholarships, summer programs and competitions that fit your record. I check every listing on its own page, and I leave out scams and expired deadlines and tell you why.",
   },
   {
     id: "quill", name: "Quill", role: "Essay owl", scene: NIGHT_SCENE, ink: "#ffffff",
-    body: "Helps with your Common App essays. Its notes quote your own sentences and ask what a careful reader would. It never writes or edits a word for you.",
+    says: "I help with your Common App essays. My notes quote your own sentences and ask what a careful reader would. I never write or edit a word for you.",
   },
 ];
 
@@ -101,12 +102,13 @@ function Panel({ agent, open, stacked, onOpen, onClose }) {
         <h3 style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "2rem", letterSpacing: "-0.03em", lineHeight: 1.1,
           textShadow: "0 2px 0 rgba(0,0,0,0.22)" }}>{agent.name}</h3>
         <p style={{ margin: "4px 0 0", fontFamily: SANS, fontWeight: 700, fontSize: "1rem", textShadow: "0 1px 0 rgba(0,0,0,0.25)" }}>{agent.role}</p>
-        {/* Centred on the opened card, under the name. */}
-        <p className="lp-agent-body" style={{ margin: "16px auto 0", fontFamily: SANS, fontWeight: 600, fontSize: "1.02rem",
-          lineHeight: 1.6, maxWidth: 400, padding: "12px 14px", borderRadius: 12, color: "#141413",
-          background: "rgba(255,255,255,0.9)", boxShadow: "0 4px 14px rgba(0,0,0,0.12)" }}>
-          {agent.body}
-        </p>
+        {/* What the agent says, in the app's own speech bubble: centred on the
+            opened card, its tail pointing down at the mascot. */}
+        <div className="lp-agent-body" style={{ margin: "18px auto 0", maxWidth: 400 }}>
+          <SpeechBubble side="bottom" tailAt={`calc(50% - ${TIP}px)`}>
+            {agent.says}
+          </SpeechBubble>
+        </div>
       </div>
     </article>
   );
