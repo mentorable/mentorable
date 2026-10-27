@@ -18,7 +18,7 @@ const EASE = "cubic-bezier(.33,0,.2,1)";   // gentle in, long soft settle
 
 const AGENTS = [
   {
-    id: "beaker", name: "Beaker", role: "Outreach pelican", scene: BEACH_SCENE, ink: "#0f2f57",
+    id: "beaker", name: "Beaker", role: "Outreach pelican", scene: BEACH_SCENE, ink: "#ffffff",
     body: "Helps you reach professors and professionals. It finds the right people, reads up on each one, and drafts a short email where every fact links to its source. You read it, change it, and send it yourself.",
   },
   {
@@ -97,12 +97,13 @@ function Panel({ agent, open, stacked, onOpen, onClose }) {
         </div>
       </div>
 
-      <div style={{ position: "relative", padding: "26px 28px", color: agent.ink, maxWidth: 440 }}>
+      <div style={{ position: "relative", padding: "26px 28px", color: agent.ink }}>
         <h3 style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "2rem", letterSpacing: "-0.03em", lineHeight: 1.1,
-          textShadow: agent.ink === "#ffffff" ? "0 2px 0 rgba(0,0,0,0.2)" : "none" }}>{agent.name}</h3>
-        <p style={{ margin: "4px 0 0", fontFamily: SANS, fontWeight: 700, fontSize: "1rem", opacity: 0.9 }}>{agent.role}</p>
-        <p className="lp-agent-body" style={{ margin: "16px 0 0", fontFamily: SANS, fontWeight: 600, fontSize: "1.02rem",
-          lineHeight: 1.6, maxWidth: 380, padding: "12px 14px", borderRadius: 12, color: "#141413",
+          textShadow: "0 2px 0 rgba(0,0,0,0.22)" }}>{agent.name}</h3>
+        <p style={{ margin: "4px 0 0", fontFamily: SANS, fontWeight: 700, fontSize: "1rem", textShadow: "0 1px 0 rgba(0,0,0,0.25)" }}>{agent.role}</p>
+        {/* Centred on the opened card, under the name. */}
+        <p className="lp-agent-body" style={{ margin: "16px auto 0", fontFamily: SANS, fontWeight: 600, fontSize: "1.02rem",
+          lineHeight: 1.6, maxWidth: 400, padding: "12px 14px", borderRadius: 12, color: "#141413",
           background: "rgba(255,255,255,0.9)", boxShadow: "0 4px 14px rgba(0,0,0,0.12)" }}>
           {agent.body}
         </p>
