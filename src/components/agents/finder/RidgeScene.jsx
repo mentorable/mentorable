@@ -151,6 +151,10 @@ function RidgeDecor({ px, groundH, isMobile }) {
   );
 }
 
+/** The scene's sky, ground and props, for drawing it at another size (the
+ *  landing page's agent cards). */
+export const RIDGE_SCENE = { sky: SKY, ground: GROUND, Decor: RidgeDecor };
+
 /**
  * title: the page's h1. onBack(): the "Agents" button. state: Talon's pose.
  * isMobile: the shorter band. says: Talon's line (wide screens only).

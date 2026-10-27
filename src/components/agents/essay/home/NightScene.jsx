@@ -94,6 +94,10 @@ function NightDecor({ px, groundH, isMobile }) {
   );
 }
 
+/** The scene's sky, ground and props, for drawing it at another size (the
+ *  landing page's agent cards). */
+export const NIGHT_SCENE = { sky: SKY, ground: GROUND, Decor: NightDecor };
+
 /**
  * title: the page's h1, set on the sky. onBack(): the "Agents" button.
  * state: Quill's pose ("idle", "thinking"). isMobile: the shorter band.

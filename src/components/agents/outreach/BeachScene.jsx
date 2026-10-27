@@ -197,6 +197,10 @@ function Bubbles({ px, left = 3 * px }) {
   );
 }
 
+/** The scene's sky, ground and props, for drawing it at another size (the
+ *  landing page's agent cards). */
+export const BEACH_SCENE = { sky: SKY, ground: GROUND, Decor: BeachDecor };
+
 /**
  * title: the page's h1. onBack(): the "Agents" button. state: Beaker's pose.
  * isMobile: the shorter band. says: Beaker's line (wide screens only).

@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import { FixedTheme } from "../lib/ThemeContext.jsx";
 import PortfolioShot, { PORTFOLIO_SHOT } from "../components/landingShots/PortfolioShot.jsx";
 import QuestShot, { QUEST_SHOT } from "../components/landingShots/QuestShot.jsx";
+import AgentPanels from "../components/landingShots/AgentPanels.jsx";
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 const SANS = "'Raleway', sans-serif";
@@ -773,11 +774,24 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* The agents: three cards that open on hover */}
+      <section style={{ maxWidth: 1120, margin: "0 auto", padding: "4.5rem clamp(1.25rem,4vw,2.5rem) 2rem" }}>
+        <FadeUp style={{ textAlign: "center", marginBottom: "2.8rem" }}>
+          <FeatureNumber>03</FeatureNumber>
+          <Heading italic="Meet" rest="your agents." size="clamp(2rem,3.6vw,2.9rem)"/>
+          <p style={{ fontFamily: BODY, fontWeight: 300, fontSize: "1.02rem", color: MUT,
+            lineHeight: 1.85, margin: "1.6rem auto 0", maxWidth: 520 }}>
+            Three specialists that do the legwork for you, check their work against real sources, and leave every decision to you.
+          </p>
+        </FadeUp>
+        <AgentPanels/>
+      </section>
+
       {/* Centered climax */}
       <ScrollScale>
         <section style={{ maxWidth: 900, margin: "0 auto", padding: "4.5rem clamp(1.25rem,4vw,2.5rem) 5rem", textAlign: "center" }}>
           <FadeUp style={{ marginBottom: "2.8rem", display: "inline-block" }}>
-            <FeatureNumber>03</FeatureNumber>
+            <FeatureNumber>04</FeatureNumber>
             <Heading italic="Ask" rest="anything, anytime." size="clamp(2rem,3.6vw,2.9rem)"/>
             <p style={{ fontFamily: BODY, fontWeight: 300, fontSize: "1.02rem", color: MUT,
               lineHeight: 1.85, margin: "1.6rem auto 0", maxWidth: 480 }}>
