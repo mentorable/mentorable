@@ -63,26 +63,31 @@ const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, a
   } else if (state === "missed") {
     look = doable
       ? { ...look, fill: AMBER_WASH, edge: AMBER_EDGE, ink: AMBER_EDGE, ring: "dashed", ringColor: AMBER_EDGE }
-      : { fill: "#f0f0ee", edge: STONE_EDGE, ink: FAINT, picture: "lock", ring: "dashed", ringColor: STONE_EDGE };
+      : { fill: STONE, edge: STONE_EDGE, ink: FAINT, picture: "lock", ring: "dashed", ringColor: STONE_EDGE };
     cursor = "pointer";
   } else if (state === "today") {
     look = doable
       ? { fill: WHITE, edge: c.edge, ink: c.accent, picture: "star", ring: "solid", ringColor: c.accent }
-      : { fill: "#efefed", edge: STONE_EDGE, ink: FAINT, picture: "lock" };
+      : { fill: STONE, edge: STONE_EDGE, ink: FAINT, picture: "lock" };
     cursor = "pointer";
   }
 
   const pop = justDone && !reduce;
+  // A day that has not opened yet does nothing when tapped, so it is a
+  // picture, not a button: a keyboard reaches today without passing every
+  // future day on the way.
+  const Tag = state === "future" ? motion.div : motion.button;
+  const control = state === "future"
+    ? { role: "img" }
+    : { type: "button", className: "quest-stone", onClick: () => onOpen(stone) };
   return (
     <div data-slot={stone.slot} style={{ display: "flex", justifyContent: "center", padding: `${padTopFor(stone.slot, amp, size)}px 0 ${GAP}px` }}>
       <div style={{ position: "relative", transform: `translateX(${offsetFor(stone.slot, amp)}px)` }}>
-        <motion.button
+        <Tag
           ref={ref}
-          type="button"
-          className="quest-stone"
+          {...control}
           aria-label={label}
           title={label}
-          onClick={() => onOpen(stone)}
           initial={pop ? { scale: 0.55 } : false}
           animate={pop ? { scale: [0.55, 1.15, 1] } : { scale: 1 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -90,7 +95,7 @@ const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, a
             borderRadius: "50%", display: "block", padding: 0 }}
         >
           <PixelStone cells={cells} {...look} />
-        </motion.button>
+        </Tag>
       </div>
     </div>
   );
@@ -103,6 +108,16 @@ function TodayCallout({ state, task, onStart, onCatchUp, amp, slot }) {
   const todayState = state.today_state;
   const unlocks = state.backlog?.unlocks_milestone;
   const inCurrent = state.backlog?.in_current || 0;
+  const behind = state.backlog?.count || 0;
+  // Where today sits in its milestone, since the plate is usually off-screen.
+  const ms = (state.milestones || []).find((m) => slot >= m.first_slot && slot <= m.last_slot);
+  const where = ms ? `Milestone ${ms.position}, day ${slot - ms.first_slot + 1} of ${ms.last_slot - ms.first_slot + 1}` : null;
+  // Only an on-time check-in moves the streak; catch-ups clear the backlog.
+  const order = behind > 0 && state.backlog?.oldest_doable_slot
+    ? (state.stats?.streak > 0
+      ? "Do this one first: it keeps your streak. Then catch up."
+      : "Do this one first to start a new streak. Then catch up.")
+    : null;
 
   let body;
   if (todayState === "open") {
@@ -111,10 +126,18 @@ function TodayCallout({ state, task, onStart, onCatchUp, amp, slot }) {
         <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 800, color: c.text }}>
           Today{task ? `, about ${task.est_minutes} min` : ""}
         </p>
-        <p style={{ margin: "4px 0 12px", fontFamily: SANS, fontSize: "1.06rem", fontWeight: 800, color: INK, lineHeight: 1.35 }}>
+        <p style={{ margin: "4px 0 0", fontFamily: SANS, fontSize: "1.06rem", fontWeight: 800, color: INK, lineHeight: 1.35 }}>
           {task ? task.title : "Setting up today's task..."}
         </p>
-        <Chunky full onClick={onStart} disabled={!task}>Start</Chunky>
+        {where && (
+          <p style={{ margin: "4px 0 0", fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, color: MUTED }}>{where}</p>
+        )}
+        {order && (
+          <p style={{ margin: "8px 0 0", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, color: MID, lineHeight: 1.45 }}>
+            {order}
+          </p>
+        )}
+        <Chunky full onClick={onStart} disabled={!task} data-today-start style={{ marginTop: 12 }}>Start</Chunky>
       </>
     );
   } else if (todayState === "done") {
@@ -151,6 +174,7 @@ function TodayCallout({ state, task, onStart, onCatchUp, amp, slot }) {
   const line = todayState === "blocked" ? AMBER_EDGE : c.soft;
   return (
     <motion.div
+      data-today-callout
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
       style={{ display: "flex", justifyContent: "center", padding: "6px 0 2px" }}
     >
@@ -203,7 +227,7 @@ function Plate({ milestone, isLast, state, glow }) {
       <div style={{
         width: "min(420px, 100%)", boxSizing: "border-box", display: "flex", alignItems: "center", gap: 14,
         background: done ? c.softer : current ? WHITE : SURFACE, color: INK, borderRadius: RADIUS.card, padding: "14px 16px",
-        border: `${current ? 1.5 : 1}px solid ${done ? c.soft : current ? c.text : LINE}`,
+        border: `1px solid ${done ? c.soft : current ? c.text : LINE}`,
         boxShadow: glow ? `0 0 0 6px rgba(${c.accentRgb},0.18)` : "none",
       }}>
         <StampTile kind="flag" size={42} />

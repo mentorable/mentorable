@@ -14,7 +14,7 @@ import { useTheme } from "../lib/ThemeContext.jsx";
 import {
   BG, BORDER, DANGER, RADIUS, SANS, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
 } from "../components/ui/tokens.js";
-import { Button, Notice, PageHeader, StampTile, Tip } from "../components/ui/kit.jsx";
+import { Button, Notice, PageHeader, RemoveButton, StampTile, Tip } from "../components/ui/kit.jsx";
 import { PixelStamp } from "../components/ui/PixelIcons.jsx";
 
 // College List: the schools a student is applying to, grouped reach, target
@@ -423,16 +423,11 @@ function SchoolCard({ item, stats, onSetCategory, onRestore, onRemove, isMobile,
     transition: { layout: { duration: 0.45, ease: [0.22, 1, 0.36, 1] }, backgroundColor: { duration: 1.6, ease: "easeOut" },
       scale: { type: "spring", damping: 16, stiffness: 300 } },
   };
+  // The kit's remove control: the same look and hover as Portfolio's, and
+  // keyboard focus gets the hover tint too. Icon only where the card is tight.
   const remove = (
-    <button type="button" onClick={() => onRemove(item)} aria-label={`Remove ${item.name}`}
-      style={{ flexShrink: 0, height: size, minWidth: size, padding: isMobile || compact ? 0 : "0 10px",
-        marginTop: compact ? 0 : -4, marginRight: -6, borderRadius: 12, border: "none", background: "none", cursor: "pointer",
-        color: MID, fontFamily: SANS, fontWeight: 800, fontSize: "0.92rem",
-        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
-      onMouseEnter={(e) => { e.currentTarget.style.color = DANGER; e.currentTarget.style.background = "#f6f6f4"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.color = MID; e.currentTarget.style.background = "none"; }}>
-      <Icon name="x" size={15} />{!isMobile && !compact && "Remove"}
-    </button>
+    <RemoveButton onClick={() => onRemove(item)} name={item.name} iconOnly={isMobile || compact}
+      style={{ height: size, minHeight: size, minWidth: size, marginTop: compact ? 0 : -4, marginRight: -6 }} />
   );
   const picker = (
     <CategoryPicker value={item.category} onChange={(c) => onSetCategory(item, c)} saving={saving} stretch={isMobile}

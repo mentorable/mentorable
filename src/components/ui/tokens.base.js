@@ -15,8 +15,11 @@ export const TEXT_MUTED = "#494742";
 export const TEXT_FAINT = "#6a6760";   // still 5:1 on white and on BG
 export const BORDER     = "#e6dfd8";
 export const DANGER     = "#b42318";   // 6:1 on white, 6:1 on BG
+export const DANGER_BG  = "#fdf1f0";   // the error wash: an error notice, a destructive hover
+export const DANGER_LINE = "#f4c7c2";  // the soft red border of an error notice
 export const AMBER_TEXT = "#92400e";   // "due" and "waiting", never red
 export const AMBER_BG   = "#fff7e6";
+export const AMBER_LINE = "#f3d9a4";   // the soft amber border of a banner or notice
 
 export const RADIUS = { card: 16, control: 12, pill: 999 };
 

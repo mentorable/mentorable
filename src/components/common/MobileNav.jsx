@@ -6,8 +6,16 @@ import { isEnabled } from "../../lib/features.js";
 import { useQuest } from "../../lib/QuestContext.jsx";
 import { Flame, TreasureMapIcon } from "../quest/questUi.jsx";
 import { PixelBeakIcon } from "../agents/PixelIcons.jsx";
+import { TEXT_MUTED } from "../ui/tokens.js";
 
 const FONT = "'Raleway', sans-serif";
+
+// Labels sit at the text floor (0.9rem). Six of them fit from 360px up; on a
+// narrower phone only the active tab shows its word; the others are hidden
+// visually only, so screen readers still read every tab's name.
+const NAV_CSS = `
+@media (max-width: 359px) { .mn-label[data-active="false"] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
+`;
 
 const NAV_ITEMS = [
   {
@@ -99,10 +107,10 @@ function QuestTabIcon({ active }) {
       <TreasureMapIcon size={22} strokeWidth={active ? 2.5 : 2} />
       {streak > 0 && (
         <span style={{
-          position: "absolute", right: -14, top: -7, height: 17, display: "inline-flex", alignItems: "center", gap: 1,
+          position: "absolute", right: -16, top: -9, height: 20, display: "inline-flex", alignItems: "center", gap: 1,
           padding: "0 5px 0 3px", borderRadius: 99, background: "#fff", boxSizing: "border-box",
-          border: `1.5px solid ${lit ? "#FF8A00" : "#d6d5d2"}`, color: lit ? "#C24E00" : "#8a877f",
-          fontFamily: FONT, fontWeight: 800, fontSize: 10, lineHeight: 1,
+          border: `1.5px solid ${lit ? "#FF8A00" : "#d6d5d2"}`, color: lit ? "#C24E00" : TEXT_MUTED,
+          fontFamily: FONT, fontWeight: 800, fontSize: "0.9rem", lineHeight: 1,
         }}>
           <Flame size={11} lit={lit} streak={streak} />{streak}
         </span>
@@ -135,6 +143,7 @@ export default function MobileNav({ activePath, navigate }) {
       </svg>
     </button>
     {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
+    <style>{NAV_CSS}</style>
     <nav style={{
       position: "fixed",
       bottom: 0, left: 0, right: 0,
@@ -154,6 +163,7 @@ export default function MobileNav({ activePath, navigate }) {
           <motion.button
             key={item.key}
             onClick={() => navigate(item.path)}
+            aria-current={isActive ? "page" : undefined}
             whileTap={{ scale: 0.9 }}
             transition={{ duration: 0.1 }}
             style={{
@@ -163,18 +173,19 @@ export default function MobileNav({ activePath, navigate }) {
               gap: 2,
               border: "none", background: "transparent",
               cursor: "pointer",
-              color: isActive ? accent : "#6a6760",
+              color: isActive ? accent : TEXT_MUTED,
               padding: "4px 0",
               minWidth: 44, minHeight: 44,
             }}
           >
             {item.icon(isActive)}
-            <span style={{
+            <span className="mn-label" data-active={isActive ? "true" : "false"} style={{
               fontFamily: FONT,
-              fontSize: 9,
+              fontSize: "0.9rem",
               fontWeight: isActive ? 700 : 500,
-              letterSpacing: "0.03em",
-              lineHeight: 1,
+              letterSpacing: "-0.01em",
+              lineHeight: 1.1,
+              whiteSpace: "nowrap",
             }}>
               {item.label}
             </span>

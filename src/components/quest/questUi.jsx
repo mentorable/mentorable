@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useTheme } from "../../lib/ThemeContext.jsx";
 import {
-  AMBER_BG, AMBER_TEXT, BG as UI_BG, BORDER, DANGER as UI_DANGER, FOCUS_CLASS, RADIUS, SANS as UI_SANS, TEXT, TEXT_MID,
-  TEXT_MUTED, TEXT_FAINT, WHITE as UI_WHITE, useAgentInk,
+  AMBER_BG, AMBER_LINE as UI_AMBER_LINE, AMBER_TEXT, BG as UI_BG, BORDER, DANGER as UI_DANGER, FOCUS_CLASS, RADIUS,
+  SANS as UI_SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, TEXT_FAINT, WHITE as UI_WHITE, useAgentInk,
 } from "../ui/tokens.js";
-import { Button, inputStyle, textOnPage } from "../ui/kit.jsx";
+import { Button, ChoiceChips, Tip, inputStyle, textOnPage } from "../ui/kit.jsx";
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 // Quest sits on the app's shared kit (src/components/ui): a calm shell of white
@@ -27,7 +27,7 @@ export const STONE_EDGE = "#cfcac2";
 export const AMBER      = AMBER_TEXT;   // amber as text
 export const AMBER_EDGE = "#d97706";    // amber as a line or a dashed stone edge (3:1 on white)
 export const AMBER_WASH = AMBER_BG;
-export const AMBER_LINE = "#f3d9a4";    // the soft amber border of a banner
+export const AMBER_LINE = UI_AMBER_LINE;  // the soft amber border of a banner
 export const DANGER     = UI_DANGER;
 
 export const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -163,8 +163,10 @@ export function GrowingFlame({ size = 22, streak }) {
 
 // ─── Buttons ──────────────────────────────────────────────────────────────────
 
-/** Quest's button, drawn as the kit Button. `tone`: accent (the primary
- *  fill), quiet (outlined), amber (flat amber, for catching up) or danger. */
+/** Quest's button, drawn as the kit Button at the kit's size (1rem, 10px 18px,
+ *  44px). `tone`: accent (the primary fill), quiet (outlined), amber (flat
+ *  amber, for catching up) or danger. `small` is accepted for older callers
+ *  and changes nothing: every button in a row is the same size. */
 export function Chunky({ children, onClick, disabled, tone = "accent", full, small, type = "button", style, ...rest }) {
   const kind = { accent: "primary", quiet: "secondary", danger: "danger", amber: "secondary" }[tone] || "primary";
   const amber = tone === "amber"
@@ -172,36 +174,24 @@ export function Chunky({ children, onClick, disabled, tone = "accent", full, sma
     : null;
   return (
     <Button kind={kind} type={type} onClick={disabled ? undefined : onClick} disabled={disabled}
-      style={{ width: full ? "100%" : undefined, fontSize: small ? "0.95rem" : "1rem",
-        padding: small ? "8px 16px" : "10px 20px", ...amber, ...style }}
+      style={{ width: full ? "100%" : undefined, ...amber, ...style }}
       {...rest}>
       {children}
     </Button>
   );
 }
 
-/** A plain text button for secondary actions, at least 44px tall. */
-/** A short, plain note in a quiet card: a tip or an aside, no mascot voice. */
+/** Older name for a short aside: now the kit Tip in its default tone, with
+ *  the chat stamp. Quest itself uses Tip directly. */
 export function QuietNote({ children, style }) {
-  return (
-    <p style={{ margin: 0, padding: "12px 16px", background: WHITE, border: `1px solid ${LINE}`, borderRadius: RADIUS.card,
-      boxSizing: "border-box", fontFamily: SANS, fontSize: "0.98rem", fontWeight: 600, color: MID, lineHeight: 1.5, ...style }}>
-      {children}
-    </p>
-  );
+  return <Tip tone="default" stamp="chat" style={style}>{children}</Tip>;
 }
 
-export function TextButton({ children, onClick, color, style, disabled, ...rest }) {
-  const c = useQuestColors();
-  return (
-    <button type="button" onClick={onClick} disabled={disabled} className={FOCUS_CLASS}
-      style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", color: color || c.page,
-        background: "none", border: "none", padding: "6px 8px", minHeight: 44, borderRadius: RADIUS.control,
-        cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.55 : 1, ...style }}
-      {...rest}>
-      {children}
-    </button>
-  );
+/** Older name for a secondary text action: now the kit's quiet Button
+ *  (1rem, page-safe accent, 44px). `color` is ignored on purpose: a grey
+ *  text button read as disabled. */
+export function TextButton({ color, ...rest }) {
+  return <Button kind="quiet" {...rest} />;
 }
 
 // ─── Level ────────────────────────────────────────────────────────────────────
@@ -236,75 +226,11 @@ export function LevelChip({ stats, compact, onDark = false }) {
 
 // ─── Overlays ─────────────────────────────────────────────────────────────────
 
-function useEscape(onClose, active = true) {
-  useEffect(() => {
-    if (!active) return;
-    const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, active]);
-}
-
-/** Bottom sheet over the map. Closes on the backdrop and on Escape unless `locked`. */
-export function Sheet({ children, onClose, locked, label }) {
-  const reduce = useReducedMotion();
-  const panel = useRef(null);
-  useEscape(onClose, !locked);
-  useEffect(() => { panel.current?.focus(); }, []);
-  return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      onClick={locked ? undefined : onClose}
-      style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(20,20,19,0.42)",
-        display: "flex", alignItems: "flex-end", justifyContent: "center" }}
-    >
-      <motion.div
-        ref={panel} tabIndex={-1} role="dialog" aria-modal="true" aria-label={label}
-        initial={reduce ? { opacity: 0 } : { y: "100%" }}
-        animate={reduce ? { opacity: 1 } : { y: 0 }}
-        exit={reduce ? { opacity: 0 } : { y: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 320 }}
-        onClick={(e) => e.stopPropagation()}
-        style={{ width: "100%", maxWidth: 560, maxHeight: "88vh", overflowY: "auto", outline: "none", boxSizing: "border-box",
-          background: WHITE, borderRadius: `${RADIUS.card + 4}px ${RADIUS.card + 4}px 0 0`, padding: "10px 22px 28px",
-          border: `1px solid ${BORDER}`, borderBottom: "none",
-          paddingBottom: "calc(28px + env(safe-area-inset-bottom, 0px))",
-          boxShadow: "0 -12px 40px rgba(20,20,19,0.14)" }}
-      >
-        <div aria-hidden="true" style={{ width: 44, height: 5, borderRadius: 99, background: BORDER, margin: "0 auto 16px" }} />
-        {children}
-      </motion.div>
-    </motion.div>
-  );
-}
-
-/** Centered modal, for the milestone card, confirmations and forms. */
-export function Modal({ children, onClose, locked, label, width = 440 }) {
-  useEscape(onClose, !locked);
-  const panel = useRef(null);
-  useEffect(() => { panel.current?.focus(); }, []);
-  return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      onClick={locked ? undefined : onClose}
-      style={{ position: "fixed", inset: 0, zIndex: 420, background: "rgba(20,20,19,0.45)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
-    >
-      <motion.div
-        ref={panel} tabIndex={-1} role="dialog" aria-modal="true" aria-label={label}
-        initial={{ opacity: 0, y: 18, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 10, scale: 0.98 }}
-        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        onClick={(e) => e.stopPropagation()}
-        style={{ width: "100%", maxWidth: width, maxHeight: "88vh", overflowY: "auto", outline: "none", boxSizing: "border-box",
-          background: WHITE, borderRadius: RADIUS.card, border: `1px solid ${BORDER}`, padding: "1.5rem",
-          boxShadow: "0 24px 60px rgba(20,20,19,0.18)" }}
-      >
-        {children}
-      </motion.div>
-    </motion.div>
-  );
-}
+// Quest's dialogs are the kit Sheet (src/components/ui/Sheet.jsx): a bottom
+// sheet on a phone, a centred 20px card above that, with focus trapped and
+// returned. The old names stay for any caller still using them; both props
+// sets (onClose, locked, label, width) are the Sheet's.
+export { default as Sheet, default as Modal } from "../ui/Sheet.jsx";
 
 // ─── Inputs ───────────────────────────────────────────────────────────────────
 
@@ -312,25 +238,17 @@ export function Modal({ children, onClose, locked, label, width = 440 }) {
 export function choiceLook(c, on) {
   return {
     fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", boxSizing: "border-box",
-    minHeight: 44, borderRadius: RADIUS.control, border: `1.5px solid ${on ? c.text : BORDER}`,
+    minHeight: 44, borderRadius: RADIUS.pill, border: `1.5px solid ${on ? c.text : BORDER}`,
     background: on ? c.softer : WHITE, color: on ? c.onSoft : TEXT_MID,
   };
 }
 
-export function Segmented({ options, value, onChange, label }) {
-  const c = useQuestColors();
+/** Older one-of-several picker (options as { value, label }): now the kit
+ *  ChoiceChips. Quest uses ChoiceChips directly. */
+export function Segmented({ options, value, onChange, label, isMobile }) {
   return (
-    <div role="radiogroup" aria-label={label} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      {options.map((o) => {
-        const on = o.value === value;
-        return (
-          <button key={o.value} type="button" role="radio" aria-checked={on} onClick={() => onChange(o.value)}
-            className={FOCUS_CLASS} style={{ ...choiceLook(c, on), padding: "10px 18px", minWidth: 92 }}>
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
+    <ChoiceChips label={label} hideLabel isMobile={isMobile} value={value} onChange={onChange}
+      options={options.map((o) => ({ key: o.value, label: o.label }))} />
   );
 }
 
@@ -352,7 +270,7 @@ export function DayToggles({ value, onChange }) {
             aria-label={`${DAY_NAMES[d]}${rest ? ", rest day" : ""}`} className={FOCUS_CLASS}
             style={{
               ...choiceLook(c, !rest), width: 44, height: 44, padding: 0,
-              ...(rest ? { background: "#f3f1ed", color: TEXT_MUTED } : null),
+              ...(rest ? { background: SURFACE, color: TEXT_MUTED } : null),
               textDecoration: rest ? "line-through" : "none",
             }}>
             {l}

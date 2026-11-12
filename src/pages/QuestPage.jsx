@@ -11,12 +11,11 @@ import SkyBackdrop from "../components/quest/SkyBackdrop.jsx";
 import CheckInSheet from "../components/quest/CheckInSheet.jsx";
 import { QuestSetup, DraftReview } from "../components/quest/QuestSetup.jsx";
 import {
-  TopBar, StickyHeader, CatchUpBanner, DeadlineNotice, RestNote, PausedCard, Notice,
+  TopBar, StickyHeader, CatchUpBanner, CatchUpPill, DeadlineNotice, RestNote, PausedCard,
   MilestoneCard, FinishCard, ConfirmModal, PaceModal, PortfolioDraftModal,
 } from "../components/quest/QuestPanels.jsx";
-import { BG, SANS, INK, MUTED, Chunky, QuestStyles, useQuestColors } from "../components/quest/questUi.jsx";
-import { ringVar } from "../components/ui/tokens.js";
-import { Card } from "../components/ui/kit.jsx";
+import { SANS, INK, MUTED, Chunky, QuestStyles, useQuestColors } from "../components/quest/questUi.jsx";
+import { Button, Card, SR_ONLY, Toast, pageStyle } from "../components/ui/kit.jsx";
 
 // Quest: one project, a small step every day. The page is a thin shell around
 // the server's state: every rule about days, streaks and gates is decided by
@@ -42,14 +41,30 @@ export default function QuestPage({ navigate }) {
   const [justDone, setJustDone] = useState(null);
   const [glow, setGlow] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState(null);   // { text, tone }: "error", or "lock" (amber: a locked day is not a failure)
+  const [notice, setNotice] = useState(null);   // { text, error }: shown in the Toast, in view wherever the tap was
   const [confirmRetire, setConfirmRetire] = useState(false);
+  const [confirmBreak, setConfirmBreak] = useState(false);
   const [paceOpen, setPaceOpen] = useState(false);
   const [portfolio, setPortfolio] = useState(null);      // { draft, loading, error }
 
   const focusRef = useRef(null);
   const scrolledFor = useRef(null);
   const openingToday = useRef(null);
+  const headerRef = useRef(null);
+  const bannerRef = useRef(null);
+  const noticeTimer = useRef(null);
+  const [headerH, setHeaderH] = useState(0);
+  const [bannerGone, setBannerGone] = useState(false);   // the catch-up banner has scrolled under the bar
+
+  const view = state?.view;
+  const showSetup = view === "none" || view === "retired" || (view === "completed" && setupOpen);
+  const showMap = ["active", "paused", "completed"].includes(view) && !showSetup;
+  const behind = view === "active" && state?.backlog?.count > 0 && !!state?.backlog?.oldest_doable_slot
+    && state?.today_state !== "blocked";
+  // How much of the top of the screen the stuck bar covers (its 10px offset,
+  // the bar, and the catch-up pill under it), and the mobile nav at the foot.
+  const coverTop = 10 + headerH + (behind ? 52 : 0);
+  const coverBottom = isMobile ? 76 : 0;
 
   // ── Loading ────────────────────────────────────────────────────────────────
 
@@ -90,34 +105,85 @@ export default function QuestPage({ navigate }) {
       .catch((e) => { openingToday.current = null; console.warn("[quest] could not set up today's task:", e.message); });
   }, [state]);
 
-  // Land on today, once per quest per visit. Not on a comeback visit, though:
-  // then the welcome back card at the top, with its offer to count the time
-  // away as a break, is the thing to see first.
+  // The bar's height, for everything that has to clear it.
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!showMap || !el || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(() => setHeaderH(Math.round(el.getBoundingClientRect().height)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [showMap]);
+
+  // Keyboard focus on the map keeps clear of the stuck bar and the mobile
+  // nav, so a focused stone or Start is never hidden under either. A scroll
+  // margin on those controls, not scroll-padding on the page: the bar's own
+  // controls are sticky, and a page-wide padding made focusing them scroll.
+  const coverCss = showMap
+    ? `.quest-map-cover [data-slot] .quest-stone, .quest-map-cover [data-today-callout] button {
+        scroll-margin-top: ${coverTop + 8}px; scroll-margin-bottom: ${coverBottom + 8}px; }`
+    : "";
+
+  // The catch-up pill takes over once the full banner is under the bar.
+  useEffect(() => {
+    const el = bannerRef.current;
+    if (!behind || !el || typeof IntersectionObserver === "undefined") { setBannerGone(false); return undefined; }
+    const io = new IntersectionObserver(([e]) => {
+      setBannerGone(!e.isIntersecting && e.boundingClientRect.top < (e.rootBounds?.top ?? 0) + 1);
+    }, { rootMargin: `-${10 + headerH}px 0px 0px 0px` });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [behind, headerH]);
+
+  // Today's callout and stone, centred in the part of the screen the bar and
+  // the nav leave free (plain scrollIntoView centres on the whole window, so
+  // the bar covered the callout).
+  const scrollToToday = useCallback((behavior = "auto") => {
+    const stone = focusRef.current;
+    if (!stone) return false;
+    const slotEl = stone.closest("[data-slot]") || stone;
+    const prev = slotEl.previousElementSibling;
+    const callout = prev && prev.hasAttribute("data-today-callout") ? prev : null;
+    const top = (callout || slotEl).getBoundingClientRect().top + window.scrollY;
+    const bottom = slotEl.getBoundingClientRect().bottom + window.scrollY;
+    const free = window.innerHeight - coverTop - coverBottom;
+    const y = bottom - top > free - 24 ? top - coverTop - 12 : (top + bottom) / 2 - coverTop - free / 2;
+    window.scrollTo({ top: Math.max(0, Math.round(y)), behavior });
+    return true;
+  }, [coverTop, coverBottom]);
+
+  // Land on today, once per quest per visit. After a long gap the comeback
+  // banner, with its offer to count the time away as a break, comes first;
+  // any choice there then takes the student to today.
   useEffect(() => {
     if (!state?.quest || !["active", "paused"].includes(state.view)) return;
     const key = state.quest.id;
     if (scrolledFor.current === key) return;
-    if (state.welcome_back?.show) { scrolledFor.current = key; return; }
+    if (state.welcome_back?.show && state.welcome_back?.offer_break) { scrolledFor.current = key; return; }
     const id = requestAnimationFrame(() => {
-      if (focusRef.current) {
-        focusRef.current.scrollIntoView({ block: "center", behavior: "auto" });
-        scrolledFor.current = key;
-      }
+      if (scrollToToday()) scrolledFor.current = key;
     });
     return () => cancelAnimationFrame(id);
-  }, [state]);
+  }, [state, scrollToToday]);
+
+  const showNotice = (text, { error = false } = {}) => {
+    clearTimeout(noticeTimer.current);
+    setNotice({ text, error });
+    if (!error) noticeTimer.current = setTimeout(() => setNotice(null), 5000);
+  };
+  const dismissNotice = () => { clearTimeout(noticeTimer.current); setNotice(null); };
+  useEffect(() => () => clearTimeout(noticeTimer.current), []);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
   const run = async (fn, { reload = false } = {}) => {
-    setBusy(true); setNotice(null);
+    setBusy(true); dismissNotice();
     try {
       const s = await fn();
       if (s && s.view !== undefined) setState(s);
       else if (reload) await load();
       return s;
     } catch (e) {
-      setNotice({ text: e.message, tone: "error" });
+      showNotice(e.message || "That did not go through. Try again.", { error: true });
       return null;
     } finally {
       setBusy(false);
@@ -132,7 +198,7 @@ export default function QuestPage({ navigate }) {
     if (!reviewing && state.view !== "active") return;
     if (!stone.doable && (stone.state === "missed" || stone.state === "today")) {
       if (stone.state === "today") { catchUp(); return; }
-      setNotice({ text: currentMilestone ? `Finish Milestone ${currentMilestone.position} to unlock that day.` : "That day is locked.", tone: "lock" });
+      showNotice(currentMilestone ? `Finish Milestone ${currentMilestone.position} to unlock that day.` : "That day is locked.");
       return;
     }
     const cached = stone.slot === state.today_slot && state.today_task ? state.today_task : null;
@@ -157,6 +223,22 @@ export default function QuestPage({ navigate }) {
   const startToday = () => {
     if (!state?.today_slot) return;
     openStone(state.stones[state.today_slot - 1]);
+  };
+
+  // The skip link and the comeback banner's choices: bring today into view
+  // and put focus on its Start button (or its stone).
+  const goToday = (behavior = "smooth") => {
+    scrollToToday(behavior);
+    const stone = focusRef.current;
+    const callout = stone?.closest("[data-slot]")?.previousElementSibling;
+    const start = callout?.querySelector?.("[data-today-start]:not([disabled])");
+    (start || (stone?.tagName === "BUTTON" ? stone : null))?.focus({ preventScroll: true });
+  };
+
+  const takeBreak = async () => {
+    const s = await run(() => questApi.takeBreak(q.id));
+    setConfirmBreak(false);
+    if (s) requestAnimationFrame(() => goToday("auto"));
   };
 
   // Saved on the task, so it is kept in both places the task is held: the open
@@ -223,11 +305,11 @@ export default function QuestPage({ navigate }) {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  // The kit's page frame. The map sets its own top spacing, since the sky
+  // scene starts right under the top of the page.
   const pagePad = {
-    minHeight: "100vh", background: BG, fontFamily: SANS, boxSizing: "border-box",
-    padding: isMobile ? "0 1rem 6.5rem" : "0 2rem 4rem",
-    paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH}px + 2rem)`,
-    ...ringVar(c),
+    ...pageStyle({ isMobile, sidebar: SIDEBAR_WIDTH, ink: c }),
+    ...(showMap ? { paddingTop: 0 } : null),
   };
 
   if (phase === "loading") {
@@ -254,49 +336,45 @@ export default function QuestPage({ navigate }) {
     );
   }
 
-  const view = state.view;
-  const showSetup = view === "none" || view === "retired" || (view === "completed" && setupOpen);
-  const showMap = ["active", "paused", "completed"].includes(view) && !showSetup;
   const streakLit = ["done", "rest"].includes(state.today_state);
+  const hasToday = showMap && view !== "completed" && focusSlotOf(state) != null;
 
   return (
     <div data-sidebar-offset className="ui-page" style={pagePad}>
       <QuestStyles />
+      {coverCss && <style>{coverCss}</style>}
       <div style={{ maxWidth: 880, margin: "0 auto", width: "100%" }}>
 
         {/* With a quest on the map, the whole section (the bar, the notices
             and the map) sits in the beach-to-space scene. */}
-        <div style={showMap ? { position: "relative", isolation: "isolate", marginTop: isMobile ? 10 : 18,
+        <div className={showMap ? "quest-map-cover" : undefined} style={showMap ? { position: "relative", isolation: "isolate", marginTop: isMobile ? 10 : 18,
           padding: isMobile ? "10px 10px 0" : "14px 16px 0" } : undefined}>
         {showMap && <SkyBackdrop isMobile={isMobile} />}
 
         {showMap && (
-          <StickyHeader>
+          <StickyHeader ref={headerRef}>
             <TopBar title={q.title} stats={state.stats} streakLit={streakLit} menu={menu} isMobile={isMobile} />
-            {view === "active" && <CatchUpBanner state={state} onCatchUp={catchUp} />}
+            {hasToday && <SkipToToday onGo={() => goToday()} />}
+            <AnimatePresence>
+              {behind && bannerGone && <CatchUpPill key="pill" state={state} onCatchUp={catchUp} />}
+            </AnimatePresence>
           </StickyHeader>
         )}
 
-        <Notice tone={notice?.tone}>{notice?.text}</Notice>
-
         {showSetup && (
-          <div style={{ paddingTop: isMobile ? 24 : 48 }}>
-            <QuestSetup
-              onPlanned={(s) => { setSetupOpen(false); setState(s); window.scrollTo({ top: 0 }); }}
-              canCancel={view === "completed"}
-              onCancel={() => setSetupOpen(false)}
-            />
-          </div>
+          <QuestSetup
+            onPlanned={(s) => { setSetupOpen(false); setState(s); window.scrollTo({ top: 0 }); }}
+            canCancel={view === "completed"}
+            onCancel={() => setSetupOpen(false)}
+          />
         )}
 
         {view === "draft" && (
-          <div style={{ paddingTop: isMobile ? 24 : 48 }}>
-            <DraftReview
-              state={state} busy={busy}
-              onStart={() => run(() => questApi.start(q.id))}
-              onDiscard={() => run(() => questApi.discard(q.id))}
-            />
-          </div>
+          <DraftReview
+            state={state} busy={busy}
+            onStart={() => run(() => questApi.start(q.id))}
+            onDiscard={() => run(() => questApi.discard(q.id))}
+          />
         )}
 
         {showMap && (
@@ -308,6 +386,8 @@ export default function QuestPage({ navigate }) {
             )}
             {view === "active" && (
               <>
+                <CatchUpBanner ref={bannerRef} state={state} onCatchUp={catchUp}
+                  onBreak={() => setConfirmBreak(true)} onGoToday={() => goToday()} />
                 <DeadlineNotice state={state} onAskAdvisor={() => navigate("/chat")} />
                 <RestNote state={state} />
               </>
@@ -356,8 +436,16 @@ export default function QuestPage({ navigate }) {
             onClose={() => setConfirmRetire(false)}
             onConfirm={async () => { await run(() => questApi.retire(q.id)); setConfirmRetire(false); }} />
         )}
+        {confirmBreak && (
+          <ConfirmModal key="break" busy={busy}
+            title="Count it as a break?"
+            body="The days you missed move to start from today, so there is nothing left to catch up on. Your finish date moves later to make room, and your streak starts fresh with today's check-in."
+            confirm="Count it as a break" cancel="Not now"
+            onClose={() => setConfirmBreak(false)}
+            onConfirm={takeBreak} />
+        )}
         {paceOpen && q && (
-          <PaceModal key="pace" quest={q} onClose={() => setPaceOpen(false)}
+          <PaceModal key="pace" quest={q} isMobile={isMobile} onClose={() => setPaceOpen(false)}
             onSave={async (body) => { const s = await questApi.settings(q.id, body); setState(s); setPaceOpen(false); }} />
         )}
         {portfolio && (
@@ -365,6 +453,23 @@ export default function QuestPage({ navigate }) {
             onSave={savePortfolio} onClose={() => setPortfolio(null)} />
         )}
       </AnimatePresence>
+
+      <Toast notice={notice} onDismiss={dismissNotice} isMobile={isMobile} sidebar={SIDEBAR_WIDTH} />
+    </div>
+  );
+}
+
+/** "Skip to today", for the keyboard: hidden until it has focus, then shown
+ *  just under the bar. It sits right after the bar, so it is the first stop
+ *  past the quest options. */
+function SkipToToday({ onGo }) {
+  const [shown, setShown] = useState(false);
+  return (
+    <div style={shown ? { position: "absolute", top: "calc(100% - 2px)", left: 0, zIndex: 2 } : SR_ONLY}>
+      <Button kind="secondary" onClick={onGo} onFocus={() => setShown(true)} onBlur={() => setShown(false)}
+        style={{ boxShadow: "0 6px 18px rgba(12,16,44,0.16)" }}>
+        Skip to today
+      </Button>
     </div>
   );
 }

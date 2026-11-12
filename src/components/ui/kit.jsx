@@ -1,10 +1,14 @@
+import { useEffect, useId } from "react";
 import Spinner from "../common/Spinner.jsx";
 import { readableOn } from "../../lib/theme.js";
 import { PixelStamp, stampWidth } from "./PixelIcons.jsx";
 import {
-  AMBER_BG, AMBER_TEXT, BG, BORDER, DANGER, FOCUS_CLASS, PRESS_CLASS, RADIUS, SANS, SURFACE, TEXT,
-  TEXT_MID, TEXT_MUTED, WHITE, ringVar, useAgentInk,
+  AMBER_BG, AMBER_LINE, AMBER_TEXT, BG, BORDER, DANGER, DANGER_BG, DANGER_LINE, FOCUS_CLASS, PRESS_CLASS, RADIUS, SANS,
+  SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, ringVar, useAgentInk,
 } from "./tokens.js";
+
+// The dialog: a bottom sheet on a phone, a centred card above that.
+export { default as Sheet } from "./Sheet.jsx";
 
 // The shared kit every page builds from: the calm shell's buttons, cards,
 // fields, notices and headings (first made for the Agents pages), plus the
@@ -15,6 +19,7 @@ import {
 export const INPUT_CLASS = "oa-input";
 export const CHOICE_CLASS = "oa-choice";
 export const LINK_CLASS = "oa-link";
+export const REMOVE_CLASS = "ui-remove";
 
 const KIT_CSS = `
 .${INPUT_CLASS} { transition: border-color 0.15s; }
@@ -23,6 +28,8 @@ const KIT_CSS = `
 .${LINK_CLASS} { text-decoration: underline; text-underline-offset: 3px; }
 .${LINK_CLASS}:hover { text-decoration-thickness: 2px; }
 .ui-page input::placeholder, .ui-page textarea::placeholder { color: ${TEXT_MUTED}; opacity: 1; }
+.${REMOVE_CLASS} { color: ${TEXT_MID}; background: none; transition: color 0.15s, background 0.15s; }
+.${REMOVE_CLASS}:hover, .${REMOVE_CLASS}:focus-visible { color: ${DANGER}; background: ${BG}; }
 `;
 if (typeof document !== "undefined" && !document.querySelector("style[data-ui-kit]")) {
   const el = document.createElement("style");
@@ -119,8 +126,8 @@ export const inputStyle = {
 const TONES = {
   info: { bg: SURFACE, fg: TEXT_MID, line: BORDER },
   success: { bg: null, fg: TEXT, line: null },
-  warn: { bg: AMBER_BG, fg: AMBER_TEXT, line: "#f3d9a4" },
-  error: { bg: "#fdf1f0", fg: DANGER, line: "#f4c7c2" },
+  warn: { bg: AMBER_BG, fg: AMBER_TEXT, line: AMBER_LINE },
+  error: { bg: DANGER_BG, fg: DANGER, line: DANGER_LINE },
 };
 
 /** A one-line (or short) message with an optional dismiss. `tone`: info,
@@ -193,11 +200,13 @@ export function PageHeader({ title, children, action, isMobile, style }) {
 }
 
 /** The standard page wrapper: grey page, sidebar offset, the focus ring
- *  colour set once for everything inside. */
+ *  colour set once for everything inside. On a phone the bottom padding
+ *  clears the 60px nav and the floating feedback button above it, so the
+ *  last button on a page is never under either. */
 export function pageStyle({ isMobile, sidebar = 0, ink }) {
   return {
     minHeight: "100vh", background: BG, fontFamily: SANS, boxSizing: "border-box",
-    padding: isMobile ? "1.5rem 1rem 6rem" : "2.5rem 2rem 4rem",
+    padding: isMobile ? "1.5rem 1rem 8.5rem" : "2.5rem 2rem 4rem",
     paddingLeft: isMobile ? "1rem" : `calc(${sidebar}px + 2rem)`,
     ...ringVar(ink),
   };
@@ -245,25 +254,43 @@ export function Tip({ name, stamp = "sparkle", tone = "accent", children, style 
 }
 
 /** A labelled row of pills, one of them chosen (an order, a view, a filter).
- *  On a phone the pills share the row evenly. */
-export function ChoiceChips({ label, options, value, onChange, isMobile, hideLabel }) {
+ *  On a phone the pills share the row evenly, unless `wrap`.
+ *  `multi`: several may be on (the grades an activity ran); `value` is then
+ *  an array, a press toggles one, and the result keeps the options' order.
+ *  `labelAbove`: the label shows above the pills at every width, as a form
+ *  field's label does (the pills then wrap). `labelledBy`: the id of a label
+ *  already on the page, used instead of `label`. */
+export function ChoiceChips({ label, options, value, onChange, isMobile, hideLabel, multi = false, labelAbove = false,
+  labelledBy, wrap = false }) {
   const ink = useAgentInk();
-  return (
-    <div role="group" aria-label={label}
-      style={isMobile ? { display: "grid", gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`, gap: 8 }
+  const ownId = useId();
+  const chosen = multi ? (Array.isArray(value) ? value : []) : null;
+  const press = (key) => {
+    if (!multi) { onChange(key); return; }
+    const next = chosen.includes(key) ? chosen.filter((k) => k !== key) : [...chosen, key];
+    onChange(options.map((o) => o.key).filter((k) => next.includes(k)));
+  };
+  const grid = isMobile && !wrap && !labelAbove;
+  const inlineLabel = !labelAbove && !labelledBy;
+  const group = (
+    <div role="group" aria-label={inlineLabel ? label : undefined}
+      aria-labelledby={labelledBy || (labelAbove ? ownId : undefined)}
+      style={grid ? { display: "grid", gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`, gap: 8 }
         : { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-      <span style={isMobile || hideLabel ? SR_ONLY : { fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", color: TEXT_MID }}>
-        {label}
-      </span>
+      {inlineLabel && (
+        <span style={isMobile || hideLabel ? SR_ONLY : { fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", color: TEXT_MID }}>
+          {label}
+        </span>
+      )}
       {options.map((o) => {
-        const on = value === o.key;
+        const on = multi ? chosen.includes(o.key) : value === o.key;
         return (
-          <button key={o.key} type="button" aria-pressed={on} onClick={() => onChange(o.key)} className={FOCUS_CLASS}
+          <button key={o.key} type="button" aria-pressed={on} onClick={() => press(o.key)} className={FOCUS_CLASS}
             style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", borderRadius: RADIUS.pill,
-              padding: isMobile ? "4px 8px" : "0 14px", minHeight: 44, lineHeight: 1.2, boxSizing: "border-box",
-              // A one-character pill ("9") is still a full touch target. On a
-              // phone the grid already stretches every pill.
-              ...(isMobile ? null : { minWidth: 44 }),
+              padding: grid ? "4px 8px" : "0 14px", minHeight: 44, lineHeight: 1.2, boxSizing: "border-box",
+              // A one-character pill ("9") is still a full touch target. In
+              // the phone grid the column already stretches every pill.
+              ...(grid ? null : { minWidth: 44 }),
               border: `1.5px solid ${on ? ink.text : BORDER}`, background: on ? ink.softer : WHITE,
               color: on ? ink.onSoft : TEXT_MID }}>
             {o.label}
@@ -272,14 +299,79 @@ export function ChoiceChips({ label, options, value, onChange, isMobile, hideLab
       })}
     </div>
   );
+  if (!labelAbove) return group;
+  // The same line as FieldLabel, but not a <label>: a group of buttons is
+  // named by aria-labelledby, not by a label's `for`.
+  return (
+    <div style={{ minWidth: 0 }}>
+      <div id={ownId} style={{ marginBottom: 6, fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: TEXT }}>{label}</div>
+      {group}
+    </div>
+  );
+}
+
+// ─── Remove ──────────────────────────────────────────────────────────────────
+
+const RemoveX = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"
+    aria-hidden="true">
+    <path d="M18 6 6 18M6 6l12 12" />
+  </svg>
+);
+
+/** "× Remove", named for what it removes (`name`: "Honors Chemistry"). Quiet
+ *  until hovered or focused, then red on a grey tint, the same for mouse and
+ *  keyboard. `iconOnly` drops the word where a row is tight (a phone card);
+ *  the accessible name stays. At least 44px unless `style` says otherwise. */
+export function RemoveButton({ onClick, name, iconOnly = false, disabled, style, ...rest }) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} aria-label={name ? `Remove ${name}` : "Remove"}
+      className={`${FOCUS_CLASS} ${REMOVE_CLASS}`}
+      style={{ flexShrink: 0, minHeight: 44, minWidth: 44, padding: iconOnly ? 0 : "0 10px", border: "none",
+        borderRadius: RADIUS.control, cursor: disabled ? "default" : "pointer", fontFamily: SANS, fontWeight: 700,
+        fontSize: "0.95rem", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+        boxSizing: "border-box", opacity: disabled ? 0.55 : 1, ...style }}
+      {...rest}>
+      <RemoveX />{!iconOnly && "Remove"}
+    </button>
+  );
 }
 
 // ─── Toast ───────────────────────────────────────────────────────────────────
 
+const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+
 /** A notice that floats at the bottom of the screen (above the mobile nav),
  *  so feedback for an action stays in view wherever the action was. Polite
- *  live region; errors use the error tone. */
+ *  live region; errors use the error tone.
+ *
+ *  `notice`: { text, error, action, undo }. `action` is any element (a Retry
+ *  button). `undo`, a function, draws the Undo button itself, with the
+ *  Ctrl+Z (Cmd+Z on a Mac) shortcut and its hint, and owns the shortcut while
+ *  the toast is up, outside text fields so a field's own undo still works. */
 export function Toast({ notice, onDismiss, isMobile, sidebar = 0 }) {
+  const undo = notice?.undo;
+  useEffect(() => {
+    if (typeof undo !== "function") return undefined;
+    const onKey = (e) => {
+      if (e.key.toLowerCase() !== "z" || e.shiftKey || e.altKey || !(IS_MAC ? e.metaKey : e.ctrlKey)) return;
+      const t = e.target;
+      if (t instanceof HTMLElement && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+      e.preventDefault();
+      undo();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo]);
+
+  const action = notice?.action || (typeof undo === "function" ? (
+    <Button kind="quiet" onClick={undo} style={{ padding: "6px 10px", marginLeft: -10 }}
+      aria-keyshortcuts={IS_MAC ? "Meta+Z" : "Control+Z"}>
+      Undo
+      {!isMobile && <span style={{ fontWeight: 600, color: TEXT_MUTED }}>{IS_MAC ? "⌘Z" : "Ctrl+Z"}</span>}
+    </Button>
+  ) : null);
+
   return (
     <div aria-live="polite" style={{ position: "fixed", zIndex: 300, pointerEvents: "none", display: "flex",
       justifyContent: "center", left: isMobile ? 12 : sidebar + 16, right: 12,
@@ -290,7 +382,7 @@ export function Toast({ notice, onDismiss, isMobile, sidebar = 0 }) {
           {/* Notice spreads `style` last, so an error passes none: a background
               key set to undefined would wipe the error tint and leave the words
               floating on the page. */}
-          <Notice tone={notice.error ? "error" : "info"} onDismiss={onDismiss} action={notice.action}
+          <Notice tone={notice.error ? "error" : "info"} onDismiss={onDismiss} action={action}
             style={notice.error ? undefined : { background: WHITE }}>
             {notice.text}
           </Notice>

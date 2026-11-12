@@ -3,10 +3,10 @@ import { motion, useReducedMotion } from "framer-motion";
 import { formatDay } from "../../lib/quest.js";
 import Spinner from "../common/Spinner.jsx";
 import { FOCUS_CLASS, RADIUS, SURFACE } from "../ui/tokens.js";
-import { INPUT_CLASS } from "../ui/kit.jsx";
+import { Button, INPUT_CLASS, SR_ONLY, Sheet, Tip, inputStyle } from "../ui/kit.jsx";
 import {
   SANS, INK, MID, MUTED, LINE, AMBER,
-  Chunky, ErrorLine, FLAME_GROWS_AT, Flame, GrowingFlame, QuietNote, Sheet, TextButton, fieldStyle, useQuestColors,
+  Chunky, ErrorLine, FLAME_GROWS_AT, Flame, GrowingFlame, useQuestColors,
 } from "./questUi.jsx";
 
 function useCountUp(target, run) {
@@ -33,20 +33,15 @@ function Label({ children, color }) {
   );
 }
 
+/** The advisor's words: the kit's guide line, as everywhere else on Quest. */
 function Bubble({ children }) {
-  const c = useQuestColors();
-  return (
-    <div style={{ background: c.softer, border: `1px solid ${c.soft}`, borderRadius: "16px 16px 16px 4px", padding: "12px 14px",
-      fontFamily: SANS, fontSize: "1rem", color: INK, lineHeight: 1.55 }}>
-      {children}
-    </div>
-  );
+  return <Tip stamp="chat" name="Your advisor">{children}</Tip>;
 }
 
 function TheirWords({ children }) {
   return (
-    <div style={{ background: SURFACE, border: `1px solid ${LINE}`, borderRadius: 12, padding: "8px 12px", fontFamily: SANS,
-      fontSize: "0.98rem", color: MID, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>
+    <div style={{ background: SURFACE, border: `1px solid ${LINE}`, borderRadius: RADIUS.control, padding: "8px 12px", fontFamily: SANS,
+      fontSize: "1rem", color: MID, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>
       {children}
     </div>
   );
@@ -58,7 +53,7 @@ function Reward({ result, streak }) {
   const leveled = result.level_after > result.level_before;
   const grew = result.on_time && streak === FLAME_GROWS_AT;
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, margin: "4px 0 16px" }}>
+    <div aria-hidden="true" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, margin: "4px 0 16px" }}>
       <motion.span
         initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 420, damping: 18 }}
@@ -80,7 +75,7 @@ function Reward({ result, streak }) {
           initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: [0.4, 1.2, 1], opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.25 }}
           style={{ fontFamily: SANS, fontWeight: 800, fontSize: "0.95rem", color: c.onSoft, background: c.softer,
-            border: `1.5px solid ${c.text}`, borderRadius: RADIUS.control, padding: "4px 10px" }}>
+            border: `1px solid ${c.text}`, borderRadius: RADIUS.control, padding: "4px 10px" }}>
           Level {result.level_after}
         </motion.span>
       )}
@@ -92,6 +87,17 @@ function Reward({ result, streak }) {
       )}
     </div>
   );
+}
+
+/** What the reward says, in one sentence for a screen reader (the animated
+ *  count would otherwise be read out number by number, or not at all). */
+function rewardText(result, streak) {
+  if (!result) return "";
+  const parts = [`Checked in. Plus ${result.xp_gained} XP.`];
+  parts.push(result.on_time ? `${streak} day streak.` : "Caught up. One less to catch up on.");
+  if (result.level_after > result.level_before) parts.push(`Level ${result.level_after}.`);
+  if (result.milestone_completed) parts.push(`Milestone ${result.milestone_completed.position} complete.`);
+  return parts.join(" ");
 }
 
 function Resources({ slot, task, find, canSearch }) {
@@ -143,9 +149,9 @@ function Resources({ slot, task, find, canSearch }) {
       )}
 
       {list !== null && list.length === 0 && (
-        <QuietNote style={{ marginTop: 4 }}>
+        <Tip tone="default" stamp="question" style={{ marginTop: 8 }}>
           Nothing solid turned up for this one. Your advisor in Chat can help you find a starting point.
-        </QuietNote>
+        </Tip>
       )}
 
       {list !== null && list.length > 0 && (
@@ -239,7 +245,9 @@ export default function CheckInSheet({
     : stone && stone.date === today ? "Today" : stone ? formatDay(stone.date) : "";
 
   return (
-    <Sheet onClose={close} locked={busy} label={task ? task.title : "Task"}>
+    <Sheet onClose={close} locked={busy} label={task ? task.title : "Task"} width={560}>
+      {/* Mounted from the start, so the reward is announced when it lands. */}
+      <p role="status" style={SR_ONLY}>{outcome?.result ? rewardText(outcome.result, outcome.state?.stats?.streak || 0) : ""}</p>
       {loading && (
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "28px 4px" }}>
           <Spinner size={22} color={c.text} />
@@ -252,7 +260,7 @@ export default function CheckInSheet({
           <ErrorLine>{loadError}</ErrorLine>
           <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
             <Chunky onClick={onRetry}>Try again</Chunky>
-            <TextButton onClick={close} color={MUTED}>Close</TextButton>
+            <Button onClick={close}>Close</Button>
           </div>
         </div>
       )}
@@ -293,8 +301,8 @@ export default function CheckInSheet({
 
           {!review && !outcome && (
             <>
-              <label htmlFor="quest-checkin" style={{ display: "block", fontFamily: SANS, fontWeight: 800,
-                fontSize: "0.95rem", color: INK, marginBottom: 8 }}>
+              <label htmlFor="quest-checkin" style={{ display: "block", fontFamily: SANS, fontWeight: 700,
+                fontSize: "1rem", color: INK, marginBottom: 8 }}>
                 What did you do? Any result?
               </label>
               <textarea
@@ -302,7 +310,7 @@ export default function CheckInSheet({
                 onChange={(e) => setBody(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit(); }}
                 placeholder="One or two lines is plenty."
-                className={INPUT_CLASS} style={{ ...fieldStyle, resize: "vertical", minHeight: 88 }}
+                className={INPUT_CLASS} style={{ ...inputStyle, resize: "vertical", minHeight: 88 }}
               />
               <ErrorLine>{error}</ErrorLine>
               <div style={{ marginTop: 16 }}>
@@ -331,14 +339,14 @@ export default function CheckInSheet({
                     rows={2} value={answer} maxLength={500} onChange={(e) => setAnswer(e.target.value)}
                     placeholder="Answer for +5 XP, or skip it."
                     aria-label="Your answer"
-                    className={INPUT_CLASS} style={{ ...fieldStyle, marginTop: 10, resize: "vertical" }}
+                    className={INPUT_CLASS} style={{ ...inputStyle, marginTop: 10, resize: "vertical" }}
                   />
                   <ErrorLine>{error}</ErrorLine>
                   <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center" }}>
                     <Chunky small onClick={sendAnswer} disabled={!answer.trim() || busy}>
                       {busy ? "Sending..." : "Answer"}
                     </Chunky>
-                    <TextButton onClick={close} color={MUTED}>Skip</TextButton>
+                    <Button kind="quiet" onClick={close}>Skip</Button>
                   </div>
                 </div>
               )}

@@ -45,7 +45,7 @@ spacing:
   page-bottom: "4rem"
   page-top-mobile: "1.5rem"
   gutter-mobile: "1rem"
-  page-bottom-mobile: "6rem"
+  page-bottom-mobile: "8.5rem"
   column: "880px"
   lead-measure: "62ch"
   header-gap: "1.6rem"
@@ -103,7 +103,7 @@ One per-student accent over warm, near-neutral greys, plus amber for "behind".
 - **Warm Border**: the 1px line on every card and control.
 
 ### Status
-- **Danger** with **Error Wash**: errors and destructive buttons only.
+- **Danger** with **Error Wash** (`DANGER_BG`) and its line (`DANGER_LINE`): errors and destructive buttons only.
 - **Amber Text / Amber Wash / Amber Line / Amber Edge**: "due", "waiting", missed Quest days, the catch-up banner. Amber Edge is for lines and dashed stone rings, not text.
 
 ### Named Rules
@@ -132,7 +132,7 @@ One per-student accent over warm, near-neutral greys, plus amber for "behind".
 
 ## Layout
 
-- **Page frame:** `pageStyle({ isMobile, sidebar, ink })` gives Page Grey, `minHeight: 100vh`, padding `2.5rem 2rem 4rem` with `calc(sidebar + 2rem)` on the left (Sidebar is 220px), and `1.5rem 1rem 6rem` on mobile (room for the 60px bottom nav). It also sets `--ag-ring` so every focus ring inside uses the accent.
+- **Page frame:** `pageStyle({ isMobile, sidebar, ink })` gives Page Grey, `minHeight: 100vh`, padding `2.5rem 2rem 4rem` with `calc(sidebar + 2rem)` on the left (Sidebar is 220px), and `1.5rem 1rem 8.5rem` on mobile (room for the 60px bottom nav and the floating feedback button above it). It also sets `--ag-ring` so every focus ring inside uses the accent.
 - **Column:** one centred column, `maxWidth: 880`, `margin: 0 auto`.
 - **Header pattern:** `PageHeader` (title, muted lead, optional action on the right, 1.6rem below), then a `Tip` immediately under it when the page has a next step or guide line (Portfolio's "Next step", College List's "Start here"). Then the content cards.
 - **Rhythm:** section cards stack with about 1.25rem between them (College List uses a 22px / 18px flex gap); items inside a section are smaller control-radius cards 10px apart.
@@ -173,10 +173,11 @@ The game dialog box: a 2px Ink frame with three-step stepped corners (clip-path)
 - **ChoiceChips:** pills, 44px tall; selected is `softer` fill, accent stroke, `onSoft` label.
 - **Notice:** control radius, tones info (Inset Surface), success (accent `softer`), warn (amber), error (Error Wash).
 - **Toast:** a Notice fixed above the mobile nav, white, the one kit piece with a shadow.
-- **Dialogs:** `components/agents/outreach/Sheet.jsx` is the reference: a bottom sheet on phones, a centred white card on wider screens, focus trapped and returned.
+- **Dialogs:** the kit `Sheet` (`src/components/ui/Sheet.jsx`, exported from `kit.jsx`; the old `agents/outreach/Sheet.jsx` path re-exports it): a bottom sheet on phones, a centred 20px white card on wider screens, focus trapped and returned.
+- **ChoiceChips** also does several-at-once (`multi`) and a label above the pills (`labelAbove`) for form fields. **RemoveButton** is the one "× Remove" control (`iconOnly` on tight cards). **Toast** draws Undo and owns its Ctrl/Cmd+Z when the notice carries `undo`.
 
 ### Navigation
-Sidebar (220px) and MobileNav (60px bottom bar). Both predate the kit: active items use the raw accent, inactive ones `#4b5470`, and MobileNav labels sit under the text floor. Known drift, not a reference.
+Sidebar (220px) and MobileNav (60px bottom bar). Both predate the kit: active items use the raw accent. MobileNav labels and the streak badge are at the 0.9rem floor in Ink Muted; below 360px only the active tab shows its label (the rest stay readable to screen readers). Known drift otherwise, not a reference.
 
 ### Intentional Exceptions: Quest's game pieces
 These are deliberate and must not be scored as inconsistency:

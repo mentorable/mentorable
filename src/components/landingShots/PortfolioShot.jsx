@@ -110,8 +110,8 @@ export default function PortfolioShot() {
                 </div>
               </div>
               <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <Button kind="primary" tabIndex={-1}>Upload</Button>
-                <p style={{ fontSize: "0.92rem", fontWeight: 600, color: TEXT_MUTED, margin: "7px 0 0" }}>2 left</p>
+                <Button kind="secondary" tabIndex={-1}>Upload a file</Button>
+                <p style={{ fontSize: "0.92rem", fontWeight: 600, color: TEXT_MUTED, margin: "7px 0 0", textAlign: "center" }}>You can upload 2 more files.</p>
               </div>
             </div>
           </Card>
@@ -128,7 +128,7 @@ export default function PortfolioShot() {
               <Button kind="secondary" tabIndex={-1} style={{ padding: "8px 14px" }}><PlusIcon />Add activity</Button>
             </div>
             <p style={{ fontSize: "1rem", fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.55, margin: "0 0 16px", maxWidth: "62ch" }}>
-              Clubs, sports, jobs, projects, volunteering, research. Open one to fill in your role, hours and what you actually did.
+              Clubs, sports, jobs, family responsibilities, projects, volunteering, research. Open one with Edit to fill in your role, hours and what you actually did.
             </p>
             {SAMPLE.activities.map((a) => <ActivityRow key={a.id || a.title} a={a} />)}
           </Card>

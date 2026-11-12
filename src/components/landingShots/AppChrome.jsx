@@ -110,10 +110,10 @@ function TabIcon({ item, active, streak, lit }) {
       <span style={{ position: "relative", display: "inline-flex" }}>
         <TreasureMapIcon size={22} strokeWidth={sw} />
         {streak > 0 && (
-          <span style={{ position: "absolute", right: -14, top: -7, height: 17, display: "inline-flex", alignItems: "center", gap: 1,
+          <span style={{ position: "absolute", right: -16, top: -9, height: 20, display: "inline-flex", alignItems: "center", gap: 1,
             padding: "0 5px 0 3px", borderRadius: 99, background: "#fff", boxSizing: "border-box",
-            border: `1.5px solid ${lit ? "#FF8A00" : "#d6d5d2"}`, color: lit ? "#C24E00" : "#8a877f",
-            fontFamily: SANS, fontWeight: 800, fontSize: 10, lineHeight: 1 }}>
+            border: `1.5px solid ${lit ? "#FF8A00" : "#d6d5d2"}`, color: lit ? "#C24E00" : MUTED,
+            fontFamily: SANS, fontWeight: 800, fontSize: "0.9rem", lineHeight: 1 }}>
             <Flame size={11} lit={lit} streak={streak} animate={false} />{streak}
           </span>
         )}
@@ -125,7 +125,7 @@ function TabIcon({ item, active, streak, lit }) {
   return <span style={{ display: "inline-flex" }}>{ICON[item.key](22, sw)}</span>;
 }
 
-/** The phone's bottom tab bar: six tabs, 22px icons, 9px labels, the streak
+/** The phone's bottom tab bar: six tabs, 22px icons, 0.9rem labels, the streak
  *  badge on Quest. Sits at the bottom of its positioned parent. */
 export function MobileTabBar({ active = "quest", streak = 3, lit = false }) {
   return (
@@ -136,9 +136,10 @@ export function MobileTabBar({ active = "quest", streak = 3, lit = false }) {
         const on = active === item.key;
         return (
           <div key={item.key} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-            gap: 2, color: on ? ACCENT : FAINT, padding: "4px 0" }}>
+            gap: 2, color: on ? ACCENT : MUTED, padding: "4px 0" }}>
             <TabIcon item={item} active={on} streak={streak} lit={lit} />
-            <span style={{ fontFamily: SANS, fontSize: 9, fontWeight: on ? 700 : 500, letterSpacing: "0.03em", lineHeight: 1 }}>{item.label}</span>
+            <span style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: on ? 700 : 500, letterSpacing: "-0.01em", lineHeight: 1.1,
+              whiteSpace: "nowrap" }}>{item.label}</span>
           </div>
         );
       })}
