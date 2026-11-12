@@ -21,6 +21,7 @@ export const CHOICE_CLASS = "oa-choice";
 export const LINK_CLASS = "oa-link";
 export const REMOVE_CLASS = "ui-remove";
 export const QUIET_CLASS = "ui-quiet";
+export const QUIET_MUTED_CLASS = "ui-quiet-muted";
 
 const KIT_CSS = `
 .${INPUT_CLASS} { transition: border-color 0.15s; }
@@ -33,6 +34,8 @@ const KIT_CSS = `
 .${REMOVE_CLASS}:hover, .${REMOVE_CLASS}:focus-visible { color: ${DANGER}; background: ${BG}; }
 .${QUIET_CLASS} { background: transparent; transition: background 0.15s; }
 .${QUIET_CLASS}:hover:not(:disabled), .${QUIET_CLASS}:focus-visible { background: ${BG}; text-decoration: underline; text-underline-offset: 3px; }
+.${QUIET_MUTED_CLASS} { color: ${TEXT_MID}; transition: background 0.15s, color 0.15s; }
+.${QUIET_MUTED_CLASS}:hover:not(:disabled), .${QUIET_MUTED_CLASS}:focus-visible { color: var(--quiet-ink, ${TEXT_MID}); }
 `;
 if (typeof document !== "undefined" && !document.querySelector("style[data-ui-kit]")) {
   const el = document.createElement("style");
@@ -57,21 +60,29 @@ export function textOnPage(ink) {
  *  "quiet" (text only; on hover or keyboard focus a grey tint and an
  *  underline, so the cue shows on a white card and on the grey page alike),
  *  "danger", "warn" (amber, the one button for catching up: being behind is
- *  amber, never red). Always at least 44px tall. */
-export function Button({ kind = "secondary", busy = false, disabled, children, style, type = "button", ...rest }) {
+ *  amber, never red). Always at least 44px tall.
+ *  `tone="muted"` (quiet only): TEXT_MID at rest, the accent on hover and
+ *  keyboard focus. For an action repeated down a list (one Edit per row),
+ *  where a column of accent links would outshout the record. Not for a lone
+ *  action: there the accent is what says it can be pressed. */
+export function Button({ kind = "secondary", tone, busy = false, disabled, children, style, type = "button", ...rest }) {
   const ink = useAgentInk();
   const off = disabled || busy;
   // A quiet button has no fill of its own, so it is often on the grey page.
   const quietText = textOnPage(ink);
+  const muted = kind === "quiet" && tone === "muted";
   const look = {
     primary: { background: ink.button.bg, color: ink.button.fg, border: `2px solid ${ink.button.bg}` },
     secondary: { background: WHITE, color: TEXT_MID, border: `1.5px solid ${BORDER}` },
     // No background here: QUIET_CLASS sets it, so its hover tint can win.
-    quiet: { color: quietText, border: "1.5px solid transparent" },
+    // Muted sets no colour either: QUIET_MUTED_CLASS does, so the accent can
+    // take over on hover and focus (an inline colour would always win).
+    quiet: muted ? { border: "1.5px solid transparent", "--quiet-ink": quietText }
+      : { color: quietText, border: "1.5px solid transparent" },
     danger: { background: WHITE, color: DANGER, border: `1.5px solid ${DANGER}` },
     warn: { background: AMBER_BG, color: AMBER_TEXT, border: `1.5px solid ${AMBER_EDGE}` },
   }[kind] || {};
-  const cls = kind === "primary" ? PRESS_CLASS : kind === "quiet" ? QUIET_CLASS : "";
+  const cls = kind === "primary" ? PRESS_CLASS : kind === "quiet" ? `${QUIET_CLASS}${muted ? ` ${QUIET_MUTED_CLASS}` : ""}` : "";
   return (
     <button type={type} className={`${FOCUS_CLASS} ${cls}`} disabled={off}
       aria-busy={busy || undefined}
@@ -80,7 +91,7 @@ export function Button({ kind = "secondary", busy = false, disabled, children, s
         justifyContent: "center", gap: 8, lineHeight: 1.25, textAlign: "center", boxSizing: "border-box",
         opacity: disabled && !busy ? 0.55 : 1, ...look, ...style }}
       {...rest}>
-      {busy && <Spinner size={16} color={kind === "primary" ? ink.button.fg : quietText} />}
+      {busy && <Spinner size={16} color={kind === "primary" ? ink.button.fg : muted ? TEXT_MID : quietText} />}
       {children}
     </button>
   );
@@ -246,25 +257,40 @@ export function StampTile({ kind, size = 40, lit = true, title }) {
 /** A guide line: a pixel stamp beside a plain card. For tips, next steps and
  *  empty states on every page. `name` says whose line it is, to screen
  *  readers only. `maxWidth`: the card's cap (640 by default, a comfortable
- *  measure); "none" lets a read-out line run the column beside full-width cards. */
-export function Tip({ name, stamp = "sparkle", tone = "accent", maxWidth = 640, children, style }) {
+ *  measure); "none" lets a read-out line run the column beside full-width cards.
+ *  `title`: a titled guide line ("Start here", "Next step", a read-back): the
+ *  title at 1rem 800 in TEXT, then `children` at 1rem 500 in TEXT_MID, 4px
+ *  apart. Without it the children are one 600 line in TEXT, as before.
+ *  The 40px mark is a StampTile, the same tile as every section's mark. */
+export function Tip({ name, title, stamp = "sparkle", tone = "accent", maxWidth = 640, children, style }) {
   const ink = useAgentInk();
   const accent = tone === "accent";
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 14, minWidth: 0, ...style }}>
-      <span aria-hidden="true" style={{ flexShrink: 0, width: 40, height: 40, marginTop: 4, borderRadius: RADIUS.control,
-        background: ink.soft, color: ink.onSoft, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-        <PixelStamp kind={stamp} size={24} />
+      <span style={{ flexShrink: 0, display: "inline-flex", marginTop: 4 }}>
+        <StampTile kind={stamp} />
       </span>
       <div style={{ flex: "1 1 auto", minWidth: 0, maxWidth, boxSizing: "border-box", padding: "12px 16px",
         background: accent ? ink.softer : WHITE, border: `1px solid ${accent ? ink.soft : BORDER}`,
         borderRadius: RADIUS.card, fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT, lineHeight: 1.5,
         overflowWrap: "anywhere" }}>
         {name && <span style={SR_ONLY}>{name}: </span>}
-        {children}
+        {title ? (
+          <>
+            <p style={{ margin: "0 0 4px", fontWeight: 800, color: TEXT, lineHeight: 1.4 }}>{title}</p>
+            <div style={{ fontWeight: 500, color: TEXT_MID, lineHeight: 1.55, textWrap: "pretty" }}>{children}</div>
+          </>
+        ) : children}
       </div>
     </div>
   );
+}
+
+/** The props for the panel a `ChoiceChips tabs` set controls: spread them on
+ *  the panel's wrapper (`<div {...tabPanelProps("pf-tabs", "academics")}>`). */
+export function tabPanelProps(base, key) {
+  return { role: "tabpanel", id: `${base}-panel-${key}`, "aria-labelledby": `${base}-tab-${key}`, tabIndex: 0,
+    className: FOCUS_CLASS };
 }
 
 /** A labelled row of pills, one of them chosen (an order, a view, a filter).
@@ -273,22 +299,45 @@ export function Tip({ name, stamp = "sparkle", tone = "accent", maxWidth = 640, 
  *  an array, a press toggles one, and the result keeps the options' order.
  *  `labelAbove`: the label shows above the pills at every width, as a form
  *  field's label does (the pills then wrap). `labelledBy`: the id of a label
- *  already on the page, used instead of `label`. */
+ *  already on the page, used instead of `label`.
+ *  `tabs`: the pills switch between panels of the page (Portfolio's
+ *  Academics / Activities). Pass a base id string; the group becomes a
+ *  tablist named by `label`, each pill a tab (aria-selected, not pressed),
+ *  only the chosen one in the Tab order, and Left/Right, Home and End move
+ *  between tabs and select them. Wrap each panel in `tabPanelProps(base, key)`.
+ *  A view choice that keeps the same content (Full cards / Compact) is not
+ *  tabs: leave it a plain group. */
 export function ChoiceChips({ label, options, value, onChange, isMobile, hideLabel, multi = false, labelAbove = false,
-  labelledBy, wrap = false }) {
+  labelledBy, wrap = false, tabs }) {
   const ink = useAgentInk();
   const ownId = useId();
+  const isTabs = !!tabs && !multi;
   const chosen = multi ? (Array.isArray(value) ? value : []) : null;
   const press = (key) => {
     if (!multi) { onChange(key); return; }
     const next = chosen.includes(key) ? chosen.filter((k) => k !== key) : [...chosen, key];
     onChange(options.map((o) => o.key).filter((k) => next.includes(k)));
   };
+  // Roving focus for tabs: the arrow keys move along the row (wrapping),
+  // Home and End jump to the ends, and the tab that gets focus is selected.
+  const onTabKey = (e) => {
+    const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+    if (step == null && e.key !== "Home" && e.key !== "End") return;
+    e.preventDefault();
+    const at = options.findIndex((o) => o.key === value);
+    const n = options.length;
+    const to = e.key === "Home" ? 0 : e.key === "End" ? n - 1 : ((at < 0 ? 0 : at) + step + n) % n;
+    const key = options[to].key;
+    onChange(key);
+    e.currentTarget.querySelector(`[data-tab-key="${CSS.escape(String(key))}"]`)?.focus();
+  };
   const grid = isMobile && !wrap && !labelAbove;
-  const inlineLabel = !labelAbove && !labelledBy;
+  // A tablist holds tabs only, so its name is an attribute, never a span inside.
+  const inlineLabel = !labelAbove && !labelledBy && !isTabs;
   const group = (
-    <div role="group" aria-label={inlineLabel ? label : undefined}
+    <div role={isTabs ? "tablist" : "group"} aria-label={!labelAbove && !labelledBy ? label : undefined}
       aria-labelledby={labelledBy || (labelAbove ? ownId : undefined)}
+      onKeyDown={isTabs ? onTabKey : undefined}
       style={grid ? { display: "grid", gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`, gap: 8 }
         : { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
       {inlineLabel && (
@@ -296,10 +345,17 @@ export function ChoiceChips({ label, options, value, onChange, isMobile, hideLab
           {label}
         </span>
       )}
-      {options.map((o) => {
+      {options.map((o, i) => {
         const on = multi ? chosen.includes(o.key) : value === o.key;
+        const tabProps = isTabs ? {
+          role: "tab", id: `${tabs}-tab-${o.key}`, "aria-selected": on,
+          // With nothing chosen the first tab still takes Tab focus.
+          tabIndex: on || (i === 0 && !options.some((x) => x.key === value)) ? 0 : -1,
+          // Only the shown panel exists, so only the chosen tab points at one.
+          "aria-controls": on ? `${tabs}-panel-${o.key}` : undefined, "data-tab-key": o.key,
+        } : { "aria-pressed": on };
         return (
-          <button key={o.key} type="button" aria-pressed={on} onClick={() => press(o.key)} className={FOCUS_CLASS}
+          <button key={o.key} type="button" {...tabProps} onClick={() => press(o.key)} className={FOCUS_CLASS}
             style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", borderRadius: RADIUS.pill,
               padding: grid ? "4px 8px" : "0 14px", minHeight: 44, lineHeight: 1.2, boxSizing: "border-box",
               // A one-character pill ("9") is still a full touch target. In

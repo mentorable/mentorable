@@ -19,8 +19,10 @@ export const MINUTE_OPTIONS = [
 // ─── Top bar ──────────────────────────────────────────────────────────────────
 
 // headingAs: the title's tag (the landing page's copy of the bar passes "p",
-// since that page has its own h1).
-export function TopBar({ title, stats, streakLit, menu, isMobile, headingAs: TitleTag = "h1" }) {
+// since that page has its own h1). progress: an optional one-line readout of
+// the whole quest under the title row ("Milestone 1 of 5 · Day 4 of 29"), so
+// the first screen says where today sits in all of it.
+export function TopBar({ title, stats, streakLit, menu, isMobile, progress, headingAs: TitleTag = "h1" }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const trigger = useRef(null);
@@ -57,10 +59,11 @@ export function TopBar({ title, stats, streakLit, menu, isMobile, headingAs: Tit
     ? `Level ${stats.level}, ${stats.into_level} of ${stats.level_span} XP to level ${stats.level + 1}`
     : "";
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12, boxSizing: "border-box",
+    <div style={{ boxSizing: "border-box",
       padding: isMobile ? "10px 10px 10px 14px" : "12px 14px 12px 22px", borderRadius: RADIUS.dialog,
       background: "rgba(38,50,112,0.96)", border: "1px solid rgba(255,255,255,0.28)",
       backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 12px 32px rgba(12,16,44,0.28)" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
       <TitleTag title={title} style={{ flex: 1, minWidth: 0, margin: 0, fontFamily: SANS, fontWeight: 800,
         fontSize: isMobile ? "1.1rem" : "1.6rem", color: WHITE, letterSpacing: "-0.02em", lineHeight: 1.25,
         display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
@@ -121,6 +124,21 @@ export function TopBar({ title, stats, streakLit, menu, isMobile, headingAs: Tit
         </div>
       )}
     </div>
+    {progress && (
+      // On a phone the level rides here, since the row above has no room for it.
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: isMobile ? 6 : 4, minWidth: 0 }}>
+        {isMobile && stats && (
+          <span role="img" aria-label={levelLabel} style={{ display: "inline-flex", flexShrink: 0 }}>
+            <LevelChip stats={stats} compact onDark />
+          </span>
+        )}
+        <p style={{ margin: 0, minWidth: 0, fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, color: WHITE,
+          lineHeight: 1.35, fontVariantNumeric: "tabular-nums" }}>
+          {progress}
+        </p>
+      </div>
+    )}
+    </div>
   );
 }
 
@@ -163,10 +181,14 @@ const MapNotice = forwardRef(function MapNotice({ tone = "warn", children, actio
   );
 });
 
-/** The backlog. It sits just above today's callout (or above the map when
- *  today is not a work day), so the page lands on it. On a comeback visit it
- *  greets the student, and after a long gap it offers to count the time away
- *  as a break, with one recommended choice. */
+/** The backlog. It sits just under today's stone, beside the missed stones
+ *  it is about (or above the map when today is not a work day). On a
+ *  comeback visit it greets the student, and after a long gap it offers to
+ *  count the time away as a break, with one recommended choice.
+ *  While today's task is still open, today's Start is the one primary on the
+ *  screen: the banner's choices step down (Catch up as the small amber
+ *  button, the break as a quiet text action), since only checking in on the
+ *  day keeps the streak. Once today is done, catching up is the main thing. */
 export const CatchUpBanner = forwardRef(function CatchUpBanner({ state, onCatchUp, onBreak, isMobile }, ref) {
   const b = state.backlog || {};
   const w = state.welcome_back || {};
@@ -184,20 +206,27 @@ export const CatchUpBanner = forwardRef(function CatchUpBanner({ state, onCatchU
     ? (by ? `Two a day clears ${them} by ${by}, or you can count the time away as a break.`
       : "Catch up, or count the time away as a break.")
     : [gate, by ? `Two a day clears ${them} by ${by}.` : ""].filter(Boolean).join(" ");
-  const full = isMobile ? { width: "100%" } : undefined;
-  const catchUp = b.oldest_doable_slot
-    ? (breakFirst
+  const todayFirst = state.today_state === "open";
+  const full = isMobile && !todayFirst ? { width: "100%" } : undefined;
+  const catchUp = !b.oldest_doable_slot ? null
+    : todayFirst
+      ? (breakFirst
+        ? <Button key="catch" kind="quiet" onClick={onCatchUp}>Catch up</Button>
+        : <Button key="catch" kind="warn" onClick={onCatchUp}>Catch up</Button>)
+    : (breakFirst
       ? <Button key="catch" onClick={onCatchUp} style={full}>Catch up</Button>
-      : <Chunky key="catch" tone="amber" onClick={onCatchUp} full={isMobile}>Catch up</Chunky>)
-    : null;
-  const takeBreak = offerBreak
-    ? (breakFirst
+      : <Chunky key="catch" tone="amber" onClick={onCatchUp} full={isMobile}>Catch up</Chunky>);
+  const takeBreak = !offerBreak ? null
+    : todayFirst
+      ? (breakFirst
+        ? <Button key="break" onClick={onBreak}>Count it as a break</Button>
+        : <Button key="break" kind="quiet" onClick={onBreak}>Count it as a break</Button>)
+    : (breakFirst
       ? <Chunky key="break" onClick={onBreak} full={isMobile}>Count it as a break</Chunky>
-      : <Button key="break" onClick={onBreak} style={full}>Count it as a break</Button>)
-    : null;
+      : <Button key="break" onClick={onBreak} style={full}>Count it as a break</Button>);
   const actions = breakFirst ? [takeBreak, catchUp] : [catchUp, takeBreak];
   return (
-    <MapNotice ref={ref} isMobile={isMobile} actions={actions.some(Boolean) ? actions : null}>
+    <MapNotice ref={ref} isMobile={isMobile && !todayFirst} actions={actions.some(Boolean) ? actions : null}>
       <strong style={{ fontWeight: 800 }}>{w.show ? "Welcome back. " : ""}You're {b.count} task{b.count === 1 ? "" : "s"} behind.</strong>
       {detail && <span style={{ display: "block", marginTop: 2 }}>{detail}</span>}
     </MapNotice>
@@ -267,7 +296,8 @@ const RULES = [
   ["check", "Each scheduled day has one small task. Check in with a line or two about what you did."],
   ["clock", "Checking in on the day keeps your streak going. Rest days never break it."],
   ["star", "A missed day turns amber and waits for you. Catching it up earns the same XP, but only check-ins on the day count for the streak."],
-  ["lock", "The next milestone unlocks once every day in this one is done. Tap a done stone to reread what you wrote."],
+  ["lock", "The next milestone unlocks once every day in this one is done."],
+  ["flag", "On the map, a filled stone is a day you checked in, and its picture shows the kind of work it was. The ringed star is today; grey stones are days still to come. Tap a filled stone to reread what you wrote."],
 ];
 
 /** The rules in four lines, from the options menu or the first-visit tip. */

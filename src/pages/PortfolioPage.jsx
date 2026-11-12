@@ -18,7 +18,7 @@ import {
 } from "../components/ui/tokens.js";
 import {
   Button, Card, ChoiceChips, FieldLabel, Heading, INPUT_CLASS, LINK_CLASS, Notice, PageHeader, RemoveButton, SR_ONLY, Sheet,
-  StampTile, Tag, Tip, Toast, inputStyle, pageStyle, textOnPage,
+  StampTile, Tag, Tip, Toast, inputStyle, pageStyle, tabPanelProps, textOnPage,
 } from "../components/ui/kit.jsx";
 import { PixelStamp } from "../components/ui/PixelIcons.jsx";
 
@@ -235,13 +235,23 @@ const PlusIcon = () => (
   </svg>
 );
 
-/** Opens and closes an item's editor: "Edit", then "Done". The kit's quiet
- *  button, so it reads like every other quiet action on the page. */
+const CheckIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </svg>
+);
+
+/** Opens and closes an item's editor: "Edit", then "Done". The kit's muted
+ *  quiet button (TEXT_MID, the accent on hover and focus) rather than the
+ *  accent at rest: a long list has one per row, and eleven accent links down
+ *  the edge outshout the record itself. Line icons, like Add, Export and
+ *  Remove beside it. */
 function EditToggle({ open, onClick, name, controls }) {
   return (
-    <Button kind="quiet" onClick={onClick} aria-expanded={open} aria-controls={controls}
-      aria-label={open ? `Done editing ${name}` : `Edit ${name}`} style={{ flexShrink: 0, padding: "0 10px" }}>
-      {open ? <PixelStamp kind="check" size={16} /> : <PencilIcon />}
+    <Button kind="quiet" tone="muted" onClick={onClick} aria-expanded={open} aria-controls={controls}
+      aria-label={open ? `Done editing ${name}` : `Edit ${name}`}
+      style={{ flexShrink: 0, padding: "0 10px", marginRight: -10 }}>
+      {open ? <CheckIcon /> : <PencilIcon />}
       {open ? "Done" : "Edit"}
     </Button>
   );
@@ -269,7 +279,8 @@ function SaveStatus({ state, announce = true }) {
   );
 }
 
-const hintText = { fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.55, maxWidth: "62ch" };
+const hintText = { fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.55, maxWidth: "62ch",
+  textWrap: "pretty" };
 
 /** A record section: the kit card with a pixel mark, the title, count and
  *  save status, and a line of guidance under it. Its action sits on the
@@ -317,11 +328,12 @@ function AddButton({ onClick, children, busy }) {
 }
 
 /** An empty section: one plain line saying what goes here, as College List's
- *  empty groups do, rather than a card inside the card. */
+ *  empty groups do, rather than a card inside the card. Balanced, so a
+ *  two-line note never leaves one word ("test-optional.") on its own line. */
 function EmptyNote({ children }) {
   return (
     <p style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.55, margin: 0,
-      maxWidth: "62ch" }}>
+      maxWidth: "62ch", textWrap: "balance" }}>
       {children}
     </p>
   );
@@ -338,36 +350,71 @@ const itemMeta = { display: "block", fontFamily: SANS, fontSize: "0.95rem", font
  *  `value` is a number read down the right edge (a test score), so a list
  *  of scores scans like a transcript. `children` go under the meta line (an
  *  activity's description); `editor` is the fields. A new item opens on its own (`startOpen`). */
-function RecordLine({ id, title, meta, metaMuted, value, name, startOpen, status, onRemove, editor, children }) {
+function RecordLine({ id, title, meta, metaMuted, value, name, startOpen, request, status, onRemove, editor, children }) {
   const reduce = useReducedMotion();
+  const isMobile = useIsMobile();
   const editId = useId();
+  const rowRef = useRef(null);
   const [open, setOpen] = useState(!!startOpen);
+
+  // The read-back's "Set the level" and the like open this row and put the
+  // caret in the missing field. `request.n` changes on every press, so a
+  // second press on the same row works too.
+  const focusField = useRef(null);
+  useEffect(() => {
+    if (!request) return;
+    focusField.current = request.field || "first";
+    setOpen(true);
+  }, [request?.n]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!open || !focusField.current || !rowRef.current) return;
+    const f = focusField.current;
+    focusField.current = null;
+    const el = rowRef.current.querySelector(f === "first" ? "[data-first]" : `[data-field="${f}"]`)
+      || rowRef.current.querySelector("[data-first]");
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    rowRef.current.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+  });
+
+  const hasValue = value != null && value !== "";
+  // A wide screen keeps the score and Edit beside the whole entry. On a
+  // phone they stay on the title's line and the meta runs the full width
+  // under it, so "Reading and Writing 690 · Math 760" is one line, not three.
+  const span = 1 + (meta ? 1 : 0) + (children ? 1 : 0);
+  const side = isMobile ? { gridRow: 1 } : { gridRow: `1 / span ${span}`, alignSelf: children ? "start" : "center" };
+  const below = isMobile ? { gridColumn: "1 / -1" } : { gridColumn: 1 };
+
   return (
-    <Card data-row={id} tabIndex={-1} style={{ padding: 0, overflow: "hidden", marginBottom: 8, borderRadius: RADIUS.control }}>
-      <div style={{ padding: "6px 6px 6px 14px" }}>
-        {/* Centred on Edit for a short line; a long activity aligns to the top. */}
-        <div style={{ display: "flex", alignItems: children ? "flex-start" : "center", gap: 8 }}>
-          <div style={{ flex: 1, minWidth: 0, padding: children ? "8px 0 4px" : "4px 0" }}>
-            <span style={{ ...itemName, display: "block" }}>{title}</span>
-            {meta && <span style={{ ...itemMeta, color: metaMuted ? TEXT_MUTED : TEXT_MID }}>{meta}</span>}
-          </div>
-          {value != null && value !== "" && (
-            <span style={{ flexShrink: 0, fontFamily: SANS, fontWeight: 800, fontSize: "1.15rem", color: TEXT,
-              fontVariantNumeric: "tabular-nums", paddingLeft: 4 }}>
-              {value}
-            </span>
-          )}
+    // One entry in a divided list: hairlines between entries, no box of its
+    // own, so a section reads as one card, not a card of cards.
+    <div ref={rowRef} data-row={id} tabIndex={-1} style={{ borderRadius: RADIUS.control, outlineOffset: 2 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto auto", columnGap: 8, alignItems: "center",
+        padding: "6px 0" }}>
+        <span style={{ ...itemName, gridColumn: 1, gridRow: 1, alignSelf: "center" }}>{title}</span>
+        {hasValue && (
+          <span style={{ ...side, gridColumn: 2, fontFamily: SANS, fontWeight: 800, fontSize: "1.15rem", color: TEXT,
+            fontVariantNumeric: "tabular-nums", paddingLeft: 4 }}>
+            {value}
+          </span>
+        )}
+        <span style={{ ...side, gridColumn: 3, display: "flex" }}>
           <EditToggle open={open} onClick={() => setOpen((o) => !o)} name={name} controls={editId} />
-        </div>
-        {children && <div style={{ paddingRight: 8, paddingBottom: 6 }}>{children}</div>}
+        </span>
+        {meta && (
+          <span style={{ ...itemMeta, ...below, gridRow: 2, color: metaMuted ? TEXT_MUTED : TEXT_MID, marginTop: isMobile ? -6 : 0 }}>
+            {meta}
+          </span>
+        )}
+        {children && <div style={{ ...below, gridRow: meta ? 3 : 2, minWidth: 0, paddingBottom: 4 }}>{children}</div>}
       </div>
 
       <AnimatePresence initial={false}>
         {open && (
           <motion.div id={editId} initial={reduce ? false : { height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
             exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
-            transition={{ duration: reduce ? 0 : 0.22 }} style={{ overflow: "hidden", background: SURFACE }}>
-            <div style={{ padding: "16px 14px 10px", borderTop: `1px solid ${BORDER}` }}>
+            transition={{ duration: reduce ? 0 : 0.22 }} style={{ overflow: "hidden" }}>
+            <div style={{ padding: "16px 14px 8px", margin: "2px 0 12px", background: SURFACE, borderRadius: RADIUS.control }}>
               {editor}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 10,
                 marginRight: -6, minHeight: 44 }}>
@@ -378,7 +425,19 @@ function RecordLine({ id, title, meta, metaMuted, value, name, startOpen, status
           </motion.div>
         )}
       </AnimatePresence>
-    </Card>
+    </div>
+  );
+}
+
+/** Entries with a hairline between each, none above the first or below the
+ *  last: the section card is already the frame. */
+function RecordList({ children }) {
+  return (
+    <div>
+      {Children.toArray(children).map((c, i) => (
+        <div key={c.key ?? i} style={i ? { borderTop: `1px solid ${BORDER}` } : undefined}>{c}</div>
+      ))}
+    </div>
   );
 }
 
@@ -424,6 +483,7 @@ export function LearnMore() {
 /** GPA saves itself like everything else: when a field loses focus, and as
  *  soon as a scale is picked. */
 function GpaBlock({ profile, onSave, status }) {
+  const isMobile = useIsMobile();
   const [vals, setVals] = useState(() => ({
     gpaUnweighted: profile.gpa_unweighted ?? "",
     gpaWeighted:   profile.gpa_weighted ?? "",
@@ -450,9 +510,12 @@ function GpaBlock({ profile, onSave, status }) {
   return (
     <SectionCard id="gpa" title="GPA" stamp="reportcard" status={status}
       hint="Admissions reads unweighted GPA first, alongside how hard your classes are.">
+      {/* On a phone the five scales break 3 + 2 instead of 4 + a lone "Not used". */}
       <div style={{ marginBottom: 16 }}>
-        <ChoiceChips label="Scale" labelAbove options={GPA_SCALES} value={vals.gpaScale}
-          onChange={(k) => { setVals((prev) => ({ ...prev, gpaScale: k })); save({ gpaScale: k }); }} />
+        <div style={{ maxWidth: isMobile ? "16rem" : undefined }}>
+          <ChoiceChips label="Scale" labelAbove options={GPA_SCALES} value={vals.gpaScale}
+            onChange={(k) => { setVals((prev) => ({ ...prev, gpaScale: k })); save({ gpaScale: k }); }} />
+        </div>
         {guess && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
             <p style={{ ...fieldHint, margin: 0 }}>
@@ -565,24 +628,39 @@ function ScoreLine({ score, onPatch, onRemove, startOpen, status }) {
   );
 }
 
-/** A class reads as its name over its level. */
-function CourseLine({ course, onPatch, onRemove, startOpen, status }) {
+/** A class reads as its name over its level. The level is left off when the
+ *  name already says it ("AP Biology" over "AP" says it twice), so the meta
+ *  line only carries what the name does not: Honors on "Chemistry", Planned,
+ *  or a muted "Level not set". */
+function CourseLine({ course, onPatch, onRemove, onNext, startOpen, request, status }) {
   const c = course;
-  const meta = [labelFor(COURSE_LEVELS, c.level) || "Level not set", c.planned ? "Planned" : null].filter(Boolean).join(" · ");
+  const level = labelFor(COURSE_LEVELS, c.level);
+  const named = level && (c.name || "").trim().toLowerCase().startsWith(`${level.toLowerCase()} `);
+  const meta = [named ? null : level || "Level not set", c.planned ? "Planned" : null].filter(Boolean).join(" · ");
   return (
-    <RecordLine id={c.id} name={rowName("courses", c)} startOpen={startOpen} status={status} onRemove={onRemove}
+    <RecordLine id={c.id} name={rowName("courses", c)} startOpen={startOpen} request={request} status={status} onRemove={onRemove}
       title={c.name || "Untitled class"} meta={meta} metaMuted={!c.level}
       editor={(
         <div style={fieldRow}>
+          {/* Enter starts the next class in the same year, at the same level,
+              so a whole schedule goes in without reaching for Add. */}
           <Field label="Class" style={{ flex: "3 1 200px" }}>
-            {(id) => <Input id={id} data-first="" value={c.name} onChange={(v) => onPatch({ name: v })} placeholder="e.g. AP Biology" />}
+            {(id) => (
+              <Input id={id} data-first="" value={c.name} onChange={(v) => onPatch({ name: v })} placeholder="e.g. AP Biology"
+                enterKeyHint="next"
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" || e.nativeEvent.isComposing || !(c.name || "").trim()) return;
+                  e.preventDefault();
+                  onNext?.();
+                }} />
+            )}
           </Field>
           <Field label="Level" style={{ flex: "1 1 140px" }}>
-            {(id) => <Select id={id} value={c.level} onChange={(v) => onPatch({ level: v })} options={COURSE_LEVELS} />}
+            {(id) => <Select id={id} data-field="level" value={c.level} onChange={(v) => onPatch({ level: v })} options={COURSE_LEVELS} />}
           </Field>
           <Field label="Grade" style={{ flex: "1 1 120px" }}>
             {(id) => (
-              <Select id={id} value={c.grade_level != null ? String(c.grade_level) : ""} options={GRADE_OPTIONS}
+              <Select id={id} data-field="grade" value={c.grade_level != null ? String(c.grade_level) : ""} options={GRADE_OPTIONS}
                 onChange={(v) => onPatch({ grade_level: v ? Number(v) : null })} />
             )}
           </Field>
@@ -592,31 +670,48 @@ function CourseLine({ course, onPatch, onRemove, startOpen, status }) {
 }
 
 /** Classes grouped by the year they were taken, since admissions reads rigor
- *  year by year. */
-function CourseList({ courses, onPatch, onRemove, justAdded, status }) {
+ *  year by year. Each year ends with its own Add, which starts the class in
+ *  that year at the level of the one before it. */
+function CourseList({ courses, onPatch, onRemove, onAdd, adding, justAdded, request, status }) {
   const inGrade = (c, g) => Number(c.grade_level) === g;
   const groups = [
     ...GRADES.map((g) => ({ key: g, label: `Grade ${g}`, rows: courses.filter((c) => inGrade(c, g)) })),
     { key: "none", label: "Grade not set", rows: courses.filter((c) => !GRADES.some((g) => inGrade(c, g))) },
   ].filter((g) => g.rows.length);
   const titled = groups.length > 1 || groups[0]?.key !== "none";
-  return groups.map((g) => (
-    <div key={g.key} style={{ marginBottom: 14 }}>
-      {titled && (
-        <Heading level={3} style={{ fontSize: "1rem", color: TEXT_MID, margin: "0 0 8px" }}>{g.label}</Heading>
-      )}
-      {g.rows.map((c) => (
-        <CourseLine key={c.id} course={c} startOpen={c.id === justAdded} status={status}
-          onPatch={(v) => onPatch(c, v)} onRemove={() => onRemove(c)} />
-      ))}
-    </div>
-  ));
+  return groups.map((g, i) => {
+    const grade = g.key === "none" ? null : g.key;
+    const last = g.rows[g.rows.length - 1];
+    const next = { grade, level: last?.level || null };
+    return (
+      <div key={g.key} style={{ marginTop: i ? 18 : 0 }}>
+        {titled && (
+          <Heading level={3} style={{ fontSize: "1rem", color: TEXT_MID, margin: "0 0 2px" }}>{g.label}</Heading>
+        )}
+        <RecordList>
+          {g.rows.map((c) => (
+            <CourseLine key={c.id} course={c} startOpen={c.id === justAdded} status={status}
+              request={request?.id === c.id ? request : null}
+              onNext={() => onAdd({ grade: c.grade_level ?? null, level: c.level || null })}
+              onPatch={(v) => onPatch(c, v)} onRemove={() => onRemove(c)} />
+          ))}
+        </RecordList>
+        {grade != null && (
+          <Button kind="quiet" tone="muted" onClick={() => onAdd(next)} busy={adding === `courses:${grade}`}
+            style={{ padding: "0 10px", marginLeft: -10 }}>
+            {adding !== `courses:${grade}` && <PlusIcon />}
+            Add a grade {grade} class
+          </Button>
+        )}
+      </div>
+    );
+  });
 }
 
 // ─── Activities & awards ──────────────────────────────────────────────────────
 
 /** An activity reads as its name, role and hours, then what you did. */
-function ActivityLine({ activity, onPatch, onRemove, startOpen, status }) {
+function ActivityLine({ activity, onPatch, onRemove, startOpen, request, status }) {
   const a = activity;
   const grades = a.grade_levels || [];
   const meta = [
@@ -627,7 +722,7 @@ function ActivityLine({ activity, onPatch, onRemove, startOpen, status }) {
   const thin = !a.description && !a.position;
 
   return (
-    <RecordLine id={a.id} name={rowName("activities", a)} startOpen={startOpen} status={status} onRemove={onRemove}
+    <RecordLine id={a.id} name={rowName("activities", a)} startOpen={startOpen} request={request} status={status} onRemove={onRemove}
       title={a.title || "New activity"} meta={meta}
       editor={(
         <>
@@ -636,7 +731,7 @@ function ActivityLine({ activity, onPatch, onRemove, startOpen, status }) {
           </Field>
           <div style={{ ...fieldRow, marginBottom: 14 }}>
             <Field label="Your role" style={{ flex: 1, minWidth: 150 }}>
-              {(id) => <Input id={id} value={a.position} maxLength={50} onChange={(v) => onPatch({ position: v })} placeholder="e.g. Captain" />}
+              {(id) => <Input id={id} data-field="position" value={a.position} maxLength={50} onChange={(v) => onPatch({ position: v })} placeholder="e.g. Captain" />}
             </Field>
             <Field label="Organization" style={{ flex: 1, minWidth: 150 }}>
               {(id) => <Input id={id} value={a.organization} maxLength={100} onChange={(v) => onPatch({ organization: v })} />}
@@ -646,13 +741,13 @@ function ActivityLine({ activity, onPatch, onRemove, startOpen, status }) {
           <div style={{ ...fieldRow, marginBottom: 14 }}>
             <Field label="Hours / week" style={{ flex: "1 1 120px", maxWidth: 200 }}>
               {(id) => (
-                <NumberInput id={id} value={a.hours_per_week} decimal range={HOURS_RANGE}
+                <NumberInput id={id} data-field="hours" value={a.hours_per_week} decimal range={HOURS_RANGE}
                   onCommit={(n) => onPatch({ hours_per_week: n })} />
               )}
             </Field>
             <Field label="Weeks / year" style={{ flex: "1 1 120px", maxWidth: 200 }}>
               {(id) => (
-                <NumberInput id={id} value={a.weeks_per_year} range={WEEKS_RANGE}
+                <NumberInput id={id} data-field="weeks" value={a.weeks_per_year} range={WEEKS_RANGE}
                   onCommit={(n) => onPatch({ weeks_per_year: n })} />
               )}
             </Field>
@@ -722,57 +817,115 @@ function AwardLine({ award, onPatch, onRemove, startOpen, status }) {
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
-/** What the current tab holds and what is thin, said plainly. Null when the
- *  tab is empty, since each empty section already says what goes there. */
-function readBack(tab, record) {
+/** Fewer classes than this in a year (none of them planned) most likely
+ *  means the rest of that year's schedule is not in yet. */
+const THIN_YEAR = 4;
+
+/** What the current tab holds and what is missing, said plainly. Each gap
+ *  carries the step that fixes it (open the first row it means, at the
+ *  missing field, or add a class in the missing year). "All filled in" only
+ *  shows when the record is broad as well as tidy: every year up to the
+ *  latest one with classes has classes, and none of them looks partial.
+ *  Null when the tab is empty, since each empty section already says what
+ *  goes there. `act` holds the page's handlers. */
+function readBack(tab, record, act) {
   const { profile, courses, scores, activities } = record;
   if (tab === "academics") {
     const hasGpa = profile.gpa_unweighted != null || profile.gpa_weighted != null;
     const gpaNotUsed = normScale(profile.gpa_scale) === "not_used";
     if (!hasGpa && !gpaNotUsed && !courses.length && !scores.length) return null;
     const gaps = [];
-    if (!hasGpa && !gpaNotUsed) gaps.push("No GPA yet. Add it, or choose Not used if your school doesn't give one.");
-    const noLevel = courses.filter((c) => !c.level).length;
-    if (noLevel) gaps.push(`${plural(noLevel, "class has", "classes have")} no level yet.`);
-    const noGrade = courses.filter((c) => !GRADES.includes(Number(c.grade_level))).length;
-    if (noGrade) gaps.push(`${plural(noGrade, "class has", "classes have")} no grade yet, so ${noGrade === 1 ? "it isn't" : "they aren't"} placed in a year.`);
+    if (!hasGpa && !gpaNotUsed) {
+      gaps.push({ text: "No GPA yet. Add it, or choose Not used if your school doesn't give one.",
+        label: "Add my GPA", run: act.gpa });
+    }
+    if (!courses.length) {
+      gaps.push({ text: "No classes yet. Start with this year's.", label: "Add a class", run: () => act.addCourse(null) });
+    }
+    const noLevel = courses.filter((c) => !c.level);
+    if (noLevel.length) {
+      gaps.push({ text: `${plural(noLevel.length, "class has", "classes have")} no level yet.`,
+        label: "Set the level", aria: `Set the level for ${rowName("courses", noLevel[0])}`,
+        run: () => act.open("courses", noLevel[0].id, "level") });
+    }
+    const noGrade = courses.filter((c) => !GRADES.includes(Number(c.grade_level)));
+    if (noGrade.length) {
+      gaps.push({ text: `${plural(noGrade.length, "class has", "classes have")} no grade yet, so ${noGrade.length === 1 ? "it isn't" : "they aren't"} placed in a year.`,
+        label: "Set the grade", aria: `Set the grade for ${rowName("courses", noGrade[0])}`,
+        run: () => act.open("courses", noGrade[0].id, "grade") });
+    }
+    // Coverage: a year below the latest one with classes should have some,
+    // and a year with only a few (none planned) is probably partial.
+    const inYear = (g) => courses.filter((c) => Number(c.grade_level) === g);
+    const latest = Math.max(0, ...courses.map((c) => Number(c.grade_level)).filter((g) => GRADES.includes(g)));
+    for (const g of GRADES) {
+      if (g > latest) break;
+      const rows = inYear(g);
+      if (!rows.length) {
+        gaps.push({ text: `No classes yet for grade ${g}.`, label: `Add a grade ${g} class`, run: () => act.addCourse(g) });
+      } else if (rows.length < THIN_YEAR && !rows.some((c) => c.planned)) {
+        gaps.push({ text: `Grade ${g} lists ${plural(rows.length, "class", "classes")}. Add the rest of that year's schedule.`,
+          label: `Add a grade ${g} class`, run: () => act.addCourse(g, rows[rows.length - 1]?.level || null) });
+      }
+    }
     const aside = scores.length ? null : "No test scores, which is fine if you're applying test-optional.";
-    const done = courses.length ? "Your GPA is in, and every class has a level and grade." : "Your GPA is in. Add your classes below.";
+    const years = [...new Set(courses.map((c) => Number(c.grade_level)).filter((g) => GRADES.includes(g)))].sort();
+    const span = years.length > 1 ? `grades ${years[0]} to ${years[years.length - 1]}` : `grade ${years[0]}`;
+    const done = gpaNotUsed
+      ? `Your classes cover ${span}, each with a level and grade.`
+      : `Your GPA is in, and your classes cover ${span}, each with a level and grade.`;
     return { gaps, aside, done };
   }
   // Awards alone have nothing to read back, and an empty Activities section
   // already says what goes there.
   if (!activities.length) return null;
   const gaps = [];
-  const thin = activities.filter((a) => !a.description && !a.position).length;
-  if (thin) gaps.push(`${plural(thin, "activity still needs", "activities still need")} a role or what you did.`);
-  const noHours = activities.filter((a) => !a.hours_per_week || !a.weeks_per_year).length;
-  if (noHours) gaps.push(`${plural(noHours, "activity has", "activities have")} no hours yet. Applications ask for hours a week and weeks a year.`);
-  return { gaps, aside: null, done: "Every activity has its details filled in." };
+  const thin = activities.filter((a) => !a.description && !a.position);
+  if (thin.length) {
+    gaps.push({ text: `${plural(thin.length, "activity still needs", "activities still need")} a role or what you did.`,
+      label: "Add a role", aria: `Add a role for ${rowName("activities", thin[0])}`,
+      run: () => act.open("activities", thin[0].id, "position") });
+  }
+  const noHours = activities.filter((a) => !a.hours_per_week || !a.weeks_per_year);
+  if (noHours.length) {
+    gaps.push({ text: `${plural(noHours.length, "activity has", "activities have")} no hours yet. Applications ask for hours a week and weeks a year.`,
+      label: "Add hours", aria: `Add hours for ${rowName("activities", noHours[0])}`,
+      run: () => act.open("activities", noHours[0].id, noHours[0].hours_per_week ? "weeks" : "hours") });
+  }
+  return { gaps, aside: null, done: "Every activity has a role or description, and its hours." };
 }
 
+/** Polite live region, so a tab switch, or a fix that clears a gap, is heard
+ *  as well as seen. */
 function ReadBack({ data }) {
-  if (!data) return null;
-  const { gaps, aside, done } = data;
   return (
-    <Tip name="Your record" stamp={gaps.length ? "scroll" : "check"} tone="default" maxWidth="none" style={{ marginBottom: "1.25rem", paddingTop: 0 }}>
-      {gaps.length ? (
-        <>
-          <p style={{ margin: "0 0 4px", fontWeight: 800 }}>
-            {gaps.length === 1 ? "One thing to fill in" : `${gaps.length} things to fill in`}
-          </p>
-          <ul style={{ margin: 0, paddingLeft: "1.2em", fontWeight: 500, color: TEXT_MID, lineHeight: 1.55 }}>
-            {gaps.map((g) => <li key={g}>{g}</li>)}
-          </ul>
-          {aside && <p style={{ margin: "6px 0 0", fontWeight: 500, color: TEXT_MID }}>{aside}</p>}
-        </>
-      ) : (
-        <>
-          <span style={{ fontWeight: 800 }}>{done}</span>
-          {aside && <span style={{ fontWeight: 500, color: TEXT_MID }}> {aside}</span>}
-        </>
+    <div aria-live="polite">
+      {data && (
+        <Tip name="Your record" stamp={data.gaps.length ? "scroll" : "check"} tone="default" maxWidth="none"
+          style={{ marginBottom: "1.25rem" }}
+          title={!data.gaps.length ? "All filled in"
+            : data.gaps.length === 1 ? "One thing to fill in" : `${data.gaps.length} things to fill in`}>
+          {data.gaps.length ? (
+            <>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                {data.gaps.map((g) => (
+                  <li key={g.text} style={{ display: "flex", alignItems: "center", flexWrap: "wrap", columnGap: 10, minHeight: 44 }}>
+                    <span style={{ minWidth: 0 }}>{g.text}</span>
+                    {/* The label's text lines up with the line above when it wraps under it. */}
+                    <Button kind="quiet" onClick={g.run} aria-label={g.aria} style={{ padding: "0 10px", marginLeft: -10 }}>
+                      {g.label}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+              {data.aside && <p style={{ margin: "4px 0 0" }}>{data.aside}</p>}
+            </>
+          ) : (
+            <p style={{ margin: 0 }}>{data.done}{data.aside && ` ${data.aside}`}</p>
+          )}
+        </Tip>
       )}
-    </Tip>
+    </div>
   );
 }
 
@@ -873,9 +1026,108 @@ function PickGroup({ title, items, selected, onToggle, render }) {
   );
 }
 
+// The PDF's own section labels and order (langgraph-service resume.py), so the
+// preview reads as the page will.
+const RESUME_LEVELS = [["ap", "AP"], ["ib", "IB"], ["dual_enrollment", "Dual Enrollment"], ["honors", "Honors"]];
+const num = (v) => { const f = Number(v); return Number.isFinite(f) && f === Math.trunc(f) ? String(Math.trunc(f)) : String(v); };
+
+/** What the resume will say, in the PDF's order: the name and contact line,
+ *  Education (GPA, scores, classes by level), Activities, Awards. Built from
+ *  the same rules the PDF uses, but it is not the PDF, so the sheet says
+ *  that its spacing and page break can differ. */
+function ResumePreview({ name, contact, picked }) {
+  const { gpa, scores, courses, activities, awards } = picked;
+  const contactLine = [contact.phone, contact.email, contact.location,
+    ...(contact.links || []).filter((l) => (l.url || "").trim()).map((l) => (l.label || "").trim() || l.url.replace(/^https?:\/\//, ""))]
+    .map((x) => (x || "").trim()).filter(Boolean).join(" | ");
+
+  const scoreLine = scores.filter((sc) => sc.score != null && sc.score !== "").map((sc) => {
+    const kind = (sc.test_type || "").toUpperCase();
+    if (kind === "AP") return `AP ${(sc.subject || "").trim()}: ${sc.score}`.replace("AP : ", "AP: ");
+    const sub = sc.section_scores || {};
+    const detail = Object.entries(sub).filter(([, v]) => v != null)
+      .map(([k, v]) => `${k === "reading_writing" ? "RW" : k === "math" ? "M" : k.replace(/_/g, " ")} ${v}`).join(", ");
+    return `${kind}: ${sc.score}${detail ? ` (${detail})` : ""}`;
+  }).join(" | ");
+  const byLevel = [...RESUME_LEVELS, [null, "Other"]].map(([key, label]) => {
+    const names = courses.filter((c) => (key ? c.level === key : !RESUME_LEVELS.some(([k]) => k === c.level)))
+      .map((c) => (c.name || "").trim()).filter(Boolean);
+    return names.length ? { label, names } : null;
+  }).filter(Boolean);
+  const education = [gpa, scoreLine].filter(Boolean);
+
+  const page = { fontFamily: SANS, fontSize: "0.95rem", color: TEXT, lineHeight: 1.5 };
+  const sectionHead = { fontFamily: SANS, fontSize: "1rem", fontWeight: 800, color: TEXT, margin: "14px 0 6px",
+    paddingBottom: 3, borderBottom: `1px solid ${BORDER}` };
+  const list = { margin: 0, paddingLeft: "1.2em" };
+
+  return (
+    <div style={{ ...page, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: RADIUS.control,
+      padding: "18px 18px 14px", overflowWrap: "anywhere" }}>
+      <p style={{ fontSize: "1.4rem", fontWeight: 800, textAlign: "center", margin: 0, lineHeight: 1.25 }}>{name || "Your Name"}</p>
+      {contactLine && <p style={{ textAlign: "center", color: TEXT_MID, margin: "4px 0 0" }}>{contactLine}</p>}
+
+      {(education.length > 0 || byLevel.length > 0) && (
+        <>
+          <p style={sectionHead}>Education</p>
+          <ul style={list}>
+            {education.map((line) => <li key={line}>{line}</li>)}
+            {byLevel.map((g) => <li key={g.label}><strong style={{ fontWeight: 700 }}>{g.label}:</strong> {g.names.join(", ")}</li>)}
+          </ul>
+        </>
+      )}
+
+      {activities.length > 0 && (
+        <>
+          <p style={sectionHead}>Activities &amp; Leadership</p>
+          {activities.map((a) => {
+            const title = (a.title || "").trim(), role = (a.position || "").trim(), org = (a.organization || "").trim();
+            const head = role || title;
+            const grades = (a.grade_levels || []).filter(Boolean).sort((x, y) => x - y);
+            const trailing = [
+              org && org.toLowerCase() !== head.toLowerCase() ? org : title && title.toLowerCase() !== head.toLowerCase() ? title : null,
+              a.hours_per_week && a.weeks_per_year ? `${num(a.hours_per_week)} hrs/wk, ${num(a.weeks_per_year)} wks/yr` : null,
+              grades.length ? `${grades.length === 1 ? "Grade" : "Grades"} ${grades.join(", ")}` : null,
+            ].filter(Boolean);
+            return (
+              <div key={a.id} style={{ marginBottom: 6 }}>
+                <span style={{ fontWeight: 700 }}>{head || "Untitled activity"}</span>
+                {trailing.length > 0 && <span style={{ color: TEXT_MID }}> | {trailing.join(" | ")}</span>}
+                {(a.description || "").trim() && <ul style={{ ...list, marginTop: 2 }}><li>{a.description.trim()}</li></ul>}
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      {awards.length > 0 && (
+        <>
+          <p style={sectionHead}>Awards &amp; Honors</p>
+          <ul style={list}>
+            {awards.map((w) => {
+              const meta = [labelFor(AWARD_LEVELS, w.level), w.year].filter((x) => x != null && x !== "").join(", ");
+              return (
+                <li key={w.id}>
+                  <strong style={{ fontWeight: 700 }}>{(w.title || "").trim() || "Untitled award"}</strong>
+                  {meta && ` (${meta})`}{(w.description || "").trim() && `: ${w.description.trim()}`}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Two steps, because a resume export is scarce (LIMITS.resume_export): pick
+ *  what goes on it, then read it back in the PDF's order before the one
+ *  button that spends an export. Back keeps every choice. */
 function ExportSheet({ record, contact: initialContact, exportsLeft, generating, error, onGenerate, onClose }) {
   const ink = useAgentInk();
   const headId = useId();
+  const topRef = useRef(null);
+  const [step, setStep] = useState("pick");
   const [contact, setContact] = useState(() => ({ ...EMPTY_CONTACT, ...(initialContact || {}) }));
   const hasGpa = Boolean(record.profile.gpa_unweighted || record.profile.gpa_weighted);
   const [includeGpa, setIncludeGpa] = useState(hasGpa);
@@ -886,6 +1138,16 @@ function ExportSheet({ record, contact: initialContact, exportsLeft, generating,
     score_ids:    new Set(record.scores.map((r) => r.id)),
   }));
 
+  // A new step starts at its top, with focus on its title, as the sheet
+  // itself does when it opens.
+  const firstStep = useRef(true);
+  useEffect(() => {
+    if (firstStep.current) { firstStep.current = false; return; }
+    const dialog = topRef.current?.closest("[role=dialog]");
+    if (dialog) dialog.scrollTop = 0;
+    topRef.current?.focus({ preventScroll: true });
+  }, [step]);
+
   const toggle = (key) => (id) => setSel((prev) => {
     const next = new Set(prev[key]);
     if (next.has(id)) next.delete(id); else next.add(id);
@@ -895,12 +1157,69 @@ function ExportSheet({ record, contact: initialContact, exportsLeft, generating,
 
   const total = Object.values(sel).reduce((n, s) => n + s.size, 0) + (includeGpa ? 1 : 0);
   const blocked = generating || total === 0 || exportsLeft === 0;
+  const pr = record.profile;
+  const scaleKey = normScale(pr.gpa_scale);
+  const gpaLine = includeGpa
+    ? `GPA: ${[pr.gpa_unweighted && `${pr.gpa_unweighted} unweighted`, pr.gpa_weighted && `${pr.gpa_weighted} weighted`].filter(Boolean).join(", ")}`
+      + (scaleKey && scaleKey !== "not_used" && scaleKey !== "other" ? `, ${scaleKey} scale` : "")
+    : null;
+  const picked = {
+    gpa: gpaLine,
+    scores: record.scores.filter((r) => sel.score_ids.has(r.id)),
+    courses: record.courses.filter((r) => sel.course_ids.has(r.id)),
+    activities: record.activities.filter((r) => sel.activity_ids.has(r.id)),
+    awards: record.awards.filter((r) => sel.award_ids.has(r.id)),
+  };
+  const spendLabel = exportsLeft === 1 ? "Download, uses your 1 export" : `Download, uses 1 of ${exportsLeft} exports`;
+  const title = (
+    <div ref={topRef} tabIndex={-1} style={{ outline: "none" }}>
+      <SheetTitle id={headId}>{step === "pick" ? "Export as a resume" : "Check your resume"}</SheetTitle>
+    </div>
+  );
+
+  // One Sheet for both steps, so a step change neither replays the opening
+  // animation nor hands focus back to the page in between.
+  if (step === "check") {
+    return (
+      <Sheet key="export" onClose={onClose} locked={generating} labelledBy={headId} width={660}>
+        {title}
+        <p style={sheetLead}>
+          This is what goes on it, in order. Check the spelling and your contact line now: the download{" "}
+          {exportsLeft === 1 ? "uses your one resume export" : "uses one of your resume exports"}. The PDF's spacing and
+          page break can differ a little from this.
+        </p>
+        {!(pr.full_name || "").trim() && (
+          <Notice tone="info" style={{ marginBottom: 12 }}>
+            Your name isn't in your profile yet, so the PDF will say "Your Name". Add it on your Profile page first.
+          </Notice>
+        )}
+        <div style={{ marginBottom: 20 }}>
+          <ResumePreview name={(pr.full_name || "").trim()} contact={contact} picked={picked} />
+        </div>
+        {error && <Notice tone="error" style={{ marginBottom: 12 }}>{error}</Notice>}
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <Button kind="secondary" onClick={() => setStep("pick")} disabled={generating} style={{ flex: "0 0 auto" }}>
+            Back
+          </Button>
+          <Button kind="primary" disabled={blocked} busy={generating}
+            onClick={() => onGenerate({
+              activity_ids: [...sel.activity_ids], award_ids: [...sel.award_ids],
+              course_ids: [...sel.course_ids], score_ids: [...sel.score_ids],
+              include_gpa: includeGpa,
+            }, contact)}
+            style={{ flex: 1, minWidth: 200 }}>
+            {generating ? "Building your PDF…" : spendLabel}
+          </Button>
+        </div>
+      </Sheet>
+    );
+  }
 
   return (
-    <Sheet onClose={onClose} locked={generating} labelledBy={headId} width={660}>
-      <SheetTitle id={headId}>Export as a resume</SheetTitle>
+    <Sheet key="export" onClose={onClose} locked={generating} labelledBy={headId} width={660}>
+      {title}
       <p style={sheetLead}>
-        A one-page PDF built from whatever you pick, across both tabs.{" "}
+        A one-page PDF built from whatever you pick, across both tabs. You'll see it before anything downloads.{" "}
         <strong style={{ fontWeight: 700, color: TEXT }}>
           {exportsLeft === 1 ? "You can export one resume" : `You can export ${exportsLeft} resumes`}, so add
           everything you want first.
@@ -948,8 +1267,8 @@ function ExportSheet({ record, contact: initialContact, exportsLeft, generating,
             <input type="checkbox" checked={includeGpa} onChange={() => setIncludeGpa((v) => !v)} className={FOCUS_CLASS}
               style={{ width: 18, height: 18, accentColor: ink.button.bg, cursor: "pointer", flexShrink: 0 }} />
             <span style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT }}>
-              {[record.profile.gpa_unweighted && `${record.profile.gpa_unweighted} unweighted`,
-                record.profile.gpa_weighted && `${record.profile.gpa_weighted} weighted`].filter(Boolean).join(", ")}
+              {[pr.gpa_unweighted && `${pr.gpa_unweighted} unweighted`,
+                pr.gpa_weighted && `${pr.gpa_weighted} weighted`].filter(Boolean).join(", ")}
             </span>
           </label>
         </div>
@@ -965,22 +1284,12 @@ function ExportSheet({ record, contact: initialContact, exportsLeft, generating,
       <PickGroup title="Awards" items={record.awards} selected={sel.award_ids} onToggle={toggle("award_ids")}
         render={(w) => w.title || "Untitled award"} />
 
-      {error && (
-        <Notice tone="error" style={{ marginBottom: 12 }}>{error}</Notice>
-      )}
-
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <Button kind="secondary" onClick={onClose} disabled={generating} style={{ flex: "0 0 auto" }}>
           Cancel
         </Button>
-        <Button kind="primary" disabled={blocked} busy={generating}
-          onClick={() => onGenerate({
-            activity_ids: [...sel.activity_ids], award_ids: [...sel.award_ids],
-            course_ids: [...sel.course_ids], score_ids: [...sel.score_ids],
-            include_gpa: includeGpa,
-          }, contact)}
-          style={{ flex: 1, minWidth: 180 }}>
-          {generating ? "Building your PDF…" : `Download my resume (${plural(total, "item", "items")})`}
+        <Button kind="primary" disabled={blocked} onClick={() => setStep("check")} style={{ flex: 1, minWidth: 180 }}>
+          {`Check it (${plural(total, "item", "items")})`}
         </Button>
       </div>
     </Sheet>
@@ -1018,9 +1327,11 @@ const SAVE_DELAY = 450;
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { key: "academics", label: "Academics" },
-  { key: "ecs",       label: "Activities & awards" },
+  { key: "academics", label: "Academics",           short: "Academics" },
+  { key: "ecs",       label: "Activities & awards", short: "Activities" },
 ];
+// The base id the kit's tablist and its two panels share.
+const PF_TABS = "pf-tabs";
 
 export default function PortfolioPage({ navigate }) {
   const isMobile = useIsMobile();
@@ -1050,6 +1361,7 @@ export default function PortfolioPage({ navigate }) {
   const [notice, setNotice] = useState(null);               // { text, error, action, undo }
   const [adding, setAddingTo] = useState(null);             // the list an Add is waiting on
   const [justAdded, setJustAdded] = useState(null);         // opens the item just added
+  const [openReq, setOpenReq] = useState(null);             // { id, field, n }: the read-back opening a row
   const [, setFocusTick] = useState(0);
   const fileRef = useRef(null);
   const focusNext = useRef(null);
@@ -1190,9 +1502,9 @@ export default function PortfolioPage({ navigate }) {
     // flushRow reads only refs and state setters, so the first one is as good as any.
   }, []);
 
-  const add = async (table, listKey, values, what) => {
+  const add = async (table, listKey, values, what, busyKey = listKey) => {
     setNotice(null);
-    setAddingTo(listKey);
+    setAddingTo(busyKey);
     begin(listKey);
     try {
       const row = await addRow(table, userId, values, recordRef.current[listKey]);
@@ -1205,7 +1517,7 @@ export default function PortfolioPage({ navigate }) {
       console.error(`[portfolio] ${table} insert failed:`, e);
       end(listKey, false);
       setNotice({ error: true, text: `Couldn't add ${what}. Check your connection and try again.`,
-        action: actionBtn("Try again", () => add(table, listKey, values, what)) });
+        action: actionBtn("Try again", () => add(table, listKey, values, what, busyKey)) });
     } finally { setAddingTo(null); }
   };
 
@@ -1426,15 +1738,23 @@ export default function PortfolioPage({ navigate }) {
   const exportsLeft = Math.max(0, LIMITS.resume_export - exportsUsed);
   const uploadsLeft = Math.max(0, LIMITS.portfolio_upload - uploadsUsed);
 
+  // On a phone the two pills share the row, so the second one says
+  // "Activities" (its sections are Activities and Awards) and neither wraps.
+  // The count is read as "11 items", not a bare "11".
   const tabOptions = TABS.map((t) => {
     const n = t.key === "academics" ? acCount : ecCount;
     return {
       key: t.key,
       label: (
-        <>
-          {t.label}
-          {n > 0 && <span style={{ marginLeft: 7, fontVariantNumeric: "tabular-nums" }}>{n}</span>}
-        </>
+        <span style={{ whiteSpace: "nowrap" }}>
+          {isMobile ? t.short : t.label}
+          {n > 0 && (
+            <>
+              <span aria-hidden="true" style={{ marginLeft: 7, fontVariantNumeric: "tabular-nums" }}>{n}</span>
+              <span style={SR_ONLY}>, {plural(n, "item", "items")}</span>
+            </>
+          )}
+        </span>
       ),
     };
   });
@@ -1444,6 +1764,14 @@ export default function PortfolioPage({ navigate }) {
   const rowRemove = (table, listKey) => (row) => remove(table, listKey, row);
 
   const goToGpa = () => { setTab("academics"); focusOn("[data-gpa-first]"); };
+  // A class added from a year's own Add (or the read-back) starts in that
+  // year, at the level of the class before it.
+  const addCourse = (grade = null, level = null) => {
+    const values = { name: "", ...(grade != null && { grade_level: grade }), ...(level && { level }) };
+    add("student_courses", "courses", values, "a class", grade != null ? `courses:${grade}` : "courses");
+  };
+  const openRow = (listKey, id, field) => setOpenReq((r) => ({ id, field, listKey, n: (r?.n || 0) + 1 }));
+  const readBackData = readBack(tab, record, { gpa: goToGpa, addCourse, open: openRow });
   const openExport = () => {
     if (exportsLeft === 0) { setLimitModal("resume_export"); return; }
     setExportError(null);
@@ -1451,12 +1779,17 @@ export default function PortfolioPage({ navigate }) {
   };
   // Hidden until there is something to put on a resume: an empty record would
   // only lead to a disabled download.
+  // In the header at every width, so it is never 4,800px down a phone. The
+  // budget shows on the button itself: there is only LIMITS.resume_export.
   const exportButton = hasContent && (
-    <Button kind="secondary" onClick={openExport} style={isMobile ? { width: "100%" } : undefined}>
+    <Button kind="secondary" onClick={openExport} style={isMobile ? { width: "100%" } : { flexShrink: 0 }}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
       </svg>
       Export resume
+      <span style={{ fontWeight: 600, color: TEXT_MUTED, fontVariantNumeric: "tabular-nums" }}>
+        <span style={SR_ONLY}>, </span>{exportsLeft > 0 ? `${exportsLeft} left` : "none left"}
+      </span>
     </Button>
   );
   const uploadErrorNotice = uploadError && (
@@ -1467,7 +1800,7 @@ export default function PortfolioPage({ navigate }) {
     <div data-sidebar-offset className="ui-page" style={pagePad}>
       <div style={{ maxWidth: 880, margin: "0 auto", width: "100%" }}>
 
-        <PageHeader title="Portfolio" isMobile={isMobile} style={{ marginBottom: "1.75rem" }}>
+        <PageHeader title="Portfolio" isMobile={isMobile} action={exportButton}>
           <p style={{ margin: 0 }}>
             Your grades, scores, classes, activities and awards, all in one place. Your advisor in{" "}
             <button onClick={() => navigate("/chat")} className={`${FOCUS_CLASS} ${LINK_CLASS}`}
@@ -1485,14 +1818,13 @@ export default function PortfolioPage({ navigate }) {
           onChange={(e) => handleFile(e.target.files?.[0])} />
 
         {!hasContent && (
-          <Tip name="Start here" stamp="scroll" tone="accent" style={{ marginBottom: "1.5rem", paddingTop: 0 }}>
-            <p style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.05rem", color: TEXT, margin: "0 0 4px" }}>
-              Begin with your grades, or a resume
-            </p>
-            <p style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: TEXT_MID, lineHeight: 1.55, margin: "0 0 12px" }}>
+          <Tip name="Start here" title="Begin with your grades, or a resume" stamp="scroll" tone="accent"
+            style={{ marginBottom: "1.25rem" }}>
+            <p style={{ margin: "0 0 12px" }}>
               Add your GPA and this year's classes, or upload a resume and we'll pull out your activities and awards for you to check.
             </p>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {/* On a phone the two stack full width, as Quest's notices do. */}
+            <div style={isMobile ? { display: "grid", gap: 8 } : { display: "flex", gap: 10, flexWrap: "wrap" }}>
               <Button kind="primary" busy={uploading} onClick={pickFile}>
                 {uploading ? "Reading it…" : "Upload a file"}
               </Button>
@@ -1503,32 +1835,23 @@ export default function PortfolioPage({ navigate }) {
         )}
 
         {nextStep && (
-          <Tip name="Next step" stamp={nextStep.stamp} tone="accent" style={{ marginBottom: "1.5rem", paddingTop: 0 }}>
-            <p style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.05rem", color: TEXT, margin: "0 0 4px" }}>
-              {nextStep.title}
-            </p>
-            <p style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: TEXT_MID, lineHeight: 1.55, margin: "0 0 12px" }}>
-              {nextStep.body}
-            </p>
+          <Tip name="Next step" title={nextStep.title} stamp={nextStep.stamp} tone="accent" style={{ marginBottom: "1.25rem" }}>
+            <p style={{ margin: "0 0 12px" }}>{nextStep.body}</p>
             <Button kind="primary" onClick={() => navigate(nextStep.to)}>
               {nextStep.cta}
             </Button>
           </Tip>
         )}
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap", marginBottom: "1.25rem" }}>
-          <div style={{ flex: isMobile ? "1 1 100%" : "0 1 auto", minWidth: 0 }}>
-            <ChoiceChips label="Portfolio section" hideLabel isMobile={isMobile}
-              options={tabOptions} value={tab} onChange={setTab} />
-          </div>
-          {/* On a phone the export goes under the record, so the record comes first. */}
-          {!isMobile && exportButton}
+        <div style={{ marginBottom: "1.25rem" }}>
+          <ChoiceChips label="Portfolio section" hideLabel isMobile={isMobile} tabs={PF_TABS}
+            options={tabOptions} value={tab} onChange={(k) => { setOpenReq(null); setTab(k); }} />
         </div>
 
-        <ReadBack data={readBack(tab, record)} />
+        <ReadBack data={readBackData} />
 
         {tab === "academics" && (
-          <motion.div key="academics" {...tabMotion}>
+          <motion.div key="academics" {...tabMotion} {...tabPanelProps(PF_TABS, "academics")}>
             <GpaBlock profile={record.profile} status={status.gpa} onSave={saveGpaNow} />
 
             <SectionCard id="scores" title="Test scores" stamp="answersheet" count={record.scores.length} status={status.scores}
@@ -1537,27 +1860,28 @@ export default function PortfolioPage({ navigate }) {
                 onClick={() => add("student_test_scores", "scores", { test_type: "sat", section_scores: {} }, "a score")}>Add score</AddButton>}>
               {record.scores.length === 0
                 ? <EmptyNote>None yet. Add a score when you have one, or leave this empty if you're going test-optional.</EmptyNote>
-                : record.scores.map((s) => (
+                : <RecordList>{record.scores.map((s) => (
                     <ScoreLine key={s.id} score={s} startOpen={s.id === justAdded} status={status.scores}
                       onPatch={(v) => patch("student_test_scores", "scores", s, v)}
                       onRemove={() => remove("student_test_scores", "scores", s)} />
-                  ))}
+                  ))}</RecordList>}
             </SectionCard>
 
             <SectionCard id="courses" title="Coursework" stamp="notebook" count={record.courses.length} status={status.courses}
               isMobile={isMobile} hint="Admissions reads how hard your classes were, year by year, so tag each one's level and grade."
               action={<AddButton busy={adding === "courses"}
-                onClick={() => add("student_courses", "courses", { name: "" }, "a class")}>Add course</AddButton>}>
+                onClick={() => addCourse()}>Add course</AddButton>}>
               {record.courses.length === 0
                 ? <EmptyNote>None yet. Start with this year's classes.</EmptyNote>
-                : <CourseList courses={record.courses} justAdded={justAdded} status={status.courses}
+                : <CourseList courses={record.courses} justAdded={justAdded} status={status.courses} adding={adding}
+                    request={openReq?.listKey === "courses" ? openReq : null} onAdd={({ grade, level }) => addCourse(grade, level)}
                     onPatch={rowPatch("student_courses", "courses")} onRemove={rowRemove("student_courses", "courses")} />}
             </SectionCard>
           </motion.div>
         )}
 
         {tab === "ecs" && (
-          <motion.div key="ecs" {...tabMotion}>
+          <motion.div key="ecs" {...tabMotion} {...tabPanelProps(PF_TABS, "ecs")}>
             {/* Upload lives on this tab: it parses activities and awards, not academics. */}
             <SectionCard title="Have a resume or brag sheet?" stamp="resume" saves={false} isMobile={isMobile}
               hint="Upload a .pdf, .docx, .txt or .md file and we'll pull out your activities and awards. You review everything before it's added."
@@ -1582,11 +1906,12 @@ export default function PortfolioPage({ navigate }) {
                 onClick={() => add("student_activities", "activities", { title: "", detail_level: "name_only", grade_levels: [] }, "an activity")}>Add activity</AddButton>}>
               {record.activities.length === 0
                 ? <EmptyNote>None yet. Add an activity, or upload a resume above.</EmptyNote>
-                : record.activities.map((a) => (
+                : <RecordList>{record.activities.map((a) => (
                     <ActivityLine key={a.id} activity={a} startOpen={a.id === justAdded} status={status.activities}
+                      request={openReq?.listKey === "activities" && openReq.id === a.id ? openReq : null}
                       onPatch={(v) => patch("student_activities", "activities", a, v)}
                       onRemove={() => remove("student_activities", "activities", a)} />
-                  ))}
+                  ))}</RecordList>}
             </SectionCard>
 
             <SectionCard id="awards" title="Awards and honors" stamp="trophy" count={record.awards.length} status={status.awards}
@@ -1595,16 +1920,15 @@ export default function PortfolioPage({ navigate }) {
                 onClick={() => add("student_awards", "awards", { title: "" }, "an award")}>Add award</AddButton>}>
               {record.awards.length === 0
                 ? <EmptyNote>None yet, and that's common. Many students have few or none, so add what you have and leave it there.</EmptyNote>
-                : record.awards.map((w) => (
+                : <RecordList>{record.awards.map((w) => (
                     <AwardLine key={w.id} award={w} startOpen={w.id === justAdded} status={status.awards}
                       onPatch={(v) => patch("student_awards", "awards", w, v)}
                       onRemove={() => remove("student_awards", "awards", w)} />
-                  ))}
+                  ))}</RecordList>}
             </SectionCard>
           </motion.div>
         )}
 
-        {isMobile && exportButton}
       </div>
 
       <AnimatePresence>

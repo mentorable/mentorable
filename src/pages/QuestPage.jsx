@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { requireUser } from "../lib/auth.js";
-import { questApi, summaryFromState } from "../lib/quest.js";
+import { formatDay, questApi, summaryFromState } from "../lib/quest.js";
 import { useQuest } from "../lib/QuestContext.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
@@ -72,8 +72,8 @@ export default function QuestPage({ navigate }) {
   const showMap = ["active", "paused", "completed"].includes(view) && !showSetup;
   const behind = view === "active" && state?.backlog?.count > 0 && !!state?.backlog?.oldest_doable_slot
     && state?.today_state !== "blocked";
-  // Today's slot is drawn on the map (not a rest day), so the backlog banner
-  // and the first-visit tip can sit just above its callout.
+  // Today's slot is drawn on the map (not a rest day), so the first-visit tip
+  // can sit just above its callout and the backlog banner just under its stone.
   const todayOnMap = !!state?.today_slot && !!state?.stones?.some((s) => s.slot === state.today_slot);
   // How much of the top of the screen the stuck bar covers (its 10px strip,
   // the bar, and the catch-up pill under it), and the mobile nav at the foot.
@@ -133,7 +133,8 @@ export default function QuestPage({ navigate }) {
   // margin on those controls, not scroll-padding on the page: the bar's own
   // controls are sticky, and a page-wide padding made focusing them scroll.
   const coverCss = showMap
-    ? `.quest-map-cover [data-slot] .quest-stone, .quest-map-cover [data-today-callout] button {
+    ? `.quest-map-cover [data-slot] .quest-stone, .quest-map-cover [data-today-callout] button,
+       .quest-map-cover [data-today-trail] button {
         scroll-margin-top: ${coverTop + 8}px; scroll-margin-bottom: ${coverBottom + 8}px; }`
     : "";
 
@@ -156,14 +157,16 @@ export default function QuestPage({ navigate }) {
     const stone = focusRef.current;
     if (!stone) return false;
     const slotEl = stone.closest("[data-slot]") || stone;
-    // From the block above today's callout (the banner or the tip), if any,
-    // down to today's stone.
+    // From the block above today's callout (the tip), if any, down to today's
+    // stone and the backlog banner under it, if any.
     let first = slotEl;
     let prev = slotEl.previousElementSibling;
     if (prev?.hasAttribute("data-today-callout")) { first = prev; prev = prev.previousElementSibling; }
     if (prev?.hasAttribute("data-today-lead")) first = prev;
+    const next = slotEl.nextElementSibling;
+    const last = next?.hasAttribute("data-today-trail") ? next : slotEl;
     const top = first.getBoundingClientRect().top + window.scrollY;
-    const bottom = slotEl.getBoundingClientRect().bottom + window.scrollY;
+    const bottom = last.getBoundingClientRect().bottom + window.scrollY;
     const free = window.innerHeight - coverTop - coverBottom;
     const y = bottom - top > free - 24 ? top - coverTop - 12 : (top + bottom) / 2 - coverTop - free / 2;
     window.scrollTo({ top: Math.max(0, Math.round(y)), behavior });
@@ -377,10 +380,30 @@ export default function QuestPage({ navigate }) {
   ) : null;
   // The banner draws itself whenever there is a backlog it can speak to.
   const hasBacklog = view === "active" && state.backlog?.count > 0 && state.today_state !== "blocked";
-  const showTip = view === "active" && !hasBacklog && !tipSeen;
+  // The first-visit pointer is for someone new: anyone with a streak or a
+  // finished day has already learned the loop, whichever browser they use.
+  const newToQuest = !(state.stats?.streak > 0) && !(state.stats?.xp > 0)
+    && !state.stones?.some((s) => s.state === "done" || s.state === "late");
+  const showTip = view === "active" && !hasBacklog && !tipSeen && newToQuest;
   const tip = showTip ? <RulesTip onOpen={() => setRulesOpen(true)} onDismiss={dismissTip} isMobile={isMobile} /> : null;
-  // Beside today when today is on the map; above the map otherwise (a rest day).
-  const lead = todayOnMap ? (hasBacklog ? banner : tip) : null;
+  // Beside today when today is on the map: the tip above its callout, the
+  // backlog under its stone (so Start comes first). Above the map otherwise.
+  const lead = todayOnMap && !hasBacklog ? tip : null;
+  const trail = todayOnMap && hasBacklog ? banner : null;
+
+  // The whole quest in one line under the bar, so the first screen says how
+  // far along today is, not only within its milestone.
+  const progress = (() => {
+    if (!showMap || view === "completed" || !state.milestones?.length) return null;
+    const ms = state.milestones;
+    const cur = ms.find((m) => m.state === "current") || ms.find((m) => m.state !== "done") || ms[ms.length - 1];
+    const day = focusSlotOf(state);
+    const total = state.total || state.stones?.length;
+    const parts = [`Milestone ${cur.position} of ${ms.length}`];
+    if (day && total) parts.push(`Day ${day} of ${total}`);
+    if (!isMobile && state.projected_finish) parts.push(`On pace for ${formatDay(state.projected_finish)}`);
+    return parts.join(" · ");
+  })();
 
   return (
     <div data-sidebar-offset className="ui-page" style={pagePad}>
@@ -396,7 +419,7 @@ export default function QuestPage({ navigate }) {
 
         {showMap && (
           <StickyHeader ref={headerRef}>
-            <TopBar title={q.title} stats={state.stats} streakLit={streakLit} menu={menu} isMobile={isMobile} />
+            <TopBar title={q.title} stats={state.stats} streakLit={streakLit} menu={menu} isMobile={isMobile} progress={progress} />
             {hasToday && <SkipToToday onGo={() => goToday()} />}
             <AnimatePresence>
               {behind && bannerGone && <CatchUpPill key="pill" state={state} onCatchUp={catchUp} />}
@@ -453,6 +476,7 @@ export default function QuestPage({ navigate }) {
               glowMilestone={glow}
               isMobile={isMobile}
               lead={lead}
+              trail={trail}
             />
           </>
         )}

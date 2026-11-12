@@ -38,7 +38,7 @@ function Choice({ selected, onClick, stamp, bare, children }) {
       style={{ display: "flex", alignItems: "flex-start", gap: 14, width: "100%", textAlign: "left", cursor: "pointer",
         boxSizing: "border-box", borderRadius: RADIUS.card, padding: "16px 18px",
         ...(bare ? { background: "none", border: "none" }
-          : { background: selected ? c.softer : WHITE, border: `1px solid ${selected ? c.soft : LINE}` }) }}>
+          : { background: selected ? c.softer : WHITE, border: `1px solid ${selected ? c.text : LINE}` }) }}>
       <StampTile kind={stamp} />
       <span style={{ flex: 1, minWidth: 0 }}>{children}</span>
       <span aria-hidden="true" style={{ flexShrink: 0, width: 24, height: 24, marginTop: 8, color: c.text,
@@ -323,7 +323,7 @@ export function QuestSetup({ onPlanned, onCancel, canCancel, today }) {
       <PageHeader title="Pick your quest" isMobile={isMobile}>
         One project, moved forward a little every day.
       </PageHeader>
-      <Tip stamp="flag" name="Next step" style={{ marginBottom: 20 }}>
+      <Tip stamp="flag" name="Next step" style={{ marginBottom: "1.25rem" }}>
         Pick one of these ideas, drawn from your record, or write your own. Then answer two to four quick questions
         and choose your pace.
       </Tip>
@@ -350,7 +350,7 @@ export function QuestSetup({ onPlanned, onCancel, canCancel, today }) {
             </Choice>
           ))}
           <div style={{ background: pick === "own" ? c.softer : WHITE, borderRadius: RADIUS.card,
-            border: `1px solid ${pick === "own" ? c.soft : LINE}` }}>
+            border: `1px solid ${pick === "own" ? c.text : LINE}` }}>
             <Choice bare selected={pick === "own"} onClick={() => setPick("own")} stamp="scroll">
               <span style={{ display: "block", fontFamily: SANS, fontWeight: 800, fontSize: "1.1rem", color: INK, lineHeight: 1.35, marginTop: 9 }}>
                 Write your own
@@ -423,9 +423,8 @@ export function DraftReview({ state, onStart, onDiscard, busy, error }) {
         {q.summary || null}
       </PageHeader>
       {q.direction && (
-        <Tip stamp="target" name="Your plan" style={{ marginBottom: 18 }}>
-          <strong style={{ display: "block", fontWeight: 800 }}>Where this is headed</strong>
-          <span style={{ display: "block", marginTop: 2, fontWeight: 500 }}>{q.direction}</span>
+        <Tip stamp="target" name="Your plan" title="Where this is headed" style={{ marginBottom: "1.25rem" }}>
+          {q.direction}
         </Tip>
       )}
       {/* The house list pattern (Portfolio's sections, College List's
@@ -445,23 +444,22 @@ export function DraftReview({ state, onStart, onDiscard, busy, error }) {
           {state.draft.total_days} days at {q.daily_minutes} minutes a day. Start today and you finish around{" "}
           <strong style={{ fontWeight: 700, color: INK }}>{formatDay(state.draft.finish_if_started_today)}</strong>.{rest}
           {q.hard_deadline && <> Your deadline is {formatDay(q.hard_deadline)}.</>}
+          {" "}Your advisor can reshape milestones later if the plan stops fitting.
         </p>
       <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
         {state.milestones.map((m) => (
           <Card as="li" key={m.id}>
-            <span style={{ display: "block", minWidth: 0 }}>
+            <div style={{ minWidth: 0 }}>
               <span style={{ display: "block", fontFamily: SANS, fontWeight: 700, fontSize: "0.9rem", color: MUTED }}>
                 Milestone {m.position} · {m.expected_days} day{m.expected_days === 1 ? "" : "s"}
               </span>
-              <span style={{ display: "block", fontFamily: SANS, fontWeight: 800, fontSize: "1rem", color: INK, lineHeight: 1.35, marginTop: 2 }}>
-                {m.title}
-              </span>
+              <Heading level={3} style={{ marginTop: 2 }}>{m.title}</Heading>
               {m.description && (
                 <span style={{ display: "block", fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: MID, lineHeight: 1.5, marginTop: 3 }}>
                   {m.description}
                 </span>
               )}
-            </span>
+            </div>
           </Card>
         ))}
       </ol>
@@ -469,11 +467,12 @@ export function DraftReview({ state, onStart, onDiscard, busy, error }) {
       <ErrorLine>{error}</ErrorLine>
       <div style={{ display: "flex", gap: 12, marginTop: 24, alignItems: "center", flexWrap: "wrap" }}>
         <Chunky onClick={onStart} disabled={busy}>{busy ? "Starting..." : "Start quest"}</Chunky>
-        <Button onClick={onDiscard} disabled={busy}>Pick something else</Button>
+        <Button kind="quiet" onClick={onDiscard} disabled={busy} style={{ paddingLeft: 12, paddingRight: 12 }}>Discard and pick again</Button>
       </div>
-      <Tip tone="default" stamp="chat" style={{ marginTop: 16 }}>
-        Your advisor can reshape milestones later if the plan stops fitting.
-      </Tip>
+      {/* The cost before the tap, not only in the confirm dialog. */}
+      <p style={{ margin: "8px 0 0", fontFamily: SANS, fontSize: "0.9rem", fontWeight: 600, color: MUTED, lineHeight: 1.5, maxWidth: "62ch" }}>
+        Picking again maps a new plan, which uses another of this month's plans.
+      </p>
     </div>
   );
 }

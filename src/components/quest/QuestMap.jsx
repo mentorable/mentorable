@@ -4,7 +4,7 @@ import { formatDay, relativeDay } from "../../lib/quest.js";
 import { PixelStamp } from "../ui/PixelIcons.jsx";
 import { RADIUS, SURFACE } from "../ui/tokens.js";
 import { darken, lighten } from "../../lib/theme.js";
-import { StampTile } from "../ui/kit.jsx";
+import { Button, StampTile } from "../ui/kit.jsx";
 import { PixelStone, UNIT, pictureFor } from "./PixelStone.jsx";
 import {
   SANS, WHITE, INK, MID, MUTED, FAINT, LINE, STONE, STONE_EDGE, AMBER, AMBER_EDGE, AMBER_WASH,
@@ -103,7 +103,15 @@ const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, a
 
 // ─── Today's callout ──────────────────────────────────────────────────────────
 
-function TodayCallout({ state, task, onStart, onCatchUp, amp, slot }) {
+/** The first sentence of what the student wrote, for the done callout. */
+function firstLine(text, max = 110) {
+  const t = (text || "").trim().split("\n")[0];
+  const m = t.match(/^.+?[.!?](?=\s|$)/);
+  const line = m ? m[0] : t;
+  return line.length > max ? `${line.slice(0, max).replace(/\s+\S*$/, "")}...` : line;
+}
+
+function TodayCallout({ state, task, onStart, onCatchUp, onReview, amp, slot }) {
   const c = useQuestColors();
   const todayState = state.today_state;
   const unlocks = state.backlog?.unlocks_milestone;
@@ -112,12 +120,21 @@ function TodayCallout({ state, task, onStart, onCatchUp, amp, slot }) {
   // Where today sits in its milestone, since the plate is usually off-screen.
   const ms = (state.milestones || []).find((m) => slot >= m.first_slot && slot <= m.last_slot);
   const where = ms ? `Milestone ${ms.position}, day ${slot - ms.first_slot + 1} of ${ms.last_slot - ms.first_slot + 1}` : null;
-  // Only an on-time check-in moves the streak; catch-ups clear the backlog.
+  // Only an on-time check-in moves the streak; catch-ups clear the backlog,
+  // which waits under today's stone. Said here so the order needs no arrow.
+  const streak = state.stats?.streak || 0;
   const order = behind > 0 && state.backlog?.oldest_doable_slot
-    ? (state.stats?.streak > 0
-      ? "Do this one first: it keeps your streak. Then catch up."
-      : "Do this one first to start a new streak. Then catch up.")
+    ? (streak > 0
+      ? `Checking in on this one keeps your ${streak}-day streak.`
+      : "Checking in on this one starts a new streak.")
     : null;
+  // The done callout echoes the day: the student's own words, what it earned,
+  // and the date the next task opens (from the map when the server sends none).
+  const checkin = task?.checkin;
+  const said = checkin ? firstLine(checkin.body) : "";
+  const xp = checkin?.xp_awarded;
+  const nextDate = state.next_work_date
+    || (state.stones || []).find((st) => st.slot > slot && st.state === "future")?.date;
 
   let body;
   if (todayState === "open") {
@@ -144,15 +161,25 @@ function TodayCallout({ state, task, onStart, onCatchUp, amp, slot }) {
     body = (
       <>
         <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 800, color: c.text, display: "flex", alignItems: "center", gap: 6 }}>
-          <Flame size={16} streak={state.stats?.streak || 0} /> Done for today
+          <Flame size={16} streak={streak} /> Done for today{xp ? `, +${xp} XP` : ""}
         </p>
-        <p style={{ margin: "4px 0 0", fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: MID, lineHeight: 1.45 }}>
+        {said && (
+          <p style={{ margin: "6px 0 0", fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: INK, lineHeight: 1.45 }}>
+            You wrote: &ldquo;{said}&rdquo;
+          </p>
+        )}
+        <p style={{ margin: "6px 0 0", fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: MID, lineHeight: 1.45 }}>
           {state.remaining === 0
             ? "That was the last day of this quest."
-            : state.next_work_date
-              ? `Your next task opens ${relativeDay(state.next_work_date, state.today)}.`
+            : nextDate
+              ? `Your next task opens ${relativeDay(nextDate, state.today)}.`
               : "Your next task opens on your next work day."}
         </p>
+        {checkin && (
+          <Button kind="quiet" onClick={onReview} style={{ marginTop: 6, marginLeft: -18 }}>
+            Read today's check-in
+          </Button>
+        )}
       </>
     );
   } else if (todayState === "blocked") {
@@ -232,11 +259,12 @@ function Plate({ milestone, isLast, state, glow }) {
         border: `1px solid ${done ? c.soft : current ? c.text : LINE}`,
         boxShadow: glow ? `0 0 0 6px rgba(${c.accentRgb},0.18)` : "none",
       }}>
-        <StampTile kind="flag" size={42} />
+        {/* Unlit while locked, as every grey tile in the kit is. */}
+        <StampTile kind="flag" size={42} lit={!locked} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700,
             color: done ? c.onSoft : current ? c.text : MUTED }}>
-            {finishLine || `Milestone ${milestone.position}`}
+            {finishLine || (current ? `Milestone ${milestone.position}, in progress` : `Milestone ${milestone.position}`)}
           </p>
           <p style={{ margin: "2px 0 0", fontFamily: SANS, fontSize: "1rem", fontWeight: 800, lineHeight: 1.3,
             color: locked ? MID : INK }}>
@@ -262,9 +290,11 @@ function stoneLabel(stone, today) {
   return `Day ${stone.slot}, ${day}: ${what}`;
 }
 
-/** `lead`: an optional block drawn just above today's callout (the backlog
- *  banner, or the first-visit tip), so the page lands on it with today. */
-export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartToday, onCatchUp, justDone, glowMilestone, isMobile, lead }) {
+/** `lead`: an optional block drawn just above today's callout (the
+ *  first-visit tip). `trail`: one drawn just under today's stone (the
+ *  backlog, beside the missed stones it is about), so today's Start comes
+ *  first and the page lands on both. */
+export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartToday, onCatchUp, justDone, glowMilestone, isMobile, lead, trail }) {
   const amp = isMobile ? 58 : 92;
   const stones = state.stones || [];
   const milestones = state.milestones || [];
@@ -282,7 +312,7 @@ export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartTo
             )}
             {s.slot === todaySlot && (
               <TodayCallout state={state} task={state.today_task} onStart={onStartToday} onCatchUp={onCatchUp}
-                amp={amp} slot={s.slot} />
+                onReview={() => onOpen({ ...s, isTodaySlot: true })} amp={amp} slot={s.slot} />
             )}
             <Stone
               ref={s.slot === focusSlot ? todayRef : undefined}
@@ -293,6 +323,9 @@ export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartTo
               amp={amp}
               label={stoneLabel(s, state.today)}
             />
+            {s.slot === todaySlot && trail && (
+              <div data-today-trail style={{ padding: "4px 0 8px" }}>{trail}</div>
+            )}
           </Fragment>
         ))}
       </Fragment>

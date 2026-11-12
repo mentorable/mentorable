@@ -156,7 +156,7 @@ Gently rounded: controls and inset items 12px, cards and the Tip card 16px, dial
 ### Buttons (`Button`, `LinkButton`)
 Flat and steady, 44px minimum, 1rem 700 labels, 10px 18px padding, control radius.
 - **Primary:** the readable accent fill, white label. Darkens slightly on hover, moves 1px down on press (`PRESS_CLASS`, off under reduced motion).
-- **Secondary:** white with a Warm Border stroke and Ink Mid label. **Quiet:** text only in the page-safe accent; on hover and keyboard focus it gets a Page Grey tint and an underline (`QUIET_CLASS`), so the cue shows on a white card and on the grey page. **Danger:** white with a Danger stroke and label.
+- **Secondary:** white with a Warm Border stroke and Ink Mid label. **Quiet:** text only in the page-safe accent; on hover and keyboard focus it gets a Page Grey tint and an underline (`QUIET_CLASS`), so the cue shows on a white card and on the grey page. `tone="muted"` keeps a quiet button in Ink Mid at rest and turns it the accent on hover and focus, for an action repeated down a list (Portfolio's per-row Edit, a year's "Add a grade N class"); a lone quiet action keeps the accent. **Danger:** white with a Danger stroke and label.
 - **Warn:** Amber Wash with a 1.5px Amber Edge stroke and Amber Text label. The one amber button, for catching up (Quest's Catch up); never for errors.
 - Quest's `Chunky` (its `tone="amber"` is `kind="warn"`) and College List's `Raised` are thin wrappers over `Button`, not separate styles.
 
@@ -167,7 +167,7 @@ White, 1px Warm Border, card radius, `1.1rem 1.2rem` padding, no shadow. A secti
 A pixel stamp on a control-radius tile in `ink.softer` with a `soft` border and `onSoft` stamp; unlit tiles go grey. Stamps: letter, check, clock, star, sparkle, question, peak, target, flag, scroll, chat, person, lock, and the two-tone 16px reportcard, answersheet, notebook, rocket, trophy, resume. Drawn crisp at whole pixels.
 
 ### Tip
-The guide line for tips, next steps and empty states: a 40px stamp tile in `ink.soft` beside a plain card (max 640px by default, 12px 16px padding, card radius, body text). `maxWidth="none"` lets a read-out with no action (Portfolio's "Your record") run the column beside full-width cards. Tone `accent` uses `softer` with a `soft` border; tone `default` is white with Warm Border. Tip is not a speech bubble.
+The guide line for tips, next steps and empty states: a 40px `StampTile` (the same `softer` fill and `soft` border as every section mark) beside a plain card (max 640px by default, 12px 16px padding, card radius, body text). `maxWidth="none"` lets a read-out with no action (Portfolio's "Your record") run the column beside full-width cards. Tone `accent` uses `softer` with a `soft` border; tone `default` is white with Warm Border. A titled guide line ("Start here", "Next step", a read-back, Quest's "Where this is headed") passes `title`: the title at 1rem 800 Ink, the body at 1rem 500 Ink Mid, 4px apart. Never hand-roll that pair. Tip is not a speech bubble.
 
 ### SpeechBubble and MascotSays
 The game dialog box: a 2px Ink frame with three-step stepped corners (clip-path), a name tab on the top edge, and a pixel wedge tail. It belongs to the agent mascots (`MascotSays` on the Finder and Outreach boards, in waiting and empty states), where the mascot sits beside or above it. The 2px frame is part of the pixel art.
@@ -179,7 +179,7 @@ The game dialog box: a 2px Ink frame with three-step stepped corners (clip-path)
 - **Toast:** a Notice fixed above the mobile nav, white, the one kit piece with a shadow. On a phone it starts 68px from the left, clear of MobileNav's floating feedback button.
 - **Tag:** a small label pill, not a control (an item's kind, "Needs detail"): 0.9rem 700 `onSoft` on `softer` with a `soft` border, pill radius, an optional 16px stamp.
 - **Dialogs:** the kit `Sheet` (`src/components/ui/Sheet.jsx`, exported from `kit.jsx`; the old `agents/outreach/Sheet.jsx` path re-exports it): a bottom sheet on phones, a centred 20px white card on wider screens, focus trapped and returned.
-- **ChoiceChips** also does several-at-once (`multi`) and a label above the pills (`labelAbove`) for form fields. **RemoveButton** is the one "× Remove" control (`iconOnly` on tight cards). **Toast** draws Undo and owns its Ctrl/Cmd+Z when the notice carries `undo`.
+- **ChoiceChips** also does several-at-once (`multi`) and a label above the pills (`labelAbove`) for form fields, and page tabs (`tabs="base-id"`: a tablist with roving arrow keys; each panel spreads `tabPanelProps(base, key)`). Tabs are for switching what the page shows (Portfolio's Academics / Activities), not a view of the same content (College List's Full cards / Compact). **RemoveButton** is the one "× Remove" control (`iconOnly` on tight cards). **Toast** draws Undo and owns its Ctrl/Cmd+Z when the notice carries `undo`.
 
 ### Navigation
 Sidebar (220px) and MobileNav (60px bottom bar). Both predate the kit: active items use the raw accent. MobileNav labels and the streak badge are at the 0.9rem floor in Ink Muted; below 360px only the active tab shows its label (the rest stay readable to screen readers). Known drift otherwise, not a reference.
