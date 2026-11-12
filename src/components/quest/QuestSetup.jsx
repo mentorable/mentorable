@@ -160,10 +160,13 @@ function Talk({ goal, title, talk, setTalk, onContinue, onBack, isMobile }) {
           </div>
         )))}
         {busy && (
-          <p role="status" style={{ display: "flex", alignItems: "center", gap: 8, margin: "2px 0 0", fontFamily: SANS,
-            fontSize: "0.95rem", fontWeight: 700, color: MUTED }}>
-            <Spinner size={16} color={c.text} /> Thinking...
-          </p>
+          <div role="status">
+            <Tip stamp="chat" tone="default">
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <Spinner size={16} color={c.text} /> Thinking...
+              </span>
+            </Tip>
+          </div>
         )}
         <div ref={end} />
       </div>
@@ -323,15 +326,18 @@ export function QuestSetup({ onPlanned, onCancel, canCancel, today }) {
       <PageHeader title="Pick your quest" isMobile={isMobile}>
         One project, moved forward a little every day.
       </PageHeader>
-      <Tip stamp="flag" name="Next step" style={{ marginBottom: "1.25rem" }}>
+      <Tip stamp="flag" name="Next step" title="Start here" style={{ marginBottom: "1.25rem" }}>
         Pick one of these ideas, drawn from your record, or write your own. Then answer two to four quick questions
         and choose your pace.
       </Tip>
 
       {ideas === null ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "20px 0" }}>
-          <Spinner size={20} color={c.text} />
-          <span style={{ fontFamily: SANS, fontWeight: 700, color: MID }}>Finding ideas that fit you...</span>
+        <div role="status">
+          <Tip stamp="sparkle" tone="default">
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+              <Spinner size={18} color={c.text} /> Finding ideas that fit you...
+            </span>
+          </Tip>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -391,7 +397,16 @@ export function QuestSetup({ onPlanned, onCancel, canCancel, today }) {
       {ideas && ideas.length > 0 && (
         <div style={{ marginTop: 10 }}>
           <Button kind="quiet" onClick={() => loadIdeas(true)} disabled={ideasBusy || left === 0} style={{ marginLeft: -18, textAlign: "left", justifyContent: "flex-start" }}>
-            {ideasBusy ? "Finding new ideas..." : left === 0 ? "No new ideas left" : `New ideas${left != null ? ` (${left} left)` : ""}`}
+            {ideasBusy ? "Finding new ideas..." : left === 0 ? "No new ideas left" : (
+              <>
+                New ideas
+                {left != null && (
+                  <span style={{ fontWeight: 600, color: MUTED, fontVariantNumeric: "tabular-nums" }}>
+                    <span style={SR_ONLY}>, </span>{left} left
+                  </span>
+                )}
+              </>
+            )}
           </Button>
         </div>
       )}

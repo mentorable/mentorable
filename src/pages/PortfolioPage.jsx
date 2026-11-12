@@ -328,12 +328,13 @@ function AddButton({ onClick, children, busy }) {
 }
 
 /** An empty section: one plain line saying what goes here, as College List's
- *  empty groups do, rather than a card inside the card. Balanced, so a
- *  two-line note never leaves one word ("test-optional.") on its own line. */
+ *  empty groups do, rather than a card inside the card. It wraps like the
+ *  section hint above it ("pretty", the full 62ch measure); "balance" made it
+ *  a narrow block that read as a separate element. */
 function EmptyNote({ children }) {
   return (
     <p style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.55, margin: 0,
-      maxWidth: "62ch", textWrap: "balance" }}>
+      maxWidth: "62ch", textWrap: "pretty" }}>
       {children}
     </p>
   );
@@ -1886,15 +1887,22 @@ export default function PortfolioPage({ navigate }) {
             <SectionCard title="Have a resume or brag sheet?" stamp="resume" saves={false} isMobile={isMobile}
               hint="Upload a .pdf, .docx, .txt or .md file and we'll pull out your activities and awards. You review everything before it's added."
               action={(
-                <div style={{ display: "grid", justifyItems: isMobile ? "stretch" : "center", gap: 6 }}>
-                  <Button kind={hasContent && !record.activities.length ? "primary" : "secondary"} busy={uploading} onClick={pickFile}>
-                    {uploading ? "Reading it…" : "Upload a file"}
-                  </Button>
-                  <p style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 600, color: TEXT_MUTED, textAlign: "center",
-                    margin: 0, fontVariantNumeric: "tabular-nums" }}>
-                    {uploadsLeft > 0 ? `You can upload ${plural(uploadsLeft, "more file", "more files")}.` : "No uploads left."}
-                  </p>
-                </div>
+                // The budget sits inside the button, as on Export resume.
+                <Button kind={hasContent && !record.activities.length ? "primary" : "secondary"} busy={uploading} onClick={pickFile}
+                  style={isMobile ? { width: "100%" } : undefined}>
+                  {uploading ? "Reading it…" : (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      Upload a file
+                      <span style={{ fontWeight: 600, opacity: hasContent && !record.activities.length ? 0.85 : 1,
+                        color: hasContent && !record.activities.length ? "inherit" : TEXT_MUTED, fontVariantNumeric: "tabular-nums" }}>
+                        <span style={SR_ONLY}>, </span>{uploadsLeft > 0 ? `${uploadsLeft} left` : "none left"}
+                      </span>
+                    </>
+                  )}
+                </Button>
               )}>
               {hasContent && uploadErrorNotice}
             </SectionCard>

@@ -25,6 +25,12 @@ const DownloadIcon = () => (
   </svg>
 );
 
+const UploadIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+  </svg>
+);
+
 /** One activity, as PortfolioPage's RecordLine shows it closed: an entry in
  *  a divided list (no box of its own), the name and a meta line with a muted
  *  Edit beside them, then what you did. Remove lives in the editor. */
@@ -114,10 +120,10 @@ export default function PortfolioShot() {
                   Have a resume or brag sheet?
                 </p>
               </div>
-              <div style={{ display: "grid", justifyItems: "center", gap: 6 }}>
-                <Button kind="secondary" tabIndex={-1}>Upload a file</Button>
-                <p style={{ fontSize: "0.9rem", fontWeight: 600, color: TEXT_MUTED, margin: 0, textAlign: "center" }}>You can upload 2 more files.</p>
-              </div>
+              <Button kind="secondary" tabIndex={-1} style={{ flexShrink: 0 }}>
+                <UploadIcon />Upload a file
+                <span style={{ fontWeight: 600, color: TEXT_MUTED, fontVariantNumeric: "tabular-nums" }}>2 left</span>
+              </Button>
             </div>
             <p style={{ fontSize: "1rem", fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.55, margin: 0, maxWidth: "62ch" }}>
               Upload a .pdf, .docx, .txt or .md file and we'll pull out your activities and awards. You review everything before it's added.
