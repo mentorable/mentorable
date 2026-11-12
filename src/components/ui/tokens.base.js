@@ -20,8 +20,10 @@ export const DANGER_LINE = "#f4c7c2";  // the soft red border of an error notice
 export const AMBER_TEXT = "#92400e";   // "due" and "waiting", never red
 export const AMBER_BG   = "#fff7e6";
 export const AMBER_LINE = "#f3d9a4";   // the soft amber border of a banner or notice
+export const AMBER_EDGE = "#d97706";   // amber as a line: the warn button's stroke, a missed Quest stone (3:1 on white)
 
-export const RADIUS = { card: 16, control: 12, pill: 999 };
+// dialog: the kit Sheet and the Quest top bar, the layers that float.
+export const RADIUS = { card: 16, control: 12, dialog: 20, pill: 999 };
 
 /** Every accent-derived color the Agents screens need, all readable.
  *  `text`: the accent as body text on white. `title`: as large text on BG.

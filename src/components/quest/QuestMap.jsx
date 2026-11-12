@@ -126,7 +126,7 @@ function TodayCallout({ state, task, onStart, onCatchUp, amp, slot }) {
         <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 800, color: c.text }}>
           Today{task ? `, about ${task.est_minutes} min` : ""}
         </p>
-        <p style={{ margin: "4px 0 0", fontFamily: SANS, fontSize: "1.06rem", fontWeight: 800, color: INK, lineHeight: 1.35 }}>
+        <p style={{ margin: "4px 0 0", fontFamily: SANS, fontSize: "1.1rem", fontWeight: 800, color: INK, lineHeight: 1.35 }}>
           {task ? task.title : "Setting up today's task..."}
         </p>
         {where && (
@@ -146,10 +146,12 @@ function TodayCallout({ state, task, onStart, onCatchUp, amp, slot }) {
         <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 800, color: c.text, display: "flex", alignItems: "center", gap: 6 }}>
           <Flame size={16} streak={state.stats?.streak || 0} /> Done for today
         </p>
-        <p style={{ margin: "4px 0 0", fontFamily: SANS, fontSize: "0.98rem", fontWeight: 600, color: MID, lineHeight: 1.45 }}>
-          {state.next_work_date
-            ? `Your next task opens ${relativeDay(state.next_work_date, state.today)}.`
-            : "That was the last day of this quest."}
+        <p style={{ margin: "4px 0 0", fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: MID, lineHeight: 1.45 }}>
+          {state.remaining === 0
+            ? "That was the last day of this quest."
+            : state.next_work_date
+              ? `Your next task opens ${relativeDay(state.next_work_date, state.today)}.`
+              : "Your next task opens on your next work day."}
         </p>
       </>
     );
@@ -159,7 +161,7 @@ function TodayCallout({ state, task, onStart, onCatchUp, amp, slot }) {
         <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 800, color: AMBER }}>
           Today's task is locked
         </p>
-        <p style={{ margin: "4px 0 12px", fontFamily: SANS, fontSize: "0.98rem", fontWeight: 600, color: MID, lineHeight: 1.45 }}>
+        <p style={{ margin: "4px 0 12px", fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: MID, lineHeight: 1.45 }}>
           Clear {inCurrent} catch-up task{inCurrent === 1 ? "" : "s"} to unlock Milestone {unlocks}.
           {state.stats?.streak > 0 ? " Do it today and your streak lives." : " Do it today to start a new streak."}
         </p>
@@ -260,7 +262,9 @@ function stoneLabel(stone, today) {
   return `Day ${stone.slot}, ${day}: ${what}`;
 }
 
-export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartToday, onCatchUp, justDone, glowMilestone, isMobile }) {
+/** `lead`: an optional block drawn just above today's callout (the backlog
+ *  banner, or the first-visit tip), so the page lands on it with today. */
+export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartToday, onCatchUp, justDone, glowMilestone, isMobile, lead }) {
   const amp = isMobile ? 58 : 92;
   const stones = state.stones || [];
   const milestones = state.milestones || [];
@@ -273,6 +277,9 @@ export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartTo
         <Plate milestone={m} isLast={i === 0} state={state} glow={glowMilestone === m.position} />
         {mine.map((s) => (
           <Fragment key={s.slot}>
+            {s.slot === todaySlot && lead && (
+              <div data-today-lead style={{ padding: "0 0 8px" }}>{lead}</div>
+            )}
             {s.slot === todaySlot && (
               <TodayCallout state={state} task={state.today_task} onStart={onStartToday} onCatchUp={onCatchUp}
                 amp={amp} slot={s.slot} />

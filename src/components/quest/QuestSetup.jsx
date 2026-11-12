@@ -51,15 +51,19 @@ function Choice({ selected, onClick, stamp, bare, children }) {
 
 // The one orchestrated moment: the map's own stones laying themselves down,
 // done days first and today's ringed stone last, while the plan is drawn.
-function Mapping() {
+function Mapping({ isMobile }) {
   const c = useQuestColors();
   const reduce = useReducedMotion();
   const done = { fill: c.accent, edge: darken(c.accent, 0.28), ink: WHITE, picture: "spark" };
   const today = { fill: WHITE, edge: darken(c.accent, 0.28), ink: c.accent, picture: "star", ring: "solid", ringColor: c.accent };
   return (
-    <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center",
-      justifyContent: "center", textAlign: "center", padding: "32px 0" }} role="status" aria-live="polite">
-      <div aria-hidden="true" style={{ display: "flex", flexDirection: "column-reverse", alignItems: "center", gap: 10, marginBottom: 30 }}>
+    <div role="status" aria-live="polite">
+      {/* The same page frame as the steps before and after it, so the screen
+          does not re-lay out while the plan is drawn. */}
+      <PageHeader title="Mapping your quest" isMobile={isMobile}>
+        Breaking it into milestones sized to your pace. This takes about 20 seconds.
+      </PageHeader>
+      <div aria-hidden="true" style={{ display: "flex", flexDirection: "column-reverse", alignItems: "center", gap: 10, padding: "16px 0 32px" }}>
         {[0, 1, 2, 3, 4].map((i) => (
           <motion.span key={i}
             initial={reduce ? false : { scale: 0, opacity: 0 }}
@@ -70,10 +74,6 @@ function Mapping() {
           </motion.span>
         ))}
       </div>
-      <Heading style={{ fontSize: "1.5rem" }}>Mapping your quest</Heading>
-      <p style={{ margin: "8px 0 0", fontFamily: SANS, fontSize: "1.05rem", color: MUTED, maxWidth: 420, lineHeight: 1.6 }}>
-        Breaking it into milestones sized to your pace. This takes about 20 seconds.
-      </p>
     </div>
   );
 }
@@ -197,7 +197,7 @@ function Talk({ goal, title, talk, setTalk, onContinue, onBack, isMobile }) {
 
 // ─── Pick, then pace ──────────────────────────────────────────────────────────
 
-export function QuestSetup({ onPlanned, onCancel, canCancel }) {
+export function QuestSetup({ onPlanned, onCancel, canCancel, today }) {
   const c = useQuestColors();
   const isMobile = useIsMobile();
   const [step, setStep] = useState("pick");
@@ -235,6 +235,9 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
   const chosen = pick === "own" ? null : ideas?.[pick];
   const goal = pick === "own" ? own.trim() : chosen ? `${chosen.title}. ${chosen.why}` : "";
   const canContinue = pick === "own" ? own.trim().length >= 3 : chosen != null;
+  // Calendar dates as the server gives them (YYYY-MM-DD), so they compare as text.
+  const pastDeadline = hasDeadline && !!deadline && !!today && deadline < today;
+  const ownBox = useRef(null);
 
   const plan = async () => {
     setStep("mapping"); setError(null);
@@ -253,7 +256,7 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
     }
   };
 
-  if (step === "mapping") return <Mapping />;
+  if (step === "mapping") return <Mapping isMobile={isMobile} />;
 
   if (step === "talk") {
     return (
@@ -268,6 +271,11 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
         <PageHeader title="Set your pace" isMobile={isMobile}>
           {chosen ? chosen.title : own.trim()}
         </PageHeader>
+        <Card style={{ padding: "1.3rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <StampTile kind="clock" />
+          <Heading>Your pace</Heading>
+        </div>
         <Question id="quest-pace-minutes" hint="Every task is sized to fit. Less time makes the quest longer, not harder.">
           How much time a day?
         </Question>
@@ -285,10 +293,12 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
             <>
               <Question hint="The plan will be sized to finish before it.">Fixed deadline</Question>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)}
-                  aria-label="Fixed deadline" className={INPUT_CLASS} style={{ ...inputStyle, width: "auto" }} />
+                <input type="date" value={deadline} min={today || undefined} onChange={(e) => setDeadline(e.target.value)}
+                  aria-label="Fixed deadline" aria-invalid={pastDeadline || undefined}
+                  className={INPUT_CLASS} style={{ ...inputStyle, width: "auto" }} />
                 <Button kind="quiet" onClick={() => { setHasDeadline(false); setDeadline(""); }}>Remove</Button>
               </div>
+              {pastDeadline && <ErrorLine>That date has passed. Pick today or a later date.</ErrorLine>}
             </>
           )}
         </div>
@@ -298,9 +308,10 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
             className={FOCUS_CLASS} style={{ width: 20, height: 20, accentColor: c.button.bg }} />
           Offer to add it to my activities when I finish
         </label>
+        </Card>
         <ErrorLine>{error}</ErrorLine>
-        <div style={{ display: "flex", gap: 12, marginTop: 26, alignItems: "center" }}>
-          <Chunky onClick={plan} disabled={hasDeadline && !deadline}>Map my quest</Chunky>
+        <div style={{ display: "flex", gap: 12, marginTop: 22, alignItems: "center" }}>
+          <Chunky onClick={plan} disabled={(hasDeadline && !deadline) || pastDeadline}>Map my quest</Chunky>
           <Button kind="quiet" onClick={() => setStep("talk")}>Back</Button>
         </div>
       </div>
@@ -327,7 +338,7 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
           {ideas.map((s, i) => (
             <Choice key={`${s.title}-${i}`} selected={pick === i} onClick={() => setPick(i)}
               stamp={KIND_STAMP[s.goal_kind] || "star"}>
-              <span style={{ display: "block", fontFamily: SANS, fontWeight: 800, fontSize: "1.05rem", color: INK, lineHeight: 1.35 }}>
+              <span style={{ display: "block", fontFamily: SANS, fontWeight: 800, fontSize: "1.1rem", color: INK, lineHeight: 1.35 }}>
                 {s.title}
               </span>
               <span style={{ display: "block", fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: MID, lineHeight: 1.5, marginTop: 4 }}>
@@ -341,19 +352,28 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
           <div style={{ background: pick === "own" ? c.softer : WHITE, borderRadius: RADIUS.card,
             border: `1px solid ${pick === "own" ? c.soft : LINE}` }}>
             <Choice bare selected={pick === "own"} onClick={() => setPick("own")} stamp="scroll">
-              <span style={{ display: "block", fontFamily: SANS, fontWeight: 800, fontSize: "1.05rem", color: INK, lineHeight: 1.35, marginTop: 9 }}>
+              <span style={{ display: "block", fontFamily: SANS, fontWeight: 800, fontSize: "1.1rem", color: INK, lineHeight: 1.35, marginTop: 9 }}>
                 Write your own
               </span>
             </Choice>
             {pick === "own" && (
               <div style={{ padding: "0 18px 16px" }}>
-                <textarea autoFocus rows={3} value={own} maxLength={600} onChange={(e) => setOwn(e.target.value)}
+                <textarea ref={ownBox} autoFocus rows={3} value={own} maxLength={600} onChange={(e) => setOwn(e.target.value)}
                   placeholder="What do you want to build, prepare for or investigate?"
                   aria-label="Your quest"
                   className={INPUT_CLASS} style={{ ...inputStyle, resize: "vertical" }} />
+                {/* Starters only while the box is empty, so one never overwrites
+                    what the student wrote. Picking one hands focus to the box. */}
+                {!own.trim() && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
                   {STARTERS.map((s) => (
-                    <button key={s} type="button" onClick={() => setOwn(s + ": ")} className={FOCUS_CLASS}
+                    <button key={s} type="button" className={FOCUS_CLASS}
+                      onClick={() => { setOwn(s + ": "); requestAnimationFrame(() => {
+                        const el = ownBox.current;
+                        if (!el) return;
+                        el.focus();
+                        el.setSelectionRange(el.value.length, el.value.length);
+                      }); }}
                       style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, color: TEXT_MID, cursor: "pointer",
                         background: WHITE, border: `1.5px solid ${BORDER}`, borderRadius: RADIUS.pill, padding: "0 14px",
                         minHeight: 44, lineHeight: 1.2, boxSizing: "border-box" }}>
@@ -361,6 +381,7 @@ export function QuestSetup({ onPlanned, onCancel, canCancel }) {
                     </button>
                   ))}
                 </div>
+                )}
               </div>
             )}
           </div>
@@ -407,18 +428,28 @@ export function DraftReview({ state, onStart, onDiscard, busy, error }) {
           <span style={{ display: "block", marginTop: 2, fontWeight: 500 }}>{q.direction}</span>
         </Tip>
       )}
-      <p style={{ margin: "0 0 18px", fontFamily: SANS, fontSize: "1rem", color: MID, lineHeight: 1.6 }}>
-        {state.draft.total_days} days at {q.daily_minutes} minutes a day. Start today and you finish around{" "}
-        <strong style={{ color: INK }}>{formatDay(state.draft.finish_if_started_today)}</strong>.{rest}
-        {q.hard_deadline && <> Your deadline is {formatDay(q.hard_deadline)}.</>}
-      </p>
+      {/* The house list pattern (Portfolio's sections, College List's
+          groups): a pixel mark, the heading and its count, one line of
+          guidance, then the item cards. */}
+      <section aria-labelledby="quest-draft-milestones">
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+          <StampTile kind="flag" />
+          <Heading id="quest-draft-milestones">
+            Milestones
+            <span style={{ fontWeight: 700, fontSize: "1rem", color: MUTED, marginLeft: 8, fontVariantNumeric: "tabular-nums" }}>
+              {state.milestones.length}
+            </span>
+          </Heading>
+        </div>
+        <p style={{ margin: "0 0 16px", fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: MUTED, lineHeight: 1.55, maxWidth: "62ch" }}>
+          {state.draft.total_days} days at {q.daily_minutes} minutes a day. Start today and you finish around{" "}
+          <strong style={{ fontWeight: 700, color: INK }}>{formatDay(state.draft.finish_if_started_today)}</strong>.{rest}
+          {q.hard_deadline && <> Your deadline is {formatDay(q.hard_deadline)}.</>}
+        </p>
       <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
         {state.milestones.map((m) => (
-          <li key={m.id} style={{ display: "flex", gap: 14, alignItems: "flex-start", background: WHITE,
-            borderRadius: RADIUS.card, padding: "14px 16px", border: `1px solid ${LINE}` }}>
-            {/* The same flag plate the student will see on the map once it starts. */}
-            <StampTile kind="flag" />
-            <span style={{ flex: 1, minWidth: 0 }}>
+          <Card as="li" key={m.id}>
+            <span style={{ display: "block", minWidth: 0 }}>
               <span style={{ display: "block", fontFamily: SANS, fontWeight: 700, fontSize: "0.9rem", color: MUTED }}>
                 Milestone {m.position} · {m.expected_days} day{m.expected_days === 1 ? "" : "s"}
               </span>
@@ -426,14 +457,15 @@ export function DraftReview({ state, onStart, onDiscard, busy, error }) {
                 {m.title}
               </span>
               {m.description && (
-                <span style={{ display: "block", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 500, color: MID, lineHeight: 1.5, marginTop: 3 }}>
+                <span style={{ display: "block", fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: MID, lineHeight: 1.5, marginTop: 3 }}>
                   {m.description}
                 </span>
               )}
             </span>
-          </li>
+          </Card>
         ))}
       </ol>
+      </section>
       <ErrorLine>{error}</ErrorLine>
       <div style={{ display: "flex", gap: 12, marginTop: 24, alignItems: "center", flexWrap: "wrap" }}>
         <Chunky onClick={onStart} disabled={busy}>{busy ? "Starting..." : "Start quest"}</Chunky>

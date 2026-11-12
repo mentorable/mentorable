@@ -3,10 +3,10 @@ import { motion } from "framer-motion";
 import { formatDay, relativeDay } from "../../lib/quest.js";
 import { PixelStamp } from "../ui/PixelIcons.jsx";
 import { FOCUS_CLASS, RADIUS, SURFACE, TEXT } from "../ui/tokens.js";
-import { Button, ChoiceChips, FieldLabel, Heading, INPUT_CLASS, Sheet as Dialog, StampTile, Tip, inputStyle } from "../ui/kit.jsx";
+import { Button, ChoiceChips, FieldLabel, Heading, INPUT_CLASS, Notice, Sheet as Dialog, StampTile, Tip, inputStyle } from "../ui/kit.jsx";
 import {
   SANS, WHITE, INK, MID, MUTED, LINE, AMBER, AMBER_LINE, AMBER_WASH, DANGER,
-  Chunky, DayToggles, ErrorLine, Flame, LevelChip, useQuestColors,
+  Chunky, DayToggles, ErrorLine, FLAME_GOLD, Flame, LevelChip, useQuestColors,
 } from "./questUi.jsx";
 
 // `key` for the kit's ChoiceChips, `value` for older callers.
@@ -46,32 +46,46 @@ export function TopBar({ title, stats, streakLit, menu, isMobile, headingAs: Tit
     else if (e.key === "Tab") setOpen(false);
   };
 
-  // A dark glass bar over the scene: the quest's name, the streak, the level
-  // and the options menu, all on one line.
+  // A dark glass bar over the scene: the quest's name, the streak, and the
+  // options menu; on a wide screen the level and its XP too. On a phone the
+  // name gets the room (two lines, never cut to an ellipsis) and the level
+  // waits in "How Quest works", since the bar is the page's only heading.
   const glass = "rgba(255,255,255,0.12)";
   const glassLine = "rgba(255,255,255,0.2)";
   const streak = stats?.streak || 0;
+  const levelLabel = stats
+    ? `Level ${stats.level}, ${stats.into_level} of ${stats.level_span} XP to level ${stats.level + 1}`
+    : "";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12, boxSizing: "border-box",
-      padding: isMobile ? "10px 10px 10px 14px" : "12px 14px 12px 22px", borderRadius: 20,
-      background: "rgba(38,50,112,0.9)", border: "1px solid rgba(255,255,255,0.28)",
+      padding: isMobile ? "10px 10px 10px 14px" : "12px 14px 12px 22px", borderRadius: RADIUS.dialog,
+      background: "rgba(38,50,112,0.96)", border: "1px solid rgba(255,255,255,0.28)",
       backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 12px 32px rgba(12,16,44,0.28)" }}>
       <TitleTag title={title} style={{ flex: 1, minWidth: 0, margin: 0, fontFamily: SANS, fontWeight: 800,
-        fontSize: isMobile ? "1.15rem" : "1.6rem", color: WHITE, letterSpacing: "-0.02em", lineHeight: 1.2,
-        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        fontSize: isMobile ? "1.1rem" : "1.6rem", color: WHITE, letterSpacing: "-0.02em", lineHeight: 1.25,
+        display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+        overflowWrap: "anywhere" }}>
         {title}
       </TitleTag>
-      {/* Unlit, the count stays full white: the grey flame already says the
-          streak is not alive today, and a dimmed number fell under 4.5:1. */}
+      {/* Gold beside a lit flame, white beside an unlit one; the flame says
+          the same thing, so the colour is never the only cue. */}
       <span role="img" aria-label={`${streak} day streak${streakLit ? "" : ", not yet kept today"}`}
         title={`${streak} day streak`}
         style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, fontFamily: SANS, fontWeight: 800,
-          fontSize: isMobile ? "1rem" : "1.1rem", color: streakLit ? "#ffd27a" : WHITE,
+          fontSize: isMobile ? "1rem" : "1.1rem", color: streakLit ? FLAME_GOLD : WHITE,
           fontVariantNumeric: "tabular-nums", background: glass, border: `1px solid ${glassLine}`, borderRadius: RADIUS.pill,
           padding: isMobile ? "3px 10px 3px 7px" : "4px 12px 4px 8px" }}>
         <Flame size={isMobile ? 20 : 22} lit={streakLit} animate={streakLit} streak={streak} /> {streak}
       </span>
-      <div style={{ flexShrink: 0 }}><LevelChip stats={stats} compact={isMobile} onDark /></div>
+      {!isMobile && stats && (
+        <div role="img" aria-label={levelLabel} style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <LevelChip stats={stats} onDark />
+          <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.9rem", color: WHITE, whiteSpace: "nowrap",
+            fontVariantNumeric: "tabular-nums" }}>
+            {stats.into_level}/{stats.level_span} XP
+          </span>
+        </div>
+      )}
       {menu && menu.length > 0 && (
         <div ref={ref} style={{ position: "relative", flexShrink: 0 }}>
           <button ref={trigger} type="button" aria-label="Quest options" aria-haspopup="menu" aria-expanded={open}
@@ -111,64 +125,82 @@ export function TopBar({ title, stats, streakLit, menu, isMobile, headingAs: Tit
 }
 
 /** Pins the top bar while the map scrolls. Anything absolutely placed inside
- *  it (the catch-up pill, the skip link) hangs just under the bar. */
+ *  it (the catch-up pill, the skip link) hangs just under the bar.
+ *  It sticks at the very top with a 10px strip above the bar, and that strip
+ *  blurs what scrolls under it: the scene's smooth colours come through
+ *  unchanged, while a plate or a stone passing under is only a soft smudge
+ *  instead of sharp text peeking out above the bar. */
 export const StickyHeader = forwardRef(function StickyHeader({ children }, ref) {
   return (
-    <div ref={ref} style={{ position: "sticky", top: 10, zIndex: 20, paddingBottom: 10 }}>
-      {children}
+    <div ref={ref} style={{ position: "sticky", top: 0, zIndex: 20, marginTop: -10, paddingTop: 10, paddingBottom: 10 }}>
+      <div aria-hidden="true" style={{ position: "absolute", top: 0, left: 0, right: 0, height: 34, pointerEvents: "none",
+        backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
+        maskImage: "linear-gradient(to bottom, #000 10px, transparent)",
+        WebkitMaskImage: "linear-gradient(to bottom, #000 10px, transparent)" }} />
+      <div style={{ position: "relative" }}>{children}</div>
     </div>
   );
 });
 
 // ─── Banners ──────────────────────────────────────────────────────────────────
 
-/** A banner on the map: soft amber for being behind, a white card otherwise. */
-const Strip = forwardRef(function Strip({ tone = "amber", children, action }, ref) {
-  const amber = tone === "amber";
+/** A notice on the map: the kit's Notice (warn for being behind, info
+ *  otherwise) with its actions under the words. On a phone the actions stack
+ *  at full width, as page-level buttons do on Portfolio. */
+const MapNotice = forwardRef(function MapNotice({ tone = "warn", children, actions, isMobile }, ref) {
   return (
     <motion.div ref={ref} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-      style={{ display: "flex", alignItems: "center", gap: "12px 16px", flexWrap: "wrap", margin: "4px auto 0", maxWidth: 640,
-        background: amber ? AMBER_WASH : WHITE, borderRadius: RADIUS.card, padding: "14px 16px 14px 18px", boxSizing: "border-box",
-        border: `1px solid ${amber ? AMBER_LINE : LINE}` }}>
-      <div style={{ flex: "1 1 260px", minWidth: 0, fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: INK, lineHeight: 1.5 }}>
+      style={{ maxWidth: 640, margin: "4px auto 0" }}>
+      <Notice tone={tone} action={actions ? (
+        <div style={isMobile ? { display: "grid", gap: 8, marginTop: 4 }
+          : { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 4 }}>
+          {actions}
+        </div>
+      ) : null}>
         {children}
-      </div>
-      {action}
+      </Notice>
     </motion.div>
   );
 });
 
-/** The backlog, in the scene above the map. On a comeback visit it greets the
- *  student, and after a long gap it offers to count the time away as a break. */
-export const CatchUpBanner = forwardRef(function CatchUpBanner({ state, onCatchUp, onBreak, onGoToday }, ref) {
+/** The backlog. It sits just above today's callout (or above the map when
+ *  today is not a work day), so the page lands on it. On a comeback visit it
+ *  greets the student, and after a long gap it offers to count the time away
+ *  as a break, with one recommended choice. */
+export const CatchUpBanner = forwardRef(function CatchUpBanner({ state, onCatchUp, onBreak, isMobile }, ref) {
   const b = state.backlog || {};
   const w = state.welcome_back || {};
   if (!b.count || state.today_state === "blocked") return null;
-  const them = b.in_current === 1 ? "it" : "them";
+  const them = b.count === 1 ? "it" : "them";
+  const offerBreak = !!(w.show && w.offer_break && onBreak);
+  // The rule the copy already states: after a week or more away the break
+  // fits better; a shorter gap is worth catching up.
+  const breakFirst = offerBreak && (w.gap ?? 7) >= 7;
+  const by = b.catch_up_by ? relativeDay(b.catch_up_by, state.today) : null;
   const gate = b.unlocks_milestone && b.in_current
-    ? ` Clear ${b.in_current === b.count ? them : `the ${b.in_current} in this milestone`} to unlock Milestone ${b.unlocks_milestone}.`
+    ? `Clear ${b.in_current === b.count ? them : `the ${b.in_current} in this milestone`} to unlock Milestone ${b.unlocks_milestone}.`
     : "";
-  const offerBreak = w.show && w.offer_break && onBreak;
+  const detail = offerBreak
+    ? (by ? `Two a day clears ${them} by ${by}, or you can count the time away as a break.`
+      : "Catch up, or count the time away as a break.")
+    : [gate, by ? `Two a day clears ${them} by ${by}.` : ""].filter(Boolean).join(" ");
+  const full = isMobile ? { width: "100%" } : undefined;
+  const catchUp = b.oldest_doable_slot
+    ? (breakFirst
+      ? <Button key="catch" onClick={onCatchUp} style={full}>Catch up</Button>
+      : <Chunky key="catch" tone="amber" onClick={onCatchUp} full={isMobile}>Catch up</Chunky>)
+    : null;
+  const takeBreak = offerBreak
+    ? (breakFirst
+      ? <Chunky key="break" onClick={onBreak} full={isMobile}>Count it as a break</Chunky>
+      : <Button key="break" onClick={onBreak} style={full}>Count it as a break</Button>)
+    : null;
+  const actions = breakFirst ? [takeBreak, catchUp] : [catchUp, takeBreak];
   return (
-    <Strip ref={ref} action={
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-        {b.oldest_doable_slot ? <Chunky small tone="amber" onClick={onCatchUp}>Catch up</Chunky> : null}
-        {offerBreak && <Button onClick={onBreak}>Count it as a break</Button>}
-        {offerBreak && onGoToday && <Button kind="quiet" onClick={onGoToday}>Go to today</Button>}
-      </div>
-    }>
-      <strong>{w.show ? "Welcome back. " : ""}You're {b.count} task{b.count === 1 ? "" : "s"} behind.</strong>{gate}
-      {b.catch_up_by && (
-        <span style={{ display: "block", color: MID, marginTop: 4 }}>
-          Two a day clears {b.count === 1 ? "it" : "them"} by {relativeDay(b.catch_up_by, state.today)}.
-        </span>
-      )}
-      {offerBreak && (
-        <span style={{ display: "block", color: MID, marginTop: 4 }}>
-          That is a lot to make up. You can count the time away as a break instead.
-        </span>
-      )}
-    </Strip>
+    <MapNotice ref={ref} isMobile={isMobile} actions={actions.some(Boolean) ? actions : null}>
+      <strong style={{ fontWeight: 800 }}>{w.show ? "Welcome back. " : ""}You're {b.count} task{b.count === 1 ? "" : "s"} behind.</strong>
+      {detail && <span style={{ display: "block", marginTop: 2 }}>{detail}</span>}
+    </MapNotice>
   );
 });
 
@@ -185,8 +217,7 @@ export function CatchUpPill({ state, onCatchUp }) {
       <button type="button" onClick={onCatchUp} className={FOCUS_CLASS}
         style={{ pointerEvents: "auto", display: "inline-flex", alignItems: "center", gap: 8, minHeight: 44,
           padding: "0 16px", borderRadius: RADIUS.pill, border: `1px solid ${AMBER_LINE}`, background: AMBER_WASH,
-          color: AMBER, fontFamily: SANS, fontSize: "1rem", fontWeight: 600, cursor: "pointer",
-          boxShadow: "0 6px 18px rgba(12,16,44,0.16)" }}>
+          color: AMBER, fontFamily: SANS, fontSize: "1rem", fontWeight: 600, cursor: "pointer" }}>
         <strong style={{ fontWeight: 800 }}>{b.count} behind</strong>
         <span aria-hidden="true">·</span>
         <span style={{ fontWeight: 700, textDecoration: "underline", textUnderlineOffset: 3 }}>Catch up</span>
@@ -195,13 +226,14 @@ export function CatchUpPill({ state, onCatchUp }) {
   );
 }
 
-export function DeadlineNotice({ state, onAskAdvisor }) {
+export function DeadlineNotice({ state, onAskAdvisor, isMobile }) {
   if (!state.deadline_risk || !state.quest?.hard_deadline) return null;
   return (
-    <Strip action={<Chunky small tone="quiet" onClick={onAskAdvisor}>Ask your advisor</Chunky>}>
+    <MapNotice isMobile={isMobile}
+      actions={<Button onClick={onAskAdvisor} style={isMobile ? { width: "100%" } : undefined}>Ask your advisor</Button>}>
       At this pace you finish {formatDay(state.projected_finish)}, after your {formatDay(state.quest.hard_deadline)} deadline.
       Your advisor can trim the milestones that have not started.
-    </Strip>
+    </MapNotice>
   );
 }
 
@@ -217,17 +249,68 @@ export function RestNote({ state }) {
   );
 }
 
-export function PausedCard({ state, onResume, onRetire, busy }) {
+export function PausedCard({ state, onResume, onRetire, busy, isMobile }) {
   return (
-    <Strip tone="accent" action={
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <Chunky small onClick={onResume} disabled={busy}>Resume</Chunky>
-        <Button onClick={onRetire}>Retire</Button>
-      </div>
-    }>
-      <strong>Quest paused since {formatDay(state.quest?.paused_on)}.</strong> Your streak and progress are safe,
-      and the rest of the quest picks up from the day you come back.
-    </Strip>
+    <MapNotice tone="info" isMobile={isMobile} actions={[
+      <Chunky key="resume" onClick={onResume} disabled={busy} full={isMobile}>Resume</Chunky>,
+      <Button key="retire" onClick={onRetire} style={isMobile ? { width: "100%" } : undefined}>Retire</Button>,
+    ]}>
+      <strong style={{ fontWeight: 800 }}>Quest paused since {formatDay(state.quest?.paused_on)}.</strong> Your streak and
+      progress are safe, and the rest of the quest picks up from the day you come back.
+    </MapNotice>
+  );
+}
+
+// ─── How Quest works ──────────────────────────────────────────────────────────
+
+const RULES = [
+  ["check", "Each scheduled day has one small task. Check in with a line or two about what you did."],
+  ["clock", "Checking in on the day keeps your streak going. Rest days never break it."],
+  ["star", "A missed day turns amber and waits for you. Catching it up earns the same XP, but only check-ins on the day count for the streak."],
+  ["lock", "The next milestone unlocks once every day in this one is done. Tap a done stone to reread what you wrote."],
+];
+
+/** The rules in four lines, from the options menu or the first-visit tip. */
+export function RulesSheet({ stats, onClose }) {
+  const titleId = useId();
+  return (
+    <Dialog onClose={onClose} labelledBy={titleId} width={480}>
+      <Heading id={titleId} style={{ margin: "0 0 14px" }}>How Quest works</Heading>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+        {RULES.map(([stamp, text]) => (
+          <li key={stamp} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <StampTile kind={stamp} size={32} />
+            <span style={{ flex: 1, minWidth: 0, fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: MID, lineHeight: 1.5, paddingTop: 4 }}>
+              {text}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {stats && (
+        <p style={{ margin: "16px 0 0", fontFamily: SANS, fontSize: "1rem", fontWeight: 700, color: INK, lineHeight: 1.5,
+          background: SURFACE, border: `1px solid ${LINE}`, borderRadius: RADIUS.control, padding: "10px 14px",
+          fontVariantNumeric: "tabular-nums" }}>
+          Level {stats.level}: {stats.into_level} of {stats.level_span} XP to level {stats.level + 1}.
+        </p>
+      )}
+      <div style={{ marginTop: 18 }}><Chunky full onClick={onClose} data-autofocus>Got it</Chunky></div>
+    </Dialog>
+  );
+}
+
+/** A one-time pointer to the rules, shown above today's callout until the
+ *  student dismisses it. */
+export function RulesTip({ onOpen, onDismiss, isMobile }) {
+  return (
+    <div style={{ maxWidth: 640, margin: "4px auto 0" }}>
+      <Tip stamp="question" name="Quest tip">
+        <strong style={{ fontWeight: 800 }}>New to Quest?</strong> Check in each work day to keep your streak going.
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
+          <Button onClick={onOpen}>How it works</Button>
+          <Button kind="quiet" onClick={onDismiss} style={isMobile ? { paddingLeft: 12, paddingRight: 12 } : undefined}>Got it</Button>
+        </div>
+      </Tip>
+    </div>
   );
 }
 
@@ -250,9 +333,9 @@ export function MilestoneCard({ milestone, next, onClose }) {
         <p style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "1rem", color: c.text }}>
           Milestone {milestone.position} complete, +50 XP
         </p>
-        <h2 id={titleId} style={{ margin: "6px 0 14px", fontFamily: SANS, fontWeight: 800, fontSize: "1.45rem", color: INK, lineHeight: 1.25 }}>
+        <Heading id={titleId} style={{ margin: "6px 0 14px" }}>
           {milestone.title}
-        </h2>
+        </Heading>
       </div>
       {milestone.lines?.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, margin: "0 0 18px" }}>
@@ -316,7 +399,7 @@ export function ConfirmModal({ title, body, confirm, cancel = "Keep going", onCo
   const titleId = useId();
   return (
     <Dialog onClose={onClose} locked={busy} labelledBy={titleId} width={420}>
-      <h2 id={titleId} style={{ margin: "0 0 8px", fontFamily: SANS, fontWeight: 800, fontSize: "1.25rem", color: INK }}>{title}</h2>
+      <Heading id={titleId} style={{ margin: "0 0 8px" }}>{title}</Heading>
       <p style={{ margin: "0 0 20px", fontFamily: SANS, fontSize: "1rem", color: MID, lineHeight: 1.6 }}>{body}</p>
       <div style={{ display: "flex", gap: 10 }}>
         <Chunky tone="quiet" onClick={onClose} disabled={busy} style={{ flex: 1 }} data-autofocus>{cancel}</Chunky>
@@ -351,7 +434,7 @@ export function PaceModal({ quest, onSave, onClose, isMobile }) {
   };
   return (
     <Dialog onClose={onClose} locked={busy} labelledBy={titleId} width={460}>
-      <h2 id={titleId} style={{ margin: "0 0 16px", fontFamily: SANS, fontWeight: 800, fontSize: "1.3rem", color: INK }}>Change pace</h2>
+      <Heading id={titleId} style={{ margin: "0 0 16px" }}>Change pace</Heading>
       <GroupLabel>Time a day</GroupLabel>
       <ChoiceChips label="Time a day" hideLabel options={MINUTE_OPTIONS} value={minutes} onChange={setMinutes} isMobile={isMobile} />
       <GroupLabel id={restId} style={{ marginTop: 18 }}>Rest days</GroupLabel>
@@ -421,7 +504,7 @@ export function PortfolioDraftModal({ draft, loading, error, onSave, onClose }) 
 
   return (
     <Dialog onClose={onClose} locked={busy} labelledBy={titleId} width={560}>
-      <h2 id={titleId} style={{ margin: "0 0 6px", fontFamily: SANS, fontWeight: 800, fontSize: "1.3rem", color: INK }}>Add to your activities</h2>
+      <Heading id={titleId} style={{ margin: "0 0 6px" }}>Add to your activities</Heading>
       <p style={{ margin: "0 0 18px", fontFamily: SANS, fontSize: "1rem", color: MUTED, lineHeight: 1.55 }}>
         Drafted from your check-ins in Common App format. Change anything that is not quite right.
       </p>

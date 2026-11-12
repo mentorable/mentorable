@@ -19,10 +19,11 @@ colors:
   amber-edge: "#d97706"
   quest-stone: "#e6e3de"
   quest-stone-edge: "#cfcac2"
-  quest-bar-navy: "rgba(38,50,112,0.9)"
+  quest-bar-navy: "rgba(38,50,112,0.96)"
   flame-deep: "#C24E00"
   flame-body: "#FF8A00"
   flame-core: "#FFD23F"
+  flame-gold: "#ffdc8f"
 typography:
   display: { fontFamily: "Raleway, sans-serif", fontSize: "2.5rem", fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.03em" }
   headline: { fontFamily: "Raleway, sans-serif", fontSize: "1.3rem", fontWeight: 800, lineHeight: 1.3, letterSpacing: "-0.01em" }
@@ -59,6 +60,8 @@ components:
   button-secondary: { backgroundColor: "{colors.card-white}", textColor: "{colors.ink-mid}", typography: "{typography.label}", rounded: "{rounded.control}", padding: "10px 18px", height: "44px" }
   button-quiet: { textColor: "{colors.accent}", typography: "{typography.label}", rounded: "{rounded.control}", padding: "10px 18px", height: "44px" }
   button-danger: { backgroundColor: "{colors.card-white}", textColor: "{colors.danger}", typography: "{typography.label}", rounded: "{rounded.control}", padding: "10px 18px", height: "44px" }
+  button-warn: { backgroundColor: "{colors.amber-wash}", textColor: "{colors.amber-text}", typography: "{typography.label}", rounded: "{rounded.control}", padding: "10px 18px", height: "44px" }
+  tag: { backgroundColor: "{colors.accent}", textColor: "{colors.accent}", typography: "{typography.caption}", rounded: "{rounded.pill}", padding: "3px 10px" }
   card: { backgroundColor: "{colors.card-white}", rounded: "{rounded.card}", padding: "{spacing.card-pad}" }
   section-card: { backgroundColor: "{colors.card-white}", rounded: "{rounded.card}", padding: "{spacing.section-card-pad}" }
   inset-panel: { backgroundColor: "{colors.inset-surface}", rounded: "{rounded.control}" }
@@ -126,13 +129,13 @@ One per-student accent over warm, near-neutral greys, plus amber for "behind".
 - **Label / Chip**: buttons and field labels; choice-chip pills.
 - **Caption**: the floor (speech-bubble name tab, small plate labels). Nothing smaller.
 
-**The Text Floor Rule.** No text under 0.9rem and no text lighter than Ink Muted (`#494742`). Field hints at 0.92rem are the smallest body copy in the kit.
+**The Text Floor Rule.** No text under 0.9rem and no text lighter than Ink Muted (`#494742`). Field hints sit on the caption step, 0.9rem; there are no in-between sizes (0.92, 0.98, 1.05rem) in the kit.
 
 **The No Em Dash Rule.** No em dashes in user-facing copy, model prompts included.
 
 ## Layout
 
-- **Page frame:** `pageStyle({ isMobile, sidebar, ink })` gives Page Grey, `minHeight: 100vh`, padding `2.5rem 2rem 4rem` with `calc(sidebar + 2rem)` on the left (Sidebar is 220px), and `1.5rem 1rem 8.5rem` on mobile (room for the 60px bottom nav and the floating feedback button above it). It also sets `--ag-ring` so every focus ring inside uses the accent.
+- **Page frame:** `pageStyle({ isMobile, sidebar, ink })` gives Page Grey, `minHeight: 100vh`, padding `2.5rem 2rem 4rem` with `calc(sidebar + 2rem)` on the left (Sidebar is 220px), and `1.5rem 1rem 8.5rem` on mobile (room for the 60px bottom nav and the floating feedback button above it). The padding comes as four longhands, so a page may override one side (Quest's map zeroes the top); never spread it and then set the `padding` shorthand. It also sets `--ag-ring` so every focus ring inside uses the accent.
 - **Column:** one centred column, `maxWidth: 880`, `margin: 0 auto`.
 - **Header pattern:** `PageHeader` (title, muted lead, optional action on the right, 1.6rem below), then a `Tip` immediately under it when the page has a next step or guide line (Portfolio's "Next step", College List's "Start here"). Then the content cards.
 - **Rhythm:** section cards stack with about 1.25rem between them (College List uses a 22px / 18px flex gap); items inside a section are smaller control-radius cards 10px apart.
@@ -146,15 +149,16 @@ Flat by default. Depth comes from tone (grey page, white card, Inset Surface pan
 
 ## Shapes
 
-Gently rounded: controls and inset items 12px, cards and the Tip card 16px, dialogs and the Quest bar 20px, pills and chips fully round. Always through `RADIUS` (`card`, `control`, `pill`). Lines are 1px Warm Border; focus rings are 3px accent outlines offset 2px. The one stepped, square silhouette is pixel art: the stamps, the stones and the speech bubble's stepped corners.
+Gently rounded: controls and inset items 12px, cards and the Tip card 16px, dialogs and the Quest bar 20px, pills and chips fully round. Always through `RADIUS` (`control`, `card`, `dialog`, `pill`). Lines are 1px Warm Border; focus rings are 3px accent outlines offset 2px. The one stepped, square silhouette is pixel art: the stamps, the stones and the speech bubble's stepped corners.
 
 ## Components
 
 ### Buttons (`Button`, `LinkButton`)
 Flat and steady, 44px minimum, 1rem 700 labels, 10px 18px padding, control radius.
 - **Primary:** the readable accent fill, white label. Darkens slightly on hover, moves 1px down on press (`PRESS_CLASS`, off under reduced motion).
-- **Secondary:** white with a Warm Border stroke and Ink Mid label. **Quiet:** text only in the page-safe accent. **Danger:** white with a Danger stroke and label.
-- Quest's `Chunky` and College List's `Raised` are thin wrappers over `Button`, not separate styles.
+- **Secondary:** white with a Warm Border stroke and Ink Mid label. **Quiet:** text only in the page-safe accent; on hover and keyboard focus it gets a Page Grey tint and an underline (`QUIET_CLASS`), so the cue shows on a white card and on the grey page. **Danger:** white with a Danger stroke and label.
+- **Warn:** Amber Wash with a 1.5px Amber Edge stroke and Amber Text label. The one amber button, for catching up (Quest's Catch up); never for errors.
+- Quest's `Chunky` (its `tone="amber"` is `kind="warn"`) and College List's `Raised` are thin wrappers over `Button`, not separate styles.
 
 ### Cards (`Card`)
 White, 1px Warm Border, card radius, `1.1rem 1.2rem` padding, no shadow. A section card (Portfolio's `SectionCard`) pads 1.3rem and opens with a 40px `StampTile` beside a `Heading`, an optional count in Ink Muted, an action on the right, and a 62ch hint.
@@ -163,7 +167,7 @@ White, 1px Warm Border, card radius, `1.1rem 1.2rem` padding, no shadow. A secti
 A pixel stamp on a control-radius tile in `ink.softer` with a `soft` border and `onSoft` stamp; unlit tiles go grey. Stamps: letter, check, clock, star, sparkle, question, peak, target, flag, scroll, chat, person, lock, and the two-tone 16px reportcard, answersheet, notebook, rocket, trophy, resume. Drawn crisp at whole pixels.
 
 ### Tip
-The guide line for tips, next steps and empty states: a 40px stamp tile in `ink.soft` beside a plain card (max 640px, 12px 16px padding, card radius, body text). Tone `accent` uses `softer` with a `soft` border; tone `default` is white with Warm Border. Tip is not a speech bubble.
+The guide line for tips, next steps and empty states: a 40px stamp tile in `ink.soft` beside a plain card (max 640px by default, 12px 16px padding, card radius, body text). `maxWidth="none"` lets a read-out with no action (Portfolio's "Your record") run the column beside full-width cards. Tone `accent` uses `softer` with a `soft` border; tone `default` is white with Warm Border. Tip is not a speech bubble.
 
 ### SpeechBubble and MascotSays
 The game dialog box: a 2px Ink frame with three-step stepped corners (clip-path), a name tab on the top edge, and a pixel wedge tail. It belongs to the agent mascots (`MascotSays` on the Finder and Outreach boards, in waiting and empty states), where the mascot sits beside or above it. The 2px frame is part of the pixel art.
@@ -172,7 +176,8 @@ The game dialog box: a 2px Ink frame with three-step stepped corners (clip-path)
 - **Input (`inputStyle`):** white, Warm Border stroke, control radius, 46px, 3px accent outline on focus.
 - **ChoiceChips:** pills, 44px tall; selected is `softer` fill, accent stroke, `onSoft` label.
 - **Notice:** control radius, tones info (Inset Surface), success (accent `softer`), warn (amber), error (Error Wash).
-- **Toast:** a Notice fixed above the mobile nav, white, the one kit piece with a shadow.
+- **Toast:** a Notice fixed above the mobile nav, white, the one kit piece with a shadow. On a phone it starts 68px from the left, clear of MobileNav's floating feedback button.
+- **Tag:** a small label pill, not a control (an item's kind, "Needs detail"): 0.9rem 700 `onSoft` on `softer` with a `soft` border, pill radius, an optional 16px stamp.
 - **Dialogs:** the kit `Sheet` (`src/components/ui/Sheet.jsx`, exported from `kit.jsx`; the old `agents/outreach/Sheet.jsx` path re-exports it): a bottom sheet on phones, a centred 20px white card on wider screens, focus trapped and returned.
 - **ChoiceChips** also does several-at-once (`multi`) and a label above the pills (`labelAbove`) for form fields. **RemoveButton** is the one "× Remove" control (`iconOnly` on tight cards). **Toast** draws Undo and owns its Ctrl/Cmd+Z when the notice carries `undo`.
 
@@ -181,10 +186,10 @@ Sidebar (220px) and MobileNav (60px bottom bar). Both predate the kit: active it
 
 ### Intentional Exceptions: Quest's game pieces
 These are deliberate and must not be scored as inconsistency:
-- **Navy glass top bar** (`QuestPanels.jsx` `TopBar`, commit 3e51196): Quest Bar Navy at 0.9 alpha, white title, 20px radius, backdrop blur, soft shadow, sticky over the scene.
+- **Navy glass top bar** (`QuestPanels.jsx` `TopBar`, commit 3e51196): Quest Bar Navy at 0.96 alpha, white title, 20px radius (`RADIUS.dialog`), backdrop blur, soft shadow, sticky over the scene.
 - **The sky scene** (`SkyBackdrop.jsx`, commit 2f3e032): beach to space, drawn smooth with gradients, gently animated, still under reduced motion. Its blues and other illustration colours are not UI colour and are exempt from the Accent Through Ink Rule.
 - **Pixel stones and milestone flags**: stepped 4px-grid discs with a one-pixel-row edge, in the accent when done, Quest Stone when ahead, amber dashed when missed; milestone plates use a flag StampTile.
-- **The streak flame**: real fire colours (Flame Deep, Body, Core), never the accent, since a blue flame reads as a drop; a sticker below `FLAME_GROWS_AT` (7 days), a three-tongue campfire from then on.
+- **The streak flame**: real fire colours (Flame Deep, Body, Core), never the accent, since a blue flame reads as a drop; a sticker below `FLAME_GROWS_AT` (7 days), a three-tongue campfire from then on. Beside a lit flame the top bar's count is Flame Gold (`FLAME_GOLD` in `questUi.jsx`, 5.6:1 or better on the bar's glass pill), white beside an unlit one; it is only for text on that dark glass.
 
 ## Do's and Don'ts
 

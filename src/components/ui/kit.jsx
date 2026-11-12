@@ -3,7 +3,7 @@ import Spinner from "../common/Spinner.jsx";
 import { readableOn } from "../../lib/theme.js";
 import { PixelStamp, stampWidth } from "./PixelIcons.jsx";
 import {
-  AMBER_BG, AMBER_LINE, AMBER_TEXT, BG, BORDER, DANGER, DANGER_BG, DANGER_LINE, FOCUS_CLASS, PRESS_CLASS, RADIUS, SANS,
+  AMBER_BG, AMBER_EDGE, AMBER_LINE, AMBER_TEXT, BG, BORDER, DANGER, DANGER_BG, DANGER_LINE, FOCUS_CLASS, PRESS_CLASS, RADIUS, SANS,
   SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, ringVar, useAgentInk,
 } from "./tokens.js";
 
@@ -20,6 +20,7 @@ export const INPUT_CLASS = "oa-input";
 export const CHOICE_CLASS = "oa-choice";
 export const LINK_CLASS = "oa-link";
 export const REMOVE_CLASS = "ui-remove";
+export const QUIET_CLASS = "ui-quiet";
 
 const KIT_CSS = `
 .${INPUT_CLASS} { transition: border-color 0.15s; }
@@ -30,6 +31,8 @@ const KIT_CSS = `
 .ui-page input::placeholder, .ui-page textarea::placeholder { color: ${TEXT_MUTED}; opacity: 1; }
 .${REMOVE_CLASS} { color: ${TEXT_MID}; background: none; transition: color 0.15s, background 0.15s; }
 .${REMOVE_CLASS}:hover, .${REMOVE_CLASS}:focus-visible { color: ${DANGER}; background: ${BG}; }
+.${QUIET_CLASS} { background: transparent; transition: background 0.15s; }
+.${QUIET_CLASS}:hover:not(:disabled), .${QUIET_CLASS}:focus-visible { background: ${BG}; text-decoration: underline; text-underline-offset: 3px; }
 `;
 if (typeof document !== "undefined" && !document.querySelector("style[data-ui-kit]")) {
   const el = document.createElement("style");
@@ -51,7 +54,10 @@ export function textOnPage(ink) {
 }
 
 /** kind: "primary" (the readable accent fill), "secondary" (outlined),
- *  "quiet" (text only), "danger". Always at least 44px tall. */
+ *  "quiet" (text only; on hover or keyboard focus a grey tint and an
+ *  underline, so the cue shows on a white card and on the grey page alike),
+ *  "danger", "warn" (amber, the one button for catching up: being behind is
+ *  amber, never red). Always at least 44px tall. */
 export function Button({ kind = "secondary", busy = false, disabled, children, style, type = "button", ...rest }) {
   const ink = useAgentInk();
   const off = disabled || busy;
@@ -60,11 +66,14 @@ export function Button({ kind = "secondary", busy = false, disabled, children, s
   const look = {
     primary: { background: ink.button.bg, color: ink.button.fg, border: `2px solid ${ink.button.bg}` },
     secondary: { background: WHITE, color: TEXT_MID, border: `1.5px solid ${BORDER}` },
-    quiet: { background: "transparent", color: quietText, border: "1.5px solid transparent" },
+    // No background here: QUIET_CLASS sets it, so its hover tint can win.
+    quiet: { color: quietText, border: "1.5px solid transparent" },
     danger: { background: WHITE, color: DANGER, border: `1.5px solid ${DANGER}` },
-  }[kind];
+    warn: { background: AMBER_BG, color: AMBER_TEXT, border: `1.5px solid ${AMBER_EDGE}` },
+  }[kind] || {};
+  const cls = kind === "primary" ? PRESS_CLASS : kind === "quiet" ? QUIET_CLASS : "";
   return (
-    <button type={type} className={`${FOCUS_CLASS} ${kind === "primary" ? PRESS_CLASS : ""}`} disabled={off}
+    <button type={type} className={`${FOCUS_CLASS} ${cls}`} disabled={off}
       aria-busy={busy || undefined}
       style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 700, minHeight: 44, padding: "10px 18px",
         borderRadius: RADIUS.control, cursor: off ? "default" : "pointer", display: "inline-flex", alignItems: "center",
@@ -95,12 +104,12 @@ export function LinkButton({ href, disabled = false, children, style, ...rest })
 }
 
 /** A white card, the calm shell's one container. */
-export function Card({ children, style, as: Tag = "div", ...rest }) {
+export function Card({ children, style, as: El = "div", ...rest }) {
   return (
-    <Tag style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: RADIUS.card, padding: "1.1rem 1.2rem",
+    <El style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: RADIUS.card, padding: "1.1rem 1.2rem",
       boxSizing: "border-box", minWidth: 0, ...style }} {...rest}>
       {children}
-    </Tag>
+    </El>
   );
 }
 
@@ -112,7 +121,7 @@ export function FieldLabel({ htmlFor, children, hint, optional }) {
         {optional && <span style={{ fontWeight: 600, color: TEXT_MUTED }}> (optional)</span>}
       </label>
       {hint && (
-        <p style={{ margin: "2px 0 0", fontFamily: SANS, fontSize: "0.92rem", color: TEXT_MUTED, lineHeight: 1.5 }}>{hint}</p>
+        <p style={{ margin: "2px 0 0", fontFamily: SANS, fontSize: "0.9rem", color: TEXT_MUTED, lineHeight: 1.5 }}>{hint}</p>
       )}
     </div>
   );
@@ -164,12 +173,12 @@ export function Notice({ tone = "info", children, onDismiss, style, action }) {
 
 /** A section heading inside a step or the review screen. */
 export function Heading({ children, id, level = 2, style }) {
-  const Tag = level === 3 ? "h3" : "h2";
+  const El = level === 3 ? "h3" : "h2";
   return (
-    <Tag id={id} style={{ margin: 0, fontFamily: SANS, fontWeight: 800, color: TEXT, letterSpacing: "-0.01em",
+    <El id={id} style={{ margin: 0, fontFamily: SANS, fontWeight: 800, color: TEXT, letterSpacing: "-0.01em",
       fontSize: level === 3 ? "1.1rem" : "1.3rem", lineHeight: 1.3, ...style }}>
       {children}
-    </Tag>
+    </El>
   );
 }
 
@@ -202,11 +211,15 @@ export function PageHeader({ title, children, action, isMobile, style }) {
 /** The standard page wrapper: grey page, sidebar offset, the focus ring
  *  colour set once for everything inside. On a phone the bottom padding
  *  clears the 60px nav and the floating feedback button above it, so the
- *  last button on a page is never under either. */
+ *  last button on a page is never under either. The padding is four
+ *  longhands, never the shorthand, so a page can override one side (Quest's
+ *  map zeroes the top) without React warning about a conflicting property. */
 export function pageStyle({ isMobile, sidebar = 0, ink }) {
   return {
     minHeight: "100vh", background: BG, fontFamily: SANS, boxSizing: "border-box",
-    padding: isMobile ? "1.5rem 1rem 8.5rem" : "2.5rem 2rem 4rem",
+    paddingTop: isMobile ? "1.5rem" : "2.5rem",
+    paddingRight: isMobile ? "1rem" : "2rem",
+    paddingBottom: isMobile ? "8.5rem" : "4rem",
     paddingLeft: isMobile ? "1rem" : `calc(${sidebar}px + 2rem)`,
     ...ringVar(ink),
   };
@@ -232,8 +245,9 @@ export function StampTile({ kind, size = 40, lit = true, title }) {
 
 /** A guide line: a pixel stamp beside a plain card. For tips, next steps and
  *  empty states on every page. `name` says whose line it is, to screen
- *  readers only. */
-export function Tip({ name, stamp = "sparkle", tone = "accent", children, style }) {
+ *  readers only. `maxWidth`: the card's cap (640 by default, a comfortable
+ *  measure); "none" lets a read-out line run the column beside full-width cards. */
+export function Tip({ name, stamp = "sparkle", tone = "accent", maxWidth = 640, children, style }) {
   const ink = useAgentInk();
   const accent = tone === "accent";
   return (
@@ -242,7 +256,7 @@ export function Tip({ name, stamp = "sparkle", tone = "accent", children, style 
         background: ink.soft, color: ink.onSoft, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
         <PixelStamp kind={stamp} size={24} />
       </span>
-      <div style={{ flex: "1 1 auto", minWidth: 0, maxWidth: 640, boxSizing: "border-box", padding: "12px 16px",
+      <div style={{ flex: "1 1 auto", minWidth: 0, maxWidth, boxSizing: "border-box", padding: "12px 16px",
         background: accent ? ink.softer : WHITE, border: `1px solid ${accent ? ink.soft : BORDER}`,
         borderRadius: RADIUS.card, fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT, lineHeight: 1.5,
         overflowWrap: "anywhere" }}>
@@ -310,6 +324,21 @@ export function ChoiceChips({ label, options, value, onChange, isMobile, hideLab
   );
 }
 
+/** A small label pill (an item's kind, "Needs detail"): the accent tint with
+ *  its readable ink, at the 0.9rem caption step, with an optional 16px pixel
+ *  stamp before the words. Not a control: for a choice use ChoiceChips. */
+export function Tag({ children, stamp, style }) {
+  const ink = useAgentInk();
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: "0.9rem",
+      fontWeight: 700, lineHeight: 1.3, color: ink.onSoft, background: ink.softer, border: `1px solid ${ink.soft}`,
+      borderRadius: RADIUS.pill, padding: "3px 10px", boxSizing: "border-box", maxWidth: "100%", ...style }}>
+      {stamp && <PixelStamp kind={stamp} size={16} />}
+      {children}
+    </span>
+  );
+}
+
 // ─── Remove ──────────────────────────────────────────────────────────────────
 
 const RemoveX = ({ size = 16 }) => (
@@ -342,7 +371,9 @@ export function RemoveButton({ onClick, name, iconOnly = false, disabled, style,
 const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
 /** A notice that floats at the bottom of the screen (above the mobile nav),
- *  so feedback for an action stays in view wherever the action was. Polite
+ *  so feedback for an action stays in view wherever the action was. On a
+ *  phone it starts right of MobileNav's floating feedback button (12px gutter,
+ *  the 44px button, 12px gap), so it never covers it. Polite
  *  live region; errors use the error tone.
  *
  *  `notice`: { text, error, action, undo }. `action` is any element (a Retry
@@ -374,7 +405,7 @@ export function Toast({ notice, onDismiss, isMobile, sidebar = 0 }) {
 
   return (
     <div aria-live="polite" style={{ position: "fixed", zIndex: 300, pointerEvents: "none", display: "flex",
-      justifyContent: "center", left: isMobile ? 12 : sidebar + 16, right: 12,
+      justifyContent: "center", left: isMobile ? 12 + 44 + 12 : sidebar + 16, right: 12,
       bottom: isMobile ? "calc(60px + env(safe-area-inset-bottom, 0px) + 12px)" : 24 }}>
       {notice && (
         <div style={{ width: "100%", maxWidth: 560, pointerEvents: "auto", borderRadius: RADIUS.control,

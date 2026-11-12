@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
-import { BORDER, SANS, TEXT, WHITE, ringVar, useAgentInk } from "./tokens.js";
+import { BORDER, RADIUS, SANS, TEXT, WHITE, ringVar, useAgentInk } from "./tokens.js";
 
 // The kit's dialog, for every page (first made for the outreach screens): a
-// bottom sheet on a phone, a centered 20px-radius card on a wider screen.
+// bottom sheet on a phone, a centered card on a wider screen (RADIUS.dialog, 20px).
 // Import it as `Sheet` from kit.jsx. Focus moves in when it opens, Tab stays inside,
 // Escape closes it (unless `locked`, while a send is in flight), and focus
 // goes back to whatever opened it. Wrap it in <AnimatePresence>.
@@ -85,7 +85,7 @@ export default function Sheet({ children, onClose, locked = false, labelledBy, l
         onClick={(e) => e.stopPropagation()}
         style={{ width: "100%", maxWidth: mobile ? "100%" : width, maxHeight: mobile ? "92vh" : "88vh", overflowY: "auto",
           outline: "none", background: WHITE, boxSizing: "border-box", fontFamily: SANS, color: TEXT,
-          borderRadius: mobile ? "22px 22px 0 0" : 20, border: mobile ? "none" : `1px solid ${BORDER}`,
+          borderRadius: mobile ? `${RADIUS.dialog}px ${RADIUS.dialog}px 0 0` : RADIUS.dialog, border: mobile ? "none" : `1px solid ${BORDER}`,
           padding: mobile ? "10px 18px 24px" : "1.6rem", paddingBottom: mobile ? "calc(24px + env(safe-area-inset-bottom, 0px))" : undefined,
           boxShadow: "0 30px 80px rgba(0,0,0,0.25)" }}>
         {mobile && <div aria-hidden="true" style={{ width: 44, height: 5, borderRadius: 99, background: BORDER, margin: "0 auto 14px" }} />}

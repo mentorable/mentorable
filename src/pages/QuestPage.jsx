@@ -12,14 +12,20 @@ import CheckInSheet from "../components/quest/CheckInSheet.jsx";
 import { QuestSetup, DraftReview } from "../components/quest/QuestSetup.jsx";
 import {
   TopBar, StickyHeader, CatchUpBanner, CatchUpPill, DeadlineNotice, RestNote, PausedCard,
-  MilestoneCard, FinishCard, ConfirmModal, PaceModal, PortfolioDraftModal,
+  MilestoneCard, FinishCard, ConfirmModal, PaceModal, PortfolioDraftModal, RulesSheet, RulesTip,
 } from "../components/quest/QuestPanels.jsx";
-import { SANS, INK, MUTED, Chunky, QuestStyles, useQuestColors } from "../components/quest/questUi.jsx";
-import { Button, Card, SR_ONLY, Toast, pageStyle } from "../components/ui/kit.jsx";
+import { SANS, MUTED, Chunky, QuestStyles, useQuestColors } from "../components/quest/questUi.jsx";
+import { Button, Card, Heading, SR_ONLY, Toast, pageStyle } from "../components/ui/kit.jsx";
 
 // Quest: one project, a small step every day. The page is a thin shell around
 // the server's state: every rule about days, streaks and gates is decided by
 // the backend, and this renders what it says and sends the student's actions.
+
+// The first-visit pointer to the rules, remembered per browser.
+const RULES_TIP_KEY = "quest:rules-tip-seen";
+function readTipSeen() {
+  try { return window.localStorage.getItem(RULES_TIP_KEY) === "1"; } catch { return false; }
+}
 
 function focusSlotOf(state) {
   if (!state?.stones?.length) return null;
@@ -46,6 +52,11 @@ export default function QuestPage({ navigate }) {
   const [confirmBreak, setConfirmBreak] = useState(false);
   const [paceOpen, setPaceOpen] = useState(false);
   const [portfolio, setPortfolio] = useState(null);      // { draft, loading, error }
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [tipSeen, setTipSeen] = useState(readTipSeen);
+  // What the student has typed in each day's check-in, kept while the page is open.
+  const drafts = useRef({});
 
   const focusRef = useRef(null);
   const scrolledFor = useRef(null);
@@ -61,9 +72,12 @@ export default function QuestPage({ navigate }) {
   const showMap = ["active", "paused", "completed"].includes(view) && !showSetup;
   const behind = view === "active" && state?.backlog?.count > 0 && !!state?.backlog?.oldest_doable_slot
     && state?.today_state !== "blocked";
-  // How much of the top of the screen the stuck bar covers (its 10px offset,
+  // Today's slot is drawn on the map (not a rest day), so the backlog banner
+  // and the first-visit tip can sit just above its callout.
+  const todayOnMap = !!state?.today_slot && !!state?.stones?.some((s) => s.slot === state.today_slot);
+  // How much of the top of the screen the stuck bar covers (its 10px strip,
   // the bar, and the catch-up pill under it), and the mobile nav at the foot.
-  const coverTop = 10 + headerH + (behind ? 52 : 0);
+  const coverTop = headerH + (behind ? 52 : 0);
   const coverBottom = isMobile ? 76 : 0;
 
   // ── Loading ────────────────────────────────────────────────────────────────
@@ -123,16 +137,17 @@ export default function QuestPage({ navigate }) {
         scroll-margin-top: ${coverTop + 8}px; scroll-margin-bottom: ${coverBottom + 8}px; }`
     : "";
 
-  // The catch-up pill takes over once the full banner is under the bar.
+  // The catch-up pill takes over once the full banner is out of view, above
+  // or below: it sits beside today, so scrolling up the map leaves it behind too.
   useEffect(() => {
     const el = bannerRef.current;
     if (!behind || !el || typeof IntersectionObserver === "undefined") { setBannerGone(false); return undefined; }
     const io = new IntersectionObserver(([e]) => {
-      setBannerGone(!e.isIntersecting && e.boundingClientRect.top < (e.rootBounds?.top ?? 0) + 1);
-    }, { rootMargin: `-${10 + headerH}px 0px 0px 0px` });
+      setBannerGone(!e.isIntersecting);
+    }, { rootMargin: `-${headerH}px 0px -${isMobile ? 76 : 0}px 0px` });
     io.observe(el);
     return () => io.disconnect();
-  }, [behind, headerH]);
+  }, [behind, headerH, isMobile, todayOnMap]);
 
   // Today's callout and stone, centred in the part of the screen the bar and
   // the nav leave free (plain scrollIntoView centres on the whole window, so
@@ -141,9 +156,13 @@ export default function QuestPage({ navigate }) {
     const stone = focusRef.current;
     if (!stone) return false;
     const slotEl = stone.closest("[data-slot]") || stone;
-    const prev = slotEl.previousElementSibling;
-    const callout = prev && prev.hasAttribute("data-today-callout") ? prev : null;
-    const top = (callout || slotEl).getBoundingClientRect().top + window.scrollY;
+    // From the block above today's callout (the banner or the tip), if any,
+    // down to today's stone.
+    let first = slotEl;
+    let prev = slotEl.previousElementSibling;
+    if (prev?.hasAttribute("data-today-callout")) { first = prev; prev = prev.previousElementSibling; }
+    if (prev?.hasAttribute("data-today-lead")) first = prev;
+    const top = first.getBoundingClientRect().top + window.scrollY;
     const bottom = slotEl.getBoundingClientRect().bottom + window.scrollY;
     const free = window.innerHeight - coverTop - coverBottom;
     const y = bottom - top > free - 24 ? top - coverTop - 12 : (top + bottom) / 2 - coverTop - free / 2;
@@ -151,14 +170,13 @@ export default function QuestPage({ navigate }) {
     return true;
   }, [coverTop, coverBottom]);
 
-  // Land on today, once per quest per visit. After a long gap the comeback
-  // banner, with its offer to count the time away as a break, comes first;
-  // any choice there then takes the student to today.
+  // Land on today, once per quest per visit. The backlog banner, with the
+  // comeback offer to count time away as a break, sits just above today's
+  // callout, so landing on today shows it with the missed stones.
   useEffect(() => {
     if (!state?.quest || !["active", "paused"].includes(state.view)) return;
     const key = state.quest.id;
     if (scrolledFor.current === key) return;
-    if (state.welcome_back?.show && state.welcome_back?.offer_break) { scrolledFor.current = key; return; }
     const id = requestAnimationFrame(() => {
       if (scrollToToday()) scrolledFor.current = key;
     });
@@ -278,14 +296,30 @@ export default function QuestPage({ navigate }) {
   };
 
   const q = state?.quest;
+  const rulesItem = { label: "How Quest works", onClick: () => setRulesOpen(true) };
   const menu = q && state.view === "active" ? [
     { label: "Change pace", onClick: () => setPaceOpen(true) },
-    { label: "Pause quest", onClick: () => run(() => questApi.pause(q.id)) },
+    { label: "Pause quest", onClick: async () => { if (await run(() => questApi.pause(q.id))) showNotice("Quest paused. Your streak is safe."); } },
+    rulesItem,
     { label: "Retire quest", onClick: () => setConfirmRetire(true), danger: true },
   ] : q && state.view === "paused" ? [
     { label: "Change pace", onClick: () => setPaceOpen(true) },
+    rulesItem,
     { label: "Retire quest", onClick: () => setConfirmRetire(true), danger: true },
   ] : [];
+
+  // The tip goes once dismissed; focus moves to today, since the button that
+  // had it is gone.
+  const dismissTip = () => {
+    try { window.localStorage.setItem(RULES_TIP_KEY, "1"); } catch { /* private mode: it just shows again */ }
+    setTipSeen(true);
+    requestAnimationFrame(() => {
+      const stone = focusRef.current;
+      const callout = stone?.closest("[data-slot]")?.previousElementSibling;
+      const start = callout?.querySelector?.("[data-today-start]:not([disabled])");
+      (start || (stone?.tagName === "BUTTON" ? stone : null))?.focus({ preventScroll: true });
+    });
+  };
 
   const openPortfolioDraft = async () => {
     setPortfolio({ draft: null, loading: true, error: null });
@@ -305,8 +339,9 @@ export default function QuestPage({ navigate }) {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  // The kit's page frame. The map sets its own top spacing, since the sky
-  // scene starts right under the top of the page.
+  // The kit's page frame (four padding longhands, so one side can be
+  // overridden). The map sets its own top spacing, since the sky scene
+  // starts right under the top of the page.
   const pagePad = {
     ...pageStyle({ isMobile, sidebar: SIDEBAR_WIDTH, ink: c }),
     ...(showMap ? { paddingTop: 0 } : null),
@@ -324,9 +359,7 @@ export default function QuestPage({ navigate }) {
     return (
       <div data-sidebar-offset className="ui-page" style={{ ...pagePad, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Card style={{ textAlign: "center", maxWidth: 420, width: "100%", padding: "1.6rem 1.4rem" }}>
-          <p style={{ fontFamily: SANS, fontSize: "1.1rem", fontWeight: 800, color: INK, margin: "0 0 8px" }}>
-            We could not load your quest
-          </p>
+          <Heading style={{ margin: "0 0 8px" }}>We could not load your quest</Heading>
           <p style={{ fontFamily: SANS, fontSize: "1rem", color: MUTED, lineHeight: 1.6, margin: "0 0 18px" }}>
             Your progress is saved. Try again in a moment.
           </p>
@@ -338,6 +371,16 @@ export default function QuestPage({ navigate }) {
 
   const streakLit = ["done", "rest"].includes(state.today_state);
   const hasToday = showMap && view !== "completed" && focusSlotOf(state) != null;
+
+  const banner = view === "active" ? (
+    <CatchUpBanner ref={bannerRef} state={state} onCatchUp={catchUp} onBreak={() => setConfirmBreak(true)} isMobile={isMobile} />
+  ) : null;
+  // The banner draws itself whenever there is a backlog it can speak to.
+  const hasBacklog = view === "active" && state.backlog?.count > 0 && state.today_state !== "blocked";
+  const showTip = view === "active" && !hasBacklog && !tipSeen;
+  const tip = showTip ? <RulesTip onOpen={() => setRulesOpen(true)} onDismiss={dismissTip} isMobile={isMobile} /> : null;
+  // Beside today when today is on the map; above the map otherwise (a rest day).
+  const lead = todayOnMap ? (hasBacklog ? banner : tip) : null;
 
   return (
     <div data-sidebar-offset className="ui-page" style={pagePad}>
@@ -363,6 +406,7 @@ export default function QuestPage({ navigate }) {
 
         {showSetup && (
           <QuestSetup
+            today={state.today}
             onPlanned={(s) => { setSetupOpen(false); setState(s); window.scrollTo({ top: 0 }); }}
             canCancel={view === "completed"}
             onCancel={() => setSetupOpen(false)}
@@ -373,22 +417,22 @@ export default function QuestPage({ navigate }) {
           <DraftReview
             state={state} busy={busy}
             onStart={() => run(() => questApi.start(q.id))}
-            onDiscard={() => run(() => questApi.discard(q.id))}
+            onDiscard={() => setConfirmDiscard(true)}
           />
         )}
 
         {showMap && (
           <>
             {view === "paused" && (
-              <PausedCard state={state} busy={busy}
+              <PausedCard state={state} busy={busy} isMobile={isMobile}
                 onResume={() => run(() => questApi.resume(q.id))}
                 onRetire={() => setConfirmRetire(true)} />
             )}
             {view === "active" && (
               <>
-                <CatchUpBanner ref={bannerRef} state={state} onCatchUp={catchUp}
-                  onBreak={() => setConfirmBreak(true)} onGoToday={() => goToday()} />
-                <DeadlineNotice state={state} onAskAdvisor={() => navigate("/chat")} />
+                {!todayOnMap && banner}
+                {!todayOnMap && tip}
+                <DeadlineNotice state={state} onAskAdvisor={() => navigate("/chat")} isMobile={isMobile} />
                 <RestNote state={state} />
               </>
             )}
@@ -408,6 +452,7 @@ export default function QuestPage({ navigate }) {
               justDone={justDone}
               glowMilestone={glow}
               isMobile={isMobile}
+              lead={lead}
             />
           </>
         )}
@@ -420,6 +465,8 @@ export default function QuestPage({ navigate }) {
             key={`sheet-${sheet.slot}`}
             slot={sheet.slot} stone={sheet.stone} today={state.today}
             task={sheet.task} loading={sheet.loading} loadError={sheet.error}
+            draft={drafts.current[`${q?.id}:${sheet.slot}`] || ""}
+            onDraft={(text) => { drafts.current[`${q?.id}:${sheet.slot}`] = text; }}
             onRetry={() => openStone(sheet.stone)}
             onSubmit={submitCheckIn} onAnswer={answerFollowup} onFindResources={findResources} onClose={closeSheet}
           />
@@ -444,6 +491,17 @@ export default function QuestPage({ navigate }) {
             onClose={() => setConfirmBreak(false)}
             onConfirm={takeBreak} />
         )}
+        {confirmDiscard && (
+          <ConfirmModal key="discard" danger busy={busy}
+            title="Discard this plan?"
+            body="It is deleted, and mapping a new quest uses another of this month's plans."
+            confirm="Discard plan" cancel="Keep this plan"
+            onClose={() => setConfirmDiscard(false)}
+            onConfirm={async () => { await run(() => questApi.discard(q.id)); setConfirmDiscard(false); }} />
+        )}
+        {rulesOpen && (
+          <RulesSheet key="rules" stats={state.stats} onClose={() => setRulesOpen(false)} />
+        )}
         {paceOpen && q && (
           <PaceModal key="pace" quest={q} isMobile={isMobile} onClose={() => setPaceOpen(false)}
             onSave={async (body) => { const s = await questApi.settings(q.id, body); setState(s); setPaceOpen(false); }} />
@@ -466,8 +524,7 @@ function SkipToToday({ onGo }) {
   const [shown, setShown] = useState(false);
   return (
     <div style={shown ? { position: "absolute", top: "calc(100% - 2px)", left: 0, zIndex: 2 } : SR_ONLY}>
-      <Button kind="secondary" onClick={onGo} onFocus={() => setShown(true)} onBlur={() => setShown(false)}
-        style={{ boxShadow: "0 6px 18px rgba(12,16,44,0.16)" }}>
+      <Button kind="secondary" onClick={onGo} onFocus={() => setShown(true)} onBlur={() => setShown(false)}>
         Skip to today
       </Button>
     </div>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useTheme } from "../../lib/ThemeContext.jsx";
 import {
-  AMBER_BG, AMBER_LINE as UI_AMBER_LINE, AMBER_TEXT, BG as UI_BG, BORDER, DANGER as UI_DANGER, FOCUS_CLASS, RADIUS,
+  AMBER_BG, AMBER_EDGE as UI_AMBER_EDGE, AMBER_LINE as UI_AMBER_LINE, AMBER_TEXT, BG as UI_BG, BORDER, DANGER as UI_DANGER, FOCUS_CLASS, RADIUS,
   SANS as UI_SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, TEXT_FAINT, WHITE as UI_WHITE, useAgentInk,
 } from "../ui/tokens.js";
 import { Button, ChoiceChips, Tip, inputStyle, textOnPage } from "../ui/kit.jsx";
@@ -25,7 +25,7 @@ export const LINE   = BORDER;
 export const STONE      = "#e6e3de";
 export const STONE_EDGE = "#cfcac2";
 export const AMBER      = AMBER_TEXT;   // amber as text
-export const AMBER_EDGE = "#d97706";    // amber as a line or a dashed stone edge (3:1 on white)
+export const AMBER_EDGE = UI_AMBER_EDGE; // amber as a line or a dashed stone edge (3:1 on white)
 export const AMBER_WASH = AMBER_BG;
 export const AMBER_LINE = UI_AMBER_LINE;  // the soft amber border of a banner
 export const DANGER     = UI_DANGER;
@@ -48,6 +48,11 @@ export function useQuestColors() {
 // three-tongue campfire, so a long streak looks like one.
 
 export const FLAME_GROWS_AT = 7;
+
+/** The streak count beside a lit flame on the TopBar's glass pill. At least
+ *  5.6:1 there whatever the scene shows through the 0.96 navy (the old
+ *  #ffd27a was 4.49:1 on the lighter bar). Only for text on that dark glass. */
+export const FLAME_GOLD = "#ffdc8f";
 
 const TONGUE = "M33 3C37 13 51 21 51 39C51 52 43 61 32 61C21 61 13 52 13 40C13 31 18 25 22 20C23 26 25 29 28 31C27 21 29 12 33 3Z";
 // Each layer names the beat it moves to: "sway" (the body), "sway-fast"
@@ -164,17 +169,14 @@ export function GrowingFlame({ size = 22, streak }) {
 // ─── Buttons ──────────────────────────────────────────────────────────────────
 
 /** Quest's button, drawn as the kit Button at the kit's size (1rem, 10px 18px,
- *  44px). `tone`: accent (the primary fill), quiet (outlined), amber (flat
- *  amber, for catching up) or danger. `small` is accepted for older callers
- *  and changes nothing: every button in a row is the same size. */
+ *  44px). `tone`: accent (the primary fill), quiet (outlined), amber (the
+ *  kit's warn button, for catching up) or danger. `small` is accepted for
+ *  older callers and changes nothing: every button in a row is the same size. */
 export function Chunky({ children, onClick, disabled, tone = "accent", full, small, type = "button", style, ...rest }) {
-  const kind = { accent: "primary", quiet: "secondary", danger: "danger", amber: "secondary" }[tone] || "primary";
-  const amber = tone === "amber"
-    ? { background: AMBER_BG, color: AMBER_TEXT, border: `1px solid ${AMBER_TEXT}` }
-    : null;
+  const kind = { accent: "primary", quiet: "secondary", danger: "danger", amber: "warn" }[tone] || "primary";
   return (
     <Button kind={kind} type={type} onClick={disabled ? undefined : onClick} disabled={disabled}
-      style={{ width: full ? "100%" : undefined, ...amber, ...style }}
+      style={{ width: full ? "100%" : undefined, ...style }}
       {...rest}>
       {children}
     </Button>
@@ -205,18 +207,18 @@ export function LevelChip({ stats, compact, onDark = false }) {
       style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <span style={{
         fontFamily: SANS, fontWeight: 800, fontSize: "0.9rem", color: c.button.fg, whiteSpace: "nowrap",
-        background: c.button.bg, borderRadius: 8, padding: compact ? "2px 7px" : "3px 9px", lineHeight: 1.35,
+        background: c.button.bg, borderRadius: RADIUS.pill, padding: compact ? "2px 7px" : "3px 9px", lineHeight: 1.35,
         fontVariantNumeric: "tabular-nums",
       }}>
         Lv {stats.level}
       </span>
       {!compact && (
-        <span aria-hidden="true" style={{ width: 64, height: 8, borderRadius: 99, background: onDark ? "rgba(255,255,255,0.22)" : STONE, overflow: "hidden" }}>
+        <span aria-hidden="true" style={{ width: 64, height: 8, borderRadius: RADIUS.pill, background: onDark ? "rgba(255,255,255,0.22)" : STONE, overflow: "hidden" }}>
           <motion.span
             initial={false}
             animate={{ width: `${pct}%` }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            style={{ display: "block", height: "100%", background: c.button.bg, borderRadius: 99 }}
+            style={{ display: "block", height: "100%", background: c.button.bg, borderRadius: RADIUS.pill }}
           />
         </span>
       )}

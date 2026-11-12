@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useId } from "react";
+import { Children, useState, useEffect, useRef, useId } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
 import { requireUser } from "../lib/auth.js";
@@ -14,11 +14,11 @@ import {
   addExtracted, generateResume,
 } from "../lib/portfolio.js";
 import {
-  BG, BORDER, DANGER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
+  BORDER, DANGER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
 } from "../components/ui/tokens.js";
 import {
-  Button, Card, ChoiceChips, FieldLabel, Heading, INPUT_CLASS, LINK_CLASS, Notice, PageHeader, RemoveButton, Sheet,
-  StampTile, Tip, Toast, inputStyle, pageStyle, textOnPage,
+  Button, Card, ChoiceChips, FieldLabel, Heading, INPUT_CLASS, LINK_CLASS, Notice, PageHeader, RemoveButton, SR_ONLY, Sheet,
+  StampTile, Tag, Tip, Toast, inputStyle, pageStyle, textOnPage,
 } from "../components/ui/kit.jsx";
 import { PixelStamp } from "../components/ui/PixelIcons.jsx";
 
@@ -90,6 +90,14 @@ const GPA_RANGES = {
   "100": { min: 0, max: 100, hint: "On a 100 point scale this runs from 0 to 100." },
 };
 
+/** Weighted GPAs run past the scale, so only the 4.0 scale has a usual top. */
+const WEIGHTED_RANGES = {
+  "4.0": { min: 0, max: 5, hint: "Weighted GPAs on a 4.0 scale usually top out around 5.0." },
+};
+const WEIGHTED_FLOOR = { min: 0, max: Infinity, hint: "A GPA can't be below 0." };
+
+const UPLOAD_TYPES = ["pdf", "docx", "txt", "md"];
+
 const THIS_YEAR = new Date().getFullYear();
 const YEAR_RANGE = { min: 2000, max: THIS_YEAR + 1, hint: "Use the year you received it, like 2025." };
 const HOURS_RANGE = { min: 0, max: 168, hint: "Use the hours in a typical week, up to 168." };
@@ -128,13 +136,6 @@ function rowName(listKey, r) {
   return r.title || "an award";
 }
 
-// Hover and keyboard focus share one tint, so a keyboard user sees what a
-// mouse user sees. Built from the kit's tokens.
-const PAGE_CSS = `
-.pf-quiet { color: ${TEXT_MID}; background: none; transition: color 0.15s, background 0.15s; }
-.pf-quiet:hover, .pf-quiet:focus-visible { color: ${TEXT}; background: ${BG}; }
-`;
-
 // ─── Small shared UI ──────────────────────────────────────────────────────────
 
 /** A labelled field: the kit's label tied to its control by id. `children`
@@ -142,7 +143,7 @@ const PAGE_CSS = `
 function Field({ label, style, children }) {
   const id = useId();
   return (
-    <div style={{ minWidth: 0, ...style }}>
+    <div style={{ minWidth: 0, overflowWrap: "break-word", ...style }}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       {children(id)}
     </div>
@@ -161,8 +162,9 @@ function ChipField({ label, children, style }) {
 }
 
 // Text boxes and dropdowns share one height, so the labels of a row of fields
-// line up (a native select otherwise renders a few pixels off an input).
-const CONTROL_HEIGHT = 48;
+// line up (a native select otherwise renders a few pixels off an input). The
+// kit's own control height.
+const CONTROL_HEIGHT = inputStyle.minHeight;
 
 function Input({ value, onChange, style, ...rest }) {
   return (
@@ -181,7 +183,7 @@ function Select({ value, onChange, options, placeholder = "Not set", ...rest }) 
   );
 }
 
-const fieldHint = { fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: TEXT_MID, lineHeight: 1.45, margin: "6px 0 0" };
+const fieldHint = { fontFamily: SANS, fontSize: "0.9rem", fontWeight: 600, color: TEXT_MID, lineHeight: 1.45, margin: "6px 0 0" };
 
 /** A number field that keeps what was typed. A number (or a cleared field)
  *  is saved as it is typed; anything else is held back, so NaN is never
@@ -233,92 +235,155 @@ const PlusIcon = () => (
   </svg>
 );
 
-const quietCtl = {
-  flexShrink: 0, minHeight: 44, minWidth: 44, padding: "0 10px", border: "none", borderRadius: RADIUS.control,
-  cursor: "pointer", fontFamily: SANS, fontWeight: 700, fontSize: "0.95rem", display: "inline-flex",
-  alignItems: "center", justifyContent: "center", gap: 6, boxSizing: "border-box",
-};
-
-/** Opens and closes an item's editor: "Edit", then "Done". */
+/** Opens and closes an item's editor: "Edit", then "Done". The kit's quiet
+ *  button, so it reads like every other quiet action on the page. */
 function EditToggle({ open, onClick, name, controls }) {
   return (
-    <button type="button" onClick={onClick} aria-expanded={open} aria-controls={controls}
-      aria-label={open ? `Done editing ${name}` : `Edit ${name}`} className={`${FOCUS_CLASS} pf-quiet`} style={quietCtl}>
+    <Button kind="quiet" onClick={onClick} aria-expanded={open} aria-controls={controls}
+      aria-label={open ? `Done editing ${name}` : `Edit ${name}`} style={{ flexShrink: 0, padding: "0 10px" }}>
       {open ? <PixelStamp kind="check" size={16} /> : <PencilIcon />}
       {open ? "Done" : "Edit"}
-    </button>
+    </Button>
   );
 }
 
-/** The quiet save line in a section header, beside the count. */
-function SaveStatus({ state }) {
-  if (!state) return null;
-  const text = { saving: "Saving…", saved: "Saved", error: "Not saved" }[state];
+const SAVE_TEXT = { saving: "Saving…", saved: "Saved", error: "Not saved" };
+
+/** The quiet save line. The section header's copy is also the one screen
+ *  readers hear (only "Saved" and "Not saved", so a pause in typing is not
+ *  read out as "Saving" every time); the copy at an open item is visual only. */
+function SaveStatus({ state, announce = true }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: "0.95rem",
-      fontWeight: 600, color: state === "error" ? DANGER : TEXT_MUTED, whiteSpace: "nowrap" }}>
-      {state === "saved" && <PixelStamp kind="check" size={16} />}
-      {text}
-    </span>
+    <>
+      {state && (
+        <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS,
+          fontSize: "0.95rem", fontWeight: 600, color: state === "error" ? DANGER : TEXT_MUTED, whiteSpace: "nowrap" }}>
+          {state === "saved" && <PixelStamp kind="check" size={16} />}
+          {SAVE_TEXT[state]}
+        </span>
+      )}
+      {announce && (
+        <span role="status" style={SR_ONLY}>{state === "saved" || state === "error" ? SAVE_TEXT[state] : ""}</span>
+      )}
+    </>
   );
 }
+
+const hintText = { fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.55, maxWidth: "62ch" };
 
 /** A record section: the kit card with a pixel mark, the title, count and
- *  save status, an action on the right and a line of guidance under it. */
-function SectionCard({ id, title, stamp, hint, count, status, action, children }) {
+ *  save status, and a line of guidance under it. Its action sits on the
+ *  right on a wide screen; on a phone it goes full width at the bottom of
+ *  the card, in thumb reach and right under the row it adds. */
+function SectionCard({ id, title, stamp, hint, count, status, saves = true, action, isMobile, children }) {
   const headId = useId();
+  const hasBody = Children.toArray(children).length > 0;
+  const actionBelow = Boolean(action) && isMobile;
   return (
     <Card as="section" id={id ? `sec-${id}` : undefined} tabIndex={id ? -1 : undefined} aria-labelledby={headId}
       className={FOCUS_CLASS} style={{ padding: "1.3rem 1.3rem 1.4rem", marginBottom: "1.25rem" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
         marginBottom: hint ? 8 : 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flexWrap: "wrap" }}>
-          <StampTile kind={stamp} />
-          <Heading id={headId}>
-            {title}
-            {count != null && count > 0 && (
-              <span style={{ fontWeight: 700, fontSize: "1rem", color: TEXT_MUTED, marginLeft: 8,
-                fontVariantNumeric: "tabular-nums" }}>{count}</span>
-            )}
-          </Heading>
-          <SaveStatus state={status} />
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flexWrap: "wrap", flex: "1 1 240px" }}>
+          {/* A long title wraps beside its mark instead of dropping under it. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+            <StampTile kind={stamp} />
+            <Heading id={headId} style={{ minWidth: 0 }}>
+              {title}
+              {count != null && count > 0 && (
+                <span style={{ fontWeight: 700, fontSize: "1rem", color: TEXT_MUTED, marginLeft: 8,
+                  fontVariantNumeric: "tabular-nums" }}>{count}</span>
+              )}
+            </Heading>
+          </div>
+          {saves && <SaveStatus state={status} />}
         </div>
-        {action}
+        {!actionBelow && action}
       </div>
-      {hint && (
-        <p style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.55,
-          margin: "0 0 16px", maxWidth: "62ch" }}>
-          {hint}
-        </p>
-      )}
+      {hint && <p style={{ ...hintText, margin: hasBody || actionBelow ? "0 0 16px" : 0 }}>{hint}</p>}
       {children}
+      {actionBelow && <div style={{ display: "grid", marginTop: hasBody ? 6 : 0 }}>{action}</div>}
     </Card>
   );
 }
 
 function AddButton({ onClick, children, busy }) {
   return (
-    <Button kind="secondary" onClick={onClick} busy={busy} style={{ padding: "8px 14px" }}>
+    <Button kind="secondary" onClick={onClick} busy={busy}>
       {!busy && <PlusIcon />}
       {children}
     </Button>
   );
 }
 
-/** An empty section: the guide line says what goes here. */
+/** An empty section: one plain line saying what goes here, as College List's
+ *  empty groups do, rather than a card inside the card. */
 function EmptyNote({ children }) {
   return (
-    <Tip name="Tip" stamp="scroll" tone="default" style={{ paddingTop: 0 }}>
+    <p style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.55, margin: 0,
+      maxWidth: "62ch" }}>
       {children}
-    </Tip>
+    </p>
   );
 }
 
-/** One item in a record section: a smaller card inside the section's. */
-const itemCard = { padding: "12px 14px", marginBottom: 10, borderRadius: RADIUS.control };
-/** The top line of an always-open item: what it is, and Remove. */
-const itemHead = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, margin: "-6px -8px 6px 0" };
 const itemName = { fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: TEXT, minWidth: 0, overflowWrap: "anywhere" };
+const itemMeta = { display: "block", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.45,
+  overflowWrap: "anywhere", fontVariantNumeric: "tabular-nums" };
+
+/** One item in any record list (a score, a class, an activity, an award):
+ *  a line that reads as the record (its name and a meta line) with Edit,
+ *  and an editor under it with the item's fields, the save line and Remove.
+ *  Every list uses this, so Edit, Done and Remove sit in the same places.
+ *  `value` is a number read down the right edge (a test score), so a list
+ *  of scores scans like a transcript. `children` go under the meta line (an
+ *  activity's description); `editor` is the fields. A new item opens on its own (`startOpen`). */
+function RecordLine({ id, title, meta, metaMuted, value, name, startOpen, status, onRemove, editor, children }) {
+  const reduce = useReducedMotion();
+  const editId = useId();
+  const [open, setOpen] = useState(!!startOpen);
+  return (
+    <Card data-row={id} tabIndex={-1} style={{ padding: 0, overflow: "hidden", marginBottom: 8, borderRadius: RADIUS.control }}>
+      <div style={{ padding: "6px 6px 6px 14px" }}>
+        {/* Centred on Edit for a short line; a long activity aligns to the top. */}
+        <div style={{ display: "flex", alignItems: children ? "flex-start" : "center", gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0, padding: children ? "8px 0 4px" : "4px 0" }}>
+            <span style={{ ...itemName, display: "block" }}>{title}</span>
+            {meta && <span style={{ ...itemMeta, color: metaMuted ? TEXT_MUTED : TEXT_MID }}>{meta}</span>}
+          </div>
+          {value != null && value !== "" && (
+            <span style={{ flexShrink: 0, fontFamily: SANS, fontWeight: 800, fontSize: "1.15rem", color: TEXT,
+              fontVariantNumeric: "tabular-nums", paddingLeft: 4 }}>
+              {value}
+            </span>
+          )}
+          <EditToggle open={open} onClick={() => setOpen((o) => !o)} name={name} controls={editId} />
+        </div>
+        {children && <div style={{ paddingRight: 8, paddingBottom: 6 }}>{children}</div>}
+      </div>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div id={editId} initial={reduce ? false : { height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+            exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={{ duration: reduce ? 0 : 0.22 }} style={{ overflow: "hidden", background: SURFACE }}>
+            <div style={{ padding: "16px 14px 10px", borderTop: `1px solid ${BORDER}` }}>
+              {editor}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 10,
+                marginRight: -6, minHeight: 44 }}>
+                <span><SaveStatus state={status} announce={false} /></span>
+                <RemoveButton onClick={onRemove} name={name} />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </Card>
+  );
+}
+
+/** A row of fields that wraps as the card narrows. */
+const fieldRow = { display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap" };
 
 // ─── Kept for ScorecardPage, which renders this beside its portfolio banner ───
 export function LearnMore() {
@@ -380,6 +445,7 @@ function GpaBlock({ profile, onSave, status }) {
   const notUsed = vals.gpaScale === "not_used";
   const guess = !vals.gpaScale ? guessScale(vals.gpaUnweighted) : null;
   const range = GPA_RANGES[vals.gpaScale];
+  const weightedRange = WEIGHTED_RANGES[vals.gpaScale] || WEIGHTED_FLOOR;
 
   return (
     <SectionCard id="gpa" title="GPA" stamp="reportcard" status={status}
@@ -400,16 +466,16 @@ function GpaBlock({ profile, onSave, status }) {
         )}
       </div>
       {!notUsed && (
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
+        <div style={{ ...fieldRow, gap: 12 }}>
           <Field label="Unweighted" style={{ flex: 1, minWidth: 140 }}>
             {(id) => (
-              <NumberInput id={id} value={vals.gpaUnweighted} decimal placeholder="e.g. 3.8" range={range}
+              <NumberInput id={id} data-gpa-first="" value={vals.gpaUnweighted} decimal placeholder="e.g. 3.8" range={range}
                 onCommit={set("gpaUnweighted")} onBlur={() => save()} />
             )}
           </Field>
           <Field label="Weighted" style={{ flex: 1, minWidth: 140 }}>
             {(id) => (
-              <NumberInput id={id} value={vals.gpaWeighted} decimal placeholder="Optional"
+              <NumberInput id={id} value={vals.gpaWeighted} decimal placeholder="Optional" range={weightedRange}
                 onCommit={set("gpaWeighted")} onBlur={() => save()} />
             )}
           </Field>
@@ -419,7 +485,9 @@ function GpaBlock({ profile, onSave, status }) {
   );
 }
 
-function ScoreRow({ score, onPatch, onRemove }) {
+/** A score reads as the test over its sections, with the score at the right:
+ *  "SAT ... 1450", "AP Chemistry ... 5". */
+function ScoreLine({ score, onPatch, onRemove, startOpen, status }) {
   const type = (score.test_type || "").toLowerCase();
   const isAp = type === "ap";
   const r = TEST_RANGES[type] || {};
@@ -429,110 +497,103 @@ function ScoreRow({ score, onPatch, onRemove }) {
   const sum = hasSections && sub.reading_writing != null && sub.math != null && Number.isFinite(rw) && Number.isFinite(math)
     ? rw + math : null;
   const offerSum = sum != null && Number(score.score) !== sum;
-  const name = rowName("scores", score);
+  const hasScore = score.score != null && score.score !== "";
+
+  const test = isAp ? (score.subject ? `AP ${score.subject}` : "AP exam") : (labelFor(TEST_TYPES, type) || "New score");
+  const sections = hasSections ? [
+    sub.reading_writing != null ? `Reading and Writing ${sub.reading_writing}` : null,
+    sub.math != null ? `Math ${sub.math}` : null,
+  ].filter(Boolean) : [];
+  const meta = [
+    hasScore ? null : "No score yet",
+    isAp && !score.subject ? "Subject not set" : null,
+    ...sections,
+  ].filter(Boolean).join(" · ");
 
   return (
-    <Card data-row={score.id} tabIndex={-1} style={itemCard}>
-      <div style={itemHead}>
-        <span style={itemName}>
-          {isAp ? (score.subject ? `AP ${score.subject}` : "AP exam") : (labelFor(TEST_TYPES, type) || "New score")}
-        </span>
-        <RemoveButton onClick={onRemove} name={name} />
-      </div>
-      <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <Field label="Test" style={{ flex: "1 1 110px" }}>
-          {(id) => (
-            <Select id={id} data-first="" value={type} placeholder="Type" onChange={(v) => onPatch({ test_type: v })}
-              options={TEST_TYPES} />
-          )}
-        </Field>
-        {isAp && (
-          <Field label="Subject" style={{ flex: "2 1 160px" }}>
-            {(id) => <Input id={id} value={score.subject} onChange={(v) => onPatch({ subject: v })} placeholder="e.g. Chemistry" />}
-          </Field>
-        )}
-        <Field label={isAp ? "Score (1-5)" : "Total"} style={{ flex: "1 1 110px" }}>
-          {(id) => (
-            <NumberInput id={id} value={score.score} range={r.total} placeholder={r.ph || "Score"}
-              onCommit={(n) => onPatch({ score: n })} />
-          )}
-        </Field>
-        {hasSections && (
-          <>
-            <Field label="Reading/Writing" style={{ flex: "1 1 110px" }}>
+    <RecordLine id={score.id} name={rowName("scores", score)} startOpen={startOpen} status={status} onRemove={onRemove}
+      title={test} value={hasScore ? score.score : null} meta={meta} metaMuted={!hasScore}
+      editor={(
+        <>
+          <div style={fieldRow}>
+            <Field label="Test" style={{ flex: "1 1 120px" }}>
               {(id) => (
-                <NumberInput id={id} value={sub.reading_writing} range={r.section} placeholder={r.sph}
-                  onCommit={(n) => onPatch({ section_scores: { ...sub, reading_writing: n ?? undefined } })} />
+                <Select id={id} data-first="" value={type} placeholder="Type" onChange={(v) => onPatch({ test_type: v })}
+                  options={TEST_TYPES} />
               )}
             </Field>
-            <Field label="Math" style={{ flex: "1 1 110px" }}>
+            {isAp && (
+              <Field label="Subject" style={{ flex: "2 1 180px" }}>
+                {(id) => <Input id={id} value={score.subject} onChange={(v) => onPatch({ subject: v })} placeholder="e.g. Chemistry" />}
+              </Field>
+            )}
+            <Field label={isAp ? "Score (1-5)" : "Total"} style={{ flex: "1 1 120px" }}>
               {(id) => (
-                <NumberInput id={id} value={sub.math} range={r.section} placeholder={r.sph}
-                  onCommit={(n) => onPatch({ section_scores: { ...sub, math: n ?? undefined } })} />
+                <NumberInput id={id} value={score.score} range={r.total} placeholder={r.ph || "Score"}
+                  onCommit={(n) => onPatch({ score: n })} />
               )}
             </Field>
-          </>
-        )}
-      </div>
-      {offerSum && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-          <p style={{ ...fieldHint, margin: 0 }}>Your sections add up to {sum}.</p>
-          <Button kind="quiet" style={{ padding: "6px 10px" }} onClick={() => onPatch({ score: sum })}>
-            Use {sum} as the total
-          </Button>
-        </div>
-      )}
-    </Card>
+          </div>
+          {/* The sections get their own row, and each is wide enough for its
+              label, so on a phone they stack instead of running together. */}
+          {hasSections && (
+            <div style={{ ...fieldRow, marginTop: 12 }}>
+              <Field label="Reading and Writing" style={{ flex: "1 1 170px" }}>
+                {(id) => (
+                  <NumberInput id={id} value={sub.reading_writing} range={r.section} placeholder={r.sph}
+                    onCommit={(n) => onPatch({ section_scores: { ...sub, reading_writing: n ?? undefined } })} />
+                )}
+              </Field>
+              <Field label="Math" style={{ flex: "1 1 170px" }}>
+                {(id) => (
+                  <NumberInput id={id} value={sub.math} range={r.section} placeholder={r.sph}
+                    onCommit={(n) => onPatch({ section_scores: { ...sub, math: n ?? undefined } })} />
+                )}
+              </Field>
+            </div>
+          )}
+          {offerSum && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+              <p style={{ ...fieldHint, margin: 0 }}>Your sections add up to {sum}.</p>
+              <Button kind="quiet" style={{ padding: "6px 10px" }} onClick={() => onPatch({ score: sum })}>
+                Use {sum} as the total
+              </Button>
+            </div>
+          )}
+        </>
+      )} />
   );
 }
 
-/** A class reads as one line (its name and level) until Edit opens it. */
-function CourseLine({ course, onPatch, onRemove, startOpen }) {
-  const [open, setOpen] = useState(!!startOpen);
-  const editId = useId();
+/** A class reads as its name over its level. */
+function CourseLine({ course, onPatch, onRemove, startOpen, status }) {
   const c = course;
-  const name = rowName("courses", c);
   const meta = [labelFor(COURSE_LEVELS, c.level) || "Level not set", c.planned ? "Planned" : null].filter(Boolean).join(" · ");
   return (
-    <Card data-row={c.id} tabIndex={-1} style={{ ...itemCard, padding: 0, overflow: "hidden", marginBottom: 8 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 6px 6px 14px" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ ...itemName, display: "block" }}>{c.name || "Untitled class"}</span>
-          <span style={{ display: "block", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600,
-            color: c.level ? TEXT_MID : TEXT_MUTED, lineHeight: 1.45 }}>
-            {meta}
-          </span>
+    <RecordLine id={c.id} name={rowName("courses", c)} startOpen={startOpen} status={status} onRemove={onRemove}
+      title={c.name || "Untitled class"} meta={meta} metaMuted={!c.level}
+      editor={(
+        <div style={fieldRow}>
+          <Field label="Class" style={{ flex: "3 1 200px" }}>
+            {(id) => <Input id={id} data-first="" value={c.name} onChange={(v) => onPatch({ name: v })} placeholder="e.g. AP Biology" />}
+          </Field>
+          <Field label="Level" style={{ flex: "1 1 140px" }}>
+            {(id) => <Select id={id} value={c.level} onChange={(v) => onPatch({ level: v })} options={COURSE_LEVELS} />}
+          </Field>
+          <Field label="Grade" style={{ flex: "1 1 120px" }}>
+            {(id) => (
+              <Select id={id} value={c.grade_level != null ? String(c.grade_level) : ""} options={GRADE_OPTIONS}
+                onChange={(v) => onPatch({ grade_level: v ? Number(v) : null })} />
+            )}
+          </Field>
         </div>
-        <EditToggle open={open} onClick={() => setOpen((o) => !o)} name={c.name || "class"} controls={editId} />
-      </div>
-      {open && (
-        <div id={editId} style={{ padding: "14px", borderTop: `1px solid ${BORDER}`, background: SURFACE }}>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-start" }}>
-            <Field label="Class" style={{ flex: "3 1 200px" }}>
-              {(id) => <Input id={id} data-first="" value={c.name} onChange={(v) => onPatch({ name: v })} placeholder="e.g. AP Biology" />}
-            </Field>
-            <Field label="Level" style={{ flex: "1 1 140px" }}>
-              {(id) => <Select id={id} value={c.level} onChange={(v) => onPatch({ level: v })} options={COURSE_LEVELS} />}
-            </Field>
-            <Field label="Grade" style={{ flex: "1 1 120px" }}>
-              {(id) => (
-                <Select id={id} value={c.grade_level != null ? String(c.grade_level) : ""} options={GRADE_OPTIONS}
-                  onChange={(v) => onPatch({ grade_level: v ? Number(v) : null })} />
-              )}
-            </Field>
-          </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8, marginRight: -6 }}>
-            <RemoveButton onClick={onRemove} name={name} />
-          </div>
-        </div>
-      )}
-    </Card>
+      )} />
   );
 }
 
 /** Classes grouped by the year they were taken, since admissions reads rigor
  *  year by year. */
-function CourseList({ courses, onPatch, onRemove, justAdded }) {
+function CourseList({ courses, onPatch, onRemove, justAdded, status }) {
   const inGrade = (c, g) => Number(c.grade_level) === g;
   const groups = [
     ...GRADES.map((g) => ({ key: g, label: `Grade ${g}`, rows: courses.filter((c) => inGrade(c, g)) })),
@@ -545,104 +606,72 @@ function CourseList({ courses, onPatch, onRemove, justAdded }) {
         <Heading level={3} style={{ fontSize: "1rem", color: TEXT_MID, margin: "0 0 8px" }}>{g.label}</Heading>
       )}
       {g.rows.map((c) => (
-        <CourseLine key={c.id} course={c} startOpen={c.id === justAdded}
+        <CourseLine key={c.id} course={c} startOpen={c.id === justAdded} status={status}
           onPatch={(v) => onPatch(c, v)} onRemove={() => onRemove(c)} />
       ))}
     </div>
   ));
 }
 
-// ─── ECs / Awards ─────────────────────────────────────────────────────────────
+// ─── Activities & awards ──────────────────────────────────────────────────────
 
-function ActivityCard({ activity, onPatch, onRemove, startOpen }) {
-  const ink = useAgentInk();
-  const reduce = useReducedMotion();
-  const editId = useId();
-  const [open, setOpen] = useState(!!startOpen);
+/** An activity reads as its name, role and hours, then what you did. */
+function ActivityLine({ activity, onPatch, onRemove, startOpen, status }) {
   const a = activity;
+  const grades = a.grade_levels || [];
   const meta = [
     a.position, a.organization,
     a.hours_per_week && a.weeks_per_year ? `${a.hours_per_week} hrs/wk, ${a.weeks_per_year} wks/yr` : null,
-    (a.grade_levels || []).length ? `${(a.grade_levels || []).length === 1 ? "Grade" : "Grades"} ${(a.grade_levels || []).join(", ")}` : null,
-  ].filter(Boolean);
+    grades.length ? `${grades.length === 1 ? "Grade" : "Grades"} ${grades.join(", ")}` : null,
+  ].filter(Boolean).join(" · ");
+  const thin = !a.description && !a.position;
 
   return (
-    <Card data-row={a.id} tabIndex={-1} style={{ ...itemCard, padding: 0, overflow: "hidden" }}>
-      <div style={{ padding: "8px 8px 12px 14px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{ flex: 1, minWidth: 0, fontFamily: SANS, fontWeight: 700, fontSize: "1.05rem", color: TEXT,
-            overflowWrap: "anywhere" }}>
-            {a.title || "New activity"}
+    <RecordLine id={a.id} name={rowName("activities", a)} startOpen={startOpen} status={status} onRemove={onRemove}
+      title={a.title || "New activity"} meta={meta}
+      editor={(
+        <>
+          <Field label="Name" style={{ marginBottom: 14 }}>
+            {(id) => <Input id={id} data-first="" value={a.title} onChange={(v) => onPatch({ title: v })} placeholder="e.g. Debate team" />}
+          </Field>
+          <div style={{ ...fieldRow, marginBottom: 14 }}>
+            <Field label="Your role" style={{ flex: 1, minWidth: 150 }}>
+              {(id) => <Input id={id} value={a.position} maxLength={50} onChange={(v) => onPatch({ position: v })} placeholder="e.g. Captain" />}
+            </Field>
+            <Field label="Organization" style={{ flex: 1, minWidth: 150 }}>
+              {(id) => <Input id={id} value={a.organization} maxLength={100} onChange={(v) => onPatch({ organization: v })} />}
+            </Field>
           </div>
-          <EditToggle open={open} onClick={() => setOpen((o) => !o)} name={a.title || "activity"} controls={editId} />
-        </div>
-        <div style={{ paddingRight: 6 }}>
-          {meta.length > 0 && (
-            <div style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: 600, color: TEXT_MID, lineHeight: 1.5 }}>
-              {meta.join(" · ")}
-            </div>
-          )}
-          {a.description && (
-            <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.55, margin: "7px 0 0" }}>
-              {a.description}
-            </p>
-          )}
-          {!a.description && !a.position && !open && (
-            <span style={{ display: "inline-block", fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, color: ink.onSoft,
-              background: ink.softer, border: `1px solid ${ink.soft}`, borderRadius: RADIUS.pill, padding: "3px 10px",
-              marginTop: 8 }}>
-              Needs detail
-            </span>
-          )}
-        </div>
-      </div>
-
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div id={editId} initial={reduce ? false : { height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
-            exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
-            transition={{ duration: reduce ? 0 : 0.22 }} style={{ overflow: "hidden", background: SURFACE }}>
-            <div style={{ padding: "16px 14px", borderTop: `1px solid ${BORDER}` }}>
-              <Field label="Name" style={{ marginBottom: 14 }}>
-                {(id) => <Input id={id} data-first="" value={a.title} onChange={(v) => onPatch({ title: v })} placeholder="e.g. Debate team" />}
-              </Field>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
-                <Field label="Your role" style={{ flex: 1, minWidth: 150 }}>
-                  {(id) => <Input id={id} value={a.position} maxLength={50} onChange={(v) => onPatch({ position: v })} placeholder="e.g. Captain" />}
-                </Field>
-                <Field label="Organization" style={{ flex: 1, minWidth: 150 }}>
-                  {(id) => <Input id={id} value={a.organization} maxLength={100} onChange={(v) => onPatch({ organization: v })} />}
-                </Field>
-              </div>
-              <DescriptionField value={a.description} onChange={(v) => onPatch({ description: v })} />
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-start", marginBottom: 14 }}>
-                <Field label="Hours / week" style={{ flex: "1 1 120px", maxWidth: 200 }}>
-                  {(id) => (
-                    <NumberInput id={id} value={a.hours_per_week} decimal range={HOURS_RANGE}
-                      onCommit={(n) => onPatch({ hours_per_week: n })} />
-                  )}
-                </Field>
-                <Field label="Weeks / year" style={{ flex: "1 1 120px", maxWidth: 200 }}>
-                  {(id) => (
-                    <NumberInput id={id} value={a.weeks_per_year} range={WEEKS_RANGE}
-                      onCommit={(n) => onPatch({ weeks_per_year: n })} />
-                  )}
-                </Field>
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <ChoiceChips label="Grades involved" labelAbove multi options={GRADE_CHIPS} value={a.grade_levels || []}
-                  onChange={(v) => onPatch({ grade_levels: v })} />
-              </div>
-              <ChoiceChips label="When" labelAbove options={TIMINGS} value={a.timing}
-                onChange={(k) => onPatch({ timing: k })} />
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12, marginRight: -6 }}>
-                <RemoveButton onClick={onRemove} name={rowName("activities", a)} />
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </Card>
+          <DescriptionField value={a.description} onChange={(v) => onPatch({ description: v })} />
+          <div style={{ ...fieldRow, marginBottom: 14 }}>
+            <Field label="Hours / week" style={{ flex: "1 1 120px", maxWidth: 200 }}>
+              {(id) => (
+                <NumberInput id={id} value={a.hours_per_week} decimal range={HOURS_RANGE}
+                  onCommit={(n) => onPatch({ hours_per_week: n })} />
+              )}
+            </Field>
+            <Field label="Weeks / year" style={{ flex: "1 1 120px", maxWidth: 200 }}>
+              {(id) => (
+                <NumberInput id={id} value={a.weeks_per_year} range={WEEKS_RANGE}
+                  onCommit={(n) => onPatch({ weeks_per_year: n })} />
+              )}
+            </Field>
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <ChoiceChips label="Grades involved" labelAbove multi options={GRADE_CHIPS} value={grades}
+              onChange={(v) => onPatch({ grade_levels: v })} />
+          </div>
+          <ChoiceChips label="When" labelAbove options={TIMINGS} value={a.timing}
+            onChange={(k) => onPatch({ timing: k })} />
+        </>
+      )}>
+      {a.description && (
+        <p style={{ fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.55, margin: "2px 0 0" }}>
+          {a.description}
+        </p>
+      )}
+      {thin && <Tag style={{ marginTop: 4 }}>Needs detail</Tag>}
+    </RecordLine>
   );
 }
 
@@ -664,28 +693,28 @@ function DescriptionField({ value, onChange }) {
   );
 }
 
-function AwardRow({ award, onPatch, onRemove }) {
+/** An award reads as its title over "State · 2025". */
+function AwardLine({ award, onPatch, onRemove, startOpen, status }) {
+  const meta = [labelFor(AWARD_LEVELS, award.level), award.year].filter((x) => x != null && x !== "").join(" · ");
   return (
-    <Card data-row={award.id} tabIndex={-1} style={itemCard}>
-      <div style={itemHead}>
-        <span style={itemName}>{award.title || "New award"}</span>
-        <RemoveButton onClick={onRemove} name={rowName("awards", award)} />
-      </div>
-      <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <Field label="Award" style={{ flex: "2 1 220px" }}>
-          {(id) => <Input id={id} data-first="" value={award.title} onChange={(v) => onPatch({ title: v })} placeholder="e.g. State finalist" />}
-        </Field>
-        <Field label="Level" style={{ flex: "1 1 130px" }}>
-          {(id) => <Select id={id} value={award.level} onChange={(v) => onPatch({ level: v })} options={AWARD_LEVELS} placeholder="Level" />}
-        </Field>
-        <Field label="Year" style={{ flex: "1 1 90px" }}>
-          {(id) => (
-            <NumberInput id={id} value={award.year} range={YEAR_RANGE} placeholder="e.g. 2025"
-              onCommit={(n) => onPatch({ year: n })} />
-          )}
-        </Field>
-      </div>
-    </Card>
+    <RecordLine id={award.id} name={rowName("awards", award)} startOpen={startOpen} status={status} onRemove={onRemove}
+      title={award.title || "New award"} meta={meta || "Level and year not set"} metaMuted={!meta}
+      editor={(
+        <div style={fieldRow}>
+          <Field label="Award" style={{ flex: "2 1 220px" }}>
+            {(id) => <Input id={id} data-first="" value={award.title} onChange={(v) => onPatch({ title: v })} placeholder="e.g. State finalist" />}
+          </Field>
+          <Field label="Level" style={{ flex: "1 1 130px" }}>
+            {(id) => <Select id={id} value={award.level} onChange={(v) => onPatch({ level: v })} options={AWARD_LEVELS} placeholder="Level" />}
+          </Field>
+          <Field label="Year" style={{ flex: "1 1 90px" }}>
+            {(id) => (
+              <NumberInput id={id} value={award.year} range={YEAR_RANGE} placeholder="e.g. 2025"
+                onCommit={(n) => onPatch({ year: n })} />
+            )}
+          </Field>
+        </div>
+      )} />
   );
 }
 
@@ -726,7 +755,7 @@ function ReadBack({ data }) {
   if (!data) return null;
   const { gaps, aside, done } = data;
   return (
-    <Tip name="Your record" stamp={gaps.length ? "scroll" : "check"} tone="default" style={{ marginBottom: "1.25rem", paddingTop: 0 }}>
+    <Tip name="Your record" stamp={gaps.length ? "scroll" : "check"} tone="default" maxWidth="none" style={{ marginBottom: "1.25rem", paddingTop: 0 }}>
       {gaps.length ? (
         <>
           <p style={{ margin: "0 0 4px", fontWeight: 800 }}>
@@ -790,12 +819,9 @@ function ReviewSheet({ rows: initial, onConfirm, onClose, saving }) {
               onChange={() => setRows((prev) => prev.map((x, j) => (j === i ? { ...x, checked: !x.checked } : x)))}
               style={{ marginTop: 4, width: 18, height: 18, accentColor: ink.button.bg, cursor: "pointer", flexShrink: 0 }} />
             <span style={{ minWidth: 0 }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: "0.9rem",
-                fontWeight: 700, color: ink.onSoft, background: ink.softer, border: `1px solid ${ink.soft}`,
-                borderRadius: RADIUS.pill, padding: "2px 10px", marginBottom: 6 }}>
-                <PixelStamp kind={r.kind === "award" ? "star" : "scroll"} size={16} />
+              <Tag stamp={r.kind === "award" ? "star" : "scroll"} style={{ marginBottom: 6 }}>
                 {r.kind === "award" ? "Award" : "Activity"}
-              </span>
+              </Tag>
               <span style={{ display: "block", fontFamily: SANS, fontWeight: 700, fontSize: "1rem", color: TEXT }}>
                 {r.title}
               </span>
@@ -874,7 +900,11 @@ function ExportSheet({ record, contact: initialContact, exportsLeft, generating,
     <Sheet onClose={onClose} locked={generating} labelledBy={headId} width={660}>
       <SheetTitle id={headId}>Export as a resume</SheetTitle>
       <p style={sheetLead}>
-        A one-page PDF built from whatever you pick, across both tabs.
+        A one-page PDF built from whatever you pick, across both tabs.{" "}
+        <strong style={{ fontWeight: 700, color: TEXT }}>
+          {exportsLeft === 1 ? "You can export one resume" : `You can export ${exportsLeft} resumes`}, so add
+          everything you want first.
+        </strong>
       </p>
 
       <div style={{ marginBottom: 22 }}>
@@ -950,14 +980,9 @@ function ExportSheet({ record, contact: initialContact, exportsLeft, generating,
             include_gpa: includeGpa,
           }, contact)}
           style={{ flex: 1, minWidth: 180 }}>
-          {generating ? "Building your PDF…" : `Download PDF (${total})`}
+          {generating ? "Building your PDF…" : `Download my resume (${plural(total, "item", "items")})`}
         </Button>
       </div>
-      <p style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: TEXT_MUTED, textAlign: "center", margin: "12px 0 0" }}>
-        {exportsLeft > 0
-          ? `You can export ${plural(exportsLeft, "more resume", "more resumes")}.`
-          : "You have used all your resume exports."}
-      </p>
     </Sheet>
   );
 }
@@ -994,7 +1019,7 @@ const SAVE_DELAY = 450;
 
 const TABS = [
   { key: "academics", label: "Academics" },
-  { key: "ecs",       label: "ECs / Awards" },
+  { key: "ecs",       label: "Activities & awards" },
 ];
 
 export default function PortfolioPage({ navigate }) {
@@ -1024,9 +1049,12 @@ export default function PortfolioPage({ navigate }) {
   const [collegeCount, setCollegeCount] = useState(null);   // null until known
   const [notice, setNotice] = useState(null);               // { text, error, action, undo }
   const [adding, setAddingTo] = useState(null);             // the list an Add is waiting on
-  const [justAdded, setJustAdded] = useState(null);         // opens a new class or activity
+  const [justAdded, setJustAdded] = useState(null);         // opens the item just added
+  const [, setFocusTick] = useState(0);
   const fileRef = useRef(null);
   const focusNext = useRef(null);
+  // Focus something after the next render, even when nothing else changes.
+  const focusOn = (selector) => { focusNext.current = selector; setFocusTick((t) => t + 1); };
   const { status, begin, end } = useSaveStatus();
 
   useEffect(() => {
@@ -1269,9 +1297,18 @@ export default function PortfolioPage({ navigate }) {
     }
   };
 
+  const pickFile = () => (uploadsUsed < LIMITS.portfolio_upload ? fileRef.current?.click() : setLimitModal("portfolio_upload"));
+
   const handleFile = async (file) => {
     if (!file) return;
     setUploadError(null);
+    // Caught here, before the upload is spent on a file the reader can't open.
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    if (!UPLOAD_TYPES.includes(ext) || !file.name.includes(".")) {
+      setUploadError(`${file.name} isn't a file we can read. Upload a .pdf, .docx, .txt or .md file instead.`);
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
     setUploading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -1305,6 +1342,7 @@ export default function PortfolioPage({ navigate }) {
         awards:     [...prev.awards, ...added.awards],
       }));
       setExtracted(null);
+      setTab("ecs");
       const n = added.activities.length + added.awards.length;
       setNotice({ text: `Added ${plural(n, "item", "items")} from your file.` });
     } catch (e) {
@@ -1328,6 +1366,10 @@ export default function PortfolioPage({ navigate }) {
       URL.revokeObjectURL(a.href);
       setExportsUsed((n) => n + 1);
       setExportOpen(false);
+      const items = selection.activity_ids.length + selection.award_ids.length + selection.course_ids.length
+        + selection.score_ids.length + (selection.include_gpa ? 1 : 0);
+      const spent = exportsUsed + 1 >= LIMITS.resume_export;
+      setNotice({ text: `Downloaded resume.pdf with ${plural(items, "item", "items")}.${spent ? " That used your last resume export." : ""}` });
     } catch (e) {
       if (e.limit) { setExportOpen(false); setLimitModal("resume_export"); setExportsUsed(LIMITS.resume_export); }
       else setExportError(e.message || "Could not build the PDF. Please try again.");
@@ -1401,9 +1443,28 @@ export default function PortfolioPage({ navigate }) {
   const rowPatch = (table, listKey) => (row, v) => patch(table, listKey, row, v);
   const rowRemove = (table, listKey) => (row) => remove(table, listKey, row);
 
+  const goToGpa = () => { setTab("academics"); focusOn("[data-gpa-first]"); };
+  const openExport = () => {
+    if (exportsLeft === 0) { setLimitModal("resume_export"); return; }
+    setExportError(null);
+    setExportOpen(true);
+  };
+  // Hidden until there is something to put on a resume: an empty record would
+  // only lead to a disabled download.
+  const exportButton = hasContent && (
+    <Button kind="secondary" onClick={openExport} style={isMobile ? { width: "100%" } : undefined}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+      </svg>
+      Export resume
+    </Button>
+  );
+  const uploadErrorNotice = uploadError && (
+    <Notice tone="error" style={{ marginTop: 14 }} onDismiss={() => setUploadError(null)}>{uploadError}</Notice>
+  );
+
   return (
     <div data-sidebar-offset className="ui-page" style={pagePad}>
-      <style>{PAGE_CSS}</style>
       <div style={{ maxWidth: 880, margin: "0 auto", width: "100%" }}>
 
         <PageHeader title="Portfolio" isMobile={isMobile} style={{ marginBottom: "1.75rem" }}>
@@ -1414,9 +1475,32 @@ export default function PortfolioPage({ navigate }) {
                 border: "none", padding: 0, cursor: "pointer", borderRadius: 4 }}>
               Chat
             </button>{" "}
-            reads all of it, so the more you fill in, the more specific its advice.
+            reads all of it, so the more you fill in, the more specific its advice. Changes save as you type.
           </p>
         </PageHeader>
+
+        {/* One file input for the whole page, so the Start here line and the
+            upload card run the same upload from either tab. */}
+        <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md" style={{ display: "none" }}
+          onChange={(e) => handleFile(e.target.files?.[0])} />
+
+        {!hasContent && (
+          <Tip name="Start here" stamp="scroll" tone="accent" style={{ marginBottom: "1.5rem", paddingTop: 0 }}>
+            <p style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.05rem", color: TEXT, margin: "0 0 4px" }}>
+              Begin with your grades, or a resume
+            </p>
+            <p style={{ fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: TEXT_MID, lineHeight: 1.55, margin: "0 0 12px" }}>
+              Add your GPA and this year's classes, or upload a resume and we'll pull out your activities and awards for you to check.
+            </p>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Button kind="primary" busy={uploading} onClick={pickFile}>
+                {uploading ? "Reading it…" : "Upload a file"}
+              </Button>
+              <Button kind="quiet" onClick={goToGpa}>Add my GPA</Button>
+            </div>
+            {uploadErrorNotice}
+          </Tip>
+        )}
 
         {nextStep && (
           <Tip name="Next step" stamp={nextStep.stamp} tone="accent" style={{ marginBottom: "1.5rem", paddingTop: 0 }}>
@@ -1435,16 +1519,10 @@ export default function PortfolioPage({ navigate }) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap", marginBottom: "1.25rem" }}>
           <div style={{ flex: isMobile ? "1 1 100%" : "0 1 auto", minWidth: 0 }}>
             <ChoiceChips label="Portfolio section" hideLabel isMobile={isMobile}
-              options={tabOptions} value={tab} onChange={(k) => { setTab(k); setJustAdded(null); }} />
+              options={tabOptions} value={tab} onChange={setTab} />
           </div>
-
-          <Button kind="secondary" onClick={() => { setExportError(null); setExportOpen(true); }}
-            style={isMobile ? { width: "100%" } : undefined}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            Export resume
-          </Button>
+          {/* On a phone the export goes under the record, so the record comes first. */}
+          {!isMobile && exportButton}
         </div>
 
         <ReadBack data={readBack(tab, record)} />
@@ -1454,25 +1532,25 @@ export default function PortfolioPage({ navigate }) {
             <GpaBlock profile={record.profile} status={status.gpa} onSave={saveGpaNow} />
 
             <SectionCard id="scores" title="Test scores" stamp="answersheet" count={record.scores.length} status={status.scores}
-              hint="SAT, ACT, PSAT and AP exam results."
+              isMobile={isMobile} hint="SAT, ACT, PSAT and AP exam results."
               action={<AddButton busy={adding === "scores"}
                 onClick={() => add("student_test_scores", "scores", { test_type: "sat", section_scores: {} }, "a score")}>Add score</AddButton>}>
               {record.scores.length === 0
-                ? <EmptyNote>Nothing here yet. Add a score when you have one, or leave it empty if you're going test-optional.</EmptyNote>
+                ? <EmptyNote>None yet. Add a score when you have one, or leave this empty if you're going test-optional.</EmptyNote>
                 : record.scores.map((s) => (
-                    <ScoreRow key={s.id} score={s}
+                    <ScoreLine key={s.id} score={s} startOpen={s.id === justAdded} status={status.scores}
                       onPatch={(v) => patch("student_test_scores", "scores", s, v)}
                       onRemove={() => remove("student_test_scores", "scores", s)} />
                   ))}
             </SectionCard>
 
             <SectionCard id="courses" title="Coursework" stamp="notebook" count={record.courses.length} status={status.courses}
-              hint="Admissions reads how hard your classes were, year by year, so tag each one's level and grade."
+              isMobile={isMobile} hint="Admissions reads how hard your classes were, year by year, so tag each one's level and grade."
               action={<AddButton busy={adding === "courses"}
                 onClick={() => add("student_courses", "courses", { name: "" }, "a class")}>Add course</AddButton>}>
               {record.courses.length === 0
-                ? <EmptyNote>No classes listed yet. Start with this year's.</EmptyNote>
-                : <CourseList courses={record.courses} justAdded={justAdded}
+                ? <EmptyNote>None yet. Start with this year's classes.</EmptyNote>
+                : <CourseList courses={record.courses} justAdded={justAdded} status={status.courses}
                     onPatch={rowPatch("student_courses", "courses")} onRemove={rowRemove("student_courses", "courses")} />}
             </SectionCard>
           </motion.div>
@@ -1480,67 +1558,53 @@ export default function PortfolioPage({ navigate }) {
 
         {tab === "ecs" && (
           <motion.div key="ecs" {...tabMotion}>
-            {/* Upload lives on this tab only: it parses activities and awards, not academics. */}
-            <Card style={{ padding: "1.3rem", marginBottom: "1.25rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                <div style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "flex-start", gap: 12 }}>
-                  <StampTile kind="resume" />
-                  <div style={{ minWidth: 0 }}>
-                    <p style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.1rem", color: TEXT, margin: "0 0 4px" }}>
-                      Have a resume or brag sheet?
-                    </p>
-                    <p style={{ fontFamily: SANS, fontSize: "1rem", color: TEXT_MUTED, lineHeight: 1.55, margin: 0 }}>
-                      Upload it and we'll pull out your activities and awards. You review everything before it's added.
-                    </p>
-                  </div>
-                </div>
-                <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center",
-                  width: isMobile ? "100%" : undefined }}>
-                  <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md" style={{ display: "none" }}
-                    onChange={(e) => handleFile(e.target.files?.[0])} />
-                  <Button kind={record.activities.length ? "secondary" : "primary"} busy={uploading}
-                    onClick={() => (uploadsLeft > 0 ? fileRef.current?.click() : setLimitModal("portfolio_upload"))}
-                    style={isMobile ? { width: "100%" } : undefined}>
+            {/* Upload lives on this tab: it parses activities and awards, not academics. */}
+            <SectionCard title="Have a resume or brag sheet?" stamp="resume" saves={false} isMobile={isMobile}
+              hint="Upload a .pdf, .docx, .txt or .md file and we'll pull out your activities and awards. You review everything before it's added."
+              action={(
+                <div style={{ display: "grid", justifyItems: isMobile ? "stretch" : "center", gap: 6 }}>
+                  <Button kind={hasContent && !record.activities.length ? "primary" : "secondary"} busy={uploading} onClick={pickFile}>
                     {uploading ? "Reading it…" : "Upload a file"}
                   </Button>
-                  <p style={{ fontFamily: SANS, fontSize: "0.92rem", fontWeight: 600, color: TEXT_MUTED, textAlign: "center",
-                    margin: "7px 0 0", fontVariantNumeric: "tabular-nums" }}>
+                  <p style={{ fontFamily: SANS, fontSize: "0.9rem", fontWeight: 600, color: TEXT_MUTED, textAlign: "center",
+                    margin: 0, fontVariantNumeric: "tabular-nums" }}>
                     {uploadsLeft > 0 ? `You can upload ${plural(uploadsLeft, "more file", "more files")}.` : "No uploads left."}
                   </p>
                 </div>
-              </div>
-              {uploadError && (
-                <Notice tone="error" style={{ marginTop: 14 }} onDismiss={() => setUploadError(null)}>{uploadError}</Notice>
-              )}
-            </Card>
+              )}>
+              {hasContent && uploadErrorNotice}
+            </SectionCard>
 
             <SectionCard id="activities" title="Activities" stamp="rocket" count={record.activities.length} status={status.activities}
+              isMobile={isMobile}
               hint="Clubs, sports, jobs, family responsibilities, projects, volunteering, research. Open one with Edit to fill in your role, hours and what you actually did."
               action={<AddButton busy={adding === "activities"}
                 onClick={() => add("student_activities", "activities", { title: "", detail_level: "name_only", grade_levels: [] }, "an activity")}>Add activity</AddButton>}>
               {record.activities.length === 0
-                ? <EmptyNote>Nothing here yet. Add an activity, or upload a resume above.</EmptyNote>
+                ? <EmptyNote>None yet. Add an activity, or upload a resume above.</EmptyNote>
                 : record.activities.map((a) => (
-                    <ActivityCard key={a.id} activity={a} startOpen={a.id === justAdded}
+                    <ActivityLine key={a.id} activity={a} startOpen={a.id === justAdded} status={status.activities}
                       onPatch={(v) => patch("student_activities", "activities", a, v)}
                       onRemove={() => remove("student_activities", "activities", a)} />
                   ))}
             </SectionCard>
 
             <SectionCard id="awards" title="Awards and honors" stamp="trophy" count={record.awards.length} status={status.awards}
-              hint="Anything you were recognised for, at any level."
+              isMobile={isMobile} hint="Anything you were recognized for, at any level."
               action={<AddButton busy={adding === "awards"}
                 onClick={() => add("student_awards", "awards", { title: "" }, "an award")}>Add award</AddButton>}>
               {record.awards.length === 0
-                ? <EmptyNote>No awards yet, and that's common. Many students have few or none, so add what you have and leave it there.</EmptyNote>
+                ? <EmptyNote>None yet, and that's common. Many students have few or none, so add what you have and leave it there.</EmptyNote>
                 : record.awards.map((w) => (
-                    <AwardRow key={w.id} award={w}
+                    <AwardLine key={w.id} award={w} startOpen={w.id === justAdded} status={status.awards}
                       onPatch={(v) => patch("student_awards", "awards", w, v)}
                       onRemove={() => remove("student_awards", "awards", w)} />
                   ))}
             </SectionCard>
           </motion.div>
         )}
+
+        {isMobile && exportButton}
       </div>
 
       <AnimatePresence>

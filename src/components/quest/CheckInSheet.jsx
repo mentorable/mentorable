@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { formatDay } from "../../lib/quest.js";
 import Spinner from "../common/Spinner.jsx";
 import { FOCUS_CLASS, RADIUS, SURFACE } from "../ui/tokens.js";
-import { Button, INPUT_CLASS, SR_ONLY, Sheet, Tip, inputStyle } from "../ui/kit.jsx";
+import { Button, Heading, INPUT_CLASS, SR_ONLY, Sheet, Tip, inputStyle } from "../ui/kit.jsx";
 import {
   SANS, INK, MID, MUTED, LINE, AMBER,
   Chunky, ErrorLine, FLAME_GROWS_AT, Flame, GrowingFlame, useQuestColors,
@@ -132,13 +132,13 @@ function Resources({ slot, task, find, canSearch }) {
 
       {list === null && !spent && (
         <>
-          <p style={{ margin: "4px 0 12px", fontFamily: SANS, fontSize: "0.92rem", color: MUTED, lineHeight: 1.5 }}>
+          <p style={{ margin: "4px 0 12px", fontFamily: SANS, fontSize: "0.9rem", color: MUTED, lineHeight: 1.5 }}>
             A few real pages that help with this task.
           </p>
           {busy ? (
             <div role="status" style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
               <Spinner size={18} color={c.text} />
-              <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.92rem", color: MID }}>
+              <span style={{ fontFamily: SANS, fontWeight: 700, fontSize: "0.9rem", color: MID }}>
                 Looking for good pages. This takes a few seconds.
               </span>
             </div>
@@ -161,11 +161,11 @@ function Resources({ slot, task, find, canSearch }) {
               <a href={r.url} target="_blank" rel="noopener noreferrer" aria-label={`${r.title}, opens in a new tab`}
                 className={FOCUS_CLASS}
                 style={{ display: "block", textDecoration: "none", border: `1px solid ${LINE}`, borderRadius: RADIUS.control, padding: "10px 12px" }}>
-                <span style={{ display: "block", fontFamily: SANS, fontWeight: 800, fontSize: "0.98rem", color: c.text, lineHeight: 1.35 }}>
+                <span style={{ display: "block", fontFamily: SANS, fontWeight: 800, fontSize: "1rem", color: c.text, lineHeight: 1.35 }}>
                   {r.title}
                 </span>
                 {r.note && (
-                  <span style={{ display: "block", marginTop: 3, fontFamily: SANS, fontSize: "0.92rem", color: MID, lineHeight: 1.5 }}>
+                  <span style={{ display: "block", marginTop: 3, fontFamily: SANS, fontSize: "0.9rem", color: MID, lineHeight: 1.5 }}>
                     {r.note}
                   </span>
                 )}
@@ -190,9 +190,12 @@ function Resources({ slot, task, find, canSearch }) {
 
 export default function CheckInSheet({
   slot, stone, today, task, loading, loadError, onRetry, onSubmit, onAnswer, onFindResources, onClose,
+  draft = "", onDraft,
 }) {
   const c = useQuestColors();
-  const [body, setBody] = useState("");
+  // The page keeps what was typed per day, so closing the sheet by a tap on
+  // the backdrop or Escape never loses it: reopening the day brings it back.
+  const [body, setBody] = useState(draft);
   const [answer, setAnswer] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -213,6 +216,7 @@ export default function CheckInSheet({
     setBusy(true); setError(null);
     try {
       setOutcome(await onSubmit(slot, text));
+      onDraft?.("");
     } catch (e) {
       setError(e.message || "That did not go through. Try again.");
     } finally {
@@ -270,16 +274,16 @@ export default function CheckInSheet({
           <Label color={catchUp ? AMBER : c.text}>
             {heading}{!review && !outcome ? `, about ${task.est_minutes} min` : ""}
           </Label>
-          <h2 style={{ margin: "6px 0 8px", fontFamily: SANS, fontSize: "1.35rem", fontWeight: 800, color: INK, lineHeight: 1.3 }}>
+          <Heading style={{ margin: "6px 0 8px" }}>
             {task.title}
-          </h2>
+          </Heading>
           {task.detail && (
             <p style={{ margin: "0 0 16px", fontFamily: SANS, fontSize: "1rem", color: MID, lineHeight: 1.6 }}>
               {task.detail}
             </p>
           )}
           {task.fallback && !review && !outcome && (
-            <p style={{ margin: "-6px 0 16px", fontFamily: SANS, fontSize: "0.92rem", color: MUTED }}>
+            <p style={{ margin: "-6px 0 16px", fontFamily: SANS, fontSize: "0.9rem", color: MUTED }}>
               A simple task this time. The next ones will be tailored to you again.
             </p>
           )}
@@ -307,7 +311,7 @@ export default function CheckInSheet({
               </label>
               <textarea
                 id="quest-checkin" ref={box} rows={3} value={body} maxLength={1000}
-                onChange={(e) => setBody(e.target.value)}
+                onChange={(e) => { setBody(e.target.value); onDraft?.(e.target.value); }}
                 onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit(); }}
                 placeholder="One or two lines is plenty."
                 className={INPUT_CLASS} style={{ ...inputStyle, resize: "vertical", minHeight: 88 }}
