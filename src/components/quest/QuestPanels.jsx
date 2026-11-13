@@ -328,22 +328,6 @@ export function RulesSheet({ stats, onClose }) {
   );
 }
 
-/** A one-time pointer to the rules, shown above today's callout until the
- *  student dismisses it. */
-export function RulesTip({ onOpen, onDismiss, isMobile }) {
-  return (
-    <div style={{ maxWidth: 640, margin: "4px auto 0" }}>
-      <Tip stamp="question" name="Quest tip">
-        <strong style={{ fontWeight: 800 }}>New to Quest?</strong> Check in each work day to keep your streak going.
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
-          <Button onClick={onOpen}>How it works</Button>
-          <Button kind="quiet" onClick={onDismiss} style={isMobile ? { paddingLeft: 12, paddingRight: 12 } : undefined}>Got it</Button>
-        </div>
-      </Tip>
-    </div>
-  );
-}
-
 // ─── Milestone and finish cards ───────────────────────────────────────────────
 
 export function MilestoneCard({ milestone, next, onClose }) {

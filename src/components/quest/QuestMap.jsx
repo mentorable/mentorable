@@ -290,11 +290,10 @@ function stoneLabel(stone, today) {
   return `Day ${stone.slot}, ${day}: ${what}`;
 }
 
-/** `lead`: an optional block drawn just above today's callout (the
- *  first-visit tip). `trail`: one drawn just under today's stone (the
+/** `trail`: an optional block drawn just under today's stone (the
  *  backlog, beside the missed stones it is about), so today's Start comes
  *  first and the page lands on both. */
-export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartToday, onCatchUp, justDone, glowMilestone, isMobile, lead, trail }) {
+export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartToday, onCatchUp, justDone, glowMilestone, isMobile, trail }) {
   const amp = isMobile ? 58 : 92;
   const stones = state.stones || [];
   const milestones = state.milestones || [];
@@ -307,9 +306,6 @@ export default function QuestMap({ state, todayRef, focusSlot, onOpen, onStartTo
         <Plate milestone={m} isLast={i === 0} state={state} glow={glowMilestone === m.position} />
         {mine.map((s) => (
           <Fragment key={s.slot}>
-            {s.slot === todaySlot && lead && (
-              <div data-today-lead style={{ padding: "0 0 8px" }}>{lead}</div>
-            )}
             {s.slot === todaySlot && (
               <TodayCallout state={state} task={state.today_task} onStart={onStartToday} onCatchUp={onCatchUp}
                 onReview={() => onOpen({ ...s, isTodaySlot: true })} amp={amp} slot={s.slot} />

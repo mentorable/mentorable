@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import RecordPanel, { sectionsFromForm } from "./RecordPanel.jsx";
-import { Button, Card, Tip } from "../ui/kit.jsx";
+import { Button, Card } from "../ui/kit.jsx";
 import {
   BORDER, DANGER, FOCUS_CLASS, INPUT_CLASS, PRESS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MUTED, WHITE,
   inputStyle, labelStyle, pillStyle, squareChoiceStyle, titleStyle, useIntakeInk,
@@ -336,11 +336,11 @@ export const EMPTY_INTAKE = {
 };
 
 const STEPS = [
-  { id: "identity",  stamp: "person", title: "Let's start with the basics",  blurb: "Just enough to know where you are in the process." },
-  { id: "academics", stamp: "scroll", title: "Your grades and classes",      blurb: "Skip anything that doesn't apply to you yet." },
-  { id: "testing",   stamp: "check",  title: "Any test scores?",             blurb: "Plenty of students don't have these yet. That's completely fine." },
-  { id: "record",    stamp: "star",   title: "What you've been doing",       blurb: "Just the names for now. We'll talk through the details right after." },
-  { id: "direction", stamp: "flag",   title: "Where you're headed",          blurb: "Rough guesses are genuinely useful here." },
+  { id: "identity",  stamp: "person", title: "Let's start with the basics" },
+  { id: "academics", stamp: "scroll", title: "Your grades and classes" },
+  { id: "testing",   stamp: "check",  title: "Any test scores?" },
+  { id: "record",    stamp: "star",   title: "What you've been doing" },
+  { id: "direction", stamp: "flag",   title: "Where you're headed" },
 ];
 
 export default function IntakeForm({ initial, startAt, onComplete, submitting, isMobile, userId }) {
@@ -420,9 +420,6 @@ export default function IntakeForm({ initial, startAt, onComplete, submitting, i
             transition={{ duration: 0.28 }}>
 
             <h1 style={titleStyle(ink, isMobile)}>{current.title}</h1>
-            <Tip name="Mentorable" stamp={current.stamp} tone="default" style={{ marginBottom: "1.4rem" }}>
-              {current.blurb}
-            </Tip>
 
             <Card style={{ padding: isMobile ? "1.2rem 1.1rem 0.2rem" : "1.6rem 1.6rem 0.4rem" }}>
               {current.id === "identity" && (

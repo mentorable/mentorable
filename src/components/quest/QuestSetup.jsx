@@ -326,10 +326,6 @@ export function QuestSetup({ onPlanned, onCancel, canCancel, today }) {
       <PageHeader title="Pick your quest" isMobile={isMobile}>
         One project, moved forward a little every day.
       </PageHeader>
-      <Tip stamp="flag" name="Next step" title="Start here" style={{ marginBottom: "1.25rem" }}>
-        Pick one of these ideas, drawn from your record, or write your own. Then answer two to four quick questions
-        and choose your pace.
-      </Tip>
 
       {ideas === null ? (
         <div role="status">
@@ -437,11 +433,6 @@ export function DraftReview({ state, onStart, onDiscard, busy, error }) {
       <PageHeader title={q.title} isMobile={isMobile} style={{ overflowWrap: "anywhere" }}>
         {q.summary || null}
       </PageHeader>
-      {q.direction && (
-        <Tip stamp="target" name="Your plan" title="Where this is headed" style={{ marginBottom: "1.25rem" }}>
-          {q.direction}
-        </Tip>
-      )}
       {/* The house list pattern (Portfolio's sections, College List's
           groups): a pixel mark, the heading and its count, one line of
           guidance, then the item cards. */}

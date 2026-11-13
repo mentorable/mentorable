@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { requireUser } from "../lib/auth.js";
 import {
-  addSchool, importOnboardingNames, loadCollegeList, refreshSuggestions, removeSchool,
+  addSchool, loadCollegeList, refreshSuggestions, removeSchool,
   restoreSuggestion, searchSchools, setCategory,
 } from "../lib/collegeList.js";
 import { LIST_GOAL, balance, explainItem, suggestCategory } from "../lib/collegeCategory.js";
@@ -14,7 +14,7 @@ import { useTheme } from "../lib/ThemeContext.jsx";
 import {
   BG, BORDER, DANGER, RADIUS, SANS, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
 } from "../components/ui/tokens.js";
-import { Button, Notice, PageHeader, RemoveButton, StampTile, Tip } from "../components/ui/kit.jsx";
+import { Button, Notice, PageHeader, RemoveButton, StampTile } from "../components/ui/kit.jsx";
 import { PixelStamp } from "../components/ui/PixelIcons.jsx";
 
 // College List: the schools a student is applying to, grouped reach, target
@@ -69,16 +69,8 @@ function sortList(list, how) {
 const REAL_API = {
   requireUser, load: loadCollegeList, search: searchSchools, add: addSchool,
   setCategory, restore: restoreSuggestion, remove: removeSchool, refresh: refreshSuggestions,
-  importNames: importOnboardingNames,
 };
 
-const IMPORT_KEY = (uid) => `mentorable.collegeImportDone.${uid}`;
-function readFlag(key) {
-  try { return localStorage.getItem(key) === "1"; } catch { return false; }
-}
-function writeFlag(key) {
-  try { localStorage.setItem(key, "1"); } catch { /* storage blocked: the offer just comes back */ }
-}
 function readPref(key, fallback) {
   try { return localStorage.getItem(key) || fallback; } catch { return fallback; }
 }
@@ -760,10 +752,7 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
   const [userId, setUserId] = useState(null);
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState({ sat: null, act: null, gpa: null });
-  const [onboardingNames, setOnboardingNames] = useState([]);
   const [notice, setNotice] = useState(null);   // { text, error, action: { label, run } }
-  const [importing, setImporting] = useState(null);   // the name being looked up
-  const [importDone, setImportDone] = useState(false);
   const [saving, setSaving] = useState(() => new Set());   // ids whose category is being saved
   const [flash, setFlash] = useState(null);   // id of the card that just moved or arrived
   const [sort, setSort] = useState(() => readPref(SORT_KEY, "added"));
@@ -798,8 +787,6 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
       setUserId(user.id);
       const data = await api.load(user.id);
       setStats(data.stats);
-      setOnboardingNames(data.onboardingNames);
-      setImportDone(readFlag(IMPORT_KEY(user.id)));
       // A new score or GPA can move a suggested school; say which when it does.
       // If that update fails, the list as saved is still worth showing.
       let fresh = data.items;
@@ -898,23 +885,6 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
     }
   };
 
-  const runImport = async () => {
-    setNotice(null);
-    try {
-      const { added, unmatched } = await api.importNames(userId, onboardingNames, stats, setImporting);
-      setItems((prev) => [...prev, ...added.filter((a) => !prev.some((p) => p.id === a.id))]);
-      setNotice({ text: unmatched.length
-        ? `Added ${added.length}. Could not find ${unmatched.join(", ")}. Search for ${unmatched.length === 1 ? "it" : "them"} above.`
-        : `Added ${added.length} ${added.length === 1 ? "school" : "schools"}.` });
-      writeFlag(IMPORT_KEY(userId)); setImportDone(true);
-    } catch (e) {
-      setNotice({ text: e.message, error: true, action: { label: "Try again", run: runImport } });
-    } finally {
-      setImporting(null);
-    }
-  };
-
-  const skipImport = () => { writeFlag(IMPORT_KEY(userId)); setImportDone(true); };
   const chooseSort = (key) => { setSort(key); writePref(SORT_KEY, key); };
   const chooseView = (key) => { setView(key); writePref(VIEW_KEY, key); };
   const compact = view ? view === "compact" : items.length > COMPACT_AFTER;
@@ -969,7 +939,6 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
 
   const b = balance(items);
   const empty = items.length === 0;
-  const offerImport = empty && onboardingNames.length > 0 && !importDone;
   const search = (
     <AddSchool api={api} stats={stats} items={items} counts={b} onAdded={onAdded}
       intro={empty ? "A strong list has a few of each group. Search for a school and it lands in Reach, Target or Likely, with the reason why. You can move it any time." : null} />
@@ -984,23 +953,6 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
           Admit rates, score ranges and costs come from the U.S. Department of Education.
           <div style={{ marginTop: 6 }}><HowItWorks navigate={navigate} /></div>
         </PageHeader>
-
-        {offerImport && (
-          <Tip name="Start here" stamp="scroll" style={{ paddingTop: 0 }}>
-            <strong style={{ fontWeight: 800 }}>Start with the schools you already named.</strong>{" "}
-            When you signed up you mentioned {onboardingNames.join(", ")}. We can look them up and sort them for you.
-            {importing ? (
-              <span role="status" style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 10, fontWeight: 700, color: MID }}>
-                <Spinner size={16} color={ink.accent} /> Looking up {importing}...
-              </span>
-            ) : (
-              <span style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-                <Raised small onClick={runImport}>Add them to my list</Raised>
-                <Raised small tone="quiet" onClick={skipImport}>No thanks</Raised>
-              </span>
-            )}
-          </Tip>
-        )}
 
         {/* An empty list leads with the search; once there are schools, the
             scoreboard leads and the search follows. */}

@@ -16,7 +16,7 @@ import {
 } from "../components/ui/tokens.js";
 import {
   Button, Card, ChoiceChips, FieldLabel, Heading, INPUT_CLASS, LINK_CLASS, Notice, PageHeader, RemoveButton, SR_ONLY, Sheet,
-  StampTile, Tag, Tip, Toast, inputStyle, pageStyle, tabPanelProps, textOnPage,
+  StampTile, Tag, Toast, inputStyle, pageStyle, tabPanelProps, textOnPage,
 } from "../components/ui/kit.jsx";
 import { PixelStamp } from "../components/ui/PixelIcons.jsx";
 
@@ -531,7 +531,7 @@ function GpaBlock({ profile, onSave, status }) {
         <div style={{ ...fieldRow, gap: 12 }}>
           <Field label="Unweighted" style={{ flex: 1, minWidth: 140 }}>
             {(id) => (
-              <NumberInput id={id} data-gpa-first="" value={vals.gpaUnweighted} decimal placeholder="e.g. 3.8" range={range}
+              <NumberInput id={id} value={vals.gpaUnweighted} decimal placeholder="e.g. 3.8" range={range}
                 onCommit={set("gpaUnweighted")} onBlur={() => save()} />
             )}
           </Field>
@@ -1244,11 +1244,8 @@ export default function PortfolioPage({ navigate }) {
   const [notice, setNotice] = useState(null);               // { text, error, action, undo }
   const [adding, setAddingTo] = useState(null);             // the list an Add is waiting on
   const [justAdded, setJustAdded] = useState(null);         // opens the item just added
-  const [, setFocusTick] = useState(0);
   const fileRef = useRef(null);
   const focusNext = useRef(null);
-  // Focus something after the next render, even when nothing else changes.
-  const focusOn = (selector) => { focusNext.current = selector; setFocusTick((t) => t + 1); };
   const { status, begin, end } = useSaveStatus();
 
   useEffect(() => {
@@ -1623,8 +1620,7 @@ export default function PortfolioPage({ navigate }) {
   const rowPatch = (table, listKey) => (row, v) => patch(table, listKey, row, v);
   const rowRemove = (table, listKey) => (row) => remove(table, listKey, row);
 
-  const goToGpa = () => { setTab("academics"); focusOn("[data-gpa-first]"); };
-  // A class added from a year's own Add (or the read-back) starts in that
+  // A class added from a year's own Add starts in that
   // year, at the level of the class before it.
   const addCourse = (grade = null, level = null) => {
     const values = { name: "", ...(grade != null && { grade_level: grade }), ...(level && { level }) };
@@ -1675,22 +1671,6 @@ export default function PortfolioPage({ navigate }) {
         <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md" style={{ display: "none" }}
           onChange={(e) => handleFile(e.target.files?.[0])} />
 
-        {!hasContent && (
-          <Tip name="Start here" title="Begin with your grades, or a resume" stamp="scroll" tone="accent"
-            style={{ marginBottom: "1.25rem" }}>
-            <p style={{ margin: "0 0 12px" }}>
-              Add your GPA and this year's classes, or upload a resume and we'll pull out your activities and awards for you to check.
-            </p>
-            {/* On a phone the two stack full width, as Quest's notices do. */}
-            <div style={isMobile ? { display: "grid", gap: 8 } : { display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Button kind="primary" busy={uploading} onClick={pickFile}>
-                {uploading ? "Reading it…" : "Upload a file"}
-              </Button>
-              <Button kind="quiet" onClick={goToGpa}>Add my GPA</Button>
-            </div>
-            {uploadErrorNotice}
-          </Tip>
-        )}
 
         <div style={{ marginBottom: "1.25rem" }}>
           <ChoiceChips label="Portfolio section" hideLabel isMobile={isMobile} tabs={PF_TABS}
@@ -1750,7 +1730,7 @@ export default function PortfolioPage({ navigate }) {
                   )}
                 </Button>
               )}>
-              {hasContent && uploadErrorNotice}
+              {uploadErrorNotice}
             </SectionCard>
 
             <SectionCard id="activities" title="Activities" stamp="rocket" count={record.activities.length} status={status.activities}

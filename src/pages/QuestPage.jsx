@@ -12,7 +12,7 @@ import CheckInSheet from "../components/quest/CheckInSheet.jsx";
 import { QuestSetup, DraftReview } from "../components/quest/QuestSetup.jsx";
 import {
   TopBar, StickyHeader, CatchUpBanner, CatchUpPill, DeadlineNotice, RestNote, PausedCard,
-  MilestoneCard, FinishCard, ConfirmModal, PaceModal, PortfolioDraftModal, RulesSheet, RulesTip,
+  MilestoneCard, FinishCard, ConfirmModal, PaceModal, PortfolioDraftModal, RulesSheet,
 } from "../components/quest/QuestPanels.jsx";
 import { SANS, MUTED, Chunky, QuestStyles, useQuestColors } from "../components/quest/questUi.jsx";
 import { Button, Card, Heading, SR_ONLY, Toast, pageStyle } from "../components/ui/kit.jsx";
@@ -20,12 +20,6 @@ import { Button, Card, Heading, SR_ONLY, Toast, pageStyle } from "../components/
 // Quest: one project, a small step every day. The page is a thin shell around
 // the server's state: every rule about days, streaks and gates is decided by
 // the backend, and this renders what it says and sends the student's actions.
-
-// The first-visit pointer to the rules, remembered per browser.
-const RULES_TIP_KEY = "quest:rules-tip-seen";
-function readTipSeen() {
-  try { return window.localStorage.getItem(RULES_TIP_KEY) === "1"; } catch { return false; }
-}
 
 function focusSlotOf(state) {
   if (!state?.stones?.length) return null;
@@ -54,7 +48,6 @@ export default function QuestPage({ navigate }) {
   const [portfolio, setPortfolio] = useState(null);      // { draft, loading, error }
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [tipSeen, setTipSeen] = useState(readTipSeen);
   // What the student has typed in each day's check-in, kept while the page is open.
   const drafts = useRef({});
 
@@ -72,8 +65,8 @@ export default function QuestPage({ navigate }) {
   const showMap = ["active", "paused", "completed"].includes(view) && !showSetup;
   const behind = view === "active" && state?.backlog?.count > 0 && !!state?.backlog?.oldest_doable_slot
     && state?.today_state !== "blocked";
-  // Today's slot is drawn on the map (not a rest day), so the first-visit tip
-  // can sit just above its callout and the backlog banner just under its stone.
+  // Today's slot is drawn on the map (not a rest day), so the backlog banner
+  // can sit just under its stone.
   const todayOnMap = !!state?.today_slot && !!state?.stones?.some((s) => s.slot === state.today_slot);
   // How much of the top of the screen the stuck bar covers (its 10px strip,
   // the bar, and the catch-up pill under it), and the mobile nav at the foot.
@@ -157,12 +150,11 @@ export default function QuestPage({ navigate }) {
     const stone = focusRef.current;
     if (!stone) return false;
     const slotEl = stone.closest("[data-slot]") || stone;
-    // From the block above today's callout (the tip), if any, down to today's
-    // stone and the backlog banner under it, if any.
+    // From today's callout down to today's stone and the backlog banner under
+    // it, if any.
     let first = slotEl;
-    let prev = slotEl.previousElementSibling;
-    if (prev?.hasAttribute("data-today-callout")) { first = prev; prev = prev.previousElementSibling; }
-    if (prev?.hasAttribute("data-today-lead")) first = prev;
+    const prev = slotEl.previousElementSibling;
+    if (prev?.hasAttribute("data-today-callout")) first = prev;
     const next = slotEl.nextElementSibling;
     const last = next?.hasAttribute("data-today-trail") ? next : slotEl;
     const top = first.getBoundingClientRect().top + window.scrollY;
@@ -311,18 +303,6 @@ export default function QuestPage({ navigate }) {
     { label: "Retire quest", onClick: () => setConfirmRetire(true), danger: true },
   ] : [];
 
-  // The tip goes once dismissed; focus moves to today, since the button that
-  // had it is gone.
-  const dismissTip = () => {
-    try { window.localStorage.setItem(RULES_TIP_KEY, "1"); } catch { /* private mode: it just shows again */ }
-    setTipSeen(true);
-    requestAnimationFrame(() => {
-      const stone = focusRef.current;
-      const callout = stone?.closest("[data-slot]")?.previousElementSibling;
-      const start = callout?.querySelector?.("[data-today-start]:not([disabled])");
-      (start || (stone?.tagName === "BUTTON" ? stone : null))?.focus({ preventScroll: true });
-    });
-  };
 
   const openPortfolioDraft = async () => {
     setPortfolio({ draft: null, loading: true, error: null });
@@ -380,15 +360,8 @@ export default function QuestPage({ navigate }) {
   ) : null;
   // The banner draws itself whenever there is a backlog it can speak to.
   const hasBacklog = view === "active" && state.backlog?.count > 0 && state.today_state !== "blocked";
-  // The first-visit pointer is for someone new: anyone with a streak or a
-  // finished day has already learned the loop, whichever browser they use.
-  const newToQuest = !(state.stats?.streak > 0) && !(state.stats?.xp > 0)
-    && !state.stones?.some((s) => s.state === "done" || s.state === "late");
-  const showTip = view === "active" && !hasBacklog && !tipSeen && newToQuest;
-  const tip = showTip ? <RulesTip onOpen={() => setRulesOpen(true)} onDismiss={dismissTip} isMobile={isMobile} /> : null;
-  // Beside today when today is on the map: the tip above its callout, the
-  // backlog under its stone (so Start comes first). Above the map otherwise.
-  const lead = todayOnMap && !hasBacklog ? tip : null;
+  // Under today's stone when today is on the map (so Start comes first),
+  // above the map otherwise.
   const trail = todayOnMap && hasBacklog ? banner : null;
 
   // The whole quest in one line under the bar, so the first screen says how
@@ -454,7 +427,6 @@ export default function QuestPage({ navigate }) {
             {view === "active" && (
               <>
                 {!todayOnMap && banner}
-                {!todayOnMap && tip}
                 <DeadlineNotice state={state} onAskAdvisor={() => navigate("/chat")} isMobile={isMobile} />
                 <RestNote state={state} />
               </>
@@ -475,7 +447,6 @@ export default function QuestPage({ navigate }) {
               justDone={justDone}
               glowMilestone={glow}
               isMobile={isMobile}
-              lead={lead}
               trail={trail}
             />
           </>
