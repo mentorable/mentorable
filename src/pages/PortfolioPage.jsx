@@ -7,8 +7,6 @@ import LimitModal from "../components/common/LimitModal.jsx";
 import Spinner from "../components/common/Spinner.jsx";
 import { SIDEBAR_WIDTH } from "../components/common/Sidebar.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
-import { useQuest } from "../lib/QuestContext.jsx";
-import { isEnabled } from "../lib/features.js";
 import {
   fetchRecord, addRow, updateRow, deleteRow, saveGpa, saveContact,
   addExtracted, generateResume,
@@ -814,121 +812,7 @@ function AwardLine({ award, onPatch, onRemove, startOpen, status }) {
   );
 }
 
-// ─── Read-back ────────────────────────────────────────────────────────────────
-
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-
-/** Fewer classes than this in a year (none of them planned) most likely
- *  means the rest of that year's schedule is not in yet. */
-const THIN_YEAR = 4;
-
-/** What the current tab holds and what is missing, said plainly. Each gap
- *  carries the step that fixes it (open the first row it means, at the
- *  missing field, or add a class in the missing year). "All filled in" only
- *  shows when the record is broad as well as tidy: every year up to the
- *  latest one with classes has classes, and none of them looks partial.
- *  Null when the tab is empty, since each empty section already says what
- *  goes there. `act` holds the page's handlers. */
-function readBack(tab, record, act) {
-  const { profile, courses, scores, activities } = record;
-  if (tab === "academics") {
-    const hasGpa = profile.gpa_unweighted != null || profile.gpa_weighted != null;
-    const gpaNotUsed = normScale(profile.gpa_scale) === "not_used";
-    if (!hasGpa && !gpaNotUsed && !courses.length && !scores.length) return null;
-    const gaps = [];
-    if (!hasGpa && !gpaNotUsed) {
-      gaps.push({ text: "No GPA yet. Add it, or choose Not used if your school doesn't give one.",
-        label: "Add my GPA", run: act.gpa });
-    }
-    if (!courses.length) {
-      gaps.push({ text: "No classes yet. Start with this year's.", label: "Add a class", run: () => act.addCourse(null) });
-    }
-    const noLevel = courses.filter((c) => !c.level);
-    if (noLevel.length) {
-      gaps.push({ text: `${plural(noLevel.length, "class has", "classes have")} no level yet.`,
-        label: "Set the level", aria: `Set the level for ${rowName("courses", noLevel[0])}`,
-        run: () => act.open("courses", noLevel[0].id, "level") });
-    }
-    const noGrade = courses.filter((c) => !GRADES.includes(Number(c.grade_level)));
-    if (noGrade.length) {
-      gaps.push({ text: `${plural(noGrade.length, "class has", "classes have")} no grade yet, so ${noGrade.length === 1 ? "it isn't" : "they aren't"} placed in a year.`,
-        label: "Set the grade", aria: `Set the grade for ${rowName("courses", noGrade[0])}`,
-        run: () => act.open("courses", noGrade[0].id, "grade") });
-    }
-    // Coverage: a year below the latest one with classes should have some,
-    // and a year with only a few (none planned) is probably partial.
-    const inYear = (g) => courses.filter((c) => Number(c.grade_level) === g);
-    const latest = Math.max(0, ...courses.map((c) => Number(c.grade_level)).filter((g) => GRADES.includes(g)));
-    for (const g of GRADES) {
-      if (g > latest) break;
-      const rows = inYear(g);
-      if (!rows.length) {
-        gaps.push({ text: `No classes yet for grade ${g}.`, label: `Add a grade ${g} class`, run: () => act.addCourse(g) });
-      } else if (rows.length < THIN_YEAR && !rows.some((c) => c.planned)) {
-        gaps.push({ text: `Grade ${g} lists ${plural(rows.length, "class", "classes")}. Add the rest of that year's schedule.`,
-          label: `Add a grade ${g} class`, run: () => act.addCourse(g, rows[rows.length - 1]?.level || null) });
-      }
-    }
-    const aside = scores.length ? null : "No test scores, which is fine if you're applying test-optional.";
-    const years = [...new Set(courses.map((c) => Number(c.grade_level)).filter((g) => GRADES.includes(g)))].sort();
-    const span = years.length > 1 ? `grades ${years[0]} to ${years[years.length - 1]}` : `grade ${years[0]}`;
-    const done = gpaNotUsed
-      ? `Your classes cover ${span}, each with a level and grade.`
-      : `Your GPA is in, and your classes cover ${span}, each with a level and grade.`;
-    return { gaps, aside, done };
-  }
-  // Awards alone have nothing to read back, and an empty Activities section
-  // already says what goes there.
-  if (!activities.length) return null;
-  const gaps = [];
-  const thin = activities.filter((a) => !a.description && !a.position);
-  if (thin.length) {
-    gaps.push({ text: `${plural(thin.length, "activity still needs", "activities still need")} a role or what you did.`,
-      label: "Add a role", aria: `Add a role for ${rowName("activities", thin[0])}`,
-      run: () => act.open("activities", thin[0].id, "position") });
-  }
-  const noHours = activities.filter((a) => !a.hours_per_week || !a.weeks_per_year);
-  if (noHours.length) {
-    gaps.push({ text: `${plural(noHours.length, "activity has", "activities have")} no hours yet. Applications ask for hours a week and weeks a year.`,
-      label: "Add hours", aria: `Add hours for ${rowName("activities", noHours[0])}`,
-      run: () => act.open("activities", noHours[0].id, noHours[0].hours_per_week ? "weeks" : "hours") });
-  }
-  return { gaps, aside: null, done: "Every activity has a role or description, and its hours." };
-}
-
-/** Polite live region, so a tab switch, or a fix that clears a gap, is heard
- *  as well as seen. */
-function ReadBack({ data }) {
-  return (
-    <div aria-live="polite">
-      {data && (
-        <Tip name="Your record" stamp={data.gaps.length ? "scroll" : "check"} tone="default" maxWidth="none"
-          style={{ marginBottom: "1.25rem" }}
-          title={!data.gaps.length ? "All filled in"
-            : data.gaps.length === 1 ? "One thing to fill in" : `${data.gaps.length} things to fill in`}>
-          {data.gaps.length ? (
-            <>
-              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                {data.gaps.map((g) => (
-                  <li key={g.text} style={{ display: "flex", alignItems: "center", flexWrap: "wrap", columnGap: 10, minHeight: 44 }}>
-                    <span style={{ minWidth: 0 }}>{g.text}</span>
-                    {/* The label's text lines up with the line above when it wraps under it. */}
-                    <Button kind="quiet" onClick={g.run} aria-label={g.aria} style={{ padding: "0 10px", marginLeft: -10 }}>
-                      {g.label}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-              {data.aside && <p style={{ margin: "4px 0 0" }}>{data.aside}</p>}
-            </>
-          ) : (
-            <p style={{ margin: 0 }}>{data.done}{data.aside && ` ${data.aside}`}</p>
-          )}
-        </Tip>
-      )}
-    </div>
-  );
-}
 
 // ─── Sheets ───────────────────────────────────────────────────────────────────
 
@@ -1338,7 +1222,6 @@ export default function PortfolioPage({ navigate }) {
   const isMobile = useIsMobile();
   const reduce = useReducedMotion();
   const ink = useAgentInk();
-  const { summary: questSummary } = useQuest();
   const [phase, setPhase]   = useState("loading");
   const [tab, setTab]       = useState("academics");
   const [userId, setUserId] = useState(null);
@@ -1358,11 +1241,9 @@ export default function PortfolioPage({ navigate }) {
   const [exportError, setExportError] = useState(null);
 
   const [limitModal, setLimitModal] = useState(null);
-  const [collegeCount, setCollegeCount] = useState(null);   // null until known
   const [notice, setNotice] = useState(null);               // { text, error, action, undo }
   const [adding, setAddingTo] = useState(null);             // the list an Add is waiting on
   const [justAdded, setJustAdded] = useState(null);         // opens the item just added
-  const [openReq, setOpenReq] = useState(null);             // { id, field, n }: the read-back opening a row
   const [, setFocusTick] = useState(0);
   const fileRef = useRef(null);
   const focusNext = useRef(null);
@@ -1378,12 +1259,6 @@ export default function PortfolioPage({ navigate }) {
         setUserId(user.id);
         const [rec, usage] = await Promise.all([fetchRecord(user.id), fetchUsage(supabase)]);
         setRecord(rec);
-        // Only decides whether to offer College List, so a failure hides the
-        // card rather than the page.
-        if (isEnabled("colleges")) {
-          supabase.from("college_list_items").select("id", { count: "exact", head: true }).eq("user_id", user.id)
-            .then(({ count, error }) => { if (!error) setCollegeCount(count ?? 0); }, () => {});
-        }
         setUploadsUsed(usage.portfolio_uploads_used ?? 0);
         setExportsUsed(usage.resume_exports_used ?? 0);
         setPhase("ready");
@@ -1718,22 +1593,6 @@ export default function PortfolioPage({ navigate }) {
   const hasContent = p.gpa_unweighted != null || p.gpa_weighted != null || record.courses.length > 0
     || record.scores.length > 0 || record.activities.length > 0 || record.awards.length > 0;
 
-  // One next step under the header, once there is a record to build on. The
-  // first quest comes first (it is offered right after onboarding, and only
-  // to someone who has never had one), then the college list.
-  const questNudge = isEnabled("quest") && questSummary && !questSummary.ever && !questSummary.has_quest;
-  const collegeNudge = isEnabled("colleges") && collegeCount === 0;
-  const nextStep = !hasContent ? null
-    : questNudge ? {
-        stamp: "flag", title: "Start your first quest", to: "/quest", cta: "Find a quest",
-        body: "Pick one project and move it forward a little every day. We'll suggest a few based on your record.",
-      }
-    : collegeNudge ? {
-        stamp: "target", title: "Build your college list", to: "/college-list", cta: "Start my list",
-        body: "Add the schools you are thinking about, and we will sort them into reach, target and likely using real admissions data.",
-      }
-    : null;
-
   const ecCount = record.activities.length + record.awards.length;
   const acCount = record.courses.length + record.scores.length;
   const exportsLeft = Math.max(0, LIMITS.resume_export - exportsUsed);
@@ -1771,8 +1630,6 @@ export default function PortfolioPage({ navigate }) {
     const values = { name: "", ...(grade != null && { grade_level: grade }), ...(level && { level }) };
     add("student_courses", "courses", values, "a class", grade != null ? `courses:${grade}` : "courses");
   };
-  const openRow = (listKey, id, field) => setOpenReq((r) => ({ id, field, listKey, n: (r?.n || 0) + 1 }));
-  const readBackData = readBack(tab, record, { gpa: goToGpa, addCourse, open: openRow });
   const openExport = () => {
     if (exportsLeft === 0) { setLimitModal("resume_export"); return; }
     setExportError(null);
@@ -1835,21 +1692,10 @@ export default function PortfolioPage({ navigate }) {
           </Tip>
         )}
 
-        {nextStep && (
-          <Tip name="Next step" title={nextStep.title} stamp={nextStep.stamp} tone="accent" style={{ marginBottom: "1.25rem" }}>
-            <p style={{ margin: "0 0 12px" }}>{nextStep.body}</p>
-            <Button kind="primary" onClick={() => navigate(nextStep.to)}>
-              {nextStep.cta}
-            </Button>
-          </Tip>
-        )}
-
         <div style={{ marginBottom: "1.25rem" }}>
           <ChoiceChips label="Portfolio section" hideLabel isMobile={isMobile} tabs={PF_TABS}
-            options={tabOptions} value={tab} onChange={(k) => { setOpenReq(null); setTab(k); }} />
+            options={tabOptions} value={tab} onChange={(k) => setTab(k)} />
         </div>
-
-        <ReadBack data={readBackData} />
 
         {tab === "academics" && (
           <motion.div key="academics" {...tabMotion} {...tabPanelProps(PF_TABS, "academics")}>
@@ -1875,7 +1721,7 @@ export default function PortfolioPage({ navigate }) {
               {record.courses.length === 0
                 ? <EmptyNote>None yet. Start with this year's classes.</EmptyNote>
                 : <CourseList courses={record.courses} justAdded={justAdded} status={status.courses} adding={adding}
-                    request={openReq?.listKey === "courses" ? openReq : null} onAdd={({ grade, level }) => addCourse(grade, level)}
+                    onAdd={({ grade, level }) => addCourse(grade, level)}
                     onPatch={rowPatch("student_courses", "courses")} onRemove={rowRemove("student_courses", "courses")} />}
             </SectionCard>
           </motion.div>
@@ -1916,7 +1762,6 @@ export default function PortfolioPage({ navigate }) {
                 ? <EmptyNote>None yet. Add an activity, or upload a resume above.</EmptyNote>
                 : <RecordList>{record.activities.map((a) => (
                     <ActivityLine key={a.id} activity={a} startOpen={a.id === justAdded} status={status.activities}
-                      request={openReq?.listKey === "activities" && openReq.id === a.id ? openReq : null}
                       onPatch={(v) => patch("student_activities", "activities", a, v)}
                       onRemove={() => remove("student_activities", "activities", a)} />
                   ))}</RecordList>}
