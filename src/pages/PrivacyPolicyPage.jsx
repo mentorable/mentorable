@@ -5,7 +5,7 @@ const FG = "#141413";
 const MUT = "#4b5563";
 const P = "#1d4ed8";
 
-const LAST_UPDATED = "October 12, 2026";
+const LAST_UPDATED = "November 14, 2026";
 
 function Section({ title, children }) {
   return (
@@ -74,11 +74,15 @@ export default function PrivacyPolicyPage({ navigate }) {
           agent, we keep the essays you write, the versions you save, the notes Quill leaves on a draft and
           your answers to them, and your essay ideas, including what you say in a brainstorm. Section 7
           explains how these are used.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>Interview practice.</strong> When you practice an
+          interview with Poise, our interview agent, we keep the text of the conversation, the school or
+          organization and role you practiced for, and Poise's notes and scores. We never keep a recording
+          of your voice. Section 8 explains how these are used.</p>
           <p style={{ marginBottom: "0.9rem" }}><strong>Your school link.</strong> If you join a school with a
           code from your counselor, we keep which school you joined and when, which parts of your record you
           chose to share, the meeting requests you send (your message and the times you offer) and your
           counselor's answers. We also record when you try a join code, so that codes cannot be guessed.
-          Section 8 explains who can see what.</p>
+          Section 9 explains who can see what.</p>
           <p style={{ marginBottom: "0.9rem" }}><strong>Counselor accounts.</strong> If you are a school
           counselor and set up a school, we keep your email address, the school's name, your name as you
           entered it for students to see, your school's join code, and a record of the daily emails we sent
@@ -104,17 +108,17 @@ export default function PrivacyPolicyPage({ navigate }) {
           bound by their own confidentiality and data-handling terms:
           <ul style={{ marginTop: "0.6rem", paddingLeft: "1.3rem" }}>
             <li style={{ marginBottom: "0.4rem" }}><strong>Supabase:</strong> database, authentication, and file storage.</li>
-            <li style={{ marginBottom: "0.4rem" }}><strong>Anthropic:</strong> processes chat, profile, Quest, outreach, opportunity-finder and essay content, and runs web searches, to generate AI responses, drafts and essay feedback.</li>
+            <li style={{ marginBottom: "0.4rem" }}><strong>Anthropic:</strong> processes chat, profile, Quest, outreach, opportunity-finder, essay and practice-interview content, and runs web searches, to generate AI responses, drafts, and essay and interview feedback.</li>
             <li style={{ marginBottom: "0.4rem" }}><strong>OpenAI:</strong> structured extraction (including reading the web pages our agents check) and, for long-term memory, turning what you write into searchable form.</li>
             <li style={{ marginBottom: "0.4rem" }}><strong>Tavily:</strong> runs the web searches Beaker and Talon make, and receives only the search words.</li>
-            <li style={{ marginBottom: "0.4rem" }}><strong>ElevenLabs:</strong> records and transcribes voice onboarding calls.</li>
+            <li style={{ marginBottom: "0.4rem" }}><strong>ElevenLabs:</strong> records and transcribes voice onboarding calls, and runs the voice of Poise's practice interviews (see section 8).</li>
             <li style={{ marginBottom: "0.4rem" }}><strong>Google:</strong> sends the emails you approve, only if you connect Gmail (see section 5).</li>
-            <li style={{ marginBottom: "0.4rem" }}><strong>Resend:</strong> sends the daily email to school counselors (see section 8). It receives the counselor's email address, their school's name and a count of waiting requests, and nothing about any student.</li>
+            <li style={{ marginBottom: "0.4rem" }}><strong>Resend:</strong> sends the daily email to school counselors (see section 9). It receives the counselor's email address, their school's name and a count of waiting requests, and nothing about any student.</li>
             <li style={{ marginBottom: "0.4rem" }}><strong>PostHog:</strong> product usage analytics.</li>
             <li><strong>Render / Vercel:</strong> application hosting infrastructure.</li>
           </ul>
           <p style={{ margin: "0.9rem 0" }}>Separately, if you choose to join a school, that school's
-          counselors can see what section 8 describes. They are the people who set that school up in
+          counselors can see what section 9 describes. They are the people who set that school up in
           Mentorable. We do not verify who they are, and they are not service providers of ours.</p>
           We do not sell your personal information.
         </Section>
@@ -200,7 +204,32 @@ export default function PrivacyPolicyPage({ navigate }) {
           deletes its versions and notes with it, and deleting your account deletes all of it.</p>
         </Section>
 
-        <Section title="8. Your school counselor, only if you join a school">
+        <Section title="8. Poise, the interview agent">
+          <p style={{ marginBottom: "0.9rem" }}>Poise runs a short practice interview out loud, for a college
+          or for an internship, summer program or job, and then gives you notes and a practice score on each
+          part of your answers. Poise never writes an answer for you and never predicts an admission or an
+          offer. It does not search the web or look anything up about you, a school or an organization.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>What is sent, and where.</strong> The call runs on
+          our voice partner, ElevenLabs: your voice goes to ElevenLabs while you talk, along with the
+          interviewer's instructions, which include the school or organization and role, anything you typed
+          about the interview, and a summary of your record with your name and high school left off. Poise
+          is set up so that ElevenLabs keeps no recording of the audio. When the call ends, we fetch its
+          text from ElevenLabs and then delete ElevenLabs' copy (if that delete ever fails, ElevenLabs
+          removes the text on its own within seven days). To write the notes, we send the text of the call
+          and what you told us about the interview to our AI provider, Anthropic.</p>
+          <p style={{ marginBottom: "0.9rem" }}><strong>What is stored, and who sees it.</strong> The text of
+          each practice interview, the school or organization and role, what you typed about it, when it
+          happened and how long it lasted, and Poise's notes and scores. Only you can see them. They are
+          never added to long-term memory and never shown to a school counselor. The chat advisor sees only
+          the school, or the organization and role, you practiced for, when, and the four scores, never
+          what you said.
+          If you say during a call that you are in danger right now, Poise stops and shows you where to get
+          help instead, and nothing from that call is kept.</p>
+          <p>You can delete any practice interview at any time, which deletes its text, notes and scores.
+          Deleting your account deletes all of them.</p>
+        </Section>
+
+        <Section title="9. Your school counselor, only if you join a school">
           <p style={{ marginBottom: "0.9rem" }}><strong>Joining is your choice.</strong> A school counselor
           can set up their school in Mentorable and get a join code. You are linked to a school only when
           you enter its code on your Profile page and press Join. A join link only fills the code in for
@@ -232,8 +261,9 @@ export default function PrivacyPolicyPage({ navigate }) {
           that has gone a week without a check-in.</p>
           <p style={{ marginBottom: "0.9rem" }}><strong>What a counselor can never see.</strong> Your chats
           with the advisor, what Mentorable remembers about you, the words, titles and prompts of your essays,
-          Quill's notes on them and your brainstorm answers, what you write in Quest check-ins, Beaker's
-          outreach board and emails, Talon's board, and any part of your record you have not switched on.
+          Quill's notes on them and your brainstorm answers, your practice interviews with Poise, what you
+          write in Quest check-ins, Beaker's outreach board and emails, Talon's board, and any part of your
+          record you have not switched on.
           A counselor's pages cannot read our database directly. Each time one of them asks for something,
           the database itself checks that you are linked to that counselor's school and that the part asked
           for is switched on.</p>
@@ -258,7 +288,7 @@ export default function PrivacyPolicyPage({ navigate }) {
           as they entered it. We have not verified it, and it is not an official transcript.</p>
         </Section>
 
-        <Section title="9. Data retention">
+        <Section title="10. Data retention">
           We retain your account and profile data for as long as your account is active. Chat and
           research history is retained to preserve product context unless you delete it. Your school link
           and your meeting requests there are kept until you leave the school, a counselor removes you, or
@@ -266,30 +296,30 @@ export default function PrivacyPolicyPage({ navigate }) {
           delete your account and associated data at any time from your Profile page.
         </Section>
 
-        <Section title="10. Your rights and choices">
+        <Section title="11. Your rights and choices">
           Depending on where you live, you may have the right to access, correct, export, or delete
           your personal information, and to object to or restrict certain processing. You can exercise
           most of these rights directly from your Profile page, or by contacting us at the email below.
         </Section>
 
-        <Section title="11. Children's privacy">
+        <Section title="12. Children's privacy">
           Mentorable is intended for users 13 years of age or older. We do not knowingly collect
           personal information from children under 13. If you believe a child under 13 has provided us
           information, contact us and we will delete it.
         </Section>
 
-        <Section title="12. Security">
+        <Section title="13. Security">
           We use industry-standard safeguards, including encryption in transit and access controls
           (row-level security on all database tables), to protect your information. No system is
           perfectly secure, and we cannot guarantee absolute security.
         </Section>
 
-        <Section title="13. Changes to this policy">
+        <Section title="14. Changes to this policy">
           We may update this policy from time to time. We'll update the "Last updated" date above and,
           for material changes, provide additional notice.
         </Section>
 
-        <Section title="14. Contact us">
+        <Section title="15. Contact us">
           Questions about this policy or your data? Reach us at{" "}
           <a href="mailto:app.mentora.ai@gmail.com" style={{ color: P }}>app.mentora.ai@gmail.com</a>.
         </Section>

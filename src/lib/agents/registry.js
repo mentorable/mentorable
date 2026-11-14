@@ -4,11 +4,13 @@
 //
 // Persona lines are written here, never generated: short and warm, a light
 // pun in the agent's own world now and then (postal and beach for Beaker,
-// sky and scouting for Talon, night and feathers for Quill), and instructions
-// always plain. No em dashes (house rule), and never mean about a slow reply.
+// sky and scouting for Talon, night and feathers for Quill, still water and
+// marsh for Poise), and instructions always plain. No em dashes (house rule),
+// and never mean about a slow reply.
 
 const days = (n) => `${n} ${n === 1 ? "day" : "days"}`;
 const words = (n) => `${n} ${n === 1 ? "word" : "words"}`;
+const mocks = (n) => `${n === 1 ? "mock" : "mocks"}`;
 
 /** Beaker, the outreach pelican. Every line the outreach screens show. */
 export const BEAKER_LINES = {
@@ -142,6 +144,54 @@ export const QUILL_LINES = {
   error: "A cloud crossed the moon and I lost my place. Nothing was lost, so give it another try in a moment.",
 };
 
+/** Poise, the interview heron. Every line the interview screens show. A
+ *  calm, composed interviewer who listens all the way through. It never
+ *  writes an answer for the student, never says how an interviewer or an
+ *  admissions office will take one, and never mentions chances or offers. */
+export const POISE_LINES = {
+  hubTagline: "I run a short practice interview out loud, for a college or an internship, then point to what worked in your own words and one thing to try next time.",
+
+  homeHello: "Welcome to the marsh. Still water, no rush. Start a practice interview whenever you're ready, and your past ones wait below.",
+  homeEmpty: "No practice interviews yet. A mock is a spoken interview of up to ten minutes, for a college or an internship. Afterward I point to what worked in your answers and what to try next time.",
+  noMocks: "You've used all your practice interviews, so I can't start another. Your past reports still open, and they're worth a second read.",
+
+  setupAsk: "What are we practicing for? Pick one and tell me a little about it, so the questions fit.",
+  collegeAsk: "Which school is the interview with? Pick one from your College List or type its name. I don't look anything up, so I only know your record and what you add here.",
+  internshipAsk: "Tell me the organization and the role. If you have the description, paste it in and I'll ask about what it asks for.",
+  micAsk: "This is a spoken interview, so I need your microphone. Your browser will ask for it. Find a quiet spot first, and speak the way you would across a table.",
+  micDenied: "I can't hear you: the microphone is blocked for this site. Click the icon at the left of the address bar, allow the microphone, then try again.",
+
+  connecting: "Settling in. Connecting you to the interview room.",
+  listening: "I'm listening. Take your time. A pause before you answer is fine.",
+  warnMinute: "One minute left. Finish your thought, and ask a question of your own if you have one.",
+  ending: "Thanks for sitting down with me. Let me read back through what you said.",
+  scoring: [
+    "Reading back through your answers.",
+    "Finding the moments that worked.",
+    "Choosing one thing to try for each question.",
+    "Checking every note against your own words.",
+  ],
+
+  reportHello: "Here's what I noticed. Every note points to something you said, so you can find it again in the transcript.",
+  thinNote: "There wasn't quite enough to score this time. Longer answers give me more to go on, so the notes here are what I could point to.",
+  noFeedback: "I couldn't write notes on this one. Your transcript is safe below, and you can ask me to try again.",
+  noFeedbackFinal: "I couldn't write notes on this one. Your transcript is safe below.",
+  neverScripts: "I point to your own words. What to say next time is yours to find.",
+
+  refunded: (reason) => {
+    if (reason === "no_call") return "The call never really got going, so this one didn't count. Start another whenever you're ready.";
+    if (reason === "too_short") return "That call was too short for me to read much into, so this one didn't count. Start another whenever you're ready.";
+    return "This one didn't count. Start another whenever you're ready.";
+  },
+  kept: "This one still counted, because the short calls I can give back have run out. Your transcript is yours to read.",
+  handoffNote: "The practice can wait. Nothing from this call was saved.",
+
+  mocksLeft: (left, limit) => (left > 0
+    ? `${left} of ${limit} ${mocks(limit)} left`
+    : "No mocks left"),
+  error: "A ripple crossed the water and I lost my place. Nothing was lost, so give it another try in a moment.",
+};
+
 /**
  * `status`: "live" (on the hub, opens its route) or "soon" (a sleeping
  * silhouette, "???", one hint word, never a promise about what it will do).
@@ -181,7 +231,17 @@ export const AGENTS = [
     hint: "Essays",
     lines: QUILL_LINES,
   },
-  { id: "heron", name: "???", role: "", tagline: "", route: null, status: "soon", mascot: "heron", hint: "Steady", lines: {} },
+  {
+    id: "interview",
+    name: "Poise",
+    role: "Interview heron",
+    tagline: POISE_LINES.hubTagline,
+    route: "/agents/interview",
+    status: "live",
+    mascot: "poise",
+    hint: "Steady",
+    lines: POISE_LINES,
+  },
 ];
 
 /** The registry entry for an agent id (or a mascot key), or null. */

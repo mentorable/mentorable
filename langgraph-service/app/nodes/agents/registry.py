@@ -78,6 +78,24 @@ AGENTS: dict[str, AgentSpec] = {
     "essay": AgentSpec("essay", "Quill", True,
                        {"review": ("total", 8), "topics": ("total", 3), "talk": ("total", 24),
                         "review_back": ("total", 8), "topics_back": ("total", 3), "talk_back": ("total", 12)}),
+    # Poise the heron: a mock interview by voice (college or internship) on
+    # ElevenLabs, then written feedback on each answer with a 1 to 5 score on
+    # four rubric lines. It never writes an answer for the student and never
+    # predicts an admission or an offer.
+    # A mock is one call of up to ten minutes, taken before the signed URL is
+    # asked for (the call is what costs, on ElevenLabs' side). It is given back
+    # when the call never really happened: ElevenLabs has no conversation for
+    # it, or the student said fewer than 40 words. A finished mock is never
+    # given back, and neither is one whose feedback could not be written (its
+    # retries are free and capped per mock in service.py). Two give-backs are
+    # outright and do not count against mock_back: a signed URL that could not
+    # be had (no call was possible), and the hand-off (the student said they
+    # are in danger now; nothing is kept).
+    # mock_back counts the other give-backs and is never given back itself.
+    # Past it, a call that was too short still counts: without it, a short
+    # call on purpose would be a free voice session every time. So a student's
+    # calls are bounded: 6 in all, at most 3 of them full length.
+    "interview": AgentSpec("interview", "Poise", True, {"mock": ("total", 3), "mock_back": ("total", 3)}),
 }
 
 

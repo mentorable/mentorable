@@ -1,15 +1,16 @@
-// The agents that are not here yet: sleeping birds (birds all the way down,
-// like Beaker, Talon and Quill) in one muted color, eyes closed, a z drifting
-// up. Deliberately vague ("???" on the hub): they promise nothing about what
-// the agent will do, only that someone is coming. Same format as Beaker's
-// frames, 32 by 32, one character per pixel.
+// The agents that were not here yet: sleeping birds (birds all the way down,
+// like Beaker, Talon, Quill and Poise) in one muted color, eyes closed, a z
+// drifting up. Deliberately vague ("???" on the hub): they promised nothing
+// about what the agent would do, only that someone was coming. Same format as
+// Beaker's frames, 32 by 32, one character per pixel.
 //
-// The heron is the one teaser left. The owl that slept beside it woke up as
-// Quill (sprites/quill.js) and is no longer in TEASERS, so the app cannot
-// draw it. Its silhouette is still exported for one reader outside the app,
-// the social videos (social/src/brand/sprites.js re-exports OWL and an old
-// hub screen there uses it): delete OWL_ROWS and OWL here in the same change
-// that drops them there.
+// Both sleepers have woken: the owl as Quill (sprites/quill.js) and the heron
+// as Poise (sprites/poise.js). TEASERS is empty, so the app draws neither and
+// the hub shows no "Arriving soon" card; a new teaser is one more entry there.
+// The two silhouettes are still exported for one reader outside the app, the
+// social videos (social/src/brand/sprites.js re-exports OWL, HERON and
+// TEASERS, and an old hub screen there draws them): delete OWL_ROWS,
+// HERON_ROWS and their exports here in the same change that drops them there.
 
 const PALETTE = {
   ".": null,
@@ -55,6 +56,7 @@ const OWL_ROWS = [
 ];
 
 // A heron asleep on one leg in the shallows, bill forward, plume trailing.
+// Not a teaser any more (see the note above).
 const HERON_ROWS = [
   "................................",
   "................................",
@@ -108,9 +110,11 @@ function sleeper(base, small, big) {
   return { width: 32, height: 32, palette: PALETTE, states: { sleeping, idle: sleeping } };
 }
 
+/** Only for the social videos. Not in TEASERS: Poise took this heron's place. */
 export const HERON = sleeper(HERON_ROWS, [24, 3], [26, 0]);
 /** Only for the social videos. Not in TEASERS: Quill took this owl's place. */
 export const OWL = sleeper(OWL_ROWS, [27, 6], [26, 0]);
 
-/** The silhouettes the app can draw (Mascot.jsx), by mascot key. */
-export const TEASERS = { heron: HERON };
+/** The silhouettes the app can draw (Mascot.jsx), by mascot key. None for
+ *  now: every bird on the hub is awake. */
+export const TEASERS = {};

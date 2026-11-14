@@ -2,12 +2,13 @@ import PixelSprite from "./PixelSprite.jsx";
 import { BEAKER } from "./sprites/beaker.js";
 import { TALON } from "./sprites/talon.js";
 import { QUILL } from "./sprites/quill.js";
+import { POISE } from "./sprites/poise.js";
 import { TEASERS } from "./sprites/teasers.js";
 import { getAgent } from "../../lib/agents/registry.js";
 
 // An agent's mascot at a given size. `agent` is a mascot key ("beaker",
-// "talon", "quill", "heron") or an agent id from the registry ("outreach",
-// "finder", "essay").
+// "talon", "quill", "poise", or a teaser's) or an agent id from the registry
+// ("outreach", "finder", "essay", "interview").
 //
 // The box is always `size` square, so layouts can count on it, but the art
 // inside is drawn at the largest whole-number scale that fits (a 32-pixel
@@ -15,7 +16,7 @@ import { getAgent } from "../../lib/agents/registry.js";
 // Any fractional scale, even 2.5, gives art pixels of uneven width on the 1x
 // and 1.25x screens many school laptops have.
 
-const SPRITES = { beaker: BEAKER, talon: TALON, quill: QUILL, ...TEASERS };
+const SPRITES = { beaker: BEAKER, talon: TALON, quill: QUILL, poise: POISE, ...TEASERS };
 
 const TITLES = {
   beaker: {
@@ -42,6 +43,16 @@ const TITLES = {
     celebrating: "Quill cheering",
     sleeping: "Quill asleep",
   },
+  poise: {
+    idle: "Poise the heron",
+    listening: "Poise listening, head tilted",
+    talking: "Poise asking a question",
+    flying: "Poise lifting off",
+    thinking: "Poise thinking",
+    delivering: "Poise holding up a page",
+    celebrating: "Poise cheering",
+    sleeping: "Poise asleep on one leg",
+  },
 };
 const MYSTERY_TITLE = "A mystery agent, fast asleep";
 
@@ -54,9 +65,9 @@ function resolve(agent) {
 /**
  * Where the art sits inside a `size` box: { scale, top, left, width, height },
  * all whole CSS pixels, plus `beakRow`, the art row the beak is on (the
- * sprite's own, as Talon and Quill give, else row 10, Beaker's bill). Whatever
- * lines up with the art (a speech bubble's tail and the beak, say) should use
- * this rather than work it out again.
+ * sprite's own, as Talon, Quill and Poise give, else row 10, Beaker's bill).
+ * Whatever lines up with the art (a speech bubble's tail and the beak, say)
+ * should use this rather than work it out again.
  */
 export function mascotFit(size, agent = "beaker") {
   const sprite = SPRITES[resolve(agent)];

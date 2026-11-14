@@ -13,6 +13,9 @@ board from the Agents page, which it can read and point to but never change.
 Of their essays with Quill it gets a list only (titles, statuses, word counts
 and the names of their topic areas): an essay's text, its prompt and Quill's
 notes are never selected here, so they cannot reach the prompt.
+Of their mock interviews with Poise it gets the finished ones only, as mode,
+target, role, date and scores: the transcript, the notes and the details they
+typed are never selected, so nothing they said in a mock can reach the prompt.
 Roadmap and research context are not loaded: those
 features are parked behind FEATURES flags (src/lib/features.js), and loading
 them would mean dead queries and prompt sections about something the student
@@ -171,6 +174,23 @@ async def load_context(state: StudentState) -> StudentState:
         logger.warning(f"[chat] Quill reviews failed to load for {user_id}: {type(exc).__name__}")
         reviews_left = None
 
+    # Their finished mock interviews with Poise (the Agents page's interview
+    # heron): what it was for and the four rubric scores, nothing else. The
+    # columns are named one by one so that the transcript, the feedback notes
+    # and the details they typed are never read: the advisor knows how a
+    # practice went, never what they said in it. The 10 newest. Read-only,
+    # never fatal, and a failure is logged by its type alone.
+    try:
+        interviews = (
+            supabase.from_("interview_mocks")
+            .select("mode, target, role, created_at, scores")
+            .eq("user_id", user_id).eq("status", "done")
+            .order("created_at", desc=True).limit(10).execute().data or []
+        )
+    except Exception as exc:
+        logger.warning(f"[chat] interview mocks failed to load for {user_id}: {type(exc).__name__}")
+        interviews = []
+
     return {
         **state,
         "profile":     profile,
@@ -188,4 +208,5 @@ async def load_context(state: StudentState) -> StudentState:
         "_essays": essays,
         "_essay_topics": essay_topics,
         "_essay_reviews_left": reviews_left,
+        "_interviews": interviews,
     }

@@ -1,13 +1,16 @@
 import { supabase } from "./supabase.js";
 
-// The Agents API: Beaker's calls, Talon's calls, Quill's calls and the Gmail
-// connection. JSON calls work like Quest's (src/lib/quest.js). The long ones
-// (Beaker's shortlist and draft, Talon's find) stream Server-Sent Events:
-// progress lines for the checklist, then one final event, then [DONE]. The
-// server keeps working if the page goes away, so a try or a find that was
-// paid for always ends on the board or refunded. Quill's calls are all plain
-// JSON: a review is one request that answers when Quill has read the draft
-// (up to a minute and a half), with no stream to follow.
+// The Agents API: Beaker's calls, Talon's calls, Quill's calls, Poise's calls
+// and the Gmail connection. JSON calls work like Quest's (src/lib/quest.js).
+// The long ones (Beaker's shortlist and draft, Talon's find) stream
+// Server-Sent Events: progress lines for the checklist, then one final event,
+// then [DONE]. The server keeps working if the page goes away, so a try or a
+// find that was paid for always ends on the board or refunded. Quill's calls
+// are all plain JSON: a review is one request that answers when Quill has read
+// the draft (up to a minute and a half), with no stream to follow. Poise's
+// calls are plain JSON too: start hands back a one-time signed URL for the
+// voice call (a credential, kept in memory only; see src/lib/interview.js),
+// and finish is asked again until the server has read the call.
 
 const BASE = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
@@ -205,6 +208,21 @@ export const agentsApi = {
   essayFindTopics:  ()                 => post("/agents/essay/topics/find"),
   /** One turn of the brainstorm. -> { done, message, fallback, handoff, topic, usage }. */
   essayTalk:        (body)             => post("/agents/essay/talk", body),
+
+  // Poise, the interview heron. Mocks are created here (the server spends the
+  // budget and asks ElevenLabs for the call); the list and the reports are
+  // then read straight from the database (src/lib/interview.js).
+  /** Mocks left (null when the budget could not be read), the limits, the
+   *  call's length and warning, and any mock still to finish (`live_ids`). */
+  interviewStatus:   ()                => call("/agents/interview/status"),
+  /** -> { mock, signed_url, overrides, dynamic_variables, max_seconds,
+   *  warn_seconds }. The signed URL is a credential: hold it in memory only. */
+  interviewStart:    (body)            => post("/agents/interview/mocks", body),
+  /** Idempotent. -> { status: "pending" | "done" | "no_feedback" | "refunded"
+   *  | "handoff", mock, message, gave_back }. Ask again while "pending". */
+  interviewFinish:   (id)              => post(`/agents/interview/mocks/${encodeURIComponent(id)}/finish`),
+  /** Another try at the notes for a mock left without them. Same answer as finish. */
+  interviewFeedback: (id)              => post(`/agents/interview/mocks/${encodeURIComponent(id)}/feedback`),
 };
 
 // ── Plain copy for every refusal ──────────────────────────────────────────────
@@ -363,6 +381,27 @@ export function essayErrorMessage(err) {
   // while the backend is mid-deploy, say), whose words are the framework's.
   if (code === "error") return COPY.error;
   const worded = err instanceof AgentApiError || err.name === "EssayError";
+  const server = worded && typeof err.message === "string" ? err.message.trim() : "";
+  return server || COPY.error;
+}
+
+// ── Poise's refusals ──────────────────────────────────────────────────────────
+// Like Quill's: every Poise message comes from the server in Poise's name, so
+// the page shows it as written. Only no sign-in and no connection use the
+// shared copy from here.
+
+/** The copy to show for a Poise refusal: an AgentApiError, an InterviewError
+ *  from the mock list's own reads and deletes (src/lib/interview.js), or
+ *  anything else thrown (a bug's own message is never shown). */
+export function interviewErrorMessage(err) {
+  if (!err) return COPY.error;
+  const code = err.code || err.error || "";
+  if (code === "auth") return SIGN_IN;
+  if (code === "network") return NETWORK;
+  // "error": a refusal without Poise's {error, message} detail (a bare 404
+  // while the backend is mid-deploy, say), whose words are the framework's.
+  if (code === "error") return COPY.error;
+  const worded = err instanceof AgentApiError || err.name === "InterviewError";
   const server = worded && typeof err.message === "string" ? err.message.trim() : "";
   return server || COPY.error;
 }

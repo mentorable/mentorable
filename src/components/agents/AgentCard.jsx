@@ -10,22 +10,29 @@ import {
 // left) and an Open button. An agent still to come: a sleeping silhouette,
 // "???", one hint word and "Arriving soon". Never a promise of what it does,
 // and not clickable.
+//
+// A live card has two layouts. "row" (the default): the mascot tile on the
+// left and the words beside it, wrapping under it when narrow. "stacked": the
+// tile across the top and the words under it, for a card that shares its row
+// with another (the hub's two by two grid). Same parts, same order, same
+// 128px mascot either way.
 
 const MUTED_TILE = "#efedf3";   // the silhouettes' own quiet background
 
-function LiveCard({ agent, onOpen, extra }) {
+function LiveCard({ agent, onOpen, extra, layout }) {
   const ink = useAgentInk();
+  const stacked = layout === "stacked";
   return (
     <article aria-labelledby={`agent-${agent.id}-name`}
       style={{ ...ringVar(ink), background: WHITE, border: `1px solid ${BORDER}`, borderRadius: RADIUS.card,
-        padding: 16, display: "flex", flexWrap: "wrap", gap: "16px 22px", alignItems: "stretch", boxSizing: "border-box",
-        height: "100%" }}>
-      <div style={{ flex: "0 0 auto", width: 168, maxWidth: "100%", minHeight: 150, background: ink.softer,
+        padding: 16, display: "flex", flexDirection: stacked ? "column" : "row", flexWrap: stacked ? "nowrap" : "wrap",
+        gap: stacked ? 14 : "16px 22px", alignItems: "stretch", boxSizing: "border-box", height: "100%" }}>
+      <div style={{ flex: "0 0 auto", width: stacked ? "100%" : 168, maxWidth: "100%", minHeight: 150, background: ink.softer,
         border: `1px solid ${ink.soft}`, borderRadius: RADIUS.control, display: "flex", alignItems: "flex-end",
         justifyContent: "center", padding: "14px 0 10px", boxSizing: "border-box", marginInline: "auto" }}>
         <Mascot agent={agent.mascot} state="idle" size={128} />
       </div>
-      <div style={{ flex: "1 1 240px", minWidth: 0, display: "flex", flexDirection: "column" }}>
+      <div style={{ flex: stacked ? "1 1 auto" : "1 1 240px", minWidth: 0, display: "flex", flexDirection: "column" }}>
         <h2 id={`agent-${agent.id}-name`} style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "1.5rem",
           color: TEXT, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
           {agent.name}
@@ -91,9 +98,10 @@ function SoonCard({ agent }) {
 }
 
 /** `agent`: a registry entry (src/lib/agents/registry.js). `onOpen(agent)`
- *  runs from a live card's Open button. `extra`: a line under the tagline. */
-export default function AgentCard({ agent, onOpen, extra }) {
+ *  runs from a live card's Open button. `extra`: a line under the tagline.
+ *  `layout`: "row" (default) or "stacked", for a live card (see above). */
+export default function AgentCard({ agent, onOpen, extra, layout = "row" }) {
   return agent.status === "live"
-    ? <LiveCard agent={agent} onOpen={onOpen} extra={extra} />
+    ? <LiveCard agent={agent} onOpen={onOpen} extra={extra} layout={layout} />
     : <SoonCard agent={agent} />;
 }

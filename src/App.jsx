@@ -23,6 +23,9 @@ import FinderBoardPage from "./pages/FinderBoardPage.jsx";
 import FinderNewPage from "./pages/FinderNewPage.jsx";
 import EssayHomePage from "./pages/EssayHomePage.jsx";
 import EssayEditorPage from "./pages/EssayEditorPage.jsx";
+import InterviewHomePage from "./pages/InterviewHomePage.jsx";
+import InterviewCallPage from "./pages/InterviewCallPage.jsx";
+import InterviewReportPage from "./pages/InterviewReportPage.jsx";
 import CounselorPage from "./pages/CounselorPage.jsx";
 import CounselorSchedulePage from "./pages/CounselorSchedulePage.jsx";
 import CounselorStudentPage from "./pages/CounselorStudentPage.jsx";
@@ -248,6 +251,25 @@ function EssayEditorRoute() {
   return <EssayEditorPage key={essayId} navigate={navigate} essayId={essayId} />;
 }
 
+function InterviewHomeRoute() {
+  const navigate = useNavigate();
+  return <InterviewHomePage navigate={navigate} />;
+}
+
+function InterviewCallRoute() {
+  const navigate = useNavigate();
+  const { mockId } = useParams();
+  // Keyed on the mock: one call's session, clock and captions never carry
+  // into another's, and the credential held for this mock is taken once.
+  return <InterviewCallPage key={mockId} navigate={navigate} mockId={mockId} />;
+}
+
+function InterviewReportRoute() {
+  const navigate = useNavigate();
+  const { mockId } = useParams();
+  return <InterviewReportPage key={mockId} navigate={navigate} mockId={mockId} />;
+}
+
 // ─── The counselor side (unlisted) ───────────────────────────────────────────
 
 function CounselorRoute() {
@@ -341,6 +363,9 @@ export default function App() {
         <Route path="/agents/finder/new" element={<ErrorBoundary><FinderNewRoute /></ErrorBoundary>} />
         <Route path="/agents/essay" element={<ErrorBoundary><EssayHomeRoute /></ErrorBoundary>} />
         <Route path="/agents/essay/:essayId" element={<ErrorBoundary><EssayEditorRoute /></ErrorBoundary>} />
+        <Route path="/agents/interview" element={<ErrorBoundary><InterviewHomeRoute /></ErrorBoundary>} />
+        <Route path="/agents/interview/:mockId/call" element={<ErrorBoundary><InterviewCallRoute /></ErrorBoundary>} />
+        <Route path="/agents/interview/:mockId" element={<ErrorBoundary><InterviewReportRoute /></ErrorBoundary>} />
         <Route path="/join" element={<JoinRoute />} />
         <Route path="/counselor" element={<ErrorBoundary><CounselorRoute /></ErrorBoundary>} />
         <Route path="/counselor/schedule" element={<ErrorBoundary><CounselorScheduleRoute /></ErrorBoundary>} />

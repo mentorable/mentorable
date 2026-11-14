@@ -92,6 +92,10 @@ class StudentState(TypedDict, total=False):
     _essays: list[dict[str, Any]]
     _essay_topics: list[dict[str, Any]]
     _essay_reviews_left: Optional[int]
+    # Poise's finished mock interviews for the advisor: mode, target, role,
+    # date and the four rubric scores. Never the transcript, the notes or the
+    # details the student typed.
+    _interviews: list[dict[str, Any]]
     _deleted_titles: list[str]
     _recent_research: list[str]
     _chat_topics: list[str]

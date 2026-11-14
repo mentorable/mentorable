@@ -1,6 +1,7 @@
 """
 Agents endpoints: Beaker the outreach pelican, Talon the opportunity hawk,
-Quill the essay owl, and the Gmail connection every agent shares. Thin on
+Quill the essay owl, Poise the interview heron, and the Gmail connection
+every agent shares. Thin on
 purpose: parse the request, call the service, map its refusals to HTTP. The
 rules live in app/nodes/agents/.
 
@@ -21,7 +22,9 @@ error instead of a stream.
 Quill's calls are plain JSON, a review included: it is one model call under
 the service's own deadline, with nothing to show while it runs. An unexpected
 error on one of its routes is logged without the error's message, because
-that message can carry a student's essay.
+that message can carry a student's essay. Poise's are plain JSON too, and
+private the same way: there the message can carry what a student said in a
+mock interview.
 """
 import asyncio
 import json
@@ -38,6 +41,7 @@ from app.nodes.agents import google
 from app.nodes.agents.essay import service as essay
 from app.nodes.agents.finder import service as finder
 from app.nodes.agents.google import GoogleError
+from app.nodes.agents.interview import service as interview
 from app.nodes.agents.outreach import service as svc
 from app.nodes.agents.outreach.service import AgentError
 from app.posthog_client import posthog_client
@@ -310,6 +314,52 @@ async def essay_talk(raw: Request, user_id: str = Depends(verify_jwt)):
     result = await _run(user_id, "essay_talk", lambda: essay.talk(user_id, body), private=True)
     if not result.get("handoff"):
         _track(user_id, "essay_talk_turn", done=bool(result.get("done")))
+    return result
+
+
+# ── Poise ─────────────────────────────────────────────────────────────────────
+# Nothing a student said or typed goes to PostHog: only the mode, how a mock
+# ended, whether it was scored and how long it ran. Never a target, a role,
+# details, a transcript line or a note. A mock that ended in the hand-off (the
+# student said they are in danger now) sends no event at all, and neither does
+# a finish that only found the mock still running or already settled: the
+# event is sent once, by the request that settled it.
+
+def _minutes(mock) -> int:
+    seconds = (mock or {}).get("duration_s")
+    return round(seconds / 60) if isinstance(seconds, (int, float)) and not isinstance(seconds, bool) else 0
+
+
+@router.get("/interview/status")
+async def interview_status(user_id: str = Depends(verify_jwt)):
+    return await _run(user_id, "interview_status", lambda: interview.status(user_id), private=True)
+
+
+@router.post("/interview/mocks")
+async def interview_start(raw: Request, user_id: str = Depends(verify_jwt)):
+    body = await _body(raw)
+    result = await _run(user_id, "interview_start", lambda: interview.start_mock(user_id, body), private=True)
+    _track(user_id, "interview_started", mode=(result.get("mock") or {}).get("mode"))
+    return result
+
+
+@router.post("/interview/mocks/{mock_id}/finish")
+async def interview_finish(mock_id: str, user_id: str = Depends(verify_jwt)):
+    result = await _run(user_id, "interview_finish", lambda: interview.finish_mock(user_id, mock_id), private=True)
+    new = bool(result.pop("_new", False))
+    state = result.get("status")
+    if new and state in ("done", "no_feedback", "refunded"):
+        mock = result.get("mock") or {}
+        _track(user_id, "interview_finished", status=state, scored=bool(mock.get("scores")),
+               minutes=_minutes(mock))
+    return result
+
+
+@router.post("/interview/mocks/{mock_id}/feedback")
+async def interview_feedback(mock_id: str, user_id: str = Depends(verify_jwt)):
+    result = await _run(user_id, "interview_feedback", lambda: interview.retry_feedback(user_id, mock_id),
+                        private=True)
+    result.pop("_new", None)
     return result
 
 

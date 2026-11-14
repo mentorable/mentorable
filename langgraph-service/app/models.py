@@ -15,6 +15,9 @@ extraction jobs where quality barely moves but cost moves a lot.
 # price is not the whole story, because Claude 4.7 and later tokenize to roughly
 # 30% more tokens for the same text, so the real saving is nearer 13% than 33%.
 SONNET = "claude-sonnet-5"
+# Sonnet 5.5, used by one job only (Poise's feedback, below); the rest of the
+# app stays on Sonnet 5 until a check script shows the newer one is worth it.
+SONNET_55 = "claude-sonnet-5-5"
 HAIKU  = "claude-haiku-4-5-20251001"
 
 # ── OpenAI ───────────────────────────────────────────────────────────────────
@@ -98,6 +101,17 @@ FINDER_FALLBACK_MODEL = HAIKU
 OWL_TALK_MODEL   = HAIKU
 OWL_TOPICS_MODEL = HAIKU
 OWL_REVIEW_MODEL = HAIKU
+
+# Poise (the interview heron) runs the mock interview itself on ElevenLabs
+# (its voice agent's own LLM, set on the ElevenLabs dashboard, billed there),
+# so the only model call here is the written feedback afterwards: one call per
+# mock, reading the whole transcript and scoring four rubric lines. It is the
+# report a student studies, and it is three calls in a demo lifetime, so it
+# gets the strongest model (about 4 cents a mock). Everything it returns is
+# checked in code (app/nodes/agents/interview/rules.py): every quote must be in
+# the student's own lines, and a line that scripts an answer or predicts an
+# outcome is dropped. scripts/check_interview.py shows the cost of each call.
+POISE_FEEDBACK_MODEL = SONNET_55
 
 # Long-term memory (app/nodes/recall/): the student's own words, embedded and
 # searched. OpenAI embeddings, so without an OpenAI key memory is simply off.

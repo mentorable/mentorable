@@ -4,7 +4,8 @@ Implements the query-builder subset the code uses, the unique constraints that
 matter (one open quest, one task per slot, one check-in per task, one memory per
 dedupe key, one first email per address, per canonical recipient and per
 sending Gmail address, and the primary keys in KEYS), the
-outreach tables' CHECK constraints, ON DELETE CASCADE for quests (SET NULL for
+outreach tables' CHECK constraints, interview_mocks' (and its unique
+conversation_id), ON DELETE CASCADE for quests (SET NULL for
 an outreach card), and
 Python mirrors of the Quest SQL functions, of the memory ones (recall_memories
 through rank.py, and the guarded saves) and of the agents' budget ones. These are mirrors: they let the Python around the database be
@@ -38,12 +39,17 @@ DEFAULTS = {
     "outreach_tries": {"status": "open", "goal": "", "candidates": [], "pending_question": None, "contact_id": None},
     "outreach_sends": {"contact_id": None, "status": "sending", "gmail_message_id": None, "gmail_thread_id": None,
                        "from_email": None, "to_key": None},
+    # 20261113_agents_interview.sql
+    "interview_mocks": {"role": None, "details": "", "status": "live", "refund_reason": None, "ended_at": None,
+                        "claimed_at": None, "duration_s": None, "student_words": None, "transcript": [],
+                        "feedback": None, "scores": None, "feedback_tries": 0},
 }
 # Columns whose SQL default is now().
 NOW_DEFAULTS = {
     "outreach_contacts": ("updated_at",),
     "outreach_tries": ("updated_at",),
     "outreach_sends": ("sent_at",),
+    "interview_mocks": ("started_at", "updated_at"),
 }
 OPEN = {"draft", "active", "paused"}
 DEV_EMAILS = {"app.mentora.ai@gmail.com"}
@@ -109,6 +115,24 @@ OUTREACH_CHECKS = {
 }
 
 
+# The CHECK constraints of interview_mocks (20261113_agents_interview.sql).
+INTERVIEW_CHECKS = {
+    "mode": _one_of("college", "internship"),
+    "target": _within(1, 120),
+    "role": lambda v: v is None or (isinstance(v, str) and 1 <= len(v) <= 120),
+    "details": _within(0, 1500),
+    "status": _one_of("live", "scoring", "done", "no_feedback", "refunded"),
+    "refund_reason": _one_of("no_call", "too_short", nullable=True),
+    "conversation_id": _within(1, 120),
+    "duration_s": lambda v: v is None or (isinstance(v, int) and 0 <= v <= 3600),
+    "student_words": lambda v: v is None or (isinstance(v, int) and v >= 0),
+    "transcript": lambda v: isinstance(v, list),
+    "feedback": lambda v: v is None or isinstance(v, dict),
+    "scores": lambda v: v is None or isinstance(v, dict),
+    "feedback_tries": lambda v: isinstance(v, int) and 0 <= v <= 5,
+}
+
+
 def _instant(value):
     if isinstance(value, datetime):
         return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
@@ -146,7 +170,8 @@ class FakeDB:
                                   "quest_stats", "quest_usage", "student_activities", "student_awards",
                                   "student_courses", "student_test_scores", "student_memories",
                                   "chat_sessions", "agent_usage", "google_connections",
-                                  "outreach_contacts", "outreach_tries", "outreach_sends"]}
+                                  "outreach_contacts", "outreach_tries", "outreach_sends",
+                                  "interview_mocks"]}
         self.emails = {}
         self.calls = []
 
@@ -193,6 +218,14 @@ class FakeDB:
             for col, ok in OUTREACH_CHECKS[table].items():
                 if not ok(row.get(col)):
                     raise Violation(f"new row for relation {table} violates check constraint on {col}")
+        if table == "interview_mocks":
+            for col, ok in INTERVIEW_CHECKS.items():
+                if not ok(row.get(col)):
+                    raise Violation(f"new row for relation {table} violates check constraint on {col}")
+            if row.get("mode") != "college" and row.get("role") is None:
+                raise Violation("new row for relation interview_mocks violates check constraint on role")
+            if any(r.get("conversation_id") == row.get("conversation_id") for r in rows):
+                raise Violation("duplicate key value violates unique constraint interview_mocks_conversation_id_key")
         if table == "outreach_sends" and row.get("kind") == "first":
             firsts = [r for r in rows if r.get("kind") == "first"]
             key = str(row.get("to_email") or "").lower()
