@@ -99,7 +99,7 @@ async def signed_url() -> dict:
         raise ElevenLabsError(f"signed_url {type(exc).__name__}") from None
     if resp.status_code != 200:
         logger.warning(f"[elevenlabs] signed_url status {resp.status_code} {_why(resp)}".rstrip())
-        raise ElevenLabsError(f"signed_url status {resp.status_code}")
+        raise ElevenLabsError(f"signed_url status {resp.status_code} {_why(resp)}".rstrip())
     try:
         data = resp.json()
     except ValueError:

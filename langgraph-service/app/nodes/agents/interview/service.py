@@ -541,9 +541,11 @@ async def _open_line(user_id: str, fields: dict) -> dict:
                 and 1 <= len(conversation_id) <= CONVERSATION_ID_MAX):
             raise elevenlabs.ElevenLabsError("no usable signed url")
     except Exception as exc:
-        # The type only: the URL carries a signature.
+        # An ElevenLabsError's text is fixed wording with no URL in it; for
+        # anything else the type only, since the URL carries a signature.
+        why = str(exc)[:120] if isinstance(exc, elevenlabs.ElevenLabsError) else type(exc).__name__
         refunded = await asyncio.to_thread(_refund_outright, user_id)
-        logger.warning(f"[interview] no signed URL for {user_id} ({type(exc).__name__}), "
+        logger.warning(f"[interview] no signed URL for {user_id} ({why}), "
                        f"{'given back' if refunded else 'NOT given back'}")
         raise AgentError(502, "voice_unavailable", f"{VOICE_UNAVAILABLE} {GAVE_BACK if refunded else KEPT}")
 
