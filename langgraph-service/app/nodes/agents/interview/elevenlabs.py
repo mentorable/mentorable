@@ -47,12 +47,13 @@ class ElevenLabsError(Exception):
 
 
 def _api_key() -> str:
-    return os.environ.get("ELEVENLABS_API_KEY", "").strip()
+    # Quotes pasted around the value in a dashboard would otherwise reach the header.
+    return os.environ.get("ELEVENLABS_API_KEY", "").strip().strip("'\"").strip()
 
 
 def agent_id() -> str:
     """The interview agent's id (ELEVENLABS_INTERVIEW_AGENT_ID), or ""."""
-    return os.environ.get("ELEVENLABS_INTERVIEW_AGENT_ID", "").strip()
+    return os.environ.get("ELEVENLABS_INTERVIEW_AGENT_ID", "").strip().strip("'\"").strip()
 
 
 def is_configured() -> bool:
@@ -62,6 +63,18 @@ def is_configured() -> bool:
 
 def _headers() -> dict:
     return {"xi-api-key": _api_key(), "Accept": "application/json"}
+
+
+def _why(resp) -> str:
+    """ElevenLabs' own short reason for a refusal ("invalid_api_key",
+    "missing_permissions", ...), or "". It names no key and no student, so it
+    is safe to log, and it tells a bad key from a bad agent id at a glance."""
+    try:
+        detail = resp.json().get("detail")
+    except Exception:
+        return ""
+    reason = detail.get("status") if isinstance(detail, dict) else None
+    return reason[:60] if isinstance(reason, str) and re.fullmatch(r"[A-Za-z0-9_.-]{1,60}", reason) else ""
 
 
 def _valid_id(conversation_id) -> bool:
@@ -85,7 +98,7 @@ async def signed_url() -> dict:
         logger.warning(f"[elevenlabs] signed_url failed: {type(exc).__name__}")
         raise ElevenLabsError(f"signed_url {type(exc).__name__}") from None
     if resp.status_code != 200:
-        logger.warning(f"[elevenlabs] signed_url status {resp.status_code}")
+        logger.warning(f"[elevenlabs] signed_url status {resp.status_code} {_why(resp)}".rstrip())
         raise ElevenLabsError(f"signed_url status {resp.status_code}")
     try:
         data = resp.json()
@@ -196,7 +209,7 @@ async def fetch_conversation(conversation_id: str) -> Optional[dict]:
         logger.info(f"[elevenlabs] no conversation {conversation_id}")
         return None
     if resp.status_code != 200:
-        logger.warning(f"[elevenlabs] fetch status {resp.status_code}")
+        logger.warning(f"[elevenlabs] fetch status {resp.status_code} {_why(resp)}".rstrip())
         raise ElevenLabsError(f"fetch status {resp.status_code}")
     try:
         data = resp.json()
