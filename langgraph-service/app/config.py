@@ -24,7 +24,7 @@ BRAVE_API_KEYS: list[str] = [BRAVE_API_KEY] if BRAVE_API_KEY else []
 TAVILY_API_KEYS: list[str] = list(dict.fromkeys(
     k for k in re.split(r"[,\s]+", os.environ.get("TAVILY_API_KEYS", "") + "," + os.environ.get("TAVILY_API_KEY", "")) if k
 ))
-DATABASE_URL: str = os.environ["DATABASE_URL"]  # direct Postgres connection for checkpointer
+DATABASE_URL: str = os.environ.get("DATABASE_URL", "")  # no longer used by the app (the chat checkpointer is gone)
 CORS_ORIGIN: str = os.environ.get("CORS_ORIGIN", "*")
 # Gmail sending for the outreach agent (Beaker). All optional: without the
 # client id and secret the agent still drafts, and students copy or save instead.
@@ -57,3 +57,6 @@ POSTHOG_HOST: str = os.environ.get("POSTHOG_HOST", "https://us.i.posthog.com")
 DEV_BYPASS_EMAILS: list[str] = [
     e.strip() for e in os.environ.get("DEV_BYPASS_EMAILS", "app.mentora.ai@gmail.com").split(",") if e.strip()
 ]
+
+# Scorecard and Roadmap's endpoints answer 404 unless this is set (app/main.py).
+PARKED_ROUTES_ENABLED: bool = os.environ.get("PARKED_ROUTES_ENABLED", "").strip().lower() in ("1", "true", "yes")

@@ -56,6 +56,19 @@ def agent_id() -> str:
     return os.environ.get("ELEVENLABS_INTERVIEW_AGENT_ID", "").strip().strip("'\"").strip()
 
 
+# Onboarding's voice interviewer, a separate agent (its prompt lives on the
+# ElevenLabs dashboard). Its id was public in the web app's bundle, so the
+# default is no secret; the lock is the agent's "authentication" setting, which
+# makes it accept only signed URLs from here.
+ONBOARDING_AGENT_DEFAULT = "agent_8201kkct5cndf4zv75hkaf9v9550"
+
+
+def onboarding_agent_id() -> str:
+    """The onboarding voice agent's id (ELEVENLABS_ONBOARDING_AGENT_ID, or the default)."""
+    value = os.environ.get("ELEVENLABS_ONBOARDING_AGENT_ID", "").strip().strip("'\"").strip()
+    return value or ONBOARDING_AGENT_DEFAULT
+
+
 def is_configured() -> bool:
     """Both the API key and the interview agent's id are set."""
     return bool(_api_key() and agent_id())
@@ -81,18 +94,20 @@ def _valid_id(conversation_id) -> bool:
     return isinstance(conversation_id, str) and _CONVERSATION_ID.fullmatch(conversation_id) is not None
 
 
-async def signed_url() -> dict:
-    """{"signed_url": str, "conversation_id": str} for one new call.
+async def signed_url(agent: str | None = None) -> dict:
+    """{"signed_url": str, "conversation_id": str} for one new call to
+    `agent` (default: the interview agent).
 
     Raises ElevenLabsError when not configured, on a timeout or a network
     failure, on any status but 200, and on a reply whose URL is not a wss://
     URL carrying a conversation_id."""
-    if not is_configured():
+    target = agent or agent_id()
+    if not (_api_key() and target):
         raise ElevenLabsError("not configured")
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             resp = await client.get(f"{API}/v1/convai/conversation/get-signed-url",
-                                    params={"agent_id": agent_id(), "include_conversation_id": "true"},
+                                    params={"agent_id": target, "include_conversation_id": "true"},
                                     headers=_headers())
     except httpx.HTTPError as exc:
         logger.warning(f"[elevenlabs] signed_url failed: {type(exc).__name__}")

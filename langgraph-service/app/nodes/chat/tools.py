@@ -27,6 +27,8 @@ a task, awards XP or touches the streak. Those only move when the student checks
 in on the Quest page, so "just mark today done" is not something the model can
 be talked into.
 """
+import asyncio
+import inspect
 import logging
 from datetime import datetime, timezone
 
@@ -387,7 +389,7 @@ def _now():
     return datetime.now(timezone.utc).isoformat()
 
 
-async def _view_portfolio(user_id: str, args: dict) -> dict:
+def _view_portfolio(user_id: str, args: dict) -> dict:
     supabase = get_supabase()
     section = (args.get("section") or "all").strip().lower()
     out = {"success": True}
@@ -414,7 +416,7 @@ async def _view_portfolio(user_id: str, args: dict) -> dict:
     return out
 
 
-async def _add_portfolio_item(user_id: str, args: dict) -> dict:
+def _add_portfolio_item(user_id: str, args: dict) -> dict:
     kind = _enum(args.get("kind"), list(KIND_TABLE))
     if not kind:
         return {"success": False, "error": "Unknown kind."}
@@ -446,7 +448,7 @@ async def _add_portfolio_item(user_id: str, args: dict) -> dict:
             "title": inserted.get("title") or inserted.get("name") or (inserted.get("test_type") or "").upper()}
 
 
-async def _update_portfolio_item(user_id: str, args: dict) -> dict:
+def _update_portfolio_item(user_id: str, args: dict) -> dict:
     kind = _enum(args.get("kind"), list(KIND_TABLE))
     item_id = (args.get("id") or "").strip()
     if not kind or not item_id:
@@ -474,7 +476,7 @@ async def _update_portfolio_item(user_id: str, args: dict) -> dict:
             "changed": sorted(values)}
 
 
-async def _delete_portfolio_item(user_id: str, args: dict) -> dict:
+def _delete_portfolio_item(user_id: str, args: dict) -> dict:
     kind = _enum(args.get("kind"), list(KIND_TABLE))
     item_id = (args.get("id") or "").strip()
     if not kind or not item_id:
@@ -493,7 +495,7 @@ async def _delete_portfolio_item(user_id: str, args: dict) -> dict:
             "title": deleted.get("title") or deleted.get("name") or (deleted.get("test_type") or "").upper()}
 
 
-async def _update_gpa(user_id: str, args: dict) -> dict:
+def _update_gpa(user_id: str, args: dict) -> dict:
     scale = _enum(args.get("gpa_scale"), GPA_SCALES)
     # NUMERIC(6,3) holds up to 999.999, which covers 4.0, 5.0 and 100-point scales.
     values = {}
@@ -516,7 +518,7 @@ async def _update_gpa(user_id: str, args: dict) -> dict:
     return {"success": True, "kind": "gpa", "title": "GPA", "changed": sorted(values)}
 
 
-async def _view_quest(user_id: str, args: dict) -> dict:
+def _view_quest(user_id: str, args: dict) -> dict:
     brief = brief_for_chat(user_id, None)
     if not brief:
         return {"success": True, "quest": None,
@@ -524,7 +526,7 @@ async def _view_quest(user_id: str, args: dict) -> dict:
     return {"success": True, "quest": brief}
 
 
-async def _update_quest(user_id: str, args: dict) -> dict:
+def _update_quest(user_id: str, args: dict) -> dict:
     return update_from_chat(user_id, None, args or {})
 
 
@@ -548,7 +550,7 @@ async def _recall_memory(user_id: str, args: dict) -> dict:
             "note": "Their own words, possibly out of date. Quote briefly and say roughly when."}
 
 
-async def _retire_quest(user_id: str, args: dict) -> dict:
+def _retire_quest(user_id: str, args: dict) -> dict:
     result = retire_from_chat(user_id, None)
     if result.get("success"):
         logger.info(f"[retire_quest] {user_id} retired their quest: {str(args.get('reason') or '')[:120]}")
@@ -595,7 +597,11 @@ async def execute_chat_tool(user_id: str, name: str, args: dict) -> dict:
     if handler is None:
         return {"success": False, "error": f"Unknown tool: {name}"}
     try:
-        return await handler(user_id, args or {})
+        # The record and Quest tools are sync (the Supabase client is), so they
+        # run on a worker thread rather than holding up the event loop.
+        if inspect.iscoroutinefunction(handler):
+            return await handler(user_id, args or {})
+        return await asyncio.to_thread(handler, user_id, args or {})
     except Exception as exc:
         logger.warning(f"[execute_chat_tool] {name} failed for {user_id}: {exc}")
         return {"success": False, "error": "Tool execution failed."}

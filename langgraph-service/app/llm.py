@@ -17,7 +17,6 @@ in prose or a markdown fence, or got truncated mid-object, produced a parse
 failure that surfaced to the student as lost work. A schema makes that class of
 failure impossible on the OpenAI path.
 """
-import asyncio
 import inspect
 import json
 import logging
@@ -27,17 +26,30 @@ from urllib.parse import urlparse
 
 from anthropic import AsyncAnthropic
 
+from app import costs
 from app.config import ANTHROPIC_API_KEY, OPENAI_API_KEY
 
 logger = logging.getLogger(__name__)
 
-_anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+# Retries and time limits, in one place. The SDKs retry what is worth retrying
+# (a dropped connection, a rate limit, a 5xx or overloaded answer) with their
+# own back-off, so nothing here retries on top of them: a loop of ours around
+# the SDK's once turned one bad call into up to 9 attempts, each allowed the
+# SDK's default 10 minutes. A request the API refused (a 400) is never retried.
+# 120 s is several times the slowest healthy call (a Sonnet plan, a gpt-5-mini
+# read of eight pages); a streamed reply only needs each chunk inside it.
+# A plain number, not an httpx.Timeout: newer SDKs ship their own HTTP client
+# and refuse httpx objects, and a number works with every version.
+MODEL_TIMEOUT = 120.0
+MODEL_RETRIES = 2
+
+_anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY, timeout=MODEL_TIMEOUT, max_retries=MODEL_RETRIES)
 
 _openai = None
 if OPENAI_API_KEY:
     try:
         from openai import AsyncOpenAI
-        _openai = AsyncOpenAI(api_key=OPENAI_API_KEY)
+        _openai = AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=MODEL_TIMEOUT, max_retries=MODEL_RETRIES)
     except Exception as exc:  # SDK missing or client construction failed
         logger.warning(f"[llm] OpenAI client unavailable, falling back to Anthropic: {exc}")
 
@@ -113,6 +125,7 @@ def _log_usage(schema_name: str, model: str, resp) -> None:
         )
     except Exception:
         pass
+    costs.record_openai(schema_name, model, getattr(resp, "usage", None))
 
 
 async def json_completion(
@@ -123,12 +136,18 @@ async def json_completion(
     openai_model: str,
     anthropic_model: str,
     max_tokens: int,
+    anthropic_fallback: bool = True,
 ) -> Optional[Any]:
     """Run one structured-output call. Returns the parsed object, or None.
 
     `schema` must satisfy OpenAI's strict mode: a top-level object, every
     property listed in `required`, and additionalProperties false. Wrap a list
     in an object with one array property rather than returning a bare array.
+
+    The Anthropic fallback forces one tool call whose input schema is `schema`,
+    so it also comes back as an object, with no second call to rescue a reply
+    that did not parse. A caller with a fallback of its own passes
+    anthropic_fallback=False, so a failed OpenAI call is paid for once, not twice.
     """
     if _openai is not None:
         budget = max(max_tokens, MIN_COMPLETION_BUDGET)
@@ -175,20 +194,15 @@ async def json_completion(
                 logger.warning(f"[llm] {schema_name}: empty OpenAI reply ({choice.finish_reason}), falling back")
             break
 
+    if not anthropic_fallback:
+        return None
     try:
-        msg = await _anthropic.messages.create(
-            model=anthropic_model,
-            max_tokens=max_tokens,
-            messages=[{"role": "user", "content": prompt}],
+        return await tool_completion(
+            model=anthropic_model, prompt=prompt, max_tokens=max_tokens, label=schema_name,
+            tool={"name": re.sub(r"[^A-Za-z0-9_-]", "_", schema_name)[:64] or "answer",
+                  "description": "Submit the answer.", "input_schema": schema},
         )
-        if getattr(msg, "stop_reason", None) == "max_tokens":
-            logger.warning(f"[llm] {schema_name}: Anthropic reply truncated at max_tokens")
-        raw = msg.content[0].text if msg.content else ""
-        parsed = parse_json_loose(raw)
-        if parsed is None:
-            logger.warning(f"[llm] {schema_name}: could not parse Anthropic reply ({len(raw)} chars)")
-        return parsed
-    except Exception as exc:
+    except ModelUnavailable as exc:
         logger.error(f"[llm] {schema_name}: Anthropic call failed: {exc}")
         return None
 
@@ -213,8 +227,9 @@ async def tool_completion(
     tool call means the reply always arrives as a parsed object. Callers still
     type-check every field: the schema guides the model, it does not bind it.
 
-    Retries transient failures a couple of times, then raises ModelUnavailable
-    so the caller can choose between an error and a fallback.
+    The SDK retries transient failures (MODEL_RETRIES); after that, or on a
+    request the API refused, this raises ModelUnavailable so the caller can
+    choose between an error and a fallback.
     """
     kwargs = {
         "model": model,
@@ -226,45 +241,20 @@ async def tool_completion(
     if system:
         kwargs["system"] = system
 
-    last = None
-    message = None
-    for attempt in range(3):
-        try:
-            message = await _anthropic.messages.create(**kwargs)
-            break
-        except Exception as exc:
-            last = exc
-            if attempt < 2:
-                await asyncio.sleep(0.8 * (2 ** attempt))
-    if message is None:
-        raise ModelUnavailable(str(last)) from last
+    try:
+        message = await _anthropic.messages.create(**kwargs)
+    except Exception as exc:
+        raise ModelUnavailable(str(exc)) from exc
 
     if getattr(message, "stop_reason", None) == "max_tokens":
         logger.warning(f"[llm] {label}: tool reply truncated at max_tokens")
-    u = getattr(message, "usage", None)
-    if u is not None:
-        spent = {"in": int(getattr(u, "input_tokens", 0) or 0), "out": int(getattr(u, "output_tokens", 0) or 0)}
-        logger.info(f"[llm] {label}: {spent['in']} in / {spent['out']} out tokens{_cost_note(model, spent, 0)}")
+    costs.record_anthropic(label, model, getattr(message, "usage", None))
 
     for block in message.content or []:
         if getattr(block, "type", None) == "tool_use" and isinstance(getattr(block, "input", None), dict):
             return block.input
     logger.warning(f"[llm] {label}: no usable tool call in the reply")
     return None
-
-
-# List prices per million tokens (input, output), for the log line only. Not
-# used for any decision; app/models.py stays the source of which model runs.
-_PRICE = {"claude-haiku-4-5-20251001": (1.00, 5.00), "claude-sonnet-5": (2.00, 10.00)}
-
-
-def _cost_note(model: str, spent: dict, searches: int) -> str:
-    """" (about $0.031)": tokens at list price plus $0.01 a search."""
-    inp, out = _PRICE.get(model, (0.0, 0.0))
-    if not (inp or out):
-        return ""
-    dollars = (spent["in"] * inp + spent["out"] * out) / 1_000_000 + searches * 0.01
-    return f" (about ${dollars:.3f})"
 
 
 async def _notify(on_event, event: dict) -> None:
@@ -333,21 +323,14 @@ async def search_completion(
     spent = {"in": 0, "out": 0}
 
     for _turn in range(3):
-        message = None
-        last = None
-        for attempt in range(2):
-            try:
-                message = await _anthropic.messages.create(
-                    model=model, max_tokens=max_tokens, tools=[search_tool, submit_tool], messages=messages,
-                )
-                break
-            except Exception as exc:
-                last = exc
-                if attempt < 1:
-                    await asyncio.sleep(0.8)
-        if message is None:
-            raise ModelUnavailable(str(last)) from last
+        try:
+            message = await _anthropic.messages.create(
+                model=model, max_tokens=max_tokens, tools=[search_tool, submit_tool], messages=messages,
+            )
+        except Exception as exc:
+            raise ModelUnavailable(str(exc)) from exc
         u = getattr(message, "usage", None)
+        costs.record_anthropic(label, model, u)
         spent["in"] += int(getattr(u, "input_tokens", 0) or 0)
         spent["out"] += int(getattr(u, "output_tokens", 0) or 0)
 
@@ -374,7 +357,7 @@ async def search_completion(
                 submitted = _field(block, "input")
                 logger.info(f"[llm] {label}: {stats['searches']} search(es), {stats['errors']} error(s), "
                             f"{len(found)} result url(s), {spent['in']} in / {spent['out']} out tokens"
-                            f"{_cost_note(model, spent, stats['searches'])}")
+                            f"{costs.note(costs.price(model, input_tokens=spent['in'], output_tokens=spent['out']))}")
                 return (submitted if isinstance(submitted, dict) else None), found, stats
 
         if getattr(message, "stop_reason", None) != "pause_turn":

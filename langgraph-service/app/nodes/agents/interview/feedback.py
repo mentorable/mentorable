@@ -35,6 +35,7 @@ from typing import Optional
 import anthropic
 
 import app.llm as llm
+from app import costs
 from app.models import POISE_FEEDBACK_MODEL
 from app.nodes.agents.interview import prompts, rules
 
@@ -101,6 +102,7 @@ async def _send(system: str, prompt: str, *, fallback: bool) -> Optional[dict]:
 
     stop = getattr(message, "stop_reason", None)
     usage = getattr(message, "usage", None)
+    costs.record_anthropic("interview_feedback", POISE_FEEDBACK_MODEL, usage)
     logger.info(f"[interview_feedback] stop={stop} in={getattr(usage, 'input_tokens', '?')} "
                 f"out={getattr(usage, 'output_tokens', '?')}")
     if stop in ("refusal", "max_tokens"):

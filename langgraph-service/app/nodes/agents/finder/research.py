@@ -117,7 +117,7 @@ async def _ask(*, label: str, prompt: str, tool: dict, max_tokens: int, openai_m
     if openai_enabled():
         out = await json_completion(prompt=prompt, schema=_strict(tool["input_schema"]), schema_name=label,
                                     openai_model=openai_model, anthropic_model=FINDER_FALLBACK_MODEL,
-                                    max_tokens=max_tokens)
+                                    max_tokens=max_tokens, anthropic_fallback=False)
         if isinstance(out, dict) and isinstance(out.get(expect), list):
             return out
         logger.warning(f"[{label}] {openai_model} gave no usable answer; asking {FINDER_FALLBACK_MODEL}")

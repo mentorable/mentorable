@@ -9,6 +9,7 @@ same rule app/llm.py follows for its OpenAI routing.
 import logging
 from typing import Optional
 
+from app import costs
 from app.config import OPENAI_API_KEY
 from app.models import MEMORY_EMBED_DIMS, MEMORY_EMBED_MODEL
 
@@ -55,6 +56,9 @@ async def embed(texts: list[str]) -> Optional[list[list[float]]]:
             chunk = cleaned[start:start + BATCH]
             res = await _client.embeddings.create(model=MEMORY_EMBED_MODEL, input=chunk,
                                                   dimensions=MEMORY_EMBED_DIMS)
+            used = getattr(getattr(res, "usage", None), "total_tokens", None)
+            if used is not None:
+                costs.record_embedding("memory_embed", MEMORY_EMBED_MODEL, used)
             got = [d.embedding for d in sorted(res.data, key=lambda d: d.index)]
             if len(got) != len(chunk) or any(len(v) != MEMORY_EMBED_DIMS for v in got):
                 logger.warning(f"[memory] embedding reply had the wrong shape ({len(got)} for {len(chunk)})")

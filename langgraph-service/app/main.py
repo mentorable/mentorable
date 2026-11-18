@@ -1,25 +1,28 @@
 import asyncio
 import json
 import logging
+import uuid
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from anthropic import AsyncAnthropic
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
+from app import costs
 from app.auth import verify_jwt
-from app.config import ANTHROPIC_API_KEY, CORS_ORIGIN
+from app.config import CORS_ORIGIN, PARKED_ROUTES_ENABLED
+from app.llm import _anthropic
 from app.posthog_client import posthog_client
-from app.db.checkpointer import get_checkpointer, lifespan_checkpointer, checkpointer_status
 from app.db.supabase import get_supabase
 from app.graphs.chat import create_chat_graph
 from app.models import CHAT_MODEL, INTERVIEW_MODEL
 from app.nodes.chat.extract_signals import extract_signals
 from app.nodes.chat.tools import execute_chat_tool, WRITE_TOOLS, QUEST_WRITE_TOOLS, TOOL_VERB, tools_for
 from app.nodes.recall.store import spawn
+from app.nodes.agents.interview import elevenlabs
+from app.nodes.onboarding import budget as onboarding_budget
 from app.nodes.onboarding.intake import (
     INTERVIEW_SYSTEM,
     commit_intake,
@@ -43,27 +46,16 @@ from app.routers.quest import router as quest_router
 
 logger = logging.getLogger(__name__)
 
-_anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-
 # Put between an assistant turn that called a tool and the turn that follows it,
 # so the two do not run together in the client's rendered text. A blank line
 # rather than a space, because the model treats each turn as its own paragraph.
 TURN_SEPARATOR = "\n\n"
-chat_graph = None  # initialised in lifespan
+chat_graph = create_chat_graph()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global chat_graph
-    async with lifespan_checkpointer():
-        cp = get_checkpointer()
-        if cp is not None:
-            chat_graph = create_chat_graph(cp)
-            logger.info("Chat graph initialised")
-        else:
-            logger.warning("Chat graph NOT initialised — checkpointer unavailable")
-        yield
-    chat_graph = None
+    yield
     posthog_client.flush()
 
 
@@ -99,8 +91,7 @@ async def health():
         "status": "ok",
         "service": "mentorable-langgraph",
         "version": "0.2.0",
-        "checkpointer": checkpointer_status(),
-        "chat_graph": "ready" if chat_graph is not None else "unavailable",
+        "chat_graph": "ready",
     }
 
 
@@ -130,12 +121,88 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     messages: list[Message]
     node_id: Optional[str] = None  # scopes the conversation to one roadmap node
+    # The chat_sessions row the page saves this conversation in. Lets the
+    # chat's note replace itself (one note per conversation) and stay out of
+    # the prompt while that conversation is still going.
+    session_id: Optional[str] = None
+
+
+# What one /chat request may send to the model. A student pasting a long essay
+# fits (650 words is about 4,000 characters); a request that would cost dollars
+# does not. Older history beyond the caps is dropped from the front.
+CHAT_MAX_MESSAGE_CHARS = 8000
+CHAT_MAX_HISTORY_CHARS = 60000
+CHAT_MAX_HISTORY_MESSAGES = 40
+CHAT_MAX_TOKENS = 2048
+# Tool rounds in one reply. Five covers a view, a few writes and a confirmation;
+# the last round is told to answer in words, so a model stuck calling tools
+# cannot loop (and bill) without end.
+CHAT_MAX_TOOL_ROUNDS = 5
+_CACHE = {"type": "ephemeral"}
+
+
+def _uuid_or_none(value) -> Optional[str]:
+    try:
+        return str(uuid.UUID(str(value))) if value else None
+    except (ValueError, TypeError, AttributeError):
+        return None
+
+
+def _normalize_chat(messages: list[Message]) -> list[dict]:
+    """Merge consecutive same-role turns, map "ai" to "assistant", and keep
+    the newest history that fits the caps, starting on a user turn."""
+    normalized: list[dict] = []
+    for m in messages:
+        if not (m.content and m.content.strip()):
+            continue
+        role = "assistant" if m.role in ("ai", "assistant") else "user"
+        content = m.content.strip()
+        if normalized and normalized[-1]["role"] == role:
+            normalized[-1]["content"] += "\n\n" + content
+        else:
+            normalized.append({"role": role, "content": content})
+    kept: list[dict] = []
+    total = 0
+    for m in reversed(normalized):
+        size = len(m["content"])
+        if kept and (total + size > CHAT_MAX_HISTORY_CHARS or len(kept) >= CHAT_MAX_HISTORY_MESSAGES):
+            break
+        kept.append(m)
+        total += size
+    kept.reverse()
+    while kept and kept[0]["role"] != "user":
+        kept.pop(0)
+    return kept
+
+
+def _mark_cache(conversation: list[dict]) -> list[dict]:
+    """The conversation with a cache breakpoint on its last block, so the next
+    request (the student's next message, or the next tool round) reads every
+    earlier turn from the prompt cache instead of paying for it again."""
+    if not conversation:
+        return conversation
+    *head, last = conversation
+    content = last["content"]
+    if isinstance(content, str):
+        blocks = [{"type": "text", "text": content, "cache_control": _CACHE}]
+    else:
+        blocks = [dict(b) if isinstance(b, dict) else b for b in content]
+        if blocks and isinstance(blocks[-1], dict):
+            blocks[-1] = {**blocks[-1], "cache_control": _CACHE}
+    return [*head, {**last, "content": blocks}]
 
 
 @app.post("/chat")
 async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
-    if chat_graph is None:
-        raise HTTPException(status_code=503, detail="Chat graph unavailable — checkpointer not connected")
+    normalized = _normalize_chat(request.messages)
+    if not normalized or normalized[0]["role"] != "user" or normalized[-1]["role"] != "user":
+        raise HTTPException(status_code=400, detail="Messages must start and end with a user message")
+    # Before the rate limit, so a message that is refused never costs one.
+    if len(normalized[-1]["content"]) > CHAT_MAX_MESSAGE_CHARS:
+        raise HTTPException(status_code=413, detail=(
+            f"That message is too long for one reply (over {CHAT_MAX_MESSAGE_CHARS:,} characters). "
+            "Send a shorter part of it."))
+    chat_id = _uuid_or_none(request.session_id)
 
     # Rate limit check
     await check_rate_limit(user_id, "chat")
@@ -146,51 +213,42 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
         properties={"has_node_context": request.node_id is not None},
     )
 
-    # Normalise messages: merge consecutive same-role, map "ai" → "assistant"
-    raw = [m for m in request.messages if m.content and m.content.strip()]
-    normalized: list[dict] = []
-    for m in raw:
-        role = "assistant" if m.role in ("ai", "assistant") else "user"
-        content = m.content.strip()
-        if normalized and normalized[-1]["role"] == role:
-            normalized[-1]["content"] += "\n\n" + content
-        else:
-            normalized.append({"role": role, "content": content})
+    # load_context + build_prompt. load_context is sync and LangGraph runs it
+    # on a worker thread, so its database reads never block the event loop.
+    state = await chat_graph.ainvoke({"user_id": user_id, "node_id": request.node_id, "chat_id": chat_id})
+    shared = state.get("_system_shared") or ""
+    student = state.get("_system_student") or ""
 
-    if not normalized or normalized[0]["role"] != "user":
-        raise HTTPException(status_code=400, detail="Messages must start with a user message")
-
-    # Run load_context + build_prompt through the graph (checkpointed)
-    config = {"configurable": {"thread_id": f"{user_id}_chat"}}
-    state = await chat_graph.ainvoke({"user_id": user_id, "node_id": request.node_id}, config=config)
-    system_prompt: str = state.get("_system_prompt", "")
-
-    if not system_prompt:
+    if not (shared and student):
+        await refund_usage(user_id, "chat")
         raise HTTPException(status_code=500, detail="Failed to build system prompt")
 
+    # Two cached blocks: the shared rules first (the same for every student,
+    # so one student's cache serves the next), then this student's block.
+    system = [
+        {"type": "text", "text": shared, "cache_control": _CACHE},
+        {"type": "text", "text": student, "cache_control": _CACHE},
+    ]
     # recall_memory is only offered while the student has memory on.
     chat_tools = tools_for(state.get("profile") or {})
 
     async def generate():
         conversation: list[dict] = list(normalized)
         full_text = ""
+        used_tools = False
         try:
             # Tool-use loop: stream text, and if the model calls a tool, run it,
             # feed the result back, and continue so it can confirm to the student.
-            while True:
+            for round_no in range(CHAT_MAX_TOOL_ROUNDS + 1):
                 turn_text = ""
+                extra = {"tool_choice": {"type": "none"}} if round_no == CHAT_MAX_TOOL_ROUNDS else {}
                 async with _anthropic.messages.stream(
                     model=CHAT_MODEL,
-                    max_tokens=2048,
-                    # Cache the tools+system prefix: it's stable across a session's messages,
-                    # so messages 2..N pay ~10% on the prefix instead of full price (demo cost).
-                    system=[{
-                        "type": "text",
-                        "text": system_prompt,
-                        "cache_control": {"type": "ephemeral"},
-                    }],
-                    messages=conversation,
+                    max_tokens=CHAT_MAX_TOKENS,
+                    system=system,
+                    messages=_mark_cache(conversation),
                     tools=chat_tools,
+                    **extra,
                 ) as stream:
                     async for text in stream.text_stream:
                         # First text of a turn that follows a tool call. The client
@@ -205,12 +263,16 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
                         yield f"data: {json.dumps({'text': text})}\n\n"
                     final_message = await stream.get_final_message()
 
+                costs.record_anthropic("chat", CHAT_MODEL, getattr(final_message, "usage", None))
+                if final_message.stop_reason == "max_tokens":
+                    logger.warning(f"[chat] reply for {user_id} cut off at max_tokens ({CHAT_MAX_TOKENS})")
                 if final_message.stop_reason != "tool_use":
                     break
 
                 # Record the assistant turn (text + tool_use blocks) verbatim.
                 conversation.append({"role": "assistant", "content": final_message.content})
 
+                used_tools = True
                 tool_results = []
                 for block in final_message.content:
                     if getattr(block, "type", None) != "tool_use":
@@ -251,13 +313,14 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
             # Fire-and-forget: the session summary and long-term memory. Pass a
             # clean text-only transcript. spawn keeps a reference until it ends.
             transcript = normalized + [{"role": "assistant", "content": full_text}]
-            spawn(extract_signals(user_id, transcript))
-
-            # (The scorecard's Communication award used to fire here. The 5 career
-            # axes were dropped in the college pivot, so there is nothing to award.)
+            spawn(extract_signals(user_id, transcript, chat_id))
 
         except Exception as exc:
             logger.error(f"[chat] stream error for {user_id}: {exc}")
+            # Nothing reached the student and nothing was changed: the message
+            # is given back. (A tool may already have written to their record.)
+            if not full_text and not used_tools:
+                await refund_usage(user_id, "chat")
             yield f"data: {json.dumps({'error': 'Stream failed'})}\n\n"
 
     return StreamingResponse(
@@ -269,6 +332,18 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ── Parked routes ──────────────────────────────────────────────────────────────
+# Scorecard and Roadmap were built for career guidance and are unreachable from
+# the app (src/lib/features.js), but their endpoints still answered anyone
+# signed in, at Sonnet prices, two of them with no limit at all. They answer
+# 404 unless PARKED_ROUTES_ENABLED is set. Their code stays. /research is not
+# gated: the chat page's "Search the web" button still uses it (2 per account).
+
+def _parked():
+    if not PARKED_ROUTES_ENABLED:
+        raise HTTPException(status_code=404, detail="Not found")
 
 
 @app.post("/research")
@@ -334,7 +409,7 @@ async def research(raw: Request, user_id: str = Depends(verify_jwt)):
     )
 
 
-@app.post("/scorecard/improve")
+@app.post("/scorecard/improve", dependencies=[Depends(_parked)])
 async def scorecard_improve(raw: Request, user_id: str = Depends(verify_jwt)):
     try:
         body = await raw.json()
@@ -361,7 +436,7 @@ async def scorecard_improve(raw: Request, user_id: str = Depends(verify_jwt)):
         raise HTTPException(status_code=500, detail="Could not generate suggestions")
 
 
-@app.post("/roadmap/intake")
+@app.post("/roadmap/intake", dependencies=[Depends(_parked)])
 async def roadmap_intake(raw: Request, user_id: str = Depends(verify_jwt)):
     """Free Haiku pre-questionnaire — up to 3 gap-only questions. Not rate-limited."""
     try:
@@ -379,7 +454,7 @@ async def roadmap_intake(raw: Request, user_id: str = Depends(verify_jwt)):
         return {"questions": []}  # never block the flow on intake
 
 
-@app.post("/roadmap/generate")
+@app.post("/roadmap/generate", dependencies=[Depends(_parked)])
 async def roadmap_generate(raw: Request, user_id: str = Depends(verify_jwt)):
     try:
         body = await raw.json()
@@ -433,7 +508,7 @@ async def roadmap_generate(raw: Request, user_id: str = Depends(verify_jwt)):
         raise HTTPException(status_code=500, detail="Could not generate roadmap")
 
 
-@app.post("/roadmap/node/expand")
+@app.post("/roadmap/node/expand", dependencies=[Depends(_parked)])
 async def roadmap_node_expand(raw: Request, user_id: str = Depends(verify_jwt)):
     try:
         body = await raw.json()
@@ -481,7 +556,7 @@ async def roadmap_node_expand(raw: Request, user_id: str = Depends(verify_jwt)):
         raise HTTPException(status_code=500, detail="Could not load resources")
 
 
-@app.post("/roadmap/phase/generate")
+@app.post("/roadmap/phase/generate", dependencies=[Depends(_parked)])
 async def roadmap_phase_generate(raw: Request, user_id: str = Depends(verify_jwt)):
     """Materialize one phase's nodes (Opus). Rate-limited: phase_gen (5/lifetime)."""
     try:
@@ -515,7 +590,7 @@ async def roadmap_phase_generate(raw: Request, user_id: str = Depends(verify_jwt
         raise HTTPException(status_code=500, detail="Could not generate phase")
 
 
-@app.post("/roadmap/phase/complete")
+@app.post("/roadmap/phase/complete", dependencies=[Depends(_parked)])
 async def roadmap_phase_complete(raw: Request, user_id: str = Depends(verify_jwt)):
     """Score the post-phase reflection + mark the phase completed. Free (not rate-limited)."""
     try:
@@ -692,6 +767,12 @@ async def portfolio_resume_pdf(raw: Request, user_id: str = Depends(verify_jwt))
 
 INTERVIEW_MAX_TURNS = 12
 INTERVIEW_WRAP_TURN = 9
+# What one interview request may carry. The page sends the whole conversation
+# each turn, so these bound the cost of a single request; the lifetime caps
+# are in app/nodes/onboarding/budget.py.
+INTERVIEW_MAX_MESSAGES = 2 * INTERVIEW_MAX_TURNS + 4
+INTERVIEW_MAX_MESSAGE_CHARS = 4000
+INTAKE_MAX_TRANSCRIPT_CHARS = 60000
 
 
 @app.get("/onboarding/context")
@@ -739,6 +820,17 @@ async def onboarding_interview(raw: Request, user_id: str = Depends(verify_jwt))
     if not (record.get("activities") or record.get("awards")):
         return sse_error("Add at least one activity or award to have this conversation. "
                          "Refresh the page to go back to the form.", "NO_ITEMS")
+    if len(conversation) > INTERVIEW_MAX_MESSAGES or \
+            sum(1 for m in conversation if m["role"] == "user") > INTERVIEW_MAX_TURNS + 1:
+        return sse_error("This conversation is complete. Continue to your summary.", "TURN_CAP")
+    if any(len(m["content"]) > INTERVIEW_MAX_MESSAGE_CHARS for m in conversation):
+        return sse_error("That answer is too long to send. Try a shorter one.", "TOO_LONG")
+    try:
+        allowed = await asyncio.to_thread(onboarding_budget.spend, user_id, "interview_turn")
+    except onboarding_budget.Unavailable:
+        return sse_error("Interview stream failed", "BUDGET_UNAVAILABLE")
+    if not allowed:
+        return sse_error("You have reached the limit for this conversation. Continue to your summary.", "LIMIT")
     system_prompt = INTERVIEW_SYSTEM.format(
         max_turns=INTERVIEW_MAX_TURNS,
         wrap_turn=INTERVIEW_WRAP_TURN,
@@ -750,21 +842,28 @@ async def onboarding_interview(raw: Request, user_id: str = Depends(verify_jwt))
         conversation = [{"role": "user", "content": "(Begin the interview.)"}]
 
     async def generate():
+        said = False
         try:
             async with _anthropic.messages.stream(
                 model=INTERVIEW_MODEL,
                 max_tokens=1024,
-                # The system prefix is stable for the whole interview, so later turns
-                # pay ~10% on it instead of full price.
+                # The system prefix is stable for the whole interview, and the
+                # mark on the last turn lets the next request read this whole
+                # conversation from the cache too.
                 system=[{"type": "text", "text": system_prompt,
                          "cache_control": {"type": "ephemeral"}}],
-                messages=conversation,
+                messages=_mark_cache(conversation),
             ) as stream:
                 async for text in stream.text_stream:
+                    said = True
                     yield f"data: {json.dumps({'text': text})}\n\n"
+                final = await stream.get_final_message()
+            costs.record_anthropic("onboarding_interview", INTERVIEW_MODEL, getattr(final, "usage", None))
             yield "data: [DONE]\n\n"
         except Exception as exc:
             logger.error(f"[intake] interview stream failed for {user_id}: {exc}")
+            if not said:
+                await asyncio.to_thread(onboarding_budget.refund, user_id, "interview_turn")
             yield f"data: {json.dumps({'error': 'Interview stream failed'})}\n\n"
 
     return StreamingResponse(
@@ -785,12 +884,47 @@ async def onboarding_intake_extract(raw: Request, user_id: str = Depends(verify_
 
     transcript = (body.get("transcript") or "").strip()
     channel = body.get("channel") if body.get("channel") in ("text", "voice") else "text"
+    if len(transcript) > INTAKE_MAX_TRANSCRIPT_CHARS:
+        raise HTTPException(status_code=413, detail="That conversation is too long to summarize.")
+
+    try:
+        allowed = await asyncio.to_thread(onboarding_budget.spend, user_id, "extract")
+    except onboarding_budget.Unavailable:
+        raise HTTPException(status_code=503, detail="Try again in a minute.")
+    if not allowed:
+        raise HTTPException(status_code=429, detail={"error": "LIMIT_REACHED", "feature": "intake_extract"})
 
     try:
         return await extract_intake(user_id, transcript, channel=channel)
     except Exception as exc:
         logger.error(f"[intake] Unexpected extract error for {user_id}: {exc}")
+        await asyncio.to_thread(onboarding_budget.refund, user_id, "extract")
         raise HTTPException(status_code=500, detail="Intake extraction failed")
+
+
+@app.post("/onboarding/voice/session")
+async def onboarding_voice_session(user_id: str = Depends(verify_jwt)):
+    """A one-time signed URL for the onboarding voice interview.
+
+    The voice agent used to be started from the browser with its public id,
+    so anyone who found the id could run calls on this account. With the
+    agent's authentication setting on, only a signed URL from here connects,
+    and each one costs one of the student's voice calls (budget.py)."""
+    try:
+        allowed = await asyncio.to_thread(onboarding_budget.spend, user_id, "voice_call")
+    except onboarding_budget.Unavailable:
+        raise HTTPException(status_code=503, detail="Try again in a minute.")
+    if not allowed:
+        raise HTTPException(status_code=429, detail={
+            "error": "LIMIT_REACHED", "feature": "onboarding_voice",
+            "message": "You have used your voice interviews. The text interview is still open."})
+    try:
+        line = await elevenlabs.signed_url(elevenlabs.onboarding_agent_id())
+    except elevenlabs.ElevenLabsError as exc:
+        await asyncio.to_thread(onboarding_budget.refund, user_id, "voice_call")
+        logger.warning(f"[intake] no voice line for {user_id} ({str(exc)[:120]}), given back")
+        raise HTTPException(status_code=503, detail="The voice line could not open. Try again in a minute.")
+    return {"signed_url": line["signed_url"]}
 
 
 @app.post("/onboarding/intake/commit")

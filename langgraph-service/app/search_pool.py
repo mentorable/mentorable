@@ -32,7 +32,7 @@ from urllib.parse import urlparse
 
 import httpx
 
-from app import config
+from app import config, costs
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +124,7 @@ class SearchPool:
                     continue
                 if res.status_code == 200:
                     self._note_quota(res, tag)
+                    costs.record_units(f"{self.name}_search", self.name, 1)
                     results = _tidy(self._parse(res))
                     self._cache[cache_key] = (now, results)
                     while len(self._cache) > CACHE_ENTRIES:

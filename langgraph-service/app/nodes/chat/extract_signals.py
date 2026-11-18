@@ -61,7 +61,7 @@ def _last_student_line(messages: list[dict]) -> str:
     return ""
 
 
-async def extract_signals(user_id: str, messages: list[dict]) -> None:
+async def extract_signals(user_id: str, messages: list[dict], chat_id: str | None = None) -> None:
     """Fire and forget, after each chat turn. Exceptions are logged, never raised.
 
     Two things are remembered from a turn, both only while the student has
@@ -69,6 +69,10 @@ async def extract_signals(user_id: str, messages: list[dict]) -> None:
     (profiles.chat_signals), and what they just said, in their own words, for
     long-term recall (app/nodes/recall/). A turn the model flags as a serious
     disclosure keeps neither.
+
+    One note per conversation: with `chat_id` (the page's chat_sessions id), a
+    later message in the same chat replaces that chat's note instead of adding
+    another (public.put_chat_signal). Without it the note is appended.
     """
     if len(messages) < 2:
         return
@@ -77,9 +81,10 @@ async def extract_signals(user_id: str, messages: list[dict]) -> None:
     # off, or deleted everything, after this moment, however long the model call takes.
     started = datetime.now(timezone.utc)
     try:
-        supabase = get_supabase()
+        # get_supabase() inside each worker thread: a client belongs to the
+        # thread that made it (app/db/supabase.py).
         rows = await asyncio.to_thread(
-            lambda: supabase.from_("profiles").select("memory_enabled")
+            lambda: get_supabase().from_("profiles").select("memory_enabled")
             .eq("id", user_id).limit(1).execute().data or [])
         profile = rows[0] if rows else {}
         if profile.get("memory_enabled") is False:
@@ -120,12 +125,9 @@ async def extract_signals(user_id: str, messages: list[dict]) -> None:
             return
         summary = str(summary).strip()
 
-        # One atomic append (public.append_chat_signal): it neither undoes a note
+        # One atomic write (public.put_chat_signal): it neither undoes a note
         # they deleted meanwhile nor lands after they turned memory off.
-        saved = await asyncio.to_thread(
-            lambda: supabase.rpc("append_chat_signal", {
-                "p_user_id": user_id, "p_note": summary, "p_started": started.isoformat(),
-                "p_max": MAX_SIGNALS}).execute().data)
+        saved = await asyncio.to_thread(_put_note, user_id, summary, started, chat_id)
         if saved is True:
             logger.info(f"[extract_signals] stored for {user_id}: {summary[:80]}")
         else:
@@ -133,3 +135,14 @@ async def extract_signals(user_id: str, messages: list[dict]) -> None:
 
     except Exception as exc:
         logger.warning(f"[extract_signals] failed for {user_id}: {exc}")
+
+
+def _put_note(user_id: str, summary: str, started: datetime, chat_id: str | None):
+    args = {"p_user_id": user_id, "p_note": summary, "p_started": started.isoformat(), "p_max": MAX_SIGNALS}
+    try:
+        return get_supabase().rpc("put_chat_signal", {**args, "p_session": chat_id}).execute().data
+    except Exception as exc:
+        # Before the migration that adds it (20261118_cost_ledger.sql) lands:
+        # the old append, so a note is never lost to a missing function.
+        logger.warning(f"[extract_signals] put_chat_signal failed ({type(exc).__name__}); appending instead")
+        return get_supabase().rpc("append_chat_signal", args).execute().data

@@ -33,7 +33,11 @@ from app.nodes.quest.service import brief_for_chat
 logger = logging.getLogger(__name__)
 
 
-async def load_context(state: StudentState) -> StudentState:
+def load_context(state: StudentState) -> StudentState:
+    """Every read the advisor's prompt needs, fresh on each message. Sync on
+    purpose: the Supabase client is, and LangGraph runs a sync node on a worker
+    thread, so these ~20 round trips never hold up the event loop (and with it
+    every other student's request)."""
     user_id = state["user_id"]
     supabase = get_supabase()
 

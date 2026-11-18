@@ -17,6 +17,7 @@ freeze them, because a confidently stated stale fact is worse than no fact. The
 prompt instead tells the model to treat those as per-school, per-cycle things to
 check rather than to assert.
 """
+import hashlib
 import re
 from datetime import datetime
 
@@ -598,9 +599,9 @@ You are not a cheerleader and you are not a gatekeeper. You are the person who k
 PORTFOLIO_CAPABILITY = """
 ## Their record, and changing it
 
-Everything above comes from the student's Portfolio, and you can edit it directly. The Portfolio page and this conversation are the same record, so a change you make shows up there immediately.
+The record below comes from the student's Portfolio, and you can edit it directly. The Portfolio page and this conversation are the same record, so a change you make shows up there immediately.
 
-- `view_portfolio` reads the full detail plus the id of every entry. The summary above is abbreviated, so call this before quoting a description back, comparing entries closely, or changing anything. You need a real id from this tool to update or delete. Never guess one.
+- `view_portfolio` reads the full detail plus the id of every entry. The summary below is abbreviated, so call this before quoting a description back, comparing entries closely, or changing anything. You need a real id from this tool to update or delete. Never guess one.
 - `add_portfolio_item` adds an activity, award, course or test score.
 - `update_portfolio_item` changes fields on one entry. Send only what changes, everything else stays as it was.
 - `delete_portfolio_item` permanently removes an entry.
@@ -655,35 +656,66 @@ FORMATTING = """
 """
 
 
-def build_system_prompt(profile: dict, data: dict) -> str:
+# The first block of the prompt, the same for every student (two versions:
+# memory on or off). It comes first, and the student's own block after it, so
+# the prompt cache can reuse it across students and across a student's
+# messages: anything that differs per student or per message placed early
+# makes every byte after it a cache miss.
+SHARED_INTRO = (
+    "You are the Mentorable advisor, a college application advisor for a high school student in the United "
+    "States. You help them understand where they actually stand, decide what to do next, and present themselves "
+    "honestly and well. Address them by their first name, which is given below with their record.\n\n"
+    "You already know their record: it is below, it is live, and you can change it. Use it. Advice that ignores "
+    "what is in front of you is the single thing that makes an advisor useless."
+)
+
+
+def _note_hash(note: str) -> str:
+    """The md5 put_chat_signal stores for a chat's note (Postgres md5 of the text)."""
+    return hashlib.md5(note.encode("utf-8")).hexdigest()
+
+
+def _earlier_notes(profile: dict, chat_id) -> list[str]:
+    """The notes from previous conversations, newest last, at most 10. The note
+    this conversation wrote itself is left out: the conversation is right there
+    in the messages, and a note that changes with every message would change
+    the prompt with every message too."""
+    if profile.get("memory_enabled") is False:
+        return []
+    signals = profile.get("chat_signals")
+    if not isinstance(signals, list):
+        return []
+    notes = [s for s in signals if s and isinstance(s, str)]
+    mark = profile.get("chat_signal_session")
+    if (chat_id and notes and isinstance(mark, dict) and mark.get("session") == str(chat_id)
+            and mark.get("md5") == _note_hash(notes[-1])):
+        notes = notes[:-1]
+    return notes[-10:]
+
+
+def build_system_blocks(profile: dict, data: dict, chat_id=None) -> tuple[str, str]:
+    """(shared, student): the advisor's system prompt in two blocks. The shared
+    one holds who it is and every rule; the student's holds their record,
+    their agents, their Quest, notes from earlier chats and their own
+    instructions, in that order, with their own instructions last."""
+    shared = [SHARED_INTRO, ADVISING_RULES.strip(), PORTFOLIO_CAPABILITY.strip()]
+    if memory_available(profile):
+        shared.append(MEMORY_CAPABILITY.strip())
+    shared.append(QUEST_CAPABILITY.strip())
+    shared.append(FORMATTING.strip())
+
     name       = (profile.get("full_name") or "").strip()
-    first_name = name.split()[0] if name else "the student"
+    first_name = name.split()[0] if name else ""
     style      = STYLE_GUIDE.get(profile.get("agent_response_style") or "balanced", STYLE_GUIDE["balanced"])
-
-    intro = (
-        f"You are the Mentorable advisor, a college application advisor for {first_name}, a high school student in the "
-        f"United States. You help them understand where they actually stand, decide what to do next, and present "
-        f"themselves honestly and well. Address them by their first name.\n\n"
-        f"You already know their record: it is below, it is live, and you can change it. Use it. Advice that ignores "
-        f"what is in front of you is the single thing that makes an advisor useless.\n\n"
-        f"Tone: {style}"
-    )
-
-    parts = [intro]
+    who = (f"Their first name is {first_name}." if first_name
+           else "You do not know their name yet, so do not use one.")
+    parts = [f"# The student you are advising\n\n{who}\n\nTone: {style}"]
 
     stage = STAGE_GUIDE.get(profile.get("grade_level"))
     if stage:
         parts.append("## Where they are\n" + stage)
 
     parts.extend(_record_sections(profile, data))
-    quest = _quest_section(data.get("quest"))
-    if quest:
-        parts.append(quest)
-    parts.append(ADVISING_RULES.strip())
-    parts.append(PORTFOLIO_CAPABILITY.strip())
-    if memory_available(profile):
-        parts.append(MEMORY_CAPABILITY.strip())
-    parts.append(QUEST_CAPABILITY.strip())
     parts.append(_outreach_section(data.get("outreach") or [], data.get("outreach_tries_left")))
     parts.append(_finder_section(data.get("finder") or [], data.get("finder_finds_left")))
     parts.append(_essay_section(data.get("essays") or [], data.get("essay_topics") or [],
@@ -691,24 +723,22 @@ def build_system_prompt(profile: dict, data: dict) -> str:
     interviews = _interview_section(data.get("interviews") or [])
     if interviews:
         parts.append(interviews)
-    parts.append(FORMATTING.strip())
-
-    prompt = "\n\n".join(parts)
+    quest = _quest_section(data.get("quest"))
+    if quest:
+        parts.append(quest)
 
     # Memory from previous sessions, written by extract_signals. Not shown when
     # the student has turned memory off.
-    signals = profile.get("chat_signals") if profile.get("memory_enabled") is not False else None
-    if isinstance(signals, list):
-        recent = [s for s in signals if s and isinstance(s, str)][-10:]
-        if recent:
-            prompt += ("\n\n## From previous conversations\nThings they have told you before. Treat these as known, "
-                       "and do not make them repeat themselves:\n" + "\n".join(f"- {s}" for s in recent))
+    recent = _earlier_notes(profile, chat_id)
+    if recent:
+        parts.append("## From previous conversations\nThings they have told you before. Treat these as known, "
+                     "and do not make them repeat themselves:\n" + "\n".join(f"- {s}" for s in recent))
 
     # The student's own instructions, last and highest priority.
     custom = (profile.get("agent_instructions") or "").strip()
     if custom:
-        prompt += (
-            "\n\n## What the student asked you to do differently, highest priority\n"
+        parts.append(
+            "## What the student asked you to do differently, highest priority\n"
             "They set these themselves. Follow them over the general guidance above wherever the two conflict, "
             "as long as doing so stays honest and safe. They do not override the rules on predicting admission, "
             "writing their essay, or inflating their record, and if they ask for one of those, say why you will "
@@ -716,7 +746,12 @@ def build_system_prompt(profile: dict, data: dict) -> str:
             f"{custom}"
         )
 
-    return prompt.strip()
+    return "\n\n".join(shared).strip(), "\n\n".join(parts).strip()
+
+
+def build_system_prompt(profile: dict, data: dict, chat_id=None) -> str:
+    """Both blocks as one text (for tests and scripts that read the prompt)."""
+    return "\n\n".join(build_system_blocks(profile, data, chat_id))
 
 
 async def build_prompt(state: StudentState) -> StudentState:
@@ -737,4 +772,6 @@ async def build_prompt(state: StudentState) -> StudentState:
         "essay_reviews_left": state.get("_essay_reviews_left"),
         "interviews": state.get("_interviews", []),
     }
-    return {**state, "_system_prompt": build_system_prompt(profile, data)}
+    shared, student = build_system_blocks(profile, data, state.get("chat_id"))
+    return {**state, "_system_shared": shared, "_system_student": student,
+            "_system_prompt": shared + "\n\n" + student}

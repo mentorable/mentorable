@@ -1118,6 +1118,7 @@ export default function ChatPage({ navigate, seedNode }) {
       await streamChatResponse({
         history: withUser,
         nodeId,
+        sessionId,
         onChunk: (chunk) => {
           setMessages((prev) => {
             const idx = prev.findIndex((m) => m.id === aiMsgId);

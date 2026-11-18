@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from fastapi import HTTPException
@@ -40,11 +41,14 @@ async def check_rate_limit(user_id: str, feature: str) -> dict:
     the RPC itself — this function doesn't need special-case logic.
     """
     limit = LIMITS[feature]
-    supabase = get_supabase()
-    result = supabase.rpc(
-        "check_and_increment_usage",
-        {"p_user_id": user_id, "p_feature": feature, "p_limit": limit},
-    ).execute()
+    # On a worker thread: the Supabase client is sync, and a blocking call on
+    # the event loop holds up every other request in this single process.
+    result = await asyncio.to_thread(
+        lambda: get_supabase().rpc(
+            "check_and_increment_usage",
+            {"p_user_id": user_id, "p_feature": feature, "p_limit": limit},
+        ).execute()
+    )
 
     usage = result.data
     if not usage or not usage.get("allowed"):
@@ -78,14 +82,17 @@ async def refund_usage(user_id: str, feature: str) -> None:
     col = _USAGE_COLUMN.get(feature)
     if not col:
         return
-    try:
+
+    def give_back():
         supabase = get_supabase()
         row = (
             supabase.from_("usage_tracking").select(col)
             .eq("user_id", user_id).maybe_single().execute()
         )
-        current = (row.data or {}).get(col)
+        current = (row.data or {}).get(col) if row is not None else None
         if isinstance(current, int) and current > 0:
             supabase.from_("usage_tracking").update({col: current - 1}).eq("user_id", user_id).execute()
+    try:
+        await asyncio.to_thread(give_back)
     except Exception as exc:
         logger.warning(f"[rate_limit] refund of {feature} for {user_id} failed: {exc}")

@@ -57,6 +57,7 @@ class StudentState(TypedDict, total=False):
     # ── Identity ──────────────────────────────────────────────────────────────
     user_id: str
     node_id: Optional[str]  # set when a chat conversation is scoped to one roadmap node
+    chat_id: Optional[str]  # the chat_sessions row this conversation is saved in, when the page sends it
 
     # ── Profile (loaded from Supabase on each request) ────────────────────────
     profile: ProfileSnapshot
@@ -103,6 +104,9 @@ class StudentState(TypedDict, total=False):
     _portfolio_summary: list[dict[str, Any]]
     _node_context: Optional[dict[str, Any]]
     _system_prompt: str
+    # The same prompt as two blocks, so the shared one caches across students.
+    _system_shared: str
+    _system_student: str
 
     # ── Metadata ──────────────────────────────────────────────────────────────
     errors: list[str]

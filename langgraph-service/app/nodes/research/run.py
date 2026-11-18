@@ -19,9 +19,9 @@ import re
 from datetime import datetime, timezone, timedelta
 
 import httpx
-from anthropic import AsyncAnthropic
-
-from app.config import ANTHROPIC_API_KEY, BRAVE_API_KEY
+from app import costs
+from app.config import BRAVE_API_KEY
+from app.llm import _anthropic  # the shared client: 120 s timeout, the SDK's own retries
 from app.db.supabase import get_supabase
 from app.scoring import award_axis
 from app.nodes.memory.synthesize import maybe_refresh_living_profile
@@ -29,7 +29,6 @@ from app.models import SONNET
 
 logger = logging.getLogger(__name__)
 
-_anthropic = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 TOP_N  = 3   # pages fetched + deeply enriched (was 5) — demo cost
 
 
@@ -105,6 +104,7 @@ async def _brave_search(query: str, count: int = 10) -> list[dict]:
             )
         if not res.is_success:
             return []
+        costs.record_units("research_search", "brave", 1)
         data = res.json()
         return [
             {"title": r.get("title", ""), "url": r.get("url", ""), "description": r.get("description", "")}
@@ -243,6 +243,7 @@ async def run_research(user_id: str, query: str, session_id: str) -> dict:
         ),
         messages=[{"role": "user", "content": f'ORIGINAL QUERY: "{normalized}"\n\n{context}'}],
     )
+    costs.record_anthropic("research_decompose", SONNET, getattr(decompose_res, "usage", None))
     decompose_text = decompose_res.content[0].text if decompose_res.content else ""
     parsed = _parse_json(decompose_text, {"subQueries": [normalized]})
     sub_queries = parsed.get("subQueries", [normalized])
@@ -313,6 +314,7 @@ async def run_research(user_id: str, query: str, session_id: str) -> dict:
             f"{'─'*40}\n\nFETCHED PAGE CONTENT (top {len(top_candidates)}):\n{pages_block}"
         )}],
     )
+    costs.record_anthropic("research_merge", SONNET, getattr(merged_res, "usage", None))
     merged_text = merged_res.content[0].text if merged_res.content else ""
     if merged_res.stop_reason == "max_tokens":
         logger.warning(f"[research] merged call truncated at max_tokens for '{normalized}' — salvaging")

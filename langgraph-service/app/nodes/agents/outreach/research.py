@@ -204,7 +204,7 @@ async def _extract(*, label: str, prompt: str, tool: dict, max_tokens: int, open
     if openai_enabled():
         out = await json_completion(prompt=prompt, schema=_strict(tool["input_schema"]), schema_name=label,
                                     openai_model=openai_model, anthropic_model=OUTREACH_RESEARCH_MODEL,
-                                    max_tokens=max_tokens)
+                                    max_tokens=max_tokens, anthropic_fallback=False)
         if isinstance(out, dict):
             return out
         logger.warning(f"[{label}] {openai_model} gave no usable answer; asking Haiku")

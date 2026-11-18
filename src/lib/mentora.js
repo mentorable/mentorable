@@ -11,7 +11,7 @@ function sanitizeInput(text) {
 // the frontend no longer constructs it. This must be set in every environment.
 const LANGGRAPH_CHAT_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
-export async function streamChatResponse({ history, onChunk, onDone, onEvent, nodeId }) {
+export async function streamChatResponse({ history, onChunk, onDone, onEvent, nodeId, sessionId }) {
   const anthropicMessages = history
     .filter((m) => m.content && m.content.trim())
     .map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: sanitizeInput(m.content) }));
@@ -32,7 +32,10 @@ export async function streamChatResponse({ history, onChunk, onDone, onEvent, no
 
   // LangGraph builds the system prompt server-side from the user's JWT.
   const url = `${LANGGRAPH_CHAT_URL}/chat`;
-  const body = JSON.stringify({ messages: normalized, node_id: nodeId ?? null });
+  // session_id: the chat_sessions row this conversation is saved in. The
+  // backend keeps one memory note per conversation with it, and leaves this
+  // conversation's own note out of the prompt while it is going.
+  const body = JSON.stringify({ messages: normalized, node_id: nodeId ?? null, session_id: sessionId ?? null });
   const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` };
 
   const res = await withRetry(

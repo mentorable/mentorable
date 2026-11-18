@@ -79,6 +79,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from app import costs
 from app.db.supabase import get_supabase
 from app.nodes.agents import usage
 from app.nodes.agents.interview import elevenlabs, prompts, rules
@@ -662,6 +663,8 @@ async def _finish(user_id: str, row: dict) -> dict:
 
     if any(rules.crisis_now(text) for _, text in rules.student_lines(transcript)):
         return await _handoff(user_id, row)
+    if duration:
+        costs.record_units("interview_voice", "elevenlabs_voice", duration, user_id=user_id)
 
     if rules.refundable(True, since, words) == "too_short":
         return await _refund(user_id, row, "too_short", transcript, duration, started, words=words)

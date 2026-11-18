@@ -120,6 +120,34 @@ export async function fetchIntakeContext() {
   return res.json();
 }
 
+/**
+ * A one-time signed URL for the voice interview. The voice agent accepts only
+ * these (its public id no longer starts a call), and each costs one of the
+ * student's voice calls. Throws a VoiceSessionError, whose message can be shown.
+ */
+export class VoiceSessionError extends Error {
+  constructor(message) { super(message); this.name = "VoiceSessionError"; }
+}
+
+export async function startVoiceSession() {
+  const res = await fetch(`${LANGGRAPH_URL}/onboarding/voice/session`, {
+    method: "POST",
+    headers: await authHeaders(),
+  });
+  if (res.ok) {
+    const data = await res.json();
+    if (data?.signed_url) return data.signed_url;
+    throw new VoiceSessionError("Connection error. Please try again.");
+  }
+  let message = "Connection error. Please try again.";
+  try {
+    const body = await res.json();
+    if (res.status === 429) message = body?.detail?.message || "You have used your voice interviews. The text interview is still open.";
+    else if (typeof body?.detail === "string") message = body.detail;
+  } catch { /* keep the generic message */ }
+  throw new VoiceSessionError(message);
+}
+
 /** Turn a transcript into a reviewable draft. Does not complete onboarding. */
 export async function extractIntake(transcript, channel) {
   const res = await fetch(`${LANGGRAPH_URL}/onboarding/intake/extract`, {

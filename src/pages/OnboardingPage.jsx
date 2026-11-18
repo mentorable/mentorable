@@ -17,10 +17,9 @@ import { PixelStamp } from "../components/ui/PixelIcons.jsx";
 import { HOME_PATH, POST_ONBOARDING_PATH } from "../lib/features.js";
 import {
   saveIntakeForm, fetchIntakeContext, extractIntake, commitIntake, fetchActivities,
-  fetchStudentRecord, skipIntake,
+  fetchStudentRecord, skipIntake, startVoiceSession,
 } from "../lib/intake.js";
 
-const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
 const MAX_CALL_SECONDS = 180; // ~3 min cap — keeps ElevenLabs credit cost down; the agent is prompted to wrap up by ~2.5 min
 const SILENCE_TIMEOUT_MS = 45000; // auto-end only if the call sits FULLY silent (agent done, user not talking, no replies) this long
 const SPEAKING_VOLUME_THRESHOLD = 0.02; // mic input above this = user is actively talking (counts as activity)
@@ -884,8 +883,9 @@ export default function OnboardingPage() {
       const firstName = (intake.fullName || "").trim().split(/\s+/)[0];
       const firstItem = (intake.activities || [])[0] || (intake.awards || [])[0];
 
+      const signedUrl = await startVoiceSession();
       await conversation.startSession({
-        agentId: AGENT_ID,
+        signedUrl,
         dynamicVariables: {
           student_name: firstName || "there",
           first_item: firstItem || "the first thing you've been involved in",
@@ -906,7 +906,9 @@ export default function OnboardingPage() {
       }
     } catch (err) {
       console.error("[ElevenLabs] startSession error:", err);
-      setError(typeof err === "string" ? err : "Connection error. Please try again.");
+      setError(typeof err === "string" ? err
+        : err?.name === "VoiceSessionError" ? err.message
+        : "Connection error. Please try again.");
       setPhase("error");
     } finally {
       setStartingConv(false);
