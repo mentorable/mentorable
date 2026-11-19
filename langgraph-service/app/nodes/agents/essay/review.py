@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # About 2500 tokens holds eight notes; a draft over its limit also gets up to
 # six cuts, each quoting a passage, so the ceiling sits a little above that. A
 # ceiling costs nothing unless it is used.
-REVIEW_MAX_TOKENS = 3000
+REVIEW_MAX_TOKENS = 4000
 ATTEMPTS = 2                    # the call, and one retry with what was wrong
 
 HANDOFF = {"status": "handoff"}

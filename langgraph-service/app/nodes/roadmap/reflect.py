@@ -101,10 +101,10 @@ async def reflect_on_phase(user_id: str, roadmap_id: str, phase_index: int, refl
         )
         try:
             resp = await _anthropic.messages.create(
-                model=HAIKU, max_tokens=300, system=system,
+                model=HAIKU, max_tokens=1500, system=system,
                 messages=[{"role": "user", "content": user_prompt}],
             )
-            parsed = _parse_json(resp.content[0].text if resp.content else "", {})
+            parsed = _parse_json(next((b.text for b in (resp.content or []) if getattr(b, "type", None) == "text"), ""), {})
             rs = parsed.get("readiness_score")
             if isinstance(rs, (int, float)):
                 readiness_score = max(0, min(100, int(rs)))

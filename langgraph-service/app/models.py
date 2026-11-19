@@ -18,17 +18,46 @@ SONNET = "claude-sonnet-5"
 # Sonnet 5.5, used by one job only (Poise's feedback, below); the rest of the
 # app stays on Sonnet 5 until a check script shows the newer one is worth it.
 SONNET_55 = "claude-sonnet-5-5"
-HAIKU  = "claude-haiku-4-5-20251001"
+# Haiku 5.5 replaced Haiku 4.5 on 2026-11-18: $0.10/$0.50 per MTok against
+# $1/$5, and better at following instructions. Its tokenizer counts the same
+# text as about 30% more tokens (so it is nearer 7.7x cheaper than 10x), which
+# is why every Haiku call's max_tokens was raised by about a third. It accepts
+# the forced tool calls tool_completion makes, and a forced call skips
+# thinking; a plain call thinks by default (effort medium), so read replies by
+# block type, never content[0]. It can decline on safety grounds with no
+# server-side fallback: callers already treat "no usable answer" as a fallback.
+HAIKU  = "claude-haiku-5-5"
 
 # ── OpenAI ───────────────────────────────────────────────────────────────────
 # $0.25/$2 and $0.05/$0.40 per MTok. Both are used only through
 # app.llm.json_completion, which falls back to Anthropic when no key is set.
 GPT_MINI = "gpt-5-mini"
 GPT_NANO = "gpt-5-nano"
+# OpenAI's newest of each size (pricing page, 2026-11-18), offered only in the
+# chat's model picker: $2/$10, $1/$5 and $0.10/$0.50 per MTok.
+GPT_SOL   = "gpt-6.2-sol"
+GPT_TERRA = "gpt-6.1-terra"
+GPT_LUNA  = "gpt-6-luna"
 
 # ── Per-task assignments ─────────────────────────────────────────────────────
 # Student-facing, judgment-heavy. Stays on Anthropic.
 CHAT_MODEL              = SONNET
+
+# The chat's model picker (src/lib/chatModels.js lists the same keys). Every
+# student sees it; CHAT_DEFAULT is what they get until they pick. The newer
+# models think by default, so they run at effort "low", Anthropic's documented
+# starting point for chat (and the low reasoning effort on OpenAI's). A key the
+# page sends that is not here gets the default. Opus was left out on purpose
+# (the owner's call: more than advising needs).
+CHAT_DEFAULT = "sonnet-5"
+CHAT_MODELS = {
+    "sonnet-5":      {"provider": "anthropic", "model": SONNET,    "label": "Sonnet 5",    "effort": None},
+    "haiku-5-5":     {"provider": "anthropic", "model": HAIKU,     "label": "Haiku 5.5",   "effort": "low"},
+    "sonnet-5-5":    {"provider": "anthropic", "model": SONNET_55, "label": "Sonnet 5.5",  "effort": "low"},
+    "gpt-6-2-sol":   {"provider": "openai",    "model": GPT_SOL,   "label": "GPT-6.2 Sol", "effort": "low"},
+    "gpt-6-1-terra": {"provider": "openai",    "model": GPT_TERRA, "label": "GPT-6.1 Terra", "effort": "low"},
+    "gpt-6-luna":    {"provider": "openai",    "model": GPT_LUNA,  "label": "GPT-6 Luna",  "effort": "low"},
+}
 INTERVIEW_MODEL         = SONNET
 INTAKE_EXTRACTION_MODEL = SONNET
 

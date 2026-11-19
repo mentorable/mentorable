@@ -46,6 +46,9 @@ PRICES: dict[str, tuple[float, float, float, float]] = {
     "claude-haiku-5-5":          (0.10, 0.50, 0.125, 0.01),
     "gpt-5-mini":                (0.25, 2.00, 0.25, 0.025),
     "gpt-5-nano":                (0.05, 0.40, 0.05, 0.005),
+    "gpt-6.2-sol":               (2.00, 10.00, 2.00, 0.10),
+    "gpt-6.1-terra":             (1.00, 5.00, 1.00, 0.05),
+    "gpt-6-luna":                (0.10, 0.50, 0.10, 0.01),
     "text-embedding-3-small":    (0.02, 0.0, 0.02, 0.02),
 }
 

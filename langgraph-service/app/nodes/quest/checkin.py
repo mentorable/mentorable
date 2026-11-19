@@ -116,7 +116,7 @@ async def reply_to_checkin(*, quest: dict, milestone: dict, task: dict, body: st
     )
     try:
         raw = await tool_completion(model=QUEST_CHECKIN_MODEL, prompt=prompt, tool=CHECKIN_TOOL,
-                                    max_tokens=400, label="quest_checkin")
+                                    max_tokens=550, label="quest_checkin")
     except ModelUnavailable as exc:
         logger.warning(f"[quest_checkin] model unavailable, using a canned reply: {exc}")
         return canned_reply(body)

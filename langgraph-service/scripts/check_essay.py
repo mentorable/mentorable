@@ -45,7 +45,8 @@ _stub.get_supabase = lambda: None
 sys.modules["app.db.supabase"] = _stub
 
 # Per-million-token list rates (input, output).
-RATES = {"claude-sonnet-5": (2.00, 10.00), "claude-haiku-4-5-20251001": (1.00, 5.00)}
+from app.costs import PRICES  # noqa: E402
+RATES = {m: p[:2] for m, p in PRICES.items()}  # one price table: app/costs.py
 
 # ── The sample student (made up) ─────────────────────────────────────────────
 # The record as the service hands it over: the rows from load_student_record,

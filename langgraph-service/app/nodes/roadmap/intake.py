@@ -88,10 +88,10 @@ async def generate_intake_questions(user_id: str, goal: str, end_month: str | No
 
     try:
         resp = await _anthropic.messages.create(
-            model=HAIKU, max_tokens=700, system=system,
+            model=HAIKU, max_tokens=2000, system=system,
             messages=[{"role": "user", "content": user_prompt}],
         )
-        parsed = _parse_json(resp.content[0].text if resp.content else "", {"questions": []})
+        parsed = _parse_json(next((b.text for b in (resp.content or []) if getattr(b, "type", None) == "text"), ""), {"questions": []})
     except Exception as exc:
         logger.warning(f"[roadmap] intake generation failed for {user_id}: {exc}")
         return {"questions": []}

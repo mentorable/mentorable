@@ -23,7 +23,7 @@ from app.nodes.agents.essay import prompts, rules
 
 logger = logging.getLogger(__name__)
 
-AREAS_MAX_TOKENS = 1500
+AREAS_MAX_TOKENS = 2000
 
 
 async def find_areas(*, record_text: str, record: dict, existing_areas: list[str], name: str = "",

@@ -437,3 +437,111 @@ def test_onboarding_voice_session_spends_and_refunds(chat_app, monkeypatch):
     monkeypatch.setattr(main.elevenlabs, "signed_url", down)
     assert chat_app.client.post("/onboarding/voice/session").status_code == 503
     assert log == [("spend", "voice_call"), ("spend", "voice_call"), ("refund", "voice_call")]
+
+
+# ── The chat's model picker ─────────────────────────────────────────────────
+
+def test_a_picked_claude_model_runs_with_low_effort(chat_app):
+    chat_app.script = [{"texts": ["hi"], "final": _final("end_turn")}]
+    chat_app.client.post("/chat", json={"messages": [{"role": "user", "content": "hello"}], "model": "haiku-5-5"})
+    (kw,) = chat_app.streams
+    assert kw["model"] == "claude-haiku-5-5"
+    assert kw["extra_body"] == {"output_config": {"effort": "low"}}
+
+
+def test_an_unknown_model_key_gets_the_default(chat_app):
+    chat_app.script = [{"texts": ["hi"], "final": _final("end_turn")}]
+    chat_app.client.post("/chat", json={"messages": [{"role": "user", "content": "hello"}], "model": "claude-opus-5-5"})
+    (kw,) = chat_app.streams
+    assert kw["model"] == "claude-sonnet-5" and "extra_body" not in kw
+
+
+def test_a_declined_turn_is_rerun_on_the_default_model(chat_app):
+    chat_app.script = [{"texts": [], "final": _final("refusal")},
+                       {"texts": ["Here is what I can say."], "final": _final("end_turn")}]
+    res = chat_app.client.post("/chat", json={"messages": [{"role": "user", "content": "hello"}], "model": "sonnet-5-5"})
+    assert [kw["model"] for kw in chat_app.streams] == ["claude-sonnet-5-5", "claude-sonnet-5"]
+    assert json.loads(_events(res)[0]) == {"text": "Here is what I can say."}
+
+
+def test_a_refusal_on_the_default_model_says_so(chat_app):
+    import app.main as main
+    chat_app.script = [{"texts": [], "final": _final("refusal")}]
+    res = chat_app.client.post("/chat", json={"messages": [{"role": "user", "content": "hello"}]})
+    assert json.loads(_events(res)[0]) == {"text": main.CHAT_REFUSED}
+
+
+def test_openai_models_refuse_cleanly_without_a_key(chat_app, monkeypatch):
+    monkeypatch.setattr(llm, "_openai", None)
+    res = chat_app.client.post("/chat", json={"messages": [{"role": "user", "content": "hi"}], "model": "gpt-6-luna"})
+    assert res.status_code == 503 and chat_app.rate == 0
+
+
+def test_the_openai_loop_streams_text_and_runs_tools(chat_app, monkeypatch):
+    calls = []
+
+    def chunk(content=None, tool=None, usage=None):
+        if usage:
+            return NS(usage=usage, choices=[])
+        return NS(usage=None, choices=[NS(delta=NS(content=content, tool_calls=[tool] if tool else None))])
+
+    rounds = [
+        [chunk("Let me look. "),
+         chunk(tool=NS(index=0, id="c1", function=NS(name="view_portfolio", arguments='{"se'))),
+         chunk(tool=NS(index=0, id=None, function=NS(name=None, arguments='ction": "all"}'))),
+         chunk(usage={"prompt_tokens": 100, "completion_tokens": 20})],
+        [chunk("You have two activities."), chunk(usage={"prompt_tokens": 150, "completion_tokens": 10})],
+    ]
+
+    async def create(**kw):
+        calls.append(kw)
+        items = rounds.pop(0)
+
+        async def gen():
+            for c in items:
+                yield c
+        return gen()
+
+    import app.main as main
+    ran = []
+
+    async def tool(user_id, name, args):
+        ran.append((name, args))
+        return {"success": True}
+    monkeypatch.setattr(main, "execute_chat_tool", tool)
+    monkeypatch.setattr(llm, "_openai", NS(chat=NS(completions=NS(create=create))))
+    res = chat_app.client.post("/chat", json={"messages": [{"role": "user", "content": "what do I have"}],
+                                              "model": "gpt-6-2-sol"})
+    texts = [json.loads(e)["text"] for e in _events(res) if e != "[DONE]" and "text" in json.loads(e)]
+    assert "".join(texts) == "Let me look. \n\nYou have two activities."
+    assert ran == [("view_portfolio", {"section": "all"})]
+    assert calls[0]["model"] == "gpt-6.2-sol" and calls[0]["reasoning_effort"] == "low"
+    assert calls[0]["messages"][0] == {"role": "system", "content": "SHARED\n\nSTUDENT"}
+    assert calls[0]["tools"][0]["function"]["name"] == "view_portfolio"
+    tool_msgs = [m for m in calls[1]["messages"] if m["role"] == "tool"]
+    assert tool_msgs == [{"role": "tool", "tool_call_id": "c1", "content": json.dumps({"success": True})}]
+    assert _events(res)[-1] == "[DONE]"
+
+
+def test_a_rerun_after_a_decline_drops_the_first_models_thinking(chat_app):
+    tool = NS(type="tool_use", id="t1", name="view_portfolio", input={})
+    thinking = NS(type="thinking", thinking="", signature="sig")
+    chat_app.script = [{"texts": [], "final": _final("tool_use", [thinking, tool])},
+                       {"texts": [], "final": _final("refusal")},
+                       {"texts": ["ok"], "final": _final("end_turn")}]
+    chat_app.client.post("/chat", json={"messages": [{"role": "user", "content": "hi"}], "model": "sonnet-5-5"})
+    last = chat_app.streams[-1]
+    assert last["model"] == "claude-sonnet-5"
+    assistant = [m for m in last["messages"] if m["role"] == "assistant"][0]
+    assert [getattr(b, "type", None) for b in assistant["content"]] == ["tool_use"]
+
+
+def test_an_empty_openai_reply_is_an_error_and_refunded(chat_app, monkeypatch):
+    async def create(**kw):
+        async def gen():
+            yield NS(usage=None, choices=[NS(delta=NS(content=None, tool_calls=None))])
+        return gen()
+    monkeypatch.setattr(llm, "_openai", NS(chat=NS(completions=NS(create=create))))
+    res = chat_app.client.post("/chat", json={"messages": [{"role": "user", "content": "hi"}], "model": "gpt-6-luna"})
+    assert json.loads(_events(res)[-1]) == {"error": "Stream failed"}
+    assert chat_app.refunds == 1

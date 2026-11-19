@@ -249,7 +249,7 @@ async def _anthropic_search(queries: list[str], *, lane: str, today: date, emit:
     try:
         raw, found, stats = await search_completion(
             model=FINDER_FALLBACK_MODEL, prompt=prompts.search_prompt(lane=lane, queries=queries, today=today),
-            submit_tool=prompts.SEARCH_TOOL, max_tokens=1500, label="finder_search",
+            submit_tool=prompts.SEARCH_TOOL, max_tokens=4000, label="finder_search",
             max_searches=FALLBACK_SEARCHES, blocked_domains=FINDER_BLOCKED, on_event=lines.on_event)
     except ModelUnavailable as exc:
         logger.warning(f"[finder] Anthropic's web search is unavailable: {type(exc).__name__}")
@@ -474,7 +474,7 @@ async def _explain(listings: list[dict], *, brief: dict, record_text: str, recor
         return
     try:
         raw = await tool_completion(
-            model=FINDER_FIT_MODEL, tool=prompts.FIT_TOOL, max_tokens=2000, label="finder_fit",
+            model=FINDER_FIT_MODEL, tool=prompts.FIT_TOOL, max_tokens=2700, label="finder_fit",
             prompt=prompts.fit_prompt(brief=brief, record_text=research_record(record_text),
                                       record_items=list(items.values())[:MAX_RECORD_ITEMS], listings=listings))
     except ModelUnavailable as exc:
@@ -639,7 +639,7 @@ async def recheck_listing(item: dict, *, today: date) -> dict:
         note = f"Couldn't open its page on {rules.short_day(today)}. It may have moved or closed."
         return {"status": "gone", "fields": {"recheck_note": note}, "changed": []}
 
-    got = await _ask(label="finder_recheck", tool=prompts.EXTRACT_TOOL, max_tokens=2000,
+    got = await _ask(label="finder_recheck", tool=prompts.EXTRACT_TOOL, max_tokens=2700,
                      openai_model=FINDER_EXTRACT_MODEL, expect="listings",
                      prompt=prompts.recheck_prompt(item=item, today=today, page={
                          "url": page.final_url, "title": page.title, "text": page.text[:PAGE_PROMPT_CHARS]}))

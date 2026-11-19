@@ -360,7 +360,10 @@ async def search_completion(
                             f"{costs.note(costs.price(model, input_tokens=spent['in'], output_tokens=spent['out']))}")
                 return (submitted if isinstance(submitted, dict) else None), found, stats
 
-        if getattr(message, "stop_reason", None) != "pause_turn":
+        stop = getattr(message, "stop_reason", None)
+        if stop != "pause_turn":
+            if stop in ("max_tokens", "refusal"):
+                logger.warning(f"[llm] {label}: stopped ({stop}) before submitting")
             break
         # The API paused a long search turn: hand it back unchanged to continue.
         # Appended, so a second pause still carries the first turn's results.

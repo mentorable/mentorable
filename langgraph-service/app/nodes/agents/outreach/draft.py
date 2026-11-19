@@ -474,7 +474,7 @@ async def write_followup(*, research: dict, student_name: str, subject: str, bod
     extra = ""
     for attempt in (1, 2):
         raw = await _call(model=OUTREACH_FOLLOWUP_MODEL, system=None, prompt=prompt + extra,
-                          tool=prompts.FOLLOWUP_TOOL, label="outreach_followup", max_tokens=600)
+                          tool=prompts.FOLLOWUP_TOOL, label="outreach_followup", max_tokens=800)
         body = _signed(clean_body(raw.get("body") if isinstance(raw, dict) else ""), first)
         problems = _length_problems(body, FOLLOWUP_MAX_WORDS, MIN_FOLLOWUP_WORDS) + _content_problems(body)
         if not problems and attempt == 1 and _sentences(body) > MAX_FOLLOWUP_SENTENCES:

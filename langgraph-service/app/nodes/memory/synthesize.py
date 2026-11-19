@@ -147,10 +147,10 @@ async def synthesize_living_profile(user_id: str) -> None:
         )
 
         resp = await _anthropic.messages.create(
-            model=HAIKU, max_tokens=700,
+            model=HAIKU, max_tokens=2000,
             messages=[{"role": "user", "content": prompt}],
         )
-        raw = resp.content[0].text if resp.content else ""
+        raw = next((b.text for b in (resp.content or []) if getattr(b, "type", None) == "text"), "")
         parsed = _parse_json(raw)
         if not parsed:
             logger.warning(f"[living] parse failed for {user_id}: {raw[:200]}")

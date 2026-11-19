@@ -44,7 +44,8 @@ _stub.get_supabase = lambda: None
 sys.modules["app.db.supabase"] = _stub
 
 # Per-million-token list rates (input, output). Web search adds $0.01 a search.
-RATES = {"claude-sonnet-5": (2.00, 10.00), "claude-haiku-4-5-20251001": (1.00, 5.00)}
+from app.costs import PRICES  # noqa: E402
+RATES = {m: p[:2] for m, p in PRICES.items()}  # one price table: app/costs.py
 
 RECORD = """Name: Ada Chen
 Year: currently grade 11, graduating 2028

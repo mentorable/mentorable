@@ -11,7 +11,7 @@ function sanitizeInput(text) {
 // the frontend no longer constructs it. This must be set in every environment.
 const LANGGRAPH_CHAT_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
-export async function streamChatResponse({ history, onChunk, onDone, onEvent, nodeId, sessionId }) {
+export async function streamChatResponse({ history, onChunk, onDone, onEvent, nodeId, sessionId, model }) {
   const anthropicMessages = history
     .filter((m) => m.content && m.content.trim())
     .map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: sanitizeInput(m.content) }));
@@ -35,7 +35,8 @@ export async function streamChatResponse({ history, onChunk, onDone, onEvent, no
   // session_id: the chat_sessions row this conversation is saved in. The
   // backend keeps one memory note per conversation with it, and leaves this
   // conversation's own note out of the prompt while it is going.
-  const body = JSON.stringify({ messages: normalized, node_id: nodeId ?? null, session_id: sessionId ?? null });
+  // model: a key from lib/chatModels.js; the backend falls back to its default.
+  const body = JSON.stringify({ messages: normalized, node_id: nodeId ?? null, session_id: sessionId ?? null, model: model ?? null });
   const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` };
 
   const res = await withRetry(

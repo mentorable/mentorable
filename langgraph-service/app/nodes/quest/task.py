@@ -129,7 +129,7 @@ async def generate_task(*, quest: dict, milestone: dict, milestone_count: int, d
     )
     try:
         raw = await tool_completion(model=QUEST_TASK_MODEL, prompt=prompt, tool=TASK_TOOL,
-                                    max_tokens=600, label="quest_task")
+                                    max_tokens=800, label="quest_task")
     except ModelUnavailable as exc:
         logger.warning(f"[quest_task] model unavailable, using the fallback task: {exc}")
         return fallback_task(milestone, minutes)

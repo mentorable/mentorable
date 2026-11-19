@@ -126,12 +126,12 @@ async def _search_and_pick(prompt: str, task: dict, quest: dict):
                 results += await search_pool.brave.web_search(q, blocked=BLOCKED_DOMAINS)
             raw = await tool_completion(model=QUEST_RESOURCES_MODEL,
                                         prompt=prompt + "\n\n" + search_pool.results_block(results[:10]),
-                                        tool=SUBMIT_TOOL, max_tokens=1500, label="quest_resources")
+                                        tool=SUBMIT_TOOL, max_tokens=2000, label="quest_resources")
             return raw, {r["url"] for r in results}, {"searches": len(queries), "errors": 0}
         except search_pool.SearchUnavailable:
             logger.warning("[quest_resources] Brave could not answer; using Anthropic's web search instead")
     return await search_completion(
-        model=QUEST_RESOURCES_MODEL, prompt=prompt, submit_tool=SUBMIT_TOOL, max_tokens=1500,
+        model=QUEST_RESOURCES_MODEL, prompt=prompt, submit_tool=SUBMIT_TOOL, max_tokens=4000,
         label="quest_resources", max_searches=3, blocked_domains=BLOCKED_DOMAINS,
     )
 

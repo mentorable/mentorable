@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
 import { streamChatResponse } from "../lib/mentora.js";
+import { CHAT_MODELS, loadChatModel, saveChatModel, modelLabel } from "../lib/chatModels.js";
 import { getCache, setCache, getKnownUserId, setKnownUserId } from "../lib/cache.js";
 import { getActiveChat, setActiveChat, isChatGenerating, markChatGenerating, clearChatGenerating } from "../lib/liveState.js";
 import { fetchUsage, LIMITS } from "../lib/usage.js";
@@ -464,7 +465,10 @@ function Message({ msg, isMobile = false }) {
           }
           {!isStreaming && msg.content && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
-              <p style={{ fontFamily: SG, fontSize: 10, color: "#6a6760" }}>{msg.time}</p>
+              <p style={{ fontFamily: SG, fontSize: 10, color: "#6a6760" }}>
+                {msg.time}
+                {modelLabel(msg.model) && <span style={{ marginLeft: 8, fontWeight: 600 }}>{modelLabel(msg.model)}</span>}
+              </p>
               <button
                 onClick={handleCopy}
                 style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 5, border: "1px solid #f1f5f9", background: copied ? "#f0fdf4" : "transparent", color: copied ? "#10b981" : "#6a6760", fontFamily: SG, fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}
@@ -489,7 +493,34 @@ function sanitizeChatInput(text) {
   return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
 }
 
-function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, researchMode, onToggleResearch, isMobile = false, chatUsed = 0, researchUsed = 0 }) {
+function ModelPicker({ value, onChange, disabled }) {
+  return (
+    <label style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: SG, fontSize: 12, fontWeight: 600, color: "#494742" }}>
+      Model
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        aria-label="Chat model"
+        style={{
+          fontFamily: SG, fontSize: 12.5, fontWeight: 600, color: NAVY,
+          padding: "4px 8px", borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#fff",
+          cursor: disabled ? "not-allowed" : "pointer",
+        }}
+      >
+        {["Claude", "ChatGPT"].map((maker) => (
+          <optgroup key={maker} label={maker}>
+            {CHAT_MODELS.filter((m) => m.maker === maker).map((m) => (
+              <option key={m.key} value={m.key}>{m.label}</option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, researchMode, onToggleResearch, isMobile = false, chatUsed = 0, researchUsed = 0, chatModel, onChangeModel }) {
   const [value, setValue] = useState("");
   const taRef = useRef(null);
 
@@ -579,9 +610,12 @@ function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, resear
         </p>
       )}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
-        <p style={{ fontFamily: SG, fontSize: 11, color: NAVY, margin: 0 }}>
-          Your advisor can make mistakes. Check important decisions yourself.
-        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          {!researchMode && onChangeModel && <ModelPicker value={chatModel} onChange={onChangeModel} disabled={busy} />}
+          <p style={{ fontFamily: SG, fontSize: 11, color: NAVY, margin: 0 }}>
+            Your advisor can make mistakes. Check important decisions yourself.
+          </p>
+        </div>
         {(() => {
           const left = researchMode
             ? Math.max(0, LIMITS.research - researchUsed)
@@ -838,7 +872,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
 
 // ─── ChatMain ─────────────────────────────────────────────────────────────────
 
-function ChatMain({ activeChatId, messages, busy, onSend, userName, error, onOpenHistory, chatUsed = 0, researchUsed = 0, researchMode, onToggleResearch, isMobile = false }) {
+function ChatMain({ activeChatId, messages, busy, onSend, userName, error, onOpenHistory, chatUsed = 0, researchUsed = 0, researchMode, onToggleResearch, isMobile = false, chatModel, onChangeModel }) {
   const bottomRef = useRef(null);
   const isNew = activeChatId === null;
 
@@ -927,6 +961,8 @@ function ChatMain({ activeChatId, messages, busy, onSend, userName, error, onOpe
             isMobile={isMobile}
             chatUsed={chatUsed}
             researchUsed={researchUsed}
+            chatModel={chatModel}
+            onChangeModel={onChangeModel}
           />
         </div>
       </div>
@@ -953,6 +989,7 @@ export default function ChatPage({ navigate, seedNode }) {
   const [displayName, setDisplayName] = useState(() => getCache(`profile:${getKnownUserId()}`)?.full_name || getStoredName());
   const [recentResearch, setRecentResearch]   = useState(() => getCache(`recent_research:${getKnownUserId()}`) || []);
   const [sessions, setSessions]       = useState(() => getCache(`chat_sessions:${getKnownUserId()}`) || []);
+  const [chatModel, setChatModel]     = useState(loadChatModel);
   const [activeChatId, setActiveChatId] = useState(() => getActiveChat(getKnownUserId()));
   const [messages, setMessages]       = useState([]);
   const [streaming, setStreaming]     = useState(false);
@@ -1085,7 +1122,7 @@ export default function ChatPage({ navigate, seedNode }) {
     const now = new Date().toISOString();
     const userMsg   = { id: `m_${Date.now()}`,     role: "user", content: text,  time: formatTime(now), created_at: now };
     const aiMsgId   = `m_${Date.now() + 1}`;
-    const aiMsgBase = { id: aiMsgId, role: "ai", content: "", streaming: true, time: formatTime(now), created_at: now };
+    const aiMsgBase = { id: aiMsgId, role: "ai", content: "", streaming: true, time: formatTime(now), created_at: now, model: chatModel };
 
     let sessionId = activeChatId;
     let historyBeforeSend;
@@ -1119,6 +1156,7 @@ export default function ChatPage({ navigate, seedNode }) {
         history: withUser,
         nodeId,
         sessionId,
+        model: chatModel,
         onChunk: (chunk) => {
           setMessages((prev) => {
             const idx = prev.findIndex((m) => m.id === aiMsgId);
@@ -1169,7 +1207,7 @@ export default function ChatPage({ navigate, seedNode }) {
         messages: withUser, updated_at: new Date().toISOString(),
       }).eq("id", sessionId);
     }
-  }, [user, activeChatId, messages, sessions, streaming, refreshSessions]);
+  }, [user, activeChatId, messages, sessions, streaming, refreshSessions, chatModel]);
 
   const handleResearchSend = useCallback(async (text) => {
     if (!user || streaming || researching) return;
@@ -1319,6 +1357,8 @@ export default function ChatPage({ navigate, seedNode }) {
           researchMode={researchMode}
           onToggleResearch={() => setResearchMode((v) => !v)}
           isMobile={isMobile}
+          chatModel={chatModel}
+          onChangeModel={(key) => { setChatModel(key); saveChatModel(key); }}
         />
         {!isMobile && (
           <motion.div

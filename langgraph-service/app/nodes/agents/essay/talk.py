@@ -35,7 +35,7 @@ MIN_QUESTION_WORDS = 3          # of the one question a turn is cut down to
 MAX_ANSWER_CHARS = 600
 CLOSING_CHARS = 180             # the closing line: one line, under 20 words
 AREA_WORDS = 6                  # the card's label when a talk names it
-TALK_MAX_TOKENS = 300
+TALK_MAX_TOKENS = 400
 
 # What the page shows when Quill cannot take part (an outage, an unusable or
 # rule-breaking reply). The service saves the answers given so far on a card.

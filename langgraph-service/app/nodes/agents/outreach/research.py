@@ -217,7 +217,7 @@ async def _write_queries(goal: str) -> list[str]:
     is the fallback: a student's own words search well enough."""
     try:
         got = await _extract(label="outreach_queries", prompt=QUERIES_PROMPT.format(goal=goal), tool=QUERIES_TOOL,
-                             max_tokens=200, openai_model=OUTREACH_QUERIES_MODEL)
+                             max_tokens=300, openai_model=OUTREACH_QUERIES_MODEL)
     except ModelUnavailable:
         got = None
     queries = []
@@ -478,7 +478,7 @@ async def find_people(goal: str, *, record_text: str, emit: Emit) -> Optional[li
     try:
         queries = await _write_queries(goal) if search_pool.tavily.configured() else []
         raw, returned, stats = await _search_answer(
-            label="outreach_people", prompt=prompt, tool=prompts.PEOPLE_TOOL, max_tokens=2500, queries=queries,
+            label="outreach_people", prompt=prompt, tool=prompts.PEOPLE_TOOL, max_tokens=4000, queries=queries,
             lines=lines, anthropic_searches=SHORTLIST_SEARCHES, emit=emit, extract_model=OUTREACH_PEOPLE_MODEL)
     except ModelUnavailable as exc:
         logger.warning(f"[outreach_people] search unavailable: {exc}")
@@ -744,7 +744,7 @@ async def research_person(target: dict, *, emit: Emit) -> Optional[dict]:
                else [f'"{name}" {organization}'.strip(), f"{who} faculty OR lab OR profile"])
     try:
         raw, returned, stats = await _search_answer(
-            label="outreach_research", prompt=prompt, tool=prompts.RESEARCH_TOOL, max_tokens=3000, queries=queries,
+            label="outreach_research", prompt=prompt, tool=prompts.RESEARCH_TOOL, max_tokens=4500, queries=queries,
             lines=lines, anthropic_searches=PERSON_SEARCHES_PAGE_READ if page else PERSON_SEARCHES,
             read_pages=0 if page else READ_PAGES, fetched=fetched, emit=emit, extract_model=OUTREACH_FACTS_MODEL)
     except ModelUnavailable as exc:
