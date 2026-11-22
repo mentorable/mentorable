@@ -14,6 +14,7 @@ import { useTheme } from "../lib/ThemeContext.jsx";
 import { useQuest } from "../lib/QuestContext.jsx";
 import { runResearch, summarizeResearchForHistory, ResearchLimitError } from "../lib/research.js";
 import { readableOn } from "../lib/theme.js";
+import { useAgentInk } from "../components/ui/tokens.js";
 import { ResultCard, SourcesSection } from "../components/common/ResearchResults.jsx";
 
 const NAVY    = "#141413";
@@ -64,13 +65,6 @@ function sessionTitle(session) {
 }
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-
-const IconSend  = ({ size = 16, color = "#fff" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <path d="M22 2L11 13" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
 const IconPlus  = ({ size = 14, color = "currentColor" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round">
     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -493,42 +487,209 @@ function sanitizeChatInput(text) {
   return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
 }
 
-function ModelPicker({ value, onChange, disabled }) {
+// ─── The chat bar ─────────────────────────────────────────────────────────────
+// A rounded input with only a send button inside, and a quiet row under it:
+// the model, the mode (Chat or Research) and a ring showing how much of the
+// current mode's allowance is used.
+
+const BAR_INK = "#141413";
+const BAR_INK_2 = "#494742";
+const BAR_MUTED = "#6a6760";
+const BAR_AMBER = "#b45309";
+
+const CHATBAR_CSS = `
+.chatbar { transition: border-color 0.18s, box-shadow 0.18s; }
+.chatbar:focus-within { border-color: rgba(var(--accent-rgb),0.45) !important;
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb),0.08), 0 10px 30px rgba(20,20,19,0.07) !important; }
+.chatbar textarea::placeholder { color: #8a877f; }
+.chatbar-trigger { transition: background 0.15s, color 0.15s; }
+.chatbar-trigger:hover:not(:disabled), .chatbar-trigger[aria-expanded="true"] { background: rgba(20,20,19,0.05); color: ${BAR_INK}; }
+.chatbar-item:hover:not(:disabled), .chatbar-item:focus-visible { background: rgba(var(--accent-rgb),0.07); outline: none; }
+.chatbar-trigger:focus-visible, .chatbar-send:focus-visible { outline: 3px solid var(--chatbar-ring); outline-offset: 2px; }
+.chatbar-send { transition: transform 0.12s, background 0.18s; }
+.chatbar-send:active:not(:disabled) { transform: scale(0.94); }
+.chatbar-pop { animation: chatbarPop 0.14s cubic-bezier(0.22,1,0.36,1); }
+@keyframes chatbarPop { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .chatbar-pop { animation: none; } .chatbar-send:active:not(:disabled) { transform: none; } }
+`;
+
+const Chevron = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"
+    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+);
+
+/** Closes a popover on an outside click or Escape (focus goes back to its button). */
+function usePopover(open, setOpen, wrapRef, buttonRef) {
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => { if (!wrapRef.current?.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === "Escape") { setOpen(false); buttonRef.current?.focus(); } };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
+  }, [open, setOpen, wrapRef, buttonRef]);
+}
+
+const popStyle = (align) => ({
+  position: "absolute", bottom: "calc(100% + 8px)", [align]: 0, zIndex: 20,
+  background: "#fff", borderRadius: 16, border: "1px solid rgba(20,20,19,0.08)",
+  boxShadow: "0 2px 6px rgba(20,20,19,0.05), 0 18px 40px rgba(20,20,19,0.12)",
+  padding: 6, minWidth: 260, maxWidth: "calc(100vw - 32px)", fontFamily: SG,
+});
+
+/** A text button that opens a menu above it. `options` are {key, label, hint,
+ *  group, disabled}; a change of `group` starts a small heading. */
+function BarMenu({ ariaLabel, value, options, onChange, disabled, align = "right" }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+  const buttonRef = useRef(null);
+  const itemRefs = useRef([]);
+  usePopover(open, setOpen, wrapRef, buttonRef);
+
+  useEffect(() => {
+    if (!open) return;
+    const i = options.findIndex((o) => o.key === value && !o.disabled);
+    const first = options.findIndex((o) => !o.disabled);
+    itemRefs.current[i >= 0 ? i : first]?.focus();
+  }, [open]); // focus only when it opens
+
+  const move = (e) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    const live = options.map((o, i) => (o.disabled ? -1 : i)).filter((i) => i >= 0);
+    const at = live.indexOf(itemRefs.current.indexOf(document.activeElement));
+    const next = live[(at + (e.key === "ArrowDown" ? 1 : -1) + live.length) % live.length];
+    itemRefs.current[next]?.focus();
+  };
+
+  const current = options.find((o) => o.key === value);
+  let lastGroup = null;
   return (
-    <label style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: SG, fontSize: 12, fontWeight: 600, color: "#494742" }}>
-      Model
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        aria-label="Chat model"
+    <div ref={wrapRef} style={{ position: "relative" }}>
+      <button ref={buttonRef} type="button" className="chatbar-trigger" disabled={disabled}
+        aria-haspopup="menu" aria-expanded={open} aria-label={`${ariaLabel}: ${current?.label ?? ""}`}
+        onClick={() => setOpen((o) => !o)}
         style={{
-          fontFamily: SG, fontSize: 12.5, fontWeight: 600, color: NAVY,
-          padding: "4px 8px", borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#fff",
-          cursor: disabled ? "not-allowed" : "pointer",
-        }}
-      >
-        {["Claude", "ChatGPT"].map((maker) => (
-          <optgroup key={maker} label={maker}>
-            {CHAT_MODELS.filter((m) => m.maker === maker).map((m) => (
-              <option key={m.key} value={m.key}>{m.label}</option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
-    </label>
+          display: "flex", alignItems: "center", gap: 6, height: 34, padding: "0 10px", borderRadius: 10,
+          border: "none", background: "transparent", color: BAR_INK_2, fontFamily: SG, fontSize: 14, fontWeight: 600,
+          cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.55 : 1, whiteSpace: "nowrap",
+        }}>
+        {current?.label}
+        <Chevron />
+      </button>
+      {open && (
+        <div role="menu" aria-label={ariaLabel} className="chatbar-pop" onKeyDown={move} style={popStyle(align)}>
+          {options.map((o, i) => {
+            const heading = o.group && o.group !== lastGroup ? o.group : null;
+            lastGroup = o.group ?? lastGroup;
+            const selected = o.key === value;
+            return (
+              <div key={o.key}>
+                {heading && (
+                  <div style={{ fontSize: 12, fontWeight: 700, color: BAR_MUTED, padding: i === 0 ? "6px 10px 4px" : "10px 10px 4px" }}>
+                    {heading}
+                  </div>
+                )}
+                <button ref={(el) => { itemRefs.current[i] = el; }} type="button" role="menuitemradio"
+                  aria-checked={selected} disabled={o.disabled} className="chatbar-item"
+                  onClick={() => { onChange(o.key); setOpen(false); buttonRef.current?.focus(); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
+                    padding: "9px 10px", borderRadius: 11, border: "none", background: "transparent",
+                    cursor: o.disabled ? "not-allowed" : "pointer", opacity: o.disabled ? 0.5 : 1, fontFamily: SG,
+                  }}>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 14.5, fontWeight: 650, color: BAR_INK }}>{o.label}</span>
+                    {o.hint && <span style={{ display: "block", fontSize: 13, fontWeight: 500, color: BAR_MUTED, marginTop: 2, lineHeight: 1.4 }}>{o.hint}</span>}
+                  </span>
+                  <span style={{ width: 16, flexShrink: 0, color: "var(--chatbar-ring)", display: "flex" }}>
+                    {selected && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8"
+                        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="5 12.5 10 17 19 7" /></svg>
+                    )}
+                  </span>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
-function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, researchMode, onToggleResearch, isMobile = false, chatUsed = 0, researchUsed = 0, chatModel, onChangeModel }) {
+function allowanceColor(left, limit, ink) {
+  if (left === 0) return BAR_MUTED;
+  return left <= Math.max(1, Math.round(limit * 0.25)) ? BAR_AMBER : ink;
+}
+
+/** The ring fills as the current mode's allowance is used; clicking it shows both. */
+function UsageRing({ researchMode, chatUsed, researchUsed, ink }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+  const buttonRef = useRef(null);
+  usePopover(open, setOpen, wrapRef, buttonRef);
+
+  const rows = [
+    { key: "chat", name: "Chat messages", used: chatUsed, limit: LIMITS.chat },
+    { key: "research", name: "Web research", used: researchUsed, limit: LIMITS.research },
+  ].map((r) => ({ ...r, left: Math.max(0, r.limit - r.used) }));
+  const now = rows[researchMode ? 1 : 0];
+  const frac = Math.min(1, now.used / now.limit);
+  const color = allowanceColor(now.left, now.limit, ink);
+  const R = 8.5;
+  const C = 2 * Math.PI * R;
+  const label = `${now.left} of ${now.limit} ${researchMode ? "web searches" : "messages"} left`;
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative", display: "flex" }}>
+      <button ref={buttonRef} type="button" className="chatbar-trigger" aria-label={label} title={label}
+        aria-expanded={open} onClick={() => setOpen((o) => !o)}
+        style={{ width: 34, height: 34, borderRadius: 10, border: "none", background: "transparent",
+          display: "grid", placeItems: "center", cursor: "pointer", padding: 0 }}>
+        <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+          <circle cx="11" cy="11" r={R} fill="none" stroke="rgba(20,20,19,0.12)" strokeWidth="2.6" />
+          {frac > 0 && <circle cx="11" cy="11" r={R} fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round"
+            strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform="rotate(-90 11 11)"
+            style={{ transition: "stroke-dashoffset 0.5s cubic-bezier(0.22,1,0.36,1), stroke 0.3s" }} />}
+        </svg>
+      </button>
+      {open && (
+        <div role="dialog" aria-label="What you have left" className="chatbar-pop"
+          style={{ ...popStyle("right"), padding: "14px 16px", minWidth: 250 }}>
+          {rows.map((r) => (
+            <div key={r.key} style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 14, fontWeight: 600, color: BAR_INK }}>
+                <span>{r.name}</span>
+                <span style={{ color: allowanceColor(r.left, r.limit, ink) === BAR_AMBER ? BAR_AMBER : BAR_INK_2 }}>
+                  {r.left} of {r.limit} left
+                </span>
+              </div>
+              <div style={{ height: 6, borderRadius: 99, background: "rgba(20,20,19,0.08)", marginTop: 7, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${(r.used / r.limit) * 100}%`, maxWidth: "100%", borderRadius: 99,
+                  background: allowanceColor(r.left, r.limit, ink) }} />
+              </div>
+            </div>
+          ))}
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: BAR_MUTED, lineHeight: 1.45 }}>
+            These are the limits while Mentorable is in its demo.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, researchMode, onChangeMode, isMobile = false, chatUsed = 0, researchUsed = 0, chatModel, onChangeModel }) {
   const [value, setValue] = useState("");
   const taRef = useRef(null);
+  const ink = useAgentInk();
 
   const autoResize = () => {
     const ta = taRef.current;
     if (!ta) return;
     ta.style.height = "auto";
-    ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
+    ta.style.height = Math.min(ta.scrollHeight, 180) + "px";
   };
 
   const limitReached = researchMode ? researchLimitReached : chatLimitReached;
@@ -536,7 +697,7 @@ function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, resear
 
   const handleSend = () => {
     const sanitized = sanitizeChatInput(value);
-    if (!sanitized || disabled) return;
+    if (!sanitized || disabled || value.length > MAX_INPUT) return;
     onSend(sanitized);
     setValue("");
     if (taRef.current) taRef.current.style.height = "auto";
@@ -544,92 +705,69 @@ function InputBar({ onSend, busy, chatLimitReached, researchLimitReached, resear
 
   const canSend = value.trim() && !disabled && value.length <= MAX_INPUT;
   const nearLimit = value.length > MAX_INPUT * 0.85;
+  const over = value.length > MAX_INPUT;
+
+  const placeholder = limitReached
+    ? (researchMode ? "No web research left" : "No messages left")
+    : researchMode ? "Find scholarships, programs, internships" : "Ask about colleges, essays, your list";
+
+  const modeOptions = [
+    { key: "chat", label: "Chat", hint: "Talk it through with your advisor" },
+    { key: "research", label: "Research",
+      hint: researchLimitReached ? "None left" : "Searches the web for one message, then back to chat",
+      disabled: researchLimitReached },
+  ];
+  const modelOptions = CHAT_MODELS.map((m) => ({ key: m.key, label: m.label, group: m.maker }));
 
   return (
-    <div style={{ padding: isMobile ? "12px 14px 14px" : "16px 28px 24px", flexShrink: 0 }}>
-      <div style={{
-        background: "#fff",
-        border: `1.5px solid ${value.length > MAX_INPUT ? "#ef4444" : value ? "rgba(var(--accent-rgb),0.38)" : "rgba(var(--accent-rgb),0.12)"}`,
-        borderRadius: 16,
-        boxShadow: value
-          ? "0 0 0 3px rgba(var(--accent-rgb),0.08), 0 4px 20px rgba(var(--accent-rgb),0.1)"
-          : "0 2px 12px rgba(var(--accent-rgb),0.06)",
-        transition: "border-color 0.18s, box-shadow 0.18s",
-        padding: "14px 14px 14px 20px",
-        display: "flex", alignItems: "center", gap: 10,
+    <div style={{ padding: isMobile ? "8px 12px 12px" : "10px 28px 20px", flexShrink: 0, "--chatbar-ring": ink.ring }}>
+      <style>{CHATBAR_CSS}</style>
+      <div className="chatbar" style={{
+        background: "#fff", borderRadius: 26,
+        border: `1px solid ${over ? "#ef4444" : "rgba(20,20,19,0.1)"}`,
+        boxShadow: "0 1px 2px rgba(20,20,19,0.04), 0 10px 30px rgba(20,20,19,0.06)",
+        padding: isMobile ? "6px 6px 6px 18px" : "8px 8px 8px 24px",
+        display: "flex", alignItems: "flex-end", gap: 10,
       }}>
         <textarea
           ref={taRef}
           value={value}
           onChange={(e) => { if (e.target.value.length <= MAX_INPUT + 50) setValue(e.target.value); autoResize(); }}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-          placeholder={researchMode ? "Find scholarships, internships, programs…" : "Ask anything about your career…"}
+          placeholder={placeholder}
+          aria-label={researchMode ? "Research request" : "Message your advisor"}
           rows={1}
-          style={{ flex: 1, border: "none", background: "transparent", resize: "none", fontFamily: SG, fontSize: 16, color: NAVY, lineHeight: 1.6, padding: 0, outline: "none", maxHeight: 160, minHeight: 26 }}
+          style={{ flex: 1, border: "none", background: "transparent", resize: "none", fontFamily: SG, fontSize: 17,
+            fontWeight: 500, color: NAVY, lineHeight: 1.55, padding: "9px 0", outline: "none", maxHeight: 180, minHeight: 26 }}
         />
-        <button
-          onClick={onToggleResearch}
-          disabled={researchLimitReached}
-          title={researchLimitReached ? "No research queries remaining" : researchMode ? "Research mode on" : "Search the web for this"}
+        <button type="button" className="chatbar-send" onClick={handleSend} disabled={!canSend}
+          aria-label={researchMode ? "Search" : "Send"}
           style={{
-            display: "flex", alignItems: "center", gap: 5, flexShrink: 0,
-            height: 40, padding: "0 12px", borderRadius: 12,
-            border: researchMode ? "1.5px solid var(--accent)" : "1.5px solid #e2e8f0",
-            background: researchMode ? "rgba(var(--accent-rgb),0.1)" : "transparent",
-            color: researchLimitReached ? "#b0bac6" : researchMode ? "var(--accent)" : "#6a6760",
-            cursor: researchLimitReached ? "not-allowed" : "pointer",
-            opacity: researchLimitReached ? 0.6 : 1,
-            fontFamily: SG, fontSize: 13, fontWeight: 600,
-            transition: "background 0.15s, border-color 0.15s, color 0.15s",
-          }}
-        >
-          <IconSearch size={13} color={researchLimitReached ? "#b0bac6" : researchMode ? "var(--accent)" : "#6a6760"} />
-          {!isMobile && "Research"}
-        </button>
-        <button
-          onClick={handleSend}
-          disabled={!canSend}
-          style={{
-            width: 40, height: 40, borderRadius: 12, border: "none", flexShrink: 0,
-            background: canSend ? "linear-gradient(135deg, var(--accent), var(--accent-light))" : "#e6dfd8",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: canSend ? "pointer" : "not-allowed",
-            transition: "background 0.18s, transform 0.12s",
-          }}
-          onMouseEnter={(e) => { if (canSend) e.currentTarget.style.transform = "scale(1.05)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-          onMouseDown={(e)  => { if (canSend) e.currentTarget.style.transform = "scale(0.95)"; }}
-          onMouseUp={(e)    => { if (canSend) e.currentTarget.style.transform = "scale(1)"; }}
-        >
-          <IconSend size={15} color={canSend ? "#fff" : "#6a6760"} />
+            width: 44, height: 44, borderRadius: "50%", border: "none", flexShrink: 0,
+            background: canSend ? ink.button.bg : "#ecebe7",
+            display: "grid", placeItems: "center", cursor: canSend ? "pointer" : "not-allowed",
+          }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={canSend ? ink.button.fg : "#8a877f"}
+            strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 19V5" /><path d="M5 12l7-7 7 7" />
+          </svg>
         </button>
       </div>
-      {nearLimit && (
-        <p style={{ fontFamily: SG, fontSize: 11, color: value.length > MAX_INPUT ? "#ef4444" : "#f59e0b", textAlign: "right", marginTop: 4 }}>
-          {value.length}/{MAX_INPUT}
-        </p>
-      )}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          {!researchMode && onChangeModel && <ModelPicker value={chatModel} onChange={onChangeModel} disabled={busy} />}
-          <p style={{ fontFamily: SG, fontSize: 11, color: NAVY, margin: 0 }}>
-            Your advisor can make mistakes. Check important decisions yourself.
-          </p>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 6, padding: "0 4px 0 10px" }}>
+        <span style={{ fontFamily: SG, fontSize: 13, fontWeight: 500, minWidth: 0,
+          color: nearLimit ? (over ? "#dc2626" : BAR_AMBER) : BAR_MUTED,
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {nearLimit ? `${value.length} / ${MAX_INPUT} characters` : isMobile ? "" : "Your advisor can make mistakes. Check what matters."}
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+          {!researchMode && onChangeModel && (
+            <BarMenu ariaLabel="Model" value={chatModel} options={modelOptions} onChange={onChangeModel} disabled={busy} />
+          )}
+          <BarMenu ariaLabel="Mode" value={researchMode ? "research" : "chat"} options={modeOptions}
+            onChange={onChangeMode} disabled={busy} />
+          <UsageRing researchMode={researchMode} chatUsed={chatUsed} researchUsed={researchUsed} ink={ink.ring} />
         </div>
-        {(() => {
-          const left = researchMode
-            ? Math.max(0, LIMITS.research - researchUsed)
-            : Math.max(0, LIMITS.chat - chatUsed);
-          const label = researchMode
-            ? (left === 0 ? "No research queries remaining" : `${left} research quer${left === 1 ? "y" : "ies"} remaining`)
-            : (left === 0 ? "No messages remaining" : `${left} message${left === 1 ? "" : "s"} remaining`);
-          return (
-            <span style={{ fontFamily: SG, fontSize: 13.5, fontWeight: 500, whiteSpace: "nowrap",
-              color: left <= (researchMode ? 0 : 3) ? "#dc2626" : "#6a6760" }}>
-              {label}
-            </span>
-          );
-        })()}
       </div>
     </div>
   );
@@ -872,7 +1010,7 @@ function HistoryPanel({ sessions, activeChatId, onSelectChat, onNewChat, onDelet
 
 // ─── ChatMain ─────────────────────────────────────────────────────────────────
 
-function ChatMain({ activeChatId, messages, busy, onSend, userName, error, onOpenHistory, chatUsed = 0, researchUsed = 0, researchMode, onToggleResearch, isMobile = false, chatModel, onChangeModel }) {
+function ChatMain({ activeChatId, messages, busy, onSend, userName, error, onOpenHistory, chatUsed = 0, researchUsed = 0, researchMode, onChangeMode, isMobile = false, chatModel, onChangeModel }) {
   const bottomRef = useRef(null);
   const isNew = activeChatId === null;
 
@@ -957,7 +1095,7 @@ function ChatMain({ activeChatId, messages, busy, onSend, userName, error, onOpe
             chatLimitReached={chatUsed >= LIMITS.chat}
             researchLimitReached={researchUsed >= LIMITS.research}
             researchMode={researchMode}
-            onToggleResearch={onToggleResearch}
+            onChangeMode={onChangeMode}
             isMobile={isMobile}
             chatUsed={chatUsed}
             researchUsed={researchUsed}
@@ -1355,7 +1493,7 @@ export default function ChatPage({ navigate, seedNode }) {
           chatUsed={chatUsed}
           researchUsed={researchUsed}
           researchMode={researchMode}
-          onToggleResearch={() => setResearchMode((v) => !v)}
+          onChangeMode={(mode) => setResearchMode(mode === "research")}
           isMobile={isMobile}
           chatModel={chatModel}
           onChangeModel={(key) => { setChatModel(key); saveChatModel(key); }}
