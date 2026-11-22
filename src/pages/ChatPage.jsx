@@ -17,8 +17,8 @@ import { readableOn } from "../lib/theme.js";
 import { ResultCard, SourcesSection } from "../components/common/ResearchResults.jsx";
 
 const NAVY    = "#141413";
-const SG      = "'Raleway', sans-serif";
-const JK      = "'Raleway', sans-serif";
+const SG      = "'Outfit', sans-serif";
+const JK      = "'Outfit', sans-serif";
 const HISTORY_W = 252;
 
 const SUGGESTIONS = [
@@ -681,7 +681,7 @@ function WelcomeScreen({ onSend, userName, isMobile = false }) {
         transition={{ duration: 0.38, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
         style={{ textAlign: "center", marginBottom: 32 }}
       >
-        <h2 style={{ fontFamily: "'Raleway', sans-serif", fontWeight: 800, fontSize: isMobile ? "2.1rem" : "2.5rem",
+        <h2 style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: isMobile ? "2.1rem" : "2.5rem",
           color: titleColor, letterSpacing: "-0.03em", marginBottom: 14, lineHeight: 1.1 }}>
           Good {timeOfDay}{firstName ? `, ${firstName}` : ""}.
         </h2>
@@ -1319,7 +1319,7 @@ export default function ChatPage({ navigate, seedNode }) {
             color: "#fff",
             borderRadius: 12,
             boxShadow: "0 8px 24px rgba(var(--accent-rgb),0.32)",
-            fontFamily: "'Raleway', sans-serif",
+            fontFamily: "'Outfit', sans-serif",
             fontSize: 14,
             animation: "recordToastIn 0.25s ease",
           }}

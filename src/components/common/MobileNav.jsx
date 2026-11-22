@@ -8,7 +8,7 @@ import { Flame, TreasureMapIcon } from "../quest/questUi.jsx";
 import { PixelBeakIcon } from "../agents/PixelIcons.jsx";
 import { TEXT_MUTED } from "../ui/tokens.js";
 
-const FONT = "'Raleway', sans-serif";
+const FONT = "'Outfit', sans-serif";
 
 // Labels sit at the text floor (0.9rem). Six of them fit from 360px up; on a
 // narrower phone only the active tab shows its word; the others are hidden

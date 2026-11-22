@@ -1,7 +1,7 @@
 // Onboarding's design tokens, now a thin layer over the app's shared kit
 // (src/components/ui). The flow used to carry its own blue world; everything
 // here maps onto the calm shell instead: #F5F5F5 page, white cards with 1px
-// warm borders, Raleway, and the student's accent only through `useIntakeInk`
+// warm borders, Outfit, and the student's accent only through `useIntakeInk`
 // (a brand-new student gets ThemeContext's default accent).
 
 import {

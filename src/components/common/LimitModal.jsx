@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useTheme } from '../../lib/ThemeContext.jsx'
 
-const SANS = "'Raleway', sans-serif"
+const SANS = "'Outfit', sans-serif"
 
 const FEATURE_COPY = {
   chat:     { title: "You've used all 8 demo messages", body: "You've reached the chat limit for the Mentorable demo. Join the waitlist to get full access when we launch." },

@@ -7,7 +7,7 @@ import { Flame, TreasureMapIcon } from "../quest/questUi.jsx";
 // bar (common/MobileNav.jsx). Recreated rather than rendered, because the real
 // ones route, read the session and float a Feedback button.
 
-const SANS = "'Raleway', sans-serif";
+const SANS = "'Outfit', sans-serif";
 const ACCENT = "#1d4ed8";
 const SURFACE = "#faf9f5";
 const SOFT = "#dfe6fa";

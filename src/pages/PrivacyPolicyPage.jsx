@@ -1,5 +1,5 @@
-const SANS = "'Raleway', sans-serif";
-const BODY = "'Raleway', sans-serif";
+const SANS = "'Outfit', sans-serif";
+const BODY = "'Outfit', sans-serif";
 const BG = "#faf8f4";
 const FG = "#141413";
 const MUT = "#4b5563";
