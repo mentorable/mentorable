@@ -136,7 +136,7 @@ export default function RoadmapNodePage({ navigate, nodeId }) {
   };
 
   const ps = node ? (PILLAR_STYLES[node.pillar] || PILLAR_STYLES.Project) : PILLAR_STYLES.Project;
-  const pad = { minHeight: "100vh", background: BG, fontFamily: SANS, padding: isMobile ? "1.5rem 1rem 5rem" : "2.5rem 2rem 4rem", paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH}px + 2rem)` };
+  const pad = { minHeight: "100vh", background: BG, fontFamily: SANS, padding: isMobile ? "1.5rem 1rem 5rem" : "2.5rem 2rem 4rem", paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH} + 2rem)` };
   const isDone = node?.state === "done";
   const doneCount = tasks.filter((t) => t.done).length;
 

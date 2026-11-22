@@ -908,7 +908,7 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
   const pagePad = {
     minHeight: "100vh", background: BG, fontFamily: SANS, boxSizing: "border-box",
     padding: isMobile ? "1.25rem 1rem 6rem" : "2.25rem 2rem 4rem",
-    paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH}px + 2rem)`,
+    paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH} + 2rem)`,
   };
   const column = { maxWidth: 880, margin: "0 auto", width: "100%" };
 
@@ -965,7 +965,7 @@ export default function CollegeListPage({ navigate, api = REAL_API }) {
         {/* Notices float at the bottom of the screen, so "Removed X. Undo" is
             in view wherever the card was, above the mobile nav. */}
         <div aria-live="polite" style={{ position: "fixed", zIndex: 300, pointerEvents: "none", display: "flex", justifyContent: "center",
-          left: isMobile ? 12 : SIDEBAR_WIDTH + 16, right: 12,
+          left: isMobile ? 12 : `calc(${SIDEBAR_WIDTH} + 16px)`, right: 12,
           bottom: isMobile ? "calc(60px + env(safe-area-inset-bottom, 0px) + 12px)" : 24 }}>
           {notice && (
             <div style={{ width: "100%", maxWidth: 560, pointerEvents: "auto", borderRadius: RADIUS.control,

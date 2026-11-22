@@ -225,13 +225,13 @@ export function PageHeader({ title, children, action, isMobile, style }) {
  *  last button on a page is never under either. The padding is four
  *  longhands, never the shorthand, so a page can override one side (Quest's
  *  map zeroes the top) without React warning about a conflicting property. */
-export function pageStyle({ isMobile, sidebar = 0, ink }) {
+export function pageStyle({ isMobile, sidebar = "0px", ink }) {
   return {
     minHeight: "100vh", background: BG, fontFamily: SANS, boxSizing: "border-box",
     paddingTop: isMobile ? "1.5rem" : "2.5rem",
     paddingRight: isMobile ? "1rem" : "2rem",
     paddingBottom: isMobile ? "8.5rem" : "4rem",
-    paddingLeft: isMobile ? "1rem" : `calc(${sidebar}px + 2rem)`,
+    paddingLeft: isMobile ? "1rem" : `calc(${sidebar} + 2rem)`,
     ...ringVar(ink),
   };
 }
@@ -436,7 +436,7 @@ const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(naviga
  *  button). `undo`, a function, draws the Undo button itself, with the
  *  Ctrl+Z (Cmd+Z on a Mac) shortcut and its hint, and owns the shortcut while
  *  the toast is up, outside text fields so a field's own undo still works. */
-export function Toast({ notice, onDismiss, isMobile, sidebar = 0 }) {
+export function Toast({ notice, onDismiss, isMobile, sidebar = "0px" }) {
   const undo = notice?.undo;
   useEffect(() => {
     if (typeof undo !== "function") return undefined;
@@ -461,7 +461,7 @@ export function Toast({ notice, onDismiss, isMobile, sidebar = 0 }) {
 
   return (
     <div aria-live="polite" style={{ position: "fixed", zIndex: 300, pointerEvents: "none", display: "flex",
-      justifyContent: "center", left: isMobile ? 12 + 44 + 12 : sidebar + 16, right: 12,
+      justifyContent: "center", left: isMobile ? 12 + 44 + 12 : `calc(${sidebar} + 16px)`, right: 12,
       bottom: isMobile ? "calc(60px + env(safe-area-inset-bottom, 0px) + 12px)" : 24 }}>
       {notice && (
         <div style={{ width: "100%", maxWidth: 560, pointerEvents: "auto", borderRadius: RADIUS.control,

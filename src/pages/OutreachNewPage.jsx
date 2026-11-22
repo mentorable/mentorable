@@ -384,7 +384,7 @@ export default function OutreachNewPage({ navigate, api = REAL_API, search }) {
   const pagePad = {
     minHeight: "100vh", background: BG, fontFamily: SANS, boxSizing: "border-box",
     padding: isMobile ? "1.25rem 1rem 6rem" : "2.25rem 2rem 4rem",
-    paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH}px + 2rem)`,
+    paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH} + 2rem)`,
     ...ringVar(ink),
   };
 

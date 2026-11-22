@@ -481,7 +481,7 @@ export default function ScorecardPage({ navigate }) {
   return (
     <div data-sidebar-offset style={{
       minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", position: "relative",
-      fontFamily: SANS, padding: "2.5rem 1.5rem 6rem", paddingLeft: `calc(${SIDEBAR_WIDTH}px + 1.5rem)`, background: "#F5F5F5",
+      fontFamily: SANS, padding: "2.5rem 1.5rem 6rem", paddingLeft: `calc(${SIDEBAR_WIDTH} + 1.5rem)`, background: "#F5F5F5",
     }}>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }

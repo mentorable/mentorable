@@ -344,7 +344,7 @@ export default function OutreachBoardPage({ navigate, api = REAL_API }) {
     minHeight: "100vh", background: BG, fontFamily: SANS, boxSizing: "border-box",
     // A little narrower at the sides than other pages: six columns want the room.
     padding: isMobile ? "1.25rem 1rem 6rem" : "2.25rem 1.5rem 4rem",
-    paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH}px + 1.5rem)`,
+    paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH} + 1.5rem)`,
     "--ag-ring": boardRing(ink.accent),
   };
 

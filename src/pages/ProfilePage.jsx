@@ -510,7 +510,7 @@ export default function ProfilePage({ navigate }) {
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            style={{ position: "fixed", bottom: floatBottom, left: isMobile ? 12 : SIDEBAR_WIDTH + 16, right: 12, display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 600 }}
+            style={{ position: "fixed", bottom: floatBottom, left: isMobile ? 12 : `calc(${SIDEBAR_WIDTH} + 16px)`, right: 12, display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 600 }}
           >
             <div style={{ maxWidth: 480, borderRadius: RADIUS.control, boxShadow: "0 14px 36px rgba(20,20,19,0.16)" }}>
               <Notice tone={toast.type === "error" ? "error" : toast.type === "warn" ? "warn" : "info"}

@@ -644,7 +644,7 @@ export default function RoadmapPage({ navigate }) {
   const phaseNodes = (p) => nodes.filter((n) => n.month_index >= p.month_start && n.month_index < p.month_start + p.month_count)
     .sort((a, b) => a.month_index - b.month_index || a.order_index - b.order_index);
 
-  const pagePad = { minHeight: "100vh", background: BG, fontFamily: SANS, padding: isMobile ? "1.5rem 1rem 5rem" : "2.5rem 2rem 4rem", paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH}px + 2rem)` };
+  const pagePad = { minHeight: "100vh", background: BG, fontFamily: SANS, padding: isMobile ? "1.5rem 1rem 5rem" : "2.5rem 2rem 4rem", paddingLeft: isMobile ? "1rem" : `calc(${SIDEBAR_WIDTH} + 2rem)` };
 
   if (phase === "loading") {
     return <div data-sidebar-offset style={{ ...pagePad, display: "flex", alignItems: "center", justifyContent: "center" }}>
