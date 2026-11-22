@@ -5,7 +5,7 @@ import { lighten, readableOn } from "../../lib/theme.js";
 // app (the social videos in social/) imports this file instead, since
 // tokens.js pulls in ThemeContext and with it the Supabase client.
 
-export const SANS       = "'Outfit', sans-serif";
+export const SANS       = "'Outfit', 'Raleway', sans-serif";
 export const BG         = "#F5F5F5";
 export const WHITE      = "#ffffff";
 export const SURFACE    = "#faf9f5";   // an inset panel on a white card

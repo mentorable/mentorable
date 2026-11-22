@@ -4,7 +4,7 @@ import { inkFor } from "./tokens.base.js";
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 // The app's one design system, grown from the Agents pages: a calm shell
-// (white cards on #F5F5F5, 1px warm borders, Outfit, the student's accent for
+// (white cards on #F5F5F5, 1px warm borders, Raleway (Outfit digits), the student's accent for
 // chrome) with all the character in pixel art, speech bubbles and copy, never
 // in louder chrome. Every page builds from these tokens and from kit.jsx.
 // The constants and `inkFor` live in tokens.base.js (no React, no Supabase).

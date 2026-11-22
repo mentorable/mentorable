@@ -13,7 +13,7 @@ import { NIGHT_SCENE } from "../agents/essay/home/NightScene.jsx";
 // the scene's own loops (clouds, stars, bubbles) do the same. On a phone the
 // cards stack, open, and hold still.
 
-const SANS = "'Outfit', sans-serif";
+const SANS = "'Outfit', 'Raleway', sans-serif";
 const EXPAND_MS = 650;
 const EASE = "cubic-bezier(.33,0,.2,1)";   // gentle in, long soft settle
 

@@ -11,7 +11,7 @@ import { LearnMore as PortfolioLearnMore } from "./PortfolioPage.jsx";
 import { useTheme } from "../lib/ThemeContext.jsx";
 import { hexToRgbString } from "../lib/theme.js";
 
-const SANS = "'Outfit', sans-serif";
+const SANS = "'Outfit', 'Raleway', sans-serif";
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
 // ─── The 5 standardized axes ──────────────────────────────────────────────────

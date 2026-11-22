@@ -12,7 +12,7 @@ import { useTheme } from "../lib/ThemeContext.jsx";
 const LANGGRAPH_URL = import.meta.env.VITE_LANGGRAPH_CHAT_URL;
 
 // ─── Design tokens (shared app palette) ───────────────────────────────────────
-const SANS        = "'Outfit', sans-serif";
+const SANS        = "'Outfit', 'Raleway', sans-serif";
 const BG          = "#F5F5F5";
 const WHITE       = "#ffffff";
 const BLUE        = "#1d4ed8";

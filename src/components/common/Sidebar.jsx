@@ -7,7 +7,7 @@ import NavStreakChip from "../quest/NavStreakChip.jsx";
 import { TreasureMapIcon } from "../quest/questUi.jsx";
 import { PixelBeakIcon } from "../agents/PixelIcons.jsx";
 
-const FONT = "'Outfit', sans-serif";
+const FONT = "'Outfit', 'Raleway', sans-serif";
 export const SIDEBAR_WIDTH = 220;
 
 const TOP_NAV = [

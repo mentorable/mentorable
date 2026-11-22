@@ -126,7 +126,7 @@ export default function AuthPage() {
       position: "relative",
       overflow: "hidden",
       background: "#faf9f5",
-      fontFamily: "'Outfit', sans-serif",
+      fontFamily: "'Outfit', 'Raleway', sans-serif",
     }}>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -142,7 +142,7 @@ export default function AuthPage() {
           border: 1.5px solid rgba(148,163,184,0.3);
           border-radius: 0.875rem;
           font-size: 1.0625rem;
-          font-family: 'Outfit', sans-serif;
+          font-family: 'Outfit', 'Raleway', sans-serif;
           color: #0f172a;
           background: rgba(255,255,255,0.95);
           outline: none;
@@ -168,7 +168,7 @@ export default function AuthPage() {
           color: white;
           font-weight: 700;
           font-size: 1.0625rem;
-          font-family: 'Outfit', sans-serif;
+          font-family: 'Outfit', 'Raleway', sans-serif;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -213,7 +213,7 @@ export default function AuthPage() {
           color: #1d4ed8;
           font-weight: 600;
           font-size: 0.875rem;
-          font-family: 'Outfit', sans-serif;
+          font-family: 'Outfit', 'Raleway', sans-serif;
           padding: 0;
           text-decoration: underline;
           text-underline-offset: 2px;
@@ -268,7 +268,7 @@ export default function AuthPage() {
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: "2.25rem" }}>
           <span style={{
-            fontFamily: "'Outfit', sans-serif",
+            fontFamily: "'Outfit', 'Raleway', sans-serif",
             fontWeight: 700, fontSize: "1.35rem",
             color: "#141413", letterSpacing: "-0.03em",
           }}>
@@ -296,7 +296,7 @@ export default function AuthPage() {
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
               <h1 style={{
-                fontFamily: "'Outfit', sans-serif",
+                fontFamily: "'Outfit', 'Raleway', sans-serif",
                 fontWeight: 600,
                 fontSize: "clamp(1.9rem, 8vw, 2.5rem)",
                 color: "#141413",
@@ -343,7 +343,7 @@ export default function AuthPage() {
               <p style={{
                 fontWeight: 700,
                 color: "#166534",
-                fontFamily: "'Outfit', sans-serif",
+                fontFamily: "'Outfit', 'Raleway', sans-serif",
                 fontSize: "1rem",
                 marginBottom: "0.3rem",
               }}>

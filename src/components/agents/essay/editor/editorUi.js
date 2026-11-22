@@ -35,7 +35,7 @@ export const MARK_CLASS = "qe-mark";
 export const CHIP_CLASS = "qe-chip";
 export const ROW_CLASS = "qe-row";
 
-// The measure: Outfit at this size and weight runs about 0.46em a character
+// The measure: Raleway at this size and weight runs about 0.46em a character
 // in English prose (measured in the browser), so 31.5em is a line of about 68
 // characters. The text is centred on its paper with that as its widest.
 //

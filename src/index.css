@@ -2,15 +2,17 @@
 
 html, body {
   background-color: #faf9f5;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Outfit', 'Raleway', sans-serif;
   color: #141413;
 }
 
-/* One font everywhere — force Outfit on every element (incl. inputs,
-   buttons, selects, SVG text) so nothing falls back to a system font. */
+/* One font everywhere: Raleway, with digits from Outfit (index.html loads
+   Outfit's 0-9 only, so every other character falls back to Raleway). Forced
+   on every element (incl. inputs, buttons, selects, SVG text) so nothing falls
+   back to a system font. */
 *, *::before, *::after,
 input, textarea, select, button {
-  font-family: 'Outfit', sans-serif !important;
+  font-family: 'Outfit', 'Raleway', sans-serif !important;
 }
 
 /* Prevent horizontal overflow globally. `clip` where the browser has it (the

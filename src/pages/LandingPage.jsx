@@ -7,9 +7,9 @@ import QuestShot, { QUEST_SHOT } from "../components/landingShots/QuestShot.jsx"
 import AgentPanels from "../components/landingShots/AgentPanels.jsx";
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
-const SANS = "'Outfit', sans-serif";
-const BODY = "'Outfit', sans-serif";
-const MONO = "'Outfit', sans-serif";
+const SANS = "'Outfit', 'Raleway', sans-serif";
+const BODY = "'Outfit', 'Raleway', sans-serif";
+const MONO = "'Outfit', 'Raleway', sans-serif";
 const P    = "#1d4ed8";
 const B2   = "#2563eb";
 const B3   = "#3b82f6";

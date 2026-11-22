@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const FONT = "'Outfit', sans-serif";
+const FONT = "'Outfit', 'Raleway', sans-serif";
 const NAVY = "#141413";
 
 export const TYPE_META = {
