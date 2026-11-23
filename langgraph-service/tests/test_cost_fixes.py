@@ -243,8 +243,9 @@ def test_the_chat_graph_carries_both_blocks(monkeypatch):
     import app.graphs.chat as g
 
     def fake_load(state):
-        return {**state, "profile": _student("Ana Ruiz"), "_activities": [{"id": "a1", "title": "Robotics"}]}
+        return {"profile": _student("Ana Ruiz"), "_activities": [{"id": "a1", "title": "Robotics"}]}
     monkeypatch.setattr(g, "load_context", fake_load)
+    monkeypatch.setattr(g, "advisor", lambda state: {"_stop_reason": "end_turn"})  # no model call
     graph = chat_graph_mod.create_chat_graph()
     state = run(graph.ainvoke({"user_id": "u", "chat_id": None}))
     assert "## How to advise" in state["_system_shared"]
@@ -266,9 +267,12 @@ def chat_app(monkeypatch):
     async def refund(user_id, feature):
         world.refunds += 1
 
-    async def ainvoke(state):
+    async def fake_load(state):
         world.state = state
-        return {**state, "profile": {}, "_system_shared": "SHARED", "_system_student": "STUDENT"}
+        return {"profile": {}}
+
+    async def fake_build(state):
+        return {"_system_shared": "SHARED", "_system_student": "STUDENT"}
 
     class FakeStream:
         def __init__(self, kw):
@@ -305,11 +309,16 @@ def chat_app(monkeypatch):
 
     monkeypatch.setattr(main, "check_rate_limit", rate)
     monkeypatch.setattr(main, "refund_usage", refund)
-    monkeypatch.setattr(main, "chat_graph", NS(ainvoke=ainvoke))
-    monkeypatch.setattr(main, "_anthropic", NS(messages=NS(stream=stream)))
+    # The real chat graph, with the database reads and the prompt faked.
+    import app.graphs.chat as graph_mod
+    import app.nodes.chat.advisor as advisor
+    monkeypatch.setattr(graph_mod, "load_context", fake_load)
+    monkeypatch.setattr(graph_mod, "build_prompt", fake_build)
+    monkeypatch.setattr(main, "chat_graph", graph_mod.create_chat_graph())
+    monkeypatch.setattr(advisor, "_anthropic", NS(messages=NS(stream=stream)))
     monkeypatch.setattr(main, "spawn", spawn)
-    monkeypatch.setattr(main, "execute_chat_tool", run_tool)
-    monkeypatch.setattr(main, "tools_for", lambda profile: [{"name": "view_portfolio"}])
+    monkeypatch.setattr(advisor, "execute_chat_tool", run_tool)
+    monkeypatch.setattr(advisor, "tools_for", lambda profile: [{"name": "view_portfolio"}])
     monkeypatch.setattr(costs, "_queue", lambda row: None)
     main.app.dependency_overrides[verify_jwt] = lambda: "u1"
     world.client = TestClient(main.app)
@@ -467,10 +476,10 @@ def test_a_declined_turn_is_rerun_on_the_default_model(chat_app):
 
 
 def test_a_refusal_on_the_default_model_says_so(chat_app):
-    import app.main as main
+    from app.nodes.chat.advisor import CHAT_REFUSED
     chat_app.script = [{"texts": [], "final": _final("refusal")}]
     res = chat_app.client.post("/chat", json={"messages": [{"role": "user", "content": "hello"}]})
-    assert json.loads(_events(res)[0]) == {"text": main.CHAT_REFUSED}
+    assert json.loads(_events(res)[0]) == {"text": CHAT_REFUSED}
 
 
 def test_openai_models_refuse_cleanly_without_a_key(chat_app, monkeypatch):
@@ -510,7 +519,8 @@ def test_the_openai_loop_streams_text_and_runs_tools(chat_app, monkeypatch):
     async def tool(user_id, name, args):
         ran.append((name, args))
         return {"success": True}
-    monkeypatch.setattr(main, "execute_chat_tool", tool)
+    import app.nodes.chat.advisor as advisor
+    monkeypatch.setattr(advisor, "execute_chat_tool", tool)
     monkeypatch.setattr(llm, "_openai", NS(chat=NS(completions=NS(create=create))))
     res = chat_app.client.post("/chat", json={"messages": [{"role": "user", "content": "what do I have"}],
                                               "model": "gpt-6-2-sol"})
@@ -535,7 +545,8 @@ def test_a_rerun_after_a_decline_drops_the_first_models_thinking(chat_app):
     last = chat_app.streams[-1]
     assert last["model"] == "claude-sonnet-5"
     assistant = [m for m in last["messages"] if m["role"] == "assistant"][0]
-    assert [getattr(b, "type", None) for b in assistant["content"]] == ["tool_use"]
+    # Plain dicts now: the graph's messages are never SDK objects.
+    assert [b["type"] for b in assistant["content"]] == ["tool_use"]
 
 
 def test_an_empty_openai_reply_is_an_error_and_refunded(chat_app, monkeypatch):

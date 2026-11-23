@@ -21,6 +21,7 @@ features are parked behind FEATURES flags (src/lib/features.js), and loading
 them would mean dead queries and prompt sections about something the student
 cannot reach.
 """
+import asyncio
 import logging
 from datetime import datetime, timezone
 
@@ -33,12 +34,15 @@ from app.nodes.quest.service import brief_for_chat
 logger = logging.getLogger(__name__)
 
 
-def load_context(state: StudentState) -> StudentState:
-    """Every read the advisor's prompt needs, fresh on each message. Sync on
-    purpose: the Supabase client is, and LangGraph runs a sync node on a worker
-    thread, so these ~20 round trips never hold up the event loop (and with it
-    every other student's request)."""
-    user_id = state["user_id"]
+async def load_context(state: StudentState) -> StudentState:
+    """Every read the advisor's prompt needs, fresh on each message. The
+    Supabase client is blocking, so the reads run on a worker thread and these
+    ~20 round trips never hold up the event loop (and with it every other
+    student's request)."""
+    return await asyncio.to_thread(_load, state["user_id"])
+
+
+def _load(user_id: str) -> StudentState:
     supabase = get_supabase()
 
     def rows(table, cols, order):
@@ -195,8 +199,8 @@ def load_context(state: StudentState) -> StudentState:
         logger.warning(f"[chat] interview mocks failed to load for {user_id}: {type(exc).__name__}")
         interviews = []
 
+    # Only the keys it sets: messages has an appending reducer.
     return {
-        **state,
         "profile":     profile,
         "_activities": activities_res.data or [],
         "_awards":     awards_res.data or [],

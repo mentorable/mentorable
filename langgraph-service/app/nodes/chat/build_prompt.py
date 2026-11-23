@@ -773,5 +773,6 @@ async def build_prompt(state: StudentState) -> StudentState:
         "interviews": state.get("_interviews", []),
     }
     shared, student = build_system_blocks(profile, data, state.get("chat_id"))
-    return {**state, "_system_shared": shared, "_system_student": student,
+    # Only the keys it sets: messages has an appending reducer.
+    return {"_system_shared": shared, "_system_student": student,
             "_system_prompt": shared + "\n\n" + student}

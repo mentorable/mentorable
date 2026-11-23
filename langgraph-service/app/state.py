@@ -1,4 +1,5 @@
-from typing import Any, Optional
+import operator
+from typing import Annotated, Any, Optional
 from typing_extensions import TypedDict
 
 
@@ -107,6 +108,18 @@ class StudentState(TypedDict, total=False):
     # The same prompt as two blocks, so the shared one caches across students.
     _system_shared: str
     _system_student: str
+
+    # ── Chat graph tool loop (advisor ⇄ tools, app/nodes/chat/advisor.py) ────
+    # The conversation as Anthropic-format plain dicts, never SDK objects. The
+    # reducer appends, so a node returns only the turns it adds: returning
+    # {**state} from any chat node would send the whole history twice.
+    messages: Annotated[list, operator.add]
+    rounds: int        # tool rounds run in this reply (capped by MAX_TOOL_ROUNDS)
+    handoffs: int      # hand-offs to another agent in this reply (none yet)
+    _pick: dict        # the CHAT_MODELS entry in use; the default after a decline
+    _stop_reason: Optional[str]
+    # After a decline, the turns before this index lose their thinking blocks.
+    _strip_thinking_before: Optional[int]
 
     # ── Metadata ──────────────────────────────────────────────────────────────
     errors: list[str]
