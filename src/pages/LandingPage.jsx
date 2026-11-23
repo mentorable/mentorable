@@ -655,35 +655,93 @@ function Newsletter() {
 }
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
+// A blue wave rises out of the page, with the logo as a large circle sitting
+// across its edge, two faint rings behind it, and the closing call to action.
+const FOOT_LINKS = [
+  { label: "Privacy Policy", to: "/privacy" },
+  { label: "Terms of Service", to: "/terms" },
+];
+const SOCIAL = [
+  { label: "Mentorable on X", href: "https://x.com/MentorableAI",
+    icon: <path fill="currentColor" stroke="none" d="M17.75 3h3.07l-6.7 7.66L22 21h-6.17l-4.83-6.32L5.47 21H2.4l7.17-8.2L2 3h6.33l4.37 5.77zm-1.08 16.18h1.7L7.4 4.73H5.58z" /> },
+  { label: "Mentorable on Instagram", href: "https://www.instagram.com/mentorable.ai/",
+    icon: <><rect x="3.5" y="3.5" width="17" height="17" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.3" cy="6.7" r="0.6" fill="currentColor" /></> },
+];
+
 function Footer() {
   const go = (p) => { window.history.pushState({}, "", p); window.dispatchEvent(new PopStateEvent("popstate")); };
+  const linkHover = { onMouseEnter: (e) => (e.currentTarget.style.textDecoration = "underline"),
+    onMouseLeave: (e) => (e.currentTarget.style.textDecoration = "none") };
   return (
-    <footer style={{ background: FOOT, color: "#fff", padding: "3.5rem clamp(1.25rem,4vw,2.5rem) 2rem" }}>
-      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-        <div style={{ marginBottom: "2.5rem" }}>
-          <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: "1.15rem", letterSpacing: "-0.03em", marginBottom: "0.8rem" }}>mentorable</div>
-          <p style={{ fontFamily: BODY, fontWeight: 400, fontSize: "0.88rem", color: "#fff", lineHeight: 1.8, maxWidth: 320, margin: 0 }}>
-            AI-powered college application guidance for high school students.
-          </p>
+    <footer className="lp-foot" style={{ position: "relative", background: BG, overflow: "hidden" }}>
+      {/* The logo and its rings, placed against the same 1120px column as the text */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+        <div style={{ position: "relative", maxWidth: 1120, height: "100%", margin: "0 auto" }}>
+          <div className="lp-foot-art" aria-hidden="true">
+            <span className="lp-foot-ring" style={{ inset: "calc(var(--ring) * -2)", background: "rgba(59,130,246,0.05)" }} />
+            <span className="lp-foot-ring" style={{ inset: "calc(var(--ring) * -1)", background: "rgba(59,130,246,0.08)" }} />
+          </div>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-          flexWrap: "wrap", gap: "1rem 2rem", paddingTop: "1.8rem", borderTop: "1px solid rgba(255,255,255,0.3)" }}>
-          <div style={{ fontFamily: SANS, fontSize: "0.82rem", color: "#fff" }}>© 2026 Mentorable Inc. All rights reserved.</div>
-          <div className="lp-foot-links" style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem 1.5rem" }}>
-            {[
-              { label: "Privacy Policy", to: "/privacy" },
-              { label: "Terms of Service", to: "/terms" },
-              { label: "X", href: "https://x.com/MentorableAI" },
-              { label: "Instagram", href: "https://www.instagram.com/mentorable.ai/" },
-            ].map((l) => {
-              const style = { fontFamily: SANS, fontSize: "0.82rem", color: "#fff", background: "none", border: "none",
-                cursor: "pointer", padding: 0, textDecoration: "none", whiteSpace: "nowrap" };
-              const hover = { onMouseEnter: (e) => (e.currentTarget.style.textDecoration = "underline"),
-                onMouseLeave: (e) => (e.currentTarget.style.textDecoration = "none") };
-              return l.to
-                ? <button key={l.label} onClick={() => go(l.to)} style={style} {...hover}>{l.label}</button>
-                : <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer" style={style} {...hover}>{l.label}</a>;
-            })}
+      </div>
+
+      <div className="lp-foot-sky" />
+      <svg viewBox="0 0 1440 140" preserveAspectRatio="none" aria-hidden="true"
+        style={{ display: "block", width: "100%", height: "clamp(70px,10vw,140px)", position: "relative", zIndex: 1, marginBottom: -1 }}>
+        <path fill={FOOT} d="M0,140 L0,72 C260,30 640,2 1000,4 C1210,6 1350,26 1440,46 L1440,140 Z" />
+      </svg>
+
+      {/* The circle sits above the wave; the rings stay behind it */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2 }}>
+        <div style={{ position: "relative", maxWidth: 1120, height: "100%", margin: "0 auto" }}>
+          <div className="lp-foot-art">
+            <img src="/favicon.png" alt="Mentorable" width={371} height={371}
+              style={{ width: "100%", height: "100%", display: "block", borderRadius: "50%",
+                boxShadow: "0 24px 60px rgba(15,40,120,0.28)" }} />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ position: "relative", zIndex: 1, background: FOOT, color: "#fff",
+        padding: "0 clamp(1.25rem,4vw,2.5rem) 2.5rem" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+          <div className="lp-foot-cta">
+            <h2 style={{ fontFamily: SANS, fontWeight: 700, fontSize: "clamp(2.3rem,4.6vw,3.9rem)", lineHeight: 1.08,
+              letterSpacing: "-0.035em", color: "#fff", margin: 0 }}>
+              Ready to get started?
+            </h2>
+            <SolidBtn onClick={() => go("/auth")}
+              style={{ marginTop: "2.2rem", background: "#fff", color: P, boxShadow: "0 10px 30px rgba(10,30,100,0.25)" }}>
+              Get Started <ArrowRight color={P} />
+            </SolidBtn>
+          </div>
+
+          <div className="lp-foot-bottom" style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between",
+            flexWrap: "wrap", gap: "1.6rem 2.5rem", marginTop: "clamp(4rem,8vw,6.5rem)" }}>
+            <div>
+              <div style={{ fontFamily: SANS, fontWeight: 800, fontSize: "1.7rem", letterSpacing: "-0.04em", lineHeight: 1 }}>mentorable</div>
+              <p style={{ fontFamily: BODY, fontWeight: 500, fontSize: "0.9rem", color: "#fff", lineHeight: 1.6, maxWidth: 380, margin: "0.7rem 0 0", textWrap: "balance" }}>
+                College application guidance for high school students.
+              </p>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "1rem 2rem" }}>
+              <div className="lp-foot-links" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.6rem 1.5rem" }}>
+                <span style={{ fontFamily: SANS, fontSize: "0.85rem", fontWeight: 500, whiteSpace: "nowrap" }}>© 2026 Mentorable Inc.</span>
+                {FOOT_LINKS.map((l) => (
+                  <button key={l.label} onClick={() => go(l.to)} {...linkHover}
+                    style={{ fontFamily: SANS, fontSize: "0.85rem", fontWeight: 500, color: "#fff", background: "none",
+                      border: "none", cursor: "pointer", padding: 0, whiteSpace: "nowrap" }}>{l.label}</button>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 12 }}>
+                {SOCIAL.map((s) => (
+                  <a key={s.href} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} title={s.label}
+                    className="lp-foot-social">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+                      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{s.icon}</svg>
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -738,10 +796,27 @@ export default function LandingPage() {
         @media (max-width: 400px) {
           .lp-laptop { zoom: 0.72; }
         }
-        @media (max-width: 480px) {
-          /* Two even rows of two instead of three links and an orphan. */
-          .lp-foot-links { display: grid !important; grid-template-columns: 1fr 1fr; width: 100%; gap: 0.9rem 1.5rem !important; }
-          .lp-foot-links > * { justify-self: start; }
+        /* Footer: --d is the logo circle, --ring the width of each ring around it. */
+        .lp-foot { --d: clamp(300px, 34vw, 430px); --ring: clamp(36px, 4.5vw, 60px); --sky: clamp(150px, 15vw, 210px); }
+        .lp-foot-sky { height: var(--sky); }
+        .lp-foot-art { position: absolute; right: clamp(1.25rem,4vw,2.5rem); top: calc(var(--ring) * 2 + 8px);
+          width: var(--d); height: var(--d); border-radius: 50%; }
+        .lp-foot-ring { position: absolute; border-radius: 50%; }
+        .lp-foot-cta { max-width: calc(100% - var(--d) - 3rem); padding-top: clamp(2rem, 6vw, 5.5rem);
+          min-height: calc(var(--d) + var(--ring) * 2 + 8px - var(--sky) - clamp(70px,10vw,140px) + 2rem); }
+        .lp-foot-social { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: #fff;
+          border: 1.5px solid rgba(255,255,255,0.55); transition: background .2s, border-color .2s; }
+        .lp-foot-social:hover { background: rgba(255,255,255,0.14); border-color: #fff; }
+        .lp-foot button:focus-visible, .lp-foot a:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+        @media (max-width: 760px) {
+          /* The circle moves to the middle, above the words. */
+          .lp-foot { --d: min(240px, 58vw); --ring: 26px; --sky: 120px; }
+          .lp-foot-art { right: auto; left: 50%; transform: translateX(-50%); top: 60px; }
+          .lp-foot-cta { max-width: none; min-height: 0; text-align: center;
+            padding-top: calc(var(--d) + 60px - var(--sky) - clamp(70px,10vw,140px) + 2.2rem); }
+          .lp-foot-bottom { flex-direction: column; align-items: center !important; text-align: center; }
+          .lp-foot-bottom > div { justify-content: center; }
+          .lp-foot-links { justify-content: center; }
         }
         @media (max-width: 420px) {
           .lp-nav { gap: 0.75rem !important; }
