@@ -19,7 +19,7 @@ import re
 from typing import Optional
 
 from app.llm import ModelUnavailable, tool_completion
-from app.models import OUTREACH_DRAFT_MODEL, OUTREACH_FOLLOWUP_MODEL, OUTREACH_REWRITE_MODEL
+from app.models import OUTREACH_DRAFT_MODEL, OUTREACH_FOLLOWUP_MODEL, OUTREACH_REVIEW_MODEL, OUTREACH_REWRITE_MODEL
 from app.nodes.agents.outreach import prompts
 from app.nodes.agents.outreach.research import Emit, progress_line
 from app.nodes.agents.outreach.voices import (
@@ -450,6 +450,88 @@ async def rewrite_draft(*, research: dict, record_text: str, student_name: str, 
         logger.info(f"[outreach_rewrite] attempt {attempt} rejected: {problems}")
         extra = prompts.correction(problems)
     raise DraftFailed(COULD_NOT_WRITE)
+
+
+# ── The second read ──────────────────────────────────────────────────────────
+
+REVIEW_ARGS = ("research", "record_text", "purpose", "voice", "student_note")
+MAX_ISSUES = 4
+_ISSUE_KINDS = {"fact", "record", "ask", "voice", "generic", "other"}
+
+
+def _issues(raw) -> list[dict]:
+    out: list[dict] = []
+    for item in (raw if isinstance(raw, list) else []):
+        if not isinstance(item, dict):
+            continue
+        quote, fix = clean_text(item.get("quote"), 200), clean_text(item.get("fix"), 240)
+        if not fix:
+            continue
+        kind = item.get("kind") if item.get("kind") in _ISSUE_KINDS else "other"
+        out.append({"kind": kind, "quote": quote, "fix": fix})
+        if len(out) == MAX_ISSUES:
+            break
+    return out
+
+
+async def review_draft(*, draft: dict, research: dict, record_text: str, purpose: str, voice: str,
+                       student_note: str, emit: Optional[Emit] = None) -> dict:
+    """A second, careful read: {"ok", "issues"}. Never raises: an unreachable
+    or confused reviewer counts as a pass, so the draft the rules accepted
+    stands."""
+    await progress_line(emit, "review", "Reading the draft back", "active")
+    prompt = prompts.review_prompt(research=research, record_text=record_text, draft=draft, purpose=purpose,
+                                   voice=voice, student_note=clean_text(student_note, 300))
+    try:
+        raw = await tool_completion(model=OUTREACH_REVIEW_MODEL, prompt=prompt, tool=prompts.REVIEW_TOOL,
+                                    max_tokens=900, label="outreach_review")
+    except ModelUnavailable as exc:
+        logger.warning(f"[outreach_review] reviewer unavailable: {exc}")
+        raw = None
+    if not isinstance(raw, dict):
+        await progress_line(emit, "review", "Checked against the rules", "done")
+        return {"ok": True, "issues": []}
+    issues = _issues(raw.get("issues"))
+    ok = raw.get("ok") is True or not issues
+    if ok:
+        await progress_line(emit, "review", "Read it back, it holds up", "done")
+    else:
+        n = len(issues)
+        await progress_line(emit, "review", f"Found {n} thing{'s' if n != 1 else ''} to tighten", "done")
+    return {"ok": ok, "issues": [] if ok else issues}
+
+
+async def revise_draft(*, draft: dict, issues: list[dict], research: dict, record_text: str, student_name: str,
+                       grade: str, purpose: str, voice: str, length: str, student_note: str,
+                       answer: Optional[str], allow_question: bool, emit: Optional[Emit] = None,
+                       question: Optional[str] = None) -> Optional[dict]:
+    """The draft written again with the reviewer's issues fixed, or None to keep
+    the first one: one attempt, the same rules in code, and it must keep at
+    least as many sourced details as the first draft had."""
+    voice = voice if valid_voice(voice) else DEFAULT_VOICE
+    length = length if valid_length(length) else DEFAULT_LENGTH
+    first = first_name(student_name)
+    allowed = research_urls(research)
+    prompt = prompts.draft_prompt(
+        research=research, record_text=record_text, first_name=first, grade=grade, purpose=purpose, voice=voice,
+        length=length, student_note=clean_text(student_note, 300), answer=clean_text(answer, 600),
+        question=clean_text(question, MAX_QUESTION_CHARS), allow_question=False,
+    ) + prompts.revision(draft, issues)
+    await progress_line(emit, "revise", "Tightening it up", "active")
+    try:
+        raw = await tool_completion(model=OUTREACH_DRAFT_MODEL, system=prompts.DRAFT_SYSTEM, prompt=prompt,
+                                    tool=prompts.draft_tool(False), max_tokens=1500, label="outreach_revise")
+        result, problems = check_draft(raw, allowed_urls=allowed, first=first, max_words=MAX_WORDS,
+                                       min_words=MIN_FIRST_WORDS, allow_question=False, final=False)
+    except (ModelUnavailable, DraftFailed) as exc:
+        logger.warning(f"[outreach_revise] kept the first draft: {exc}")
+        result, problems = None, ["unavailable"]
+    if problems or not result or len(result.get("claims") or []) < len(draft.get("claims") or []):
+        logger.info(f"[outreach_revise] kept the first draft: {problems}")
+        await progress_line(emit, "revise", "Kept the first draft", "done")
+        return None
+    await progress_line(emit, "revise", f"Revised, {word_count(result['body'])} words", "done")
+    return result
 
 
 def _sentences(body: str) -> int:

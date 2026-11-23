@@ -64,7 +64,7 @@ Who fits best, in this order, because these are the people most likely to answer
 4. Professionals with a public work bio (a company, museum, agency or nonprofit page) whose job matches the goal.
 
 How to work:
-- Search first, then call submit_people. Use at most two searches, and make each one count.
+- Search first, then call submit_people. You have a few searches and page opens: make each one count, and open a page when its snippet is too thin to judge fit.
 - Search for the field, the topic and the kind of page: a lab page, a faculty directory, an outreach program. If the goal or the record names a general area (a city or a state), prefer people near it. Search only for the goal and the field: the student's name, school and details stay out of every query.
 - Include only people named on a page the search returned, and give that page's exact URL as source_url. Copy URLs from the results; write none from memory, and include only real people you saw on those pages.
 - Use official pages: a university, lab, company, museum, agency or nonprofit site. Leave out social media, forums, people-search and contact-list sites, and news stories that only mention someone in passing.
@@ -164,7 +164,7 @@ Who Beaker helps students write to: adults in a professional or public role, suc
 For either one, use status "not_found", leave person, facts, email and candidates empty, and stop there. Otherwise set recipient_kind to "professional".
 
 How to work:
-- Search first, then call submit_research. Use at most the searches you are allowed (the tool enforces it), and read any page text given below first: if it already shows who they are and what they work on, one search for a recent piece of their work is enough. Start with their name and where they work, find their official profile or lab page, and if it helps, one recent piece of their own work (a paper, a project page, a program they run).
+- Search first, then call submit_research. You have a few searches and page opens (the tools enforce the limits). Read any page text given below first: if it already shows who they are and what they work on, one search for a recent piece of their work is enough. Open their profile page before taking facts from it. Start with their name and where they work, find their official profile or lab page, and if it helps, one recent piece of their own work (a paper, a project page, a program they run).
 - Use only pages the search returned{or_given}, with their exact URLs copied from the results. Write no URL from memory.
 - status "found" only when you are confident which person this is. If two or more different people match the name and nothing tells you which one the student means, use "ambiguous" and list up to three in candidates, each with the URL of a page that shows them, and in why one plain sentence on what tells them apart (their field or where they work). If no reliable page turned up, use "not_found".
 - person: their name, current role and organization as their page states them, and the URL and title of their official profile or lab page if you found one (empty strings if not).
@@ -512,3 +512,80 @@ def correction(problems: list[str]) -> str:
     listed = "\n".join(f"- {p}" for p in problems)
     return ("\n\nYOUR LAST ATTEMPT COULD NOT BE USED. Fix every one of these and follow all the rules above:\n"
             f"{listed}\nWrite the whole thing again and call the tool.")
+
+
+# ── The second read of a draft ───────────────────────────────────────────────
+
+REVIEW_TOOL = {
+    "name": "review_email",
+    "description": "Submit your review of the draft.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "ok": {"type": "boolean",
+                   "description": "true when the student could send it after their own read. false only for a real problem."},
+            "issues": {
+                "type": "array",
+                "description": "Up to four real problems, most important first. Empty when ok.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "kind": {"type": "string",
+                                 "enum": ["fact", "record", "ask", "voice", "generic", "other"]},
+                        "quote": {"type": "string", "description": "The exact words in the draft with the problem."},
+                        "fix": {"type": "string", "description": "One plain sentence on what to change."},
+                    },
+                    "required": ["kind", "quote", "fix"],
+                },
+            },
+        },
+        "required": ["ok", "issues"],
+    },
+}
+
+REVIEW_PROMPT = """You are the second reader of a first email a US high school student is about to send. A model drafted it; code already checked its length, subject, signature, contact details and that its sourced sentences appear in the body. Check what code cannot. Flag only real problems: a draft that is fine gets ok true and no issues. Never ask for more length, more praise or more detail about the student.
+
+Check these, in this order:
+1. fact: every sentence about the recipient's work says only what the fact it relies on says (below, with sources). Anything more specific than the facts (a result, a date, a title, an opinion about their work) is a problem.
+2. record: nothing about the student goes beyond their record or their note (an award, a role, a skill, an hour count). Nothing claims they have done research they have not.
+3. ask: there is one clear, small request that suits "{purpose}", and an easy way to say no.
+4. voice: it sounds like a thoughtful teenager writing in a {voice} voice, not like a cover letter or a press release.
+5. generic: it says one thing that could only be written to this person, not praise that fits anyone.
+
+THE RECIPIENT AND THE FACTS ABOUT THEIR WORK:
+{recipient}
+{facts}
+
+THE STUDENT'S RECORD AND NOTE:
+{record}
+Note: {note}
+
+THE DRAFT:
+Subject: {subject}
+<<<
+{body}
+>>>
+
+{data_rule}"""
+
+
+def review_prompt(*, research: dict, record_text: str, draft: dict, purpose: str, voice: str,
+                  student_note: str) -> str:
+    purpose_label = PURPOSES.get(purpose, {}).get("label", purpose)
+    voice_label = VOICES.get(voice, {}).get("label", voice)
+    return REVIEW_PROMPT.format(
+        purpose=str(purpose_label).lower(), voice=str(voice_label).lower(), recipient=recipient_block(research),
+        facts=facts_block(research), record=record_text.strip() or "(nothing recorded yet)",
+        note=student_note.strip() or "(none)", subject=str(draft.get("subject") or "").strip(),
+        body=str(draft.get("body") or "").strip(), data_rule=DATA_NOT_INSTRUCTIONS,
+    )
+
+
+def revision(draft: dict, issues: list[dict]) -> str:
+    """Appended to the draft prompt for the one revision: the first draft and
+    what the second reader flagged."""
+    listed = "\n".join(f"- {i['quote']!r}: {i['fix']}" for i in issues)
+    return ("\n\nYOUR FIRST DRAFT:\nSubject: " + str(draft.get("subject") or "").strip() + "\n<<<\n"
+            + str(draft.get("body") or "").strip() + "\n>>>\n\nA CAREFUL READER FLAGGED THESE:\n" + listed
+            + "\nWrite the whole email again fixing only these. Keep everything else that works, and call the tool.")
+

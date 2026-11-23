@@ -4,12 +4,14 @@ Check Beaker (the outreach agent) against the real APIs.
 Runs one outreach end to end through the app's own code, the way a student's
 try would, and reports what came back and what it cost:
 
-  1. A goal becomes a shortlist of real people (web search, Haiku).
-  2. One of them (or the person you name) is researched: facts with sources,
-     and an email address only if it is published on a page the code fetched.
-  3. The first email is drafted (Sonnet), and checked the way the app checks it:
-     word limits, no phone numbers or placeholders, no em dashes, every claim
-     tied to a source.
+  1. A goal becomes a shortlist of real people (the research agent loop:
+     Sonnet decides what to search and which pages to open, within caps).
+  2. One of them (or the person you name) is researched the same way: facts
+     with sources, and an email address only if it is published on a page the
+     code fetched.
+  3. The first email is drafted (Sonnet), checked the way the app checks it
+     (word limits, no phone numbers or placeholders, no em dashes, every claim
+     tied to a source), then read back by the reviewer and revised at most once.
   4. One tone rewrite ("shorter") and a follow-up, neither of which searches.
 
 It answers what the offline tests cannot: do the forced-tool schemas pass the
@@ -43,7 +45,9 @@ _stub = types.ModuleType("app.db.supabase")
 _stub.get_supabase = lambda: None
 sys.modules["app.db.supabase"] = _stub
 
-# Per-million-token list rates (input, output). Web search adds $0.01 a search.
+# Per-million-token list rates (input, output). Web search adds $0.01 a search,
+# whether Anthropic's tool or a Tavily search (Tavily's pay-as-you-go rate is
+# about $0.008; rounded up here).
 from app.costs import PRICES  # noqa: E402
 RATES = {m: p[:2] for m, p in PRICES.items()}  # one price table: app/costs.py
 
@@ -74,12 +78,15 @@ def preflight() -> bool:
 
 
 class Meter:
-    """Counts tokens and searches for every model call the app makes."""
+    """Counts tokens and searches for every model call the app makes, plus our
+    own (Tavily) searches and the pages fetched."""
 
     def __init__(self, llm):
         self.llm = llm
         self.real = llm._anthropic.messages.create
         self.rows = []
+        self.tavily = 0
+        self.pages = 0
 
     async def create(self, **kw):
         msg = await self.real(**kw)
@@ -90,15 +97,32 @@ class Meter:
 
     def install(self):
         self.llm._anthropic.messages.create = self.create
+        from app import search_pool
+        from app.nodes.agents.outreach import pages
+        real_search, real_fetch = search_pool.tavily.web_search, pages.fetch_page
+
+        async def search(*a, **kw):
+            self.tavily += 1
+            return await real_search(*a, **kw)
+
+        async def fetch(*a, **kw):
+            self.pages += 1
+            return await real_fetch(*a, **kw)
+
+        search_pool.tavily.web_search = search
+        pages.fetch_page = fetch
 
     def take(self) -> tuple[str, float]:
         rows, self.rows = self.rows, []
+        tavily, self.tavily = self.tavily, 0
+        fetched, self.pages = self.pages, 0
         cost = sum((i * RATES.get(m, (0, 0))[0] + o * RATES.get(m, (0, 0))[1]) / 1_000_000 + s * 0.01
-                   for m, i, o, s in rows)
+                   for m, i, o, s in rows) + tavily * 0.01
         tin = sum(r[1] for r in rows)
         tout = sum(r[2] for r in rows)
         srch = sum(r[3] for r in rows)
-        return f"{len(rows)} call(s), {tin} in, {tout} out, {srch} search(es)", cost
+        return (f"{len(rows)} model call(s), {tin} in, {tout} out, {srch} Anthropic + {tavily} Tavily search(es), "
+                f"{fetched} page fetch(es)"), cost
 
 
 def header(title: str) -> None:
@@ -130,7 +154,7 @@ async def main() -> int:
     args = parser.parse_args()
 
     import app.llm as llm
-    from app.nodes.agents.outreach import draft, research, voices
+    from app.nodes.agents.outreach import draft, graph, research, voices
 
     meter = Meter(llm)
     meter.install()
@@ -167,7 +191,7 @@ async def main() -> int:
 
     header(f"3. First email ({args.voice}, {args.purpose}, brief)")
     try:
-        written = await draft.write_draft(research=found, record_text=RECORD, student_name="Ada Chen",
+        written = await graph.write_reviewed_draft(research=found, record_text=RECORD, student_name="Ada Chen",
                                           grade="They are in grade 11.", purpose=args.purpose, voice=args.voice,
                                           length="brief", student_note=NOTE, answer=None, allow_question=False,
                                           emit=progress)

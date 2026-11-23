@@ -30,7 +30,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from app import config  # noqa: E402
 from app.auth import verify_jwt  # noqa: E402
-from app.nodes.agents import google, usage  # noqa: E402
+from app.nodes.agents import google, registry, usage  # noqa: E402
 from app.nodes.agents.google import GoogleError  # noqa: E402
 from app.nodes.agents.outreach import draft as writer  # noqa: E402
 from app.nodes.agents.outreach import research  # noqa: E402
@@ -40,6 +40,7 @@ from app.nodes.agents.outreach.service import AgentError  # noqa: E402
 from app.routers import agents as routes  # noqa: E402
 
 NOW = datetime(2026, 10, 1, 16, 0, tzinfo=timezone.utc)
+SEARCHES = registry.get_agent("outreach").budgets["search"][1]
 NY = "America/New_York"
 
 CAND_A = {"name": "Dr. Maria Lee", "title": "Associate Professor of Marine Science",
@@ -120,7 +121,7 @@ class Beaker:
         self.token_error = None
         self.send_errors = []
         self.pause = 0.0
-        self.calls = {"find_people": [], "research_person": [], "write_draft": [], "rewrite_draft": [],
+        self.calls = {"find_people": [], "research_person": [], "write_draft": [], "review_draft": [], "rewrite_draft": [],
                       "write_followup": [], "send": [], "access_token": 0}
 
     # ── the fakes ──
@@ -151,6 +152,10 @@ class Beaker:
         if isinstance(out, Exception):
             raise out
         return copy.deepcopy(out)
+
+    async def review_draft(self, **kw):
+        self.calls["review_draft"].append(kw)
+        return {"ok": True, "issues": []}
 
     async def rewrite_draft(self, **kw):
         self.calls["rewrite_draft"].append(kw)
@@ -243,6 +248,7 @@ def b(w, monkeypatch):
     monkeypatch.setattr(research, "find_people", fake.find_people)
     monkeypatch.setattr(research, "research_person", fake.research_person)
     monkeypatch.setattr(writer, "write_draft", fake.write_draft)
+    monkeypatch.setattr(writer, "review_draft", fake.review_draft)
     monkeypatch.setattr(writer, "rewrite_draft", fake.rewrite_draft)
     monkeypatch.setattr(writer, "write_followup", fake.write_followup)
     monkeypatch.setattr(google, "is_configured", lambda: fake.configured)
@@ -261,7 +267,7 @@ def test_status_before_anything_and_with_an_open_try(w, b):
     out = run(svc.status(U, "America/Los_Angeles"))
     assert out == {
         "tries": {"used": 0, "limit": 2, "left": 2},
-        "searches": {"used": 0, "limit": 8, "left": 8},
+        "searches": {"used": 0, "limit": SEARCHES, "left": SEARCHES},
         "writes": {"used": 0, "limit": 20, "left": 20},
         "sends_today": {"used": 0, "limit": 5, "left": 5},
         "limits": {"rewrites_per_card": 3, "followup_drafts_per_card": 3, "followups_per_card": 2,
@@ -276,7 +282,7 @@ def test_status_before_anything_and_with_an_open_try(w, b):
     out = run(svc.status(U, "Europe/Paris"))
     assert w.profile["timezone"] == "America/Los_Angeles"      # a stored zone is never replaced
     assert out["tries"] == {"used": 1, "limit": 2, "left": 1}
-    assert out["searches"] == {"used": 1, "limit": 8, "left": 7}
+    assert out["searches"] == {"used": 1, "limit": SEARCHES, "left": SEARCHES - 1}
     assert out["gmail"] == {"configured": True, "connected": True, "email": "ada@gmail.com"}
     assert out["open_try"] == {"id": final["try_id"], "mode": "goal", "goal": GOAL, "candidates": b.people,
                                "pending_question": None, "contact_id": None}
@@ -303,14 +309,14 @@ def test_no_tries_left_refuses_before_any_work(w, b):
 
 def test_research_runs_are_capped_even_when_tries_are_given_back(w, b):
     b.found = None                                    # every search fails, so every try is refunded
-    for _ in range(8):
+    for _ in range(SEARCHES):
         final = run(svc.draft(U, person_body(), Events()))
         assert final["type"] == "error" and final["refunded"] is True
-    assert b.used("try") == 0 and b.used("search") == 8
+    assert b.used("try") == 0 and b.used("search") == SEARCHES
     err = refused(svc.draft(U, person_body(), Events()))
     assert (err.status, err.code) == (409, "no_searches")
     assert b.used("try") == 0                         # the try is not kept when the search is refused
-    assert len(b.calls["research_person"]) == 8
+    assert len(b.calls["research_person"]) == SEARCHES
 
 
 def test_a_pick_from_the_list_costs_a_search_but_not_a_try(w, b):
@@ -965,12 +971,12 @@ def test_status_shows_the_try_still_open_not_just_the_newest(w, b):
 
 def test_a_pick_refused_for_searches_gives_the_try_back(w, b):
     final = run(svc.shortlist(U, {"goal": GOAL}, Events()))
-    next(r for r in w.db.t["agent_usage"] if r["kind"] == "search")["used"] = 8
+    next(r for r in w.db.t["agent_usage"] if r["kind"] == "search")["used"] = SEARCHES
     err = refused(svc.draft(U, pick_body(final["try_id"]), Events()))
     assert (err.status, err.code) == (409, "no_searches") and err.message.endswith("Your try was given back.")
     assert b.used("try") == 0 and b.the_try(final["try_id"])["status"] == "refunded"
     assert not b.calls["research_person"]
-    assert run(svc.status(U, None))["searches"] == {"used": 8, "limit": 8, "left": 0}
+    assert run(svc.status(U, None))["searches"] == {"used": SEARCHES, "limit": SEARCHES, "left": 0}
 
 
 # ── The deadline ──────────────────────────────────────────────────────────────

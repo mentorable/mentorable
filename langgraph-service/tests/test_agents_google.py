@@ -149,7 +149,7 @@ async def settle_background():
 def test_the_registry_holds_beaker_with_its_budgets():
     spec = registry.get_agent("outreach")
     assert (spec.id, spec.name, spec.enabled) == ("outreach", "Beaker", True)
-    assert spec.budgets == {"try": ("total", 2), "search": ("total", 8), "write": ("total", 20),
+    assert spec.budgets == {"try": ("total", 2), "search": ("total", 10), "write": ("total", 20),
                             "send": ("day", 5)}
     with pytest.raises(KeyError):
         registry.get_agent("nobody")
