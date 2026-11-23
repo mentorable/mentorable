@@ -20,7 +20,7 @@ from app.db.supabase import get_supabase
 from app.graphs.chat import create_chat_graph
 from app.models import CHAT_DEFAULT, CHAT_MODELS, INTERVIEW_MODEL
 from app.nodes.chat.extract_signals import extract_signals
-from app.nodes.chat.tools import execute_chat_tool, WRITE_TOOLS, QUEST_WRITE_TOOLS, TOOL_VERB, tools_for
+from app.nodes.chat.advisor import MAX_TOOL_ROUNDS, _mark_cache
 from app.nodes.recall.store import spawn
 from app.nodes.agents.interview import elevenlabs
 from app.nodes.onboarding import budget as onboarding_budget
@@ -47,10 +47,6 @@ from app.routers.quest import router as quest_router
 
 logger = logging.getLogger(__name__)
 
-# Put between an assistant turn that called a tool and the turn that follows it,
-# so the two do not run together in the client's rendered text. A blank line
-# rather than a space, because the model treats each turn as its own paragraph.
-TURN_SEPARATOR = "\n\n"
 chat_graph = create_chat_graph()
 
 
@@ -137,41 +133,49 @@ class ChatRequest(BaseModel):
 CHAT_MAX_MESSAGE_CHARS = 8000
 CHAT_MAX_HISTORY_CHARS = 60000
 CHAT_MAX_HISTORY_MESSAGES = 40
-CHAT_MAX_TOKENS = 2048
-# Tool rounds in one reply. Five covers a view, a few writes and a confirmation;
-# the last round is told to answer in words, so a model stuck calling tools
-# cannot loop (and bill) without end.
-CHAT_MAX_TOOL_ROUNDS = 5
-# A model that thinks spends part of max_tokens thinking, so it gets more room.
-# A cap, not a spend.
-CHAT_MAX_TOKENS_THINKING = 4096
-CHAT_MAX_TOKENS_OPENAI = 8192      # includes the invisible reasoning tokens
-CHAT_REFUSED = ("I can't help with that one here. If something serious is going on, please talk to a "
-                "school counselor or a trusted adult.")
-_CACHE = {"type": "ephemeral"}
+# The longest /chat waits silently (a model thinking, a slow tool): an SSE
+# comment this often keeps an idle-connection timeout upstream from cutting it.
+CHAT_PING_SECONDS = 10
+# The tool loop's caps and fixed replies live with it (app/nodes/chat/advisor.py).
+CHAT_MAX_TOOL_ROUNDS = MAX_TOOL_ROUNDS
 
 
 def _sse(payload) -> str:
     return "data: " + (payload if isinstance(payload, str) else json.dumps(payload)) + "\n\n"
 
 
-def _without_thinking(message: dict) -> dict:
-    """An assistant turn with its thinking blocks removed (for a re-run on
-    another model); every other message unchanged."""
-    content = message.get("content")
-    if message.get("role") != "assistant" or isinstance(content, str):
-        return message
-    kept = [b for b in content
-            if (b.get("type") if isinstance(b, dict) else getattr(b, "type", None)) not in ("thinking", "redacted_thinking")]
-    return {**message, "content": kept}
+async def _with_pings(chunks, every: float):
+    """The chunks of an async iterator, with None put in after every `every`
+    seconds that pass without one (the caller sends a keep-alive for it)."""
+    done = object()
 
+    async def next_chunk():
+        try:
+            return await anext(chunks)
+        except StopAsyncIteration:
+            return done
 
-def _openai_tools(tools: list[dict]) -> list[dict]:
-    """The chat tools in OpenAI's function format (same names and schemas)."""
-    return [{"type": "function", "function": {
-        "name": t["name"], "description": t.get("description", ""),
-        "parameters": t.get("input_schema") or {"type": "object", "properties": {}}}}
-        for t in tools]
+    pending = None
+    try:
+        while True:
+            if pending is None:
+                pending = asyncio.ensure_future(next_chunk())
+            finished, _ = await asyncio.wait({pending}, timeout=every)
+            if not finished:
+                yield None
+                continue
+            chunk, pending = pending.result(), None
+            if chunk is done:
+                return
+            yield chunk
+    finally:
+        if pending is not None:
+            pending.cancel()
+            try:
+                await pending
+            except BaseException:
+                pass
+        await chunks.aclose()
 
 
 def _uuid_or_none(value) -> Optional[str]:
@@ -208,23 +212,6 @@ def _normalize_chat(messages: list[Message]) -> list[dict]:
     return kept
 
 
-def _mark_cache(conversation: list[dict]) -> list[dict]:
-    """The conversation with a cache breakpoint on its last block, so the next
-    request (the student's next message, or the next tool round) reads every
-    earlier turn from the prompt cache instead of paying for it again."""
-    if not conversation:
-        return conversation
-    *head, last = conversation
-    content = last["content"]
-    if isinstance(content, str):
-        blocks = [{"type": "text", "text": content, "cache_control": _CACHE}]
-    else:
-        blocks = [dict(b) if isinstance(b, dict) else b for b in content]
-        if blocks and isinstance(blocks[-1], dict):
-            blocks[-1] = {**blocks[-1], "cache_control": _CACHE}
-    return [*head, {**last, "content": blocks}]
-
-
 @app.post("/chat")
 async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
     normalized = _normalize_chat(request.messages)
@@ -249,206 +236,44 @@ async def chat(request: ChatRequest, user_id: str = Depends(verify_jwt)):
         properties={"has_node_context": request.node_id is not None, "model": pick["model"]},
     )
 
-    # load_context + build_prompt. load_context is sync and LangGraph runs it
-    # on a worker thread, so its database reads never block the event loop.
-    state = await chat_graph.ainvoke({"user_id": user_id, "node_id": request.node_id, "chat_id": chat_id})
-    shared = state.get("_system_shared") or ""
-    student = state.get("_system_student") or ""
-
-    if not (shared and student):
+    # The whole reply is the chat graph (app/graphs/chat.py): load_context,
+    # build_prompt, then the advisor ⇄ tools loop, streaming through its
+    # writer. The advisor says "ready" before its first call, so a prompt that
+    # failed to build is still a plain 500 before the stream starts.
+    inputs = {"user_id": user_id, "node_id": request.node_id, "chat_id": chat_id,
+              "messages": normalized, "rounds": 0, "handoffs": 0, "_pick": pick}
+    graph_stream = chat_graph.astream(inputs, stream_mode="custom")
+    first = await anext(graph_stream, None)
+    if not (isinstance(first, dict) and first.get("ready")):
+        await graph_stream.aclose()
         await refund_usage(user_id, "chat")
         raise HTTPException(status_code=500, detail="Failed to build system prompt")
 
-    # Two cached blocks: the shared rules first (the same for every student,
-    # so one student's cache serves the next), then this student's block.
-    system = [
-        {"type": "text", "text": shared, "cache_control": _CACHE},
-        {"type": "text", "text": student, "cache_control": _CACHE},
-    ]
-    # recall_memory is only offered while the student has memory on.
-    chat_tools = tools_for(state.get("profile") or {})
-
-    st = {"text": "", "tools": False}
-
-    async def run_tool(name: str, args: dict) -> tuple[dict, list[str]]:
-        """Run one chat tool; its result and the SSE events it shows the page."""
-        result = await execute_chat_tool(user_id, name, args)
-        events: list[str] = []
-        if result.get("success") and name in WRITE_TOOLS:
-            # Writes surface as a UI toast; reads (view_portfolio) stay silent.
-            events.append(_sse({"event": "portfolio_changed", "verb": TOOL_VERB.get(name, "Updated"), "item": result}))
-            posthog_client.capture("portfolio_changed_via_chat", distinct_id=user_id,
-                                   properties={"tool": name, "kind": result.get("kind")})
-        elif result.get("success") and name in QUEST_WRITE_TOOLS:
-            # The nav streak chip and the Quest page listen for this.
-            events.append(_sse({"event": "quest_changed", "verb": TOOL_VERB.get(name, "Updated"), "item": result}))
-            posthog_client.capture("quest_changed_via_chat", distinct_id=user_id,
-                                   properties={"tool": name, "changed": result.get("changed")})
-        return result, events
-
-    def text_chunk(text: str, turn_text: str) -> list[str]:
-        """The SSE lines for a chunk of reply text. The first text of a turn
-        that follows a tool call gets a separator: the client appends raw
-        chunks, so the previous turn's last character would otherwise run into
-        this one's first ("...all the changes at once.Got all the IDs.")."""
-        out = []
-        if not turn_text and st["text"]:
-            st["text"] += TURN_SEPARATOR
-            out.append(_sse({"text": TURN_SEPARATOR}))
-        st["text"] += text
-        out.append(_sse({"text": text}))
-        return out
-
-    async def claude_rounds():
-        """The Anthropic tool loop. A newer model that declines a turn before
-        writing anything gets that turn re-run on the default model (Haiku
-        5.5 has no server-side fallback; Sonnet 5.5's covers only some
-        categories), without the thinking blocks the first model wrote."""
-        conversation: list[dict] = list(normalized)
-        model, effort = pick["model"], pick["effort"]
-        default = CHAT_MODELS[CHAT_DEFAULT]
-        round_no = 0
-        while round_no <= CHAT_MAX_TOOL_ROUNDS:
-            turn_text = ""
-            extra: dict = {}
-            if round_no == CHAT_MAX_TOOL_ROUNDS:
-                extra["tool_choice"] = {"type": "none"}
-            if effort:
-                # In extra_body so an SDK that predates output_config still sends it.
-                extra["extra_body"] = {"output_config": {"effort": effort}}
-            async with _anthropic.messages.stream(
-                model=model,
-                max_tokens=CHAT_MAX_TOKENS_THINKING if effort else CHAT_MAX_TOKENS,
-                system=system,
-                messages=_mark_cache(conversation),
-                tools=chat_tools,
-                **extra,
-            ) as stream:
-                async for text in stream.text_stream:
-                    for line in text_chunk(text, turn_text):
-                        yield line
-                    turn_text += text
-                final_message = await stream.get_final_message()
-
-            costs.record_anthropic("chat", model, getattr(final_message, "usage", None))
-            stop = final_message.stop_reason
-            if stop == "refusal" and not turn_text:
-                if model != default["model"]:
-                    logger.info(f"[chat] {model} declined a turn for {user_id}; re-running it on {default['model']}")
-                    model, effort = default["model"], default["effort"]
-                    # Its thinking blocks mean nothing to the default model.
-                    conversation = [_without_thinking(m) for m in conversation]
-                    continue
-                for line in text_chunk(CHAT_REFUSED, turn_text):
-                    yield line
-                break
-            if stop == "max_tokens":
-                logger.warning(f"[chat] reply for {user_id} on {model} cut off at max_tokens")
-            if stop != "tool_use":
-                break
-
-            # Record the assistant turn (text, thinking and tool_use blocks) verbatim.
-            conversation.append({"role": "assistant", "content": final_message.content})
-            st["tools"] = True
-            tool_results = []
-            for block in final_message.content:
-                if getattr(block, "type", None) != "tool_use":
-                    continue
-                result, events = await run_tool(block.name, dict(block.input))
-                for line in events:
-                    yield line
-                tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
-            conversation.append({"role": "user", "content": tool_results})
-            round_no += 1
-            # loop again for the model's natural-language confirmation
-
-    async def openai_rounds():
-        """The same loop on OpenAI's Chat Completions API: one system message
-        (OpenAI caches a repeated prefix on its own), the same tools as
-        functions, streamed text, and tool calls assembled from their deltas."""
-        client = llm._openai
-        model = pick["model"]
-        messages: list[dict] = [{"role": "system", "content": shared + "\n\n" + student}] + [dict(m) for m in normalized]
-        tools = _openai_tools(chat_tools)
-        effort = pick["effort"]
-        for round_no in range(CHAT_MAX_TOOL_ROUNDS + 1):
-            params = {"model": model, "messages": messages, "tools": tools, "stream": True,
-                      "stream_options": {"include_usage": True}, "max_completion_tokens": CHAT_MAX_TOKENS_OPENAI}
-            if round_no == CHAT_MAX_TOOL_ROUNDS:
-                params["tool_choice"] = "none"
-            if effort:
-                params["reasoning_effort"] = effort
-            try:
-                stream = await client.chat.completions.create(**params)
-            except Exception as exc:
-                if effort and llm._rejects_param(exc, "reasoning_effort"):
-                    effort = None
-                    params.pop("reasoning_effort", None)
-                    stream = await client.chat.completions.create(**params)
-                else:
-                    raise
-            turn_text, calls, usage = "", {}, None
-            async for chunk in stream:
-                if getattr(chunk, "usage", None):
-                    usage = chunk.usage
-                if not chunk.choices:
-                    continue
-                delta = chunk.choices[0].delta
-                if getattr(delta, "content", None):
-                    for line in text_chunk(delta.content, turn_text):
-                        yield line
-                    turn_text += delta.content
-                for tc in getattr(delta, "tool_calls", None) or []:
-                    slot = calls.setdefault(tc.index, {"id": "", "name": "", "args": ""})
-                    if tc.id:
-                        slot["id"] = tc.id
-                    fn = getattr(tc, "function", None)
-                    if fn is not None:
-                        slot["name"] += fn.name or ""
-                        slot["args"] += fn.arguments or ""
-            costs.record_openai("chat", model, usage)
-            if not calls:
-                if not turn_text and not st["text"]:
-                    # Cut off, filtered or refused with nothing said: an error,
-                    # so the message is given back rather than a blank reply.
-                    raise RuntimeError(f"{model} returned no text")
-                break
-
-            ordered = [calls[i] for i in sorted(calls)]
-            messages.append({"role": "assistant", "content": turn_text or None, "tool_calls": [
-                {"id": c["id"], "type": "function", "function": {"name": c["name"], "arguments": c["args"] or "{}"}}
-                for c in ordered]})
-            st["tools"] = True
-            for c in ordered:
-                try:
-                    args = json.loads(c["args"] or "{}")
-                except ValueError:
-                    args = None
-                if isinstance(args, dict):
-                    result, events = await run_tool(c["name"], args)
-                    for line in events:
-                        yield line
-                else:
-                    result = {"success": False, "error": "The tool arguments were not valid JSON."}
-                messages.append({"role": "tool", "tool_call_id": c["id"], "content": json.dumps(result)})
-
     async def generate():
-        rounds = openai_rounds() if pick["provider"] == "openai" else claude_rounds()
+        text, tools_ran = "", False
         try:
-            async for line in rounds:
-                yield line
+            async for chunk in _with_pings(graph_stream, CHAT_PING_SECONDS):
+                if chunk is None:
+                    yield ": ping\n\n"
+                elif "text" in chunk:
+                    text += chunk["text"]
+                    yield _sse({"text": chunk["text"]})
+                elif "event" in chunk:
+                    yield _sse(chunk)
+                elif chunk.get("tools_ran"):
+                    tools_ran = True
             yield "data: [DONE]\n\n"
 
             # Fire-and-forget: the session summary and long-term memory. Pass a
             # clean text-only transcript. spawn keeps a reference until it ends.
-            transcript = normalized + [{"role": "assistant", "content": st["text"]}]
+            transcript = normalized + [{"role": "assistant", "content": text}]
             spawn(extract_signals(user_id, transcript, chat_id))
 
         except Exception as exc:
             logger.error(f"[chat] stream error for {user_id} on {pick['model']}: {exc}")
             # Nothing reached the student and nothing was changed: the message
             # is given back. (A tool may already have written to their record.)
-            if not st["text"] and not st["tools"]:
+            if not text and not tools_ran:
                 await refund_usage(user_id, "chat")
             yield f"data: {json.dumps({'error': 'Stream failed'})}\n\n"
 
