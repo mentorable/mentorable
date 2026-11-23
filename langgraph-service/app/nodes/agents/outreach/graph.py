@@ -53,6 +53,7 @@ from langgraph.graph import END, START, StateGraph
 
 from app import costs, search_pool
 from app.llm import ModelUnavailable, _anthropic, _field
+from app.nodes.agents import screen
 from app.nodes.agents.outreach import pages
 from app.nodes.quest.common import clean_text
 
@@ -150,6 +151,12 @@ async def _model_turn(*, model: str, system: str, messages: list, tools: list, t
 
 # ── The research loop's nodes ────────────────────────────────────────────────
 
+def _shot(ctx: dict, kind: str) -> str:
+    """A fresh screen tab id for this run."""
+    ctx["shots"] = ctx.get("shots", 0) + 1
+    return f"{kind}-{ctx['shots']}"
+
+
 def _ctx(config) -> dict:
     return (config or {}).get("configurable", {}).get("beaker") or {}
 
@@ -206,16 +213,25 @@ async def researcher(state: ResearchState, config) -> dict:
     texts = dict(state.get("texts") or {})
     submission = None
     pending = []
+    server_shots: list[tuple[str, str]] = []      # server searches still waiting for their results
     for block in turn["content"]:
         kind = _field(block, "type")
         if kind == "server_tool_use":
             stats["searches"] = stats.get("searches", 0) + 1
             query = (_field(block, "input") or {}).get("query") if isinstance(_field(block, "input"), dict) else ""
+            query = query if isinstance(query, str) else ""
+            shot = _shot(ctx, "search")
+            server_shots.append((shot, query))
+            await screen.search(ctx.get("emit"), shot, query)
             if lines:
-                await lines.on_event({"type": "search", "query": query if isinstance(query, str) else ""})
+                await lines.on_event({"type": "search", "query": query})
         elif kind == "web_search_tool_result":
             results = _field(block, "content")
+            shot, query = server_shots.pop(0) if server_shots else (_shot(ctx, "search"), "")
             if isinstance(results, list):
+                await screen.search(ctx.get("emit"), shot, query,
+                                    [{"url": _field(r, "url"), "title": _field(r, "title")} for r in results],
+                                    status="done")
                 urls = []
                 for r in results:
                     url = _field(r, "url")
@@ -229,6 +245,7 @@ async def researcher(state: ResearchState, config) -> dict:
                     await lines.on_event({"type": "results", "count": len(urls), "domains": _domains(urls)})
             else:
                 stats["errors"] = stats.get("errors", 0) + 1
+                await screen.search(ctx.get("emit"), shot, query, [], status="failed")
                 if lines:
                     await lines.on_event({"type": "search_error"})
         elif kind == "tool_use":
@@ -272,15 +289,19 @@ def _result_lines(results: list[dict]) -> str:
 async def _run_search(query: str, ctx: dict, state: dict) -> tuple[str, list[dict], bool]:
     """(text for the model, results, whether the search errored)."""
     lines = ctx.get("lines")
+    shot = _shot(ctx, "search")
+    await screen.search(ctx.get("emit"), shot, query)
     if lines:
         await lines.on_event({"type": "search", "query": query})
     try:
         got = await search_pool.tavily.web_search(query, blocked=list(ctx.get("blocked_domains") or []))
     except search_pool.SearchUnavailable:
+        await screen.search(ctx.get("emit"), shot, query, [], status="failed")
         if lines:
             await lines.on_event({"type": "search_error"})
         return "That search did not go through.", [], True
     got = got[:SEARCH_RESULTS_SHOWN]
+    await screen.search(ctx.get("emit"), shot, query, got, status="done")
     if lines:
         await lines.on_event({"type": "results", "count": len(got), "domains": _domains([r["url"] for r in got])})
     return _result_lines(got), got, False
@@ -291,13 +312,17 @@ async def _open(url: str, ctx: dict, n: int) -> tuple[str, Optional[pages.Page]]
     progress = ctx.get("progress")
     line = f"read-{n}"
     domain = pages.domain_of(url) or "a page"
+    shot = _shot(ctx, "page")
+    await screen.page(emit, shot, url)
     if progress:
         await progress(emit, line, f"Reading {domain}", "active")
     page = await ctx["fetch"](url)
     if page is None or not page.text:
+        await screen.page(emit, shot, url, status="failed")
         if progress:
             await progress(emit, line, f"Could not open {domain}", "failed")
         return "That page could not be opened.", None
+    await screen.page(emit, shot, url, title=page.title, text=page.text, status="done")
     if progress:
         await progress(emit, line, f"Read {clean_text(page.title, 50) or domain}", "done")
     emails = ", ".join(sorted(page.emails)[:10]) or "none"

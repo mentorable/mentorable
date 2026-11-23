@@ -64,6 +64,7 @@ from typing import Optional
 from zoneinfo import ZoneInfo
 
 from app.db.supabase import get_supabase
+from app.nodes.agents import screen
 from app.nodes.agents import google, usage
 from app.nodes.agents.google import GoogleError
 from app.nodes.agents.outreach import draft as writer
@@ -851,6 +852,8 @@ async def _write(user_id: str, try_row: dict, found: dict, choice: dict, *, why:
         return await _give_back(user_id, try_id, "draft_failed", COULD_NOT_SAVE,
                                 drop_card=card["id"] if card else None)
     tz = await asyncio.to_thread(_stored_zone, user_id)
+    await screen.compose(emit, "compose", to=saved.get("email") or saved.get("name") or "",
+                         subject=written["subject"], body=written["body"])
     return {"type": "draft", "contact": contact_payload(saved, tz)}
 
 
@@ -880,6 +883,7 @@ async def _research_and_draft(user_id: str, try_row: dict, target: dict, choice:
         # A refusal (a school student, a private person) says so in its own words.
         message = found.get("message") if isinstance(found.get("message"), str) and found.get("reason") else None
         return await _give_back(user_id, try_id, "not_found", message or NOT_FOUND.format(name=target["name"]))
+    await screen.notes(emit, "notes", found.get("facts"), title=f"What checked out about {target['name']}")
     return await _write(user_id, try_row, found, choice, why=why, record_text=record_text, record=record,
                         emit=emit)
 

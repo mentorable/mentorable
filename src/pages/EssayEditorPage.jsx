@@ -10,6 +10,7 @@ import {
 import { MascotSays } from "../components/agents/SpeechBubble.jsx";
 import AskStatus from "../components/agents/essay/editor/AskStatus.jsx";
 import DraftPaper from "../components/agents/essay/editor/DraftPaper.jsx";
+import OpenDocSheet from "../components/agents/essay/editor/OpenDocSheet.jsx";
 import EditorBar from "../components/agents/essay/editor/EditorBar.jsx";
 import EditorHeader, { BackLink } from "../components/agents/essay/editor/EditorHeader.jsx";
 import NotesSheet from "../components/agents/essay/editor/NotesSheet.jsx";
@@ -60,6 +61,7 @@ const REAL_API = {
   status: () => agentsApi.essayStatus(),
   snapshot: (id) => agentsApi.essaySnapshot(id),
   review: (id) => agentsApi.essayReview(id),
+  openGoogleDoc: (url) => agentsApi.essayOpenGoogleDoc(url),
 };
 
 // Refusals after which a review may have landed anyway (the answer was lost on
@@ -780,6 +782,42 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
     announce("Version restored.");
   };
 
+  /** The student's own words from their Google Doc or Word file, put in the
+   *  draft at their press. What the draft held is saved as a version first,
+   *  exactly as restoring a version does. Throws (nothing replaced) when that
+   *  copy can't be made. */
+  const takeDocWords = async (text) => {
+    const now = current().body;
+    if (text === now) {
+      setSheet(null);
+      notify("Your draft already has exactly those words.");
+      return;
+    }
+    const keep = !!now.trim();
+    if (keep) {
+      if (!(await saveNow())) {
+        throw new Error("Couldn't save what you have now, so nothing was replaced. Wait until it says Saved, then try again.");
+      }
+      try {
+        const res = await api.snapshot(essayId);
+        if (alive.current) addVersion(res?.version);
+      } catch (e) {
+        if (e?.code !== "unchanged") {
+          if (e?.code === "no_essay") markGone();
+          throw new Error(essayErrorMessage(e));
+        }
+      }
+    }
+    if (!alive.current) return;
+    edit({ body: text });
+    const landed = await saveNow();
+    if (!alive.current) return;
+    setSheet(null);
+    if (landed) notify(keep ? "Your doc's words are in. What you had before is in your saved versions." : "Your doc's words are in.");
+    else notify("Your doc's words are on this page, but they haven't saved yet. Saving will keep trying.", "error");
+    announce("Your doc's words are in the draft.");
+  };
+
   const removeVersion = async (version) => {
     try {
       await api.deleteVersion(userRef.current, version.id);
@@ -910,6 +948,7 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
     return { promptName: which ? `Your prompt now: ${which}` : "Your prompt now", promptText: now || "None picked." };
   };
   const menuItems = [
+    { key: "open-doc", label: "Open from Google Docs or Word", onSelect: () => setSheet("doc") },
     { key: "versions", label: `Saved versions (${versions.length})`, onSelect: () => setDrawerOpen(true) },
     { key: "delete", label: "Delete this essay", danger: true, onSelect: () => { setDeleteError(null); setSheet("delete"); } },
   ];
@@ -998,7 +1037,10 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
         </div>
         <div style={{ margin: "16px 0 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
           {!gone && (
-            <Button kind="secondary" onClick={() => setDrawerOpen(true)}>Saved versions ({versions.length})</Button>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10 }}>
+              <Button kind="secondary" onClick={() => setSheet("doc")}>Open from Google Docs or Word</Button>
+              <Button kind="secondary" onClick={() => setDrawerOpen(true)}>Saved versions ({versions.length})</Button>
+            </div>
           )}
           <p style={{ margin: 0, display: "flex", alignItems: "flex-start", justifyContent: "center", gap: 8, fontFamily: SANS,
             fontSize: "0.93rem", fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.5, maxWidth: 560 }}>
@@ -1023,6 +1065,10 @@ export default function EssayEditorPage({ navigate, essayId, api = REAL_API }) {
           <VersionsDrawer key="versions" versions={versions} bodies={bodies} reviewed={reviewed} max={versionsMax}
             saveBlock={saveBlock} onClose={() => setDrawerOpen(false)} onLoad={(id) => { ensureVersion(id, { again: true }); }}
             onSaveNow={saveVersionNow} onRestore={restoreVersion} onDelete={removeVersion} />
+        )}
+        {sheet === "doc" && !gone && (
+          <OpenDocSheet key="doc" onClose={() => setSheet(null)} onUse={takeDocWords} hasWords={!!values.body.trim()}
+            openGoogleDoc={api.openGoogleDoc} isMobile={isMobile} />
         )}
         {sheet === "delete" && (
           <Sheet key="delete" onClose={() => setSheet(null)} locked={deleting} labelledBy="qe-delete-title" width={480}>

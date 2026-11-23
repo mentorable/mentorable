@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import BeakerAtWork from "./BeakerAtWork.jsx";
+import AgentScreen from "../screen/AgentScreen.jsx";
 import ProgressChecklist from "./ProgressChecklist.jsx";
 import { MascotSays } from "../SpeechBubble.jsx";
 import { PixelArrow } from "../PixelIcons.jsx";
@@ -72,7 +73,7 @@ function Question({ question, answer, onAnswer, onSubmit, onSkip, busy, error })
  * actions: [{ label, onClick, kind }] under an error.
  */
 export default function ResearchStep({
-  view, lines, question, answer, onAnswer, onSubmitAnswer, onSkip, busy, failure, actions = [], answerError,
+  view, lines, shots = [], isMobile = false, question, answer, onAnswer, onSubmitAnswer, onSkip, busy, failure, actions = [], answerError,
 }) {
   if (view === "question") {
     return (
@@ -98,6 +99,7 @@ export default function ResearchStep({
             </p>
           )}
         </Card>
+        {shots.length > 0 && <AgentScreen shots={shots} agent="beaker" isMobile={isMobile} />}
         {lines?.length > 0 && <ProgressChecklist lines={lines} label="What Beaker got through" />}
         {actions.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -111,7 +113,7 @@ export default function ResearchStep({
   }
 
   return (
-    <BeakerAtWork lines={lines}
+    <BeakerAtWork lines={lines} shots={shots} isMobile={isMobile}
       note="This usually takes under a minute. You can leave this page: Beaker keeps working, and the draft lands on your board." />
   );
 }

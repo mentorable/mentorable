@@ -37,7 +37,10 @@ class Events(list):
         self.append(event)
 
     def lines(self):
-        return [(e["id"], e["status"], e["label"]) for e in self]
+        return [(e["id"], e["status"], e["label"]) for e in self if e.get("type") == "progress"]
+
+    def shots(self):
+        return [e for e in self if e.get("type") == "screen"]
 
 
 PROFILE = "https://www.usf.edu/marine-science/people/lee.html"
@@ -141,6 +144,48 @@ def test_the_model_searches_reads_a_page_and_submits_what_it_read(monkeypatch, w
     assert m.tool_names(0) == ["search", "open_page", "submit_research"]
     labels = [label for _, _, label in emitted.lines()]
     assert "Searching: Maria Lee University of South Florida" in labels and "Read Maria Lee | USF" in labels
+
+
+def test_the_screen_shows_the_real_search_and_the_page_it_read(monkeypatch, web):
+    web.index["Maria Lee University of South Florida"] = [
+        {"title": "Maria Lee | USF", "url": PROFILE, "snippet": "Associate Professor of Marine Science"}]
+    web.pages[PROFILE] = PROFILE_TEXT
+    Model(monkeypatch, [
+        turn(tool_use("search", {"query": "Maria Lee University of South Florida"})),
+        turn(tool_use("open_page", {"url": PROFILE})),
+        turn(tool_use("open_page", {"url": ELSEWHERE})),          # refused: never on the screen
+        turn(tool_use("submit_research", found_submission([GOOD_FACT], {"address": "mlee@usf.edu", "url": PROFILE}))),
+    ])
+    emitted = Events()
+    run(research.research_person(TARGET, emit=emitted))
+    shots = emitted.shots()
+    search = [s for s in shots if s["kind"] == "search"]
+    assert [s["status"] for s in search] == ["active", "done"]
+    assert search[-1]["query"] == "Maria Lee University of South Florida"
+    assert search[-1]["results"] == [{"title": "Maria Lee | USF", "url": PROFILE, "domain": "usf.edu",
+                                      "snippet": "Associate Professor of Marine Science"}]
+    opened = [s for s in shots if s["kind"] == "page"]
+    assert {s["url"] for s in opened} == {PROFILE}                 # the refused page never shows
+    assert opened[-1]["status"] == "done" and opened[-1]["title"] == "Maria Lee | USF"
+    assert opened[-1]["excerpt"].startswith("Dr. Maria Lee is an Associate Professor")
+    assert len({s["id"] for s in shots}) == 2                       # one tab each, updated in place
+
+
+def test_a_link_that_is_not_http_never_reaches_the_screen():
+    from app.nodes.agents import screen
+    got = Events()
+    run(screen.search(got, "s", "q", [{"url": "javascript:alert(1)", "title": "x"},
+                                     {"url": "https://ok.edu/a", "title": "ok"}], status="done"))
+    run(screen.page(got, "p", "data:text/html,hi"))
+    assert [r["url"] for r in got[0]["results"]] == ["https://ok.edu/a"] and len(got) == 1
+
+
+def test_a_broken_screen_stream_never_stops_the_work():
+    from app.nodes.agents import screen
+
+    async def broken(event):
+        raise RuntimeError("the page went away")
+    run(screen.page(broken, "p", "https://ok.edu/a"))      # does not raise
 
 
 def test_only_a_page_a_search_returned_can_be_opened(monkeypatch, web):

@@ -19,6 +19,7 @@ so a closed tab never leaves a try half spent.
 
 Writer events (app/main.py passes any {"event": ...} chunk through as SSE):
   {"event": "agent_progress", "agent": "outreach", "progress": {...}}   a checklist line
+  {"event": "agent_screen", "agent": "outreach", "screen": {...}}       what Beaker is looking at (agents/screen.py)
   {"event": "outreach_started", "outcome": ..., "link": ..., ...}       how it ended
 """
 from __future__ import annotations
@@ -159,6 +160,8 @@ async def start_outreach(user_id: str, args: dict, writer) -> dict:
     async def emit(event: dict):
         if isinstance(event, dict) and event.get("type") == "progress":
             writer({"event": "agent_progress", "agent": "outreach", "progress": event})
+        elif isinstance(event, dict) and event.get("type") == "screen":
+            writer({"event": "agent_screen", "agent": "outreach", "screen": event})
 
     run = beaker.shortlist(user_id, body, emit) if mode == "shortlist" else beaker.draft(user_id, body, emit)
     try:

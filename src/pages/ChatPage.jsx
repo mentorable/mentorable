@@ -18,6 +18,7 @@ import { useAgentInk } from "../components/ui/tokens.js";
 import { ResultCard, SourcesSection } from "../components/common/ResearchResults.jsx";
 import ChatHandoffCard from "../components/agents/outreach/ChatHandoffCard.jsx";
 import { mergeProgress } from "../components/agents/outreach/ProgressChecklist.jsx";
+import { mergeScreen } from "../components/agents/screen/screenModel.js";
 
 const NAVY    = "#141413";
 const SG      = "'Outfit', 'Raleway', sans-serif";
@@ -459,7 +460,7 @@ function Message({ msg, isMobile = false }) {
             ? <MarkdownRenderer text={displayedText} streaming={isStreaming} />
             : !msg.agentRun && <TypingIndicator />
           }
-          {msg.agentRun && <ChatHandoffCard run={msg.agentRun} />}
+          {msg.agentRun && <ChatHandoffCard run={msg.agentRun} isMobile={isMobile} />}
           {!isStreaming && msg.content && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
               <p style={{ fontFamily: SG, fontSize: 10, color: "#6a6760" }}>
@@ -1311,10 +1312,12 @@ export default function ChatPage({ navigate, seedNode }) {
         onEvent: (evt) => {
           // Beaker, handed an outreach by the advisor: its checklist and how it
           // ended ride on this reply, and are saved with it.
-          if (evt.event === "agent_progress" || evt.event === "outreach_started") {
+          if (evt.event === "agent_progress" || evt.event === "agent_screen" || evt.event === "outreach_started") {
             agentRun = evt.event === "agent_progress"
               ? { ...agentRun, lines: mergeProgress(agentRun?.lines || [], evt.progress) }
-              : { lines: agentRun?.lines || [], ...agentRun, outcome: evt };
+              : evt.event === "agent_screen"
+                ? { ...agentRun, lines: agentRun?.lines || [], shots: mergeScreen(agentRun?.shots || [], evt.screen) }
+                : { lines: agentRun?.lines || [], ...agentRun, outcome: evt };
             const run = agentRun;
             setMessages((prev) => prev.map((m) => (m.id === aiMsgId ? { ...m, agentRun: run } : m)));
             return;

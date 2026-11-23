@@ -208,6 +208,7 @@ export const agentsApi = {
   essayFindTopics:  ()                 => post("/agents/essay/topics/find"),
   /** One turn of the brainstorm. -> { done, message, fallback, handoff, topic, usage }. */
   essayTalk:        (body)             => post("/agents/essay/talk", body),
+  essayOpenGoogleDoc: (url)            => post("/agents/essay/import/google", { url }),
 
   // Poise, the interview heron. Mocks are created here (the server spends the
   // budget and asks ElevenLabs for the call); the list and the reports are

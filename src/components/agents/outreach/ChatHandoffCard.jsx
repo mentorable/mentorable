@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AgentScreen from "../screen/AgentScreen.jsx";
 import { PixelStamp } from "../PixelIcons.jsx";
 import { BORDER, RADIUS, SANS, TEXT, TEXT_MUTED, WHITE, useAgentInk } from "../agentUi.js";
 import { FOCUS_CLASS } from "../../ui/tokens.js";
+import { QUIET_CLASS } from "../../ui/kit.jsx";
 import ProgressChecklist from "./ProgressChecklist.jsx";
 
 // What Beaker did when the chat advisor handed it an outreach: the real
@@ -38,18 +41,32 @@ const OUTCOME = {
   }),
 };
 
-export default function ChatHandoffCard({ run }) {
+export default function ChatHandoffCard({ run, isMobile = false }) {
   const ink = useAgentInk();
   const navigate = useNavigate();
+  const [watching, setWatching] = useState(false);
   if (!run) return null;
   const outcome = run.outcome;
+  const shots = run.shots || [];
   const copy = outcome ? (OUTCOME[outcome.outcome] || OUTCOME.error)(outcome) : null;
   const link = outcome?.link || "/agents/outreach";
   const open = (e) => { e.preventDefault(); navigate(link); };
 
   return (
     <div style={{ display: "grid", gap: 10, marginTop: 14, fontFamily: SANS }}>
+      {/* Live while Beaker works; once it is done, folded away behind one press. */}
+      {shots.length > 0 && (!outcome || watching) && (
+        <AgentScreen shots={shots} agent="beaker" running={!outcome} isMobile={isMobile} height={isMobile ? 260 : 300} />
+      )}
       <ProgressChecklist lines={run.lines || []} label={outcome ? "What Beaker did" : "What Beaker is doing"} />
+      {outcome && shots.length > 0 && (
+        <button type="button" onClick={() => setWatching((w) => !w)} aria-expanded={watching}
+          className={`${QUIET_CLASS} ${FOCUS_CLASS}`}
+          style={{ justifySelf: "start", minHeight: 44, padding: "10px 12px", border: "none", background: "transparent",
+            borderRadius: RADIUS.control, color: ink.text, fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: "pointer" }}>
+          {watching ? "Hide Beaker's screen" : `See what Beaker looked at (${shots.length} ${shots.length === 1 ? "tab" : "tabs"})`}
+        </button>
+      )}
       {copy && (
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start", background: WHITE,
           border: `1px solid ${outcome.outcome === "error" ? BORDER : ink.ring}`, borderRadius: RADIUS.card,

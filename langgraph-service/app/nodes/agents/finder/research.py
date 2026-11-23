@@ -40,6 +40,7 @@ from app import search_pool
 from app.llm import ModelUnavailable, json_completion, openai_enabled, search_completion, tool_completion
 from app.models import FINDER_EXTRACT_MODEL, FINDER_FALLBACK_MODEL, FINDER_FIT_MODEL, FINDER_QUERIES_MODEL
 from app.nodes.agents.finder import prompts, rules
+from app.nodes.agents import screen
 from app.nodes.agents.outreach import pages
 from app.nodes.agents.outreach.research import Emit, _SearchLines, _strict, progress_line, research_record
 from app.nodes.quest.common import clean_text
@@ -217,12 +218,15 @@ async def _tavily(queries: list[str], emit: Optional[Emit]) -> Optional[list[lis
     async def one(n: int, query: str) -> Optional[list[dict]]:
         line = f"search-{n}"
         await progress_line(emit, line, f"Searching: {clean_text(query, 55)}", "active")
+        await screen.search(emit, line, query)
         try:
             found = await search_pool.tavily.web_search(query, blocked=FINDER_BLOCKED)
         except search_pool.SearchUnavailable:
             await progress_line(emit, line, "That search did not go through", "failed")
+            await screen.search(emit, line, query, [], status="failed")
             return None
         await progress_line(emit, line, _found_label(found), "done")
+        await screen.search(emit, line, query, found, status="done")
         return found
 
     got = await asyncio.gather(*[one(n, q) for n, q in enumerate(queries, start=1)])
@@ -348,9 +352,19 @@ async def _read(results: list[dict], *, known: set[str], already: set[str],
     await progress_line(emit, "read", f"Reading {_plural(min(len(queue), PAGES_READ), 'page')}", "active")
     gate = asyncio.Semaphore(FETCH_AT_ONCE)
 
+    shots = iter(range(1, MAX_FETCHES + 1))
+
     async def fetch(r: dict) -> Optional[pages.Page]:
         async with gate:
-            return _usable(await pages.fetch_page(r["url"]))
+            shot = f"page-{next(shots)}"
+            await screen.page(emit, shot, r["url"], title=r.get("title") or "")
+            page = _usable(await pages.fetch_page(r["url"]))
+            if page is None:
+                await screen.page(emit, shot, r["url"], title=r.get("title") or "", status="failed")
+            else:
+                await screen.page(emit, shot, page.final_url, title=page.title or r.get("title") or "",
+                                  text=page.text, status="done")
+            return page
 
     read: list[pages.Page] = []
     seen: set[str] = set()

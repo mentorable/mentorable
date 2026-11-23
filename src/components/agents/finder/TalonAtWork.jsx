@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Mascot from "../Mascot.jsx";
+import AgentScreen from "../screen/AgentScreen.jsx";
 import { PixelStamp } from "../PixelIcons.jsx";
 import { RADIUS, SANS, TEXT, TEXT_FAINT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk } from "../agentUi.js";
 import { Button, PULSE_CLASS, SR_ONLY } from "../outreach/flowUi.jsx";
@@ -164,7 +165,7 @@ function Stamp({ line, ink }) {
 
 /** lines: the merged progress lines. onLeave(): back to the board.
  *  isMobile: the smaller sky and bird for a phone. */
-export default function TalonAtWork({ lines, onLeave, isMobile = false }) {
+export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = false }) {
   const ink = useAgentInk();
   const list = Array.isArray(lines) ? lines : EMPTY;
 
@@ -231,6 +232,9 @@ export default function TalonAtWork({ lines, onLeave, isMobile = false }) {
             </p>
           )}
         </div>
+
+        <AgentScreen shots={shots} agent="talon" running isMobile={isMobile}
+          idle="Talon's searches and the pages it reads open here as it scouts." />
 
         {finished.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
