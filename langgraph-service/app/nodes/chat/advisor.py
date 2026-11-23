@@ -26,6 +26,7 @@ from app import costs
 from app import llm
 from app.llm import _anthropic
 from app.models import CHAT_DEFAULT, CHAT_MODELS
+from app.nodes.chat.handoff import START_OUTREACH
 from app.nodes.chat.tools import QUEST_WRITE_TOOLS, TOOL_VERB, WRITE_TOOLS, execute_chat_tool, tools_for
 from app.posthog_client import posthog_client
 from app.state import StudentState
@@ -318,7 +319,10 @@ async def tools(state: StudentState) -> StudentState:
 
 
 async def run_tool(user_id: str, name: str, args: dict, writer) -> dict:
-    """Run one chat tool, and tell the page about a write."""
+    """Run one chat tool, and tell the page about a write. A hand-off only runs
+    in its own graph node; one that reaches here is past the per-reply cap."""
+    if name == START_OUTREACH:
+        return {"success": False, "error": "one_per_reply", "message": "Beaker can start one outreach per message."}
     result = await execute_chat_tool(user_id, name, args)
     if result.get("success") and name in WRITE_TOOLS:
         # Writes surface as a UI toast; reads (view_portfolio) stay silent.

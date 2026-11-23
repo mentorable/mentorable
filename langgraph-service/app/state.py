@@ -115,7 +115,7 @@ class StudentState(TypedDict, total=False):
     # {**state} from any chat node would send the whole history twice.
     messages: Annotated[list, operator.add]
     rounds: int        # tool rounds run in this reply (capped by MAX_TOOL_ROUNDS)
-    handoffs: int      # hand-offs to another agent in this reply (none yet)
+    handoffs: int      # hand-offs to another agent in this reply (app/nodes/chat/handoff.py)
     _pick: dict        # the CHAT_MODELS entry in use; the default after a decline
     _stop_reason: Optional[str]
     # After a decline, the turns before this index lose their thinking blocks.
