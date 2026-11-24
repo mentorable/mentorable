@@ -53,7 +53,7 @@ export default function OpenDocSheet({ onClose, onUse, hasWords, openGoogleDoc, 
     if (doc) {
       // Focus goes to the doc itself (to read it), never to the button that
       // replaces the draft, so a stray Enter can't. The button is brought into view.
-      primaryRef.current?.scrollIntoView({ block: "nearest", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      primaryRef.current?.scrollIntoView({ block: "nearest" });
       document.querySelector(`[data-doc-screen="${ids}"] [role=region]`)?.focus({ preventScroll: true });
     } else if (refocus.current) {
       refocus.current = false;

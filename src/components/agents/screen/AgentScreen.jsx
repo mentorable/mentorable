@@ -17,18 +17,21 @@ import { addressOf, tabLabel, tabSentence, tabShort } from "./screenModel.js";
 // Following and pausing. While the agent works, the screen follows it to each
 // new tab. It pauses only when the student clearly means to look at something:
 // picking a tab (even the newest), moving along the tabs with the keys,
-// focusing something inside the page (a link, a button), or, on a wide
-// screen, scrolling well into a page. On a phone the page scrolls past the
-// screen with a thumb, so scrolling there never pauses it. Passing over it, tabbing through it or a stray
-// wheel never pause it. Pausing moves nothing on screen (the status line at
-// the bottom always has its place), so a click always lands where it was
-// aimed. "Back to live" resumes, with a count of what opened meanwhile. The tabs are a real tablist (arrow keys from whichever tab has
-// focus, Home, End). A search result the agent went on to read has a button
-// that jumps to the tab where it read it.
+// focusing something inside the page (a link, a button: tabbing onto one
+// counts), or, on a wide screen, scrolling well into a page. On a phone the
+// page scrolls past the screen with a thumb, so scrolling there never pauses
+// it. A pointer passing over it or a stray wheel never pause it. Pausing
+// moves nothing on screen (the status line at the bottom always has its
+// place), so a click always lands where it was aimed. "Back to live" resumes,
+// with a count of what opened meanwhile; once the run has finished the same
+// button reads "Show newest". The tabs are a real tablist (arrow keys from
+// whichever tab has focus, Home, End). A search result the agent went on to
+// read has a button that jumps to the tab where it read it.
 //
-// The checklist beside the screen stays the page's one live region, so this
-// never talks over it. Where there is no checklist (Quill's doc sheet) the
-// host page announces instead.
+// The checklist beside the screen is the page's running commentary, so the
+// screen only speaks (one polite status) when the student pauses or resumes it
+// themself. Where there is no checklist (Quill's doc sheet) the host page
+// announces instead.
 //
 // mode="doc" is the one-document view (Quill opening the student's own doc):
 // no tab strip, no live pill, just the window and the page.
@@ -197,7 +200,7 @@ function SearchView({ shot, readTab, onJump, ink, name, animate, next }) {
                       style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, minHeight: 44, padding: "0 14px",
                         borderRadius: RADIUS.pill, background: ink.softer, border: `1px solid ${ink.soft}`, color: ink.onSoft,
                         fontFamily: SANS, fontSize: "0.9rem", fontWeight: 800, cursor: "pointer" }}>
-                      <PixelStamp kind="check" size={16} />See what {name} read here
+                      <PixelStamp kind="check" size={16} />See what {name} read here<span style={SR_ONLY}> on {r.domain}</span>
                     </button>
                   )}
                 </li>
@@ -392,6 +395,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   const [pick, setPick] = useState(null);
   const [seenAt, setSeenAt] = useState(0);
   const [help, setHelp] = useState(false);
+  const [said, setSaid] = useState("");       // spoken only on the student's own pause and resume
   const tabRefs = useRef(new Map());
   const stripRef = useRef(null);
   const panelRef = useRef(null);
@@ -422,20 +426,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     if (!shown || shown.kind !== "search" || shown.status !== "failed") return null;
     return shots.find((s) => s.seq > shown.seq && s.kind === "search")?.id || null;
   }, [shots, shown]);
-  const edges = useOverflow(stripRef, [shots.length > 0, tabsMode]);
-  // How many tabs sit wholly past the strip's right edge (shown on its arrow).
-  const [hiddenRight, setHiddenRight] = useState(0);
-  useEffect(() => {
-    const strip = stripRef.current;
-    if (!strip) return undefined;
-    const count = () => {
-      const edge = strip.scrollLeft + strip.clientWidth - 40;
-      setHiddenRight(shots.filter((s) => { const el = tabRefs.current.get(s.id); return el && el.offsetLeft >= edge; }).length);
-    };
-    count();
-    strip.addEventListener("scroll", count, { passive: true });
-    return () => strip.removeEventListener("scroll", count);
-  }, [shots, edges.right]);
+  const edges = useOverflow(stripRef, [shots.length, shown?.status, tabsMode]);
   const viewHeight = height || (isMobile ? "min(300px, 40vh)" : 380);
   const dropped = shots.length && shots[0].seq > 1 ? shots[0].seq - 1 : 0;
 
@@ -446,6 +437,8 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
       requestAnimationFrame(() => { if (shown) tabRefs.current.get(shown.id)?.focus({ preventScroll: true }); });
     }
   }, [running]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { if (!running) setSaid(""); }, [running]);
 
   // Typing plays once, the first time a tab is shown while the agent is live.
   const animate = !!shown && running && following && !animated.current.has(shown.id);
@@ -494,9 +487,11 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     const el = id && tabRefs.current.get(id);
     const strip = stripRef.current;
     if (!el || !strip || touching.current) return;
-    const left = el.offsetLeft - 24;
-    const right = el.offsetLeft + el.offsetWidth + 24;
-    const behavior = reduced() ? "auto" : "smooth";
+    const left = el.offsetLeft - 32;
+    const right = el.offsetLeft + el.offsetWidth + 48;      // clear of the 40px "more tabs" arrow
+    // Instant, not smooth: a smooth scroll can stall (a throttled or background
+    // tab never runs it), and a strip that never catches up hides the live tab.
+    const behavior = "auto";
     if (left < strip.scrollLeft) strip.scrollTo({ left: Math.max(0, left), behavior });
     else if (right > strip.scrollLeft + strip.clientWidth) strip.scrollTo({ left: right - strip.clientWidth, behavior });
   };
@@ -504,7 +499,6 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   useEffect(() => { if (!(following && hovering.current)) revealTab(); }, [shown?.id, shown?.status, isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Stop following and stay on `id` (the tab in view, when none is given). */
-  const [said, setSaid] = useState("");
   const pause = (id = shown?.id) => {
     if (!id) return;
     if (following && running) setSaid(`Paused. Back to live follows ${name} again.`);
@@ -520,7 +514,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     pause(id);
     returnTo.current = fromUrl || null;
     panelRef.current?.focus({ preventScroll: true });
-    sectionRef.current?.scrollIntoView({ block: "nearest", behavior: reduced() ? "auto" : "smooth" });
+    sectionRef.current?.scrollIntoView({ block: "nearest" });
   };
   // Only a real scroll of the page pauses it: one the screen made itself doesn't.
   const onPanelScroll = (e) => {
@@ -551,19 +545,20 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   };
 
   const address = shown ? addressOf(shown, name) : { url: "", text: "" };
-  const addressText = shown?.kind === "search" && shown.status === "done"
-    ? `Web search, ${shown.results.length} ${shown.results.length === 1 ? "result" : "results"}`
-    : address.text;
+  const addressText = shown?.kind !== "search" ? address.text
+    : shown.status === "done" ? `Web search, ${shown.results.length} ${shown.results.length === 1 ? "result" : "results"}`
+      : shown.status === "failed" ? "Web search, didn't go through" : "Web search";
   const secure = shown?.kind === "page" && shown.status === "done" && address.url.startsWith("https:");
   const loading = shown?.status === "active";
-  const working = newest ? (isMobile ? tabShort(newest, name) : tabSentence(newest, name)) : `${name} is getting started.`;
+  const working = newest ? (isMobile || newest.kind === "search" ? tabShort(newest, name) : tabSentence(newest, name))
+    : `${name} is getting started.`;
   const missedNames = missed ? shots.filter((s) => s.seq > seenAt).map((s) => tabLabel(s, name)) : [];
   const status = state === "paused"
     ? `${name} is still working.${missed ? ` ${missed} new since you paused.` : ""}`
     : state === "live" ? (isMobile && shots.length > 1 ? `${working} Tap a tab to stay on it.` : working)
       : !shots.length ? ""
         : picked && missed
-          ? `${name} finished. ${missed} new since you paused${isMobile ? "" : `: ${missedNames.slice(0, 2).join(", ")}${missedNames.length > 2 ? "…" : ""}`}.`
+          ? `${name} finished. ${missed} new since you paused${isMobile ? "." : `: ${missedNames.slice(0, 2).join(", ")}${missedNames.length > 2 ? "…" : "."}`}`
           : `${name} finished. Every tab stays here to look back through.`;
   const fade = (side) => ({ position: "absolute", top: 0, bottom: 0, [side]: 0, width: 28, pointerEvents: "none",
     background: `linear-gradient(to ${side === "left" ? "right" : "left"}, ${SURFACE}, transparent)` });
@@ -579,10 +574,10 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
           textOverflow: "ellipsis", minWidth: 0 }}>{isMobile ? name : `${name}'s screen`}</span>
         {tabsMode && !(isMobile && state === "paused") && <StatePill state={state} ink={ink} />}
         <span style={{ flex: "1 1 0", minWidth: 0 }} />
-        {state === "paused" && (
+        {(state === "paused" || (state === "done" && picked && missed > 0)) && (
           <Button kind="secondary" ref={backRef} onClick={backToLive} style={{ padding: "8px 14px", flexShrink: 0 }}
-            aria-label={`Back to live${missed ? `, ${missed} new ${missed === 1 ? "tab" : "tabs"}` : ""}`}>
-            Back to live{missed ? ` (${missed})` : ""}
+            aria-label={`${running ? "Back to live" : "Show newest"}${missed ? `, ${missed} new ${missed === 1 ? "tab" : "tabs"}` : ""}`}>
+            {running ? "Back to live" : "Show newest"}{missed ? ` (${missed})` : ""}
           </Button>
         )}
         {tabsMode && (
@@ -656,15 +651,12 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
           </div>
           {edges.left && <span aria-hidden="true" style={fade("left")} />}
           {edges.right && (
-            <button type="button" tabIndex={-1} aria-hidden="true" onClick={() => stripRef.current?.scrollBy({
-              left: stripRef.current.clientWidth * 0.7, behavior: reduced() ? "auto" : "smooth" })}
+            <button type="button" tabIndex={-1} aria-hidden="true" title="More tabs" onClick={() => stripRef.current?.scrollBy({
+              left: stripRef.current.clientWidth * 0.7 })}
               style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 40, border: "none", borderLeft: `1px solid ${BORDER}`,
                 background: SURFACE, color: TEXT_MID, display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer", padding: 0 }}>
               <PixelArrow size={16} />
-              {hiddenRight > 0 && <span style={{ position: "absolute", top: 4, right: 4, minWidth: 16, padding: "0 3px",
-                borderRadius: RADIUS.pill, background: ink.button.bg, color: ink.button.fg, fontSize: "0.9rem", fontWeight: 800,
-                lineHeight: "16px", textAlign: "center" }}>{hiddenRight}</span>}
             </button>
           )}
         </div>
@@ -734,13 +726,9 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
           lineHeight: 1.4 }}>
           <span style={{ minWidth: 0, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
             flex: 1 }}>{status}</span>
-          {state === "done" && picked && missed > 0 && (
-            <Button kind="quiet" onClick={backToLive} style={{ padding: "8px 10px", flexShrink: 0 }}>Show newest</Button>
-          )}
         </p>
       )}
       {tabsMode && <p role="status" style={SR_ONLY}>{said}</p>}
-      )}
     </section>
   );
 }

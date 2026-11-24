@@ -135,7 +135,8 @@ export function tabSentence(shot, agentName = "The agent") {
 /** A short sentence for a narrow status line: what happened, without the query or title. */
 export function tabShort(shot, agentName = "The agent") {
   const who = agentName;
-  const verb = { search: ["is searching", "searched", "search didn't go through"],
+  const n = shot.results?.length || 0;
+  const verb = { search: ["is searching the web", n ? `searched and got ${n} ${n === 1 ? "result" : "results"}` : "searched and found nothing", "search didn't go through"],
     page: [`is opening ${shot.domain}`, `read ${shot.domain}`, `couldn't open ${shot.domain}`],
     notes: ["is checking facts", "kept the facts that checked out", "kept no facts"],
     compose: ["is writing", "wrote a draft. Nothing is sent", "couldn't write a draft"],

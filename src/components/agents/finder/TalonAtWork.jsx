@@ -259,10 +259,10 @@ export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = fal
         {said.text && <span key={said.n}>{said.text}</span>}
       </p>
 
-      <p style={{ margin: 0, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.55 }}>
+      {running && <p style={{ margin: 0, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.55 }}>
         This usually takes a minute or two. You can leave this page: Talon keeps going, and what it finds lands on
         your board.
-      </p>
+      </p>}
       {onLeave && (
         <div>
           <Button kind="secondary" onClick={onLeave}>Go to your board</Button>

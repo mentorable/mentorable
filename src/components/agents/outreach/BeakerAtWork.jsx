@@ -39,8 +39,8 @@ export default function BeakerAtWork({ lines, shots = [], isMobile = false, runn
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
       {/* A fixed height for the bubble, so a longer line never pushes the screen down under the pointer. */}
-      <div style={{ minHeight: isMobile ? 184 : 104, display: "grid", alignItems: "center", minWidth: 0 }}>
-        <MascotSays state="flying" size={isMobile ? 64 : 96} layout="auto">
+      <div style={{ minHeight: isMobile ? 128 : 104, display: "grid", alignItems: "center", minWidth: 0 }}>
+        <MascotSays state="flying" size={isMobile ? 48 : 96} layout={isMobile ? "row" : "auto"}>
           {!running ? "All done. Everything I looked at is still on my screen." : sayingFor || sayings?.[at % (sayings?.length || 1)] || ""}
         </MascotSays>
       </div>
