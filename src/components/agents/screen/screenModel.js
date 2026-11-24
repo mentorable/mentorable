@@ -102,7 +102,7 @@ export function tabLabel(shot, agentName = "The agent") {
     if (shot.status === "failed") return `Didn't open: ${shot.domain || "page"}`;
     return shot.status === "done" && shot.title ? shot.title : shot.domain || "Page";
   }
-  if (shot.kind === "notes") return "Notes";
+  if (shot.kind === "notes") return "Facts kept";
   if (shot.kind === "compose") return "Draft email";
   if (shot.kind === "doc") return shot.title || (shot.source === "word" ? "Word file" : "Your doc");
   return agentName;

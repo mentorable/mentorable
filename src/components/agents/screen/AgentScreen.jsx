@@ -17,10 +17,10 @@ import { addressOf, tabLabel, tabSentence, tabShort } from "./screenModel.js";
 // Following and pausing. While the agent works, the screen follows it to each
 // new tab. It pauses only when the student clearly means to look at something:
 // picking a tab (even the newest), moving along the tabs with the keys,
-// focusing something inside the page (a link, a button: tabbing onto one
-// counts), or, on a wide screen, scrolling well into a page. On a phone the
-// page scrolls past the screen with a thumb, so scrolling there never pauses
-// it. A pointer passing over it or a stray wheel never pause it. Pausing
+// or focusing something inside the page (a link, a button: tabbing onto one
+// counts). Scrolling never pauses it: while the page is being scrolled, the
+// screen just waits a moment before following to the next tab, so a page is
+// never swapped out mid-scroll. A pointer passing over it never pauses it. Pausing
 // moves nothing on screen (the status line at the bottom always has its
 // place), so a click always lands where it was aimed. "Back to live" resumes,
 // with a count of what opened meanwhile; once the run has finished the same
@@ -51,10 +51,11 @@ const CSS = `
 .as-bar { animation: as-bar 1.3s cubic-bezier(.65,0,.35,1) infinite; }
 .as-caret { animation: as-caret 1s steps(1) infinite; }
 .as-breathe { animation: as-breathe 2.4s ease-in-out infinite; }
-.as-view { scrollbar-width: thin; scrollbar-color: ${BORDER} transparent; }
+.as-view { scrollbar-width: thin; scrollbar-color: ${TEXT_FAINT} transparent; }
 .as-view::-webkit-scrollbar { width: 10px; }
-.as-view::-webkit-scrollbar-thumb { background: ${BORDER}; border-radius: ${RADIUS.pill}px; }
-.as-tabs { scrollbar-width: none; }
+.as-view::-webkit-scrollbar-thumb { background: ${TEXT_FAINT}; border-radius: ${RADIUS.pill}px; border: 3px solid ${WHITE}; }
+.as-tabs { scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding: 0 44px; }
+.as-tab { scroll-snap-align: start; }
 .as-tabs::-webkit-scrollbar { display: none; }
 .as-tab.${FOCUS_CLASS}:focus-visible, .as-view.${FOCUS_CLASS}:focus-visible { outline-offset: -3px; }
 .as-tab:hover { background: ${WHITE}; color: ${TEXT}; }
@@ -76,7 +77,12 @@ if (typeof document !== "undefined" && !document.querySelector("style[data-agent
 const REDUCED = typeof window !== "undefined" && window.matchMedia
   ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
 const reduced = () => !!REDUCED?.matches;
+// After the next render. A timer, not requestAnimationFrame: animation frames
+// don't run in a background or throttled tab, and focus or a reveal must still happen.
+const later = (fn) => setTimeout(fn, 16);
 
+const WAIT_MS = 2500;           // after a scroll of the page, how long following waits
+const TOUCH_MS = 1500;          // after a touch on the tab strip, how long it holds still
 const STAMP = { search: "search", page: "page", notes: "check", compose: "letter", doc: "scroll" };
 const MEASURE = "36rem";        // about 70 characters of body text
 const AGENT_NAMES = { beaker: "Beaker", talon: "Talon", quill: "Quill", poise: "Poise" };
@@ -113,6 +119,19 @@ function ExternalLink({ href, children, style, className = "", mark = false }) {
   );
 }
 
+/** A move inside the screen (to another tab): one look everywhere, a soft pill.
+ *  Links that leave the app are underlined and carry the out mark instead. */
+function Jump({ onClick, children, ink, style, ...rest }) {
+  return (
+    <button type="button" onClick={onClick} className={FOCUS_CLASS} {...rest}
+      style={{ display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44, padding: "0 14px", flexShrink: 0,
+        borderRadius: RADIUS.pill, background: ink.softer, border: `1px solid ${ink.soft}`, color: ink.onSoft, fontFamily: SANS,
+        fontSize: "0.9rem", fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap", ...style }}>
+      {children}
+    </button>
+  );
+}
+
 function Caret({ ink }) {
   return (
     <span aria-hidden="true" className="as-caret" style={{ display: "inline-block", width: 2, height: "1.05em",
@@ -131,7 +150,7 @@ function Waiting({ stamp, children }) {
   );
 }
 
-function SearchView({ shot, readTab, onJump, ink, name, animate, next }) {
+function SearchView({ shot, readTab, onJump, ink, name, animate, next, isMobile }) {
   const typed = useTyped(shot.query, { animate, maxMs: 900 });
   const typing = typed.length < shot.query.length;
   return (
@@ -163,45 +182,42 @@ function SearchView({ shot, readTab, onJump, ink, name, animate, next }) {
         ) : shot.status === "failed" ? (
           <div style={{ display: "grid", gap: 8 }}>
             <Waiting stamp="cross">That search didn't go through. {name} carried on with its other searches.</Waiting>
-            {next && (
-              <button type="button" onClick={() => onJump(next)} className={`as-link ${FOCUS_CLASS}`}
-                style={{ justifySelf: "start", marginLeft: 28, minHeight: 44, padding: 0, border: "none", background: "transparent",
-                  color: ink.text, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 800, textDecoration: "underline",
-                  textUnderlineOffset: 3, cursor: "pointer", borderRadius: RADIUS.control }}>
-                Go to its next search
-              </button>
-            )}
+            {next && <Jump ink={ink} onClick={() => onJump(next)} style={{ justifySelf: "start", marginLeft: 28 }}>Go to its next search</Jump>}
           </div>
         ) : shot.results.length === 0 ? (
           <Waiting stamp="search">Nothing came back for this one.</Waiting>
         ) : (
           <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 18 }}>
             {shot.results.map((r) => {
-              const tab = readTab.get(r.url);
+              const read = readTab.get(r.url);
+              const tab = read?.status === "done" ? read.id : null;
               return (
                 <li key={r.url} style={{ minWidth: 0, maxWidth: MEASURE }}>
-                  <span aria-hidden="true" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.9rem", fontWeight: 700,
-                    color: TEXT_MUTED, minWidth: 0 }}>
-                    <span style={{ width: 20, height: 20, borderRadius: RADIUS.control / 2, background: ink.softer, color: ink.onSoft,
-                      display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800, lineHeight: 1,
-                      flexShrink: 0 }}>{(r.domain || "?")[0].toUpperCase()}</span>
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.domain}</span>
-                  </span>
-                  <ExternalLink href={r.url} mark style={{ display: "block", padding: "10px 0", minHeight: 44, boxSizing: "border-box", fontSize: "1.1rem",
+                  {/* One fixed-height row: the jump to what was read lands here, so it never pushes results down. */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 44, minWidth: 0 }}>
+                    <span aria-hidden="true" style={{ width: 20, height: 20, borderRadius: RADIUS.control / 2, background: ink.softer,
+                      color: ink.onSoft, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem",
+                      fontWeight: 800, lineHeight: 1, flexShrink: 0 }}>{(r.domain || "?")[0].toUpperCase()}</span>
+                    <span aria-hidden="true" style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      fontSize: "0.9rem", fontWeight: 700, color: TEXT_MUTED }}>{r.domain}</span>
+                    {tab ? (
+                      <Jump ink={ink} onClick={() => onJump(tab)} data-read={r.url}>
+                        <PixelStamp kind="check" size={16} />{isMobile ? "What it read" : `See what ${name} read`}
+                        <span style={SR_ONLY}> on {r.domain}</span>
+                      </Jump>
+                    ) : read?.status === "active" ? (
+                      <span style={{ fontSize: "0.9rem", fontWeight: 700, color: TEXT_MUTED, whiteSpace: "nowrap" }}>Reading it now</span>
+                    ) : read?.status === "failed" ? (
+                      <span style={{ fontSize: "0.9rem", fontWeight: 700, color: TEXT_MUTED, whiteSpace: "nowrap" }}>Wouldn't open</span>
+                    ) : null}
+                  </div>
+                  <ExternalLink href={r.url} mark style={{ display: "block", padding: "2px 0 8px", minHeight: 44, boxSizing: "border-box", fontSize: "1.1rem",
                     fontWeight: 800, color: ink.text, lineHeight: 1.35, overflowWrap: "anywhere", letterSpacing: "-0.01em" }}>
                     {r.title}
                     {tab && <span style={SR_ONLY}>. {name} read this page.</span>}
                   </ExternalLink>
                   {r.snippet && (
                     <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 500, color: TEXT_MID, lineHeight: 1.5 }}>{r.snippet}</p>
-                  )}
-                  {tab && (
-                    <button type="button" onClick={() => onJump(tab)} className={FOCUS_CLASS} data-read={r.url}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, minHeight: 44, padding: "0 14px",
-                        borderRadius: RADIUS.pill, background: ink.softer, border: `1px solid ${ink.soft}`, color: ink.onSoft,
-                        fontFamily: SANS, fontSize: "0.9rem", fontWeight: 800, cursor: "pointer" }}>
-                      <PixelStamp kind="check" size={16} />See what {name} read here<span style={SR_ONLY}> on {r.domain}</span>
-                    </button>
                   )}
                 </li>
               );
@@ -256,13 +272,7 @@ function PageView({ shot, name, ink, from, onJump }) {
           {cut ? `That's the start of what ${name} read.` : `That's what ${name} read.`}
         </span>
         <ExternalLink href={shot.url} style={link} mark>Open the page</ExternalLink>
-        {from && (
-          <button type="button" onClick={() => onJump(from, shot.url)} className={`as-link ${FOCUS_CLASS}`}
-            style={{ ...link, padding: 0, border: "none", background: "transparent", fontFamily: SANS, fontSize: "0.95rem",
-              cursor: "pointer", borderRadius: RADIUS.control }}>
-            Back to the search
-          </button>
-        )}
+        {from && <Jump ink={ink} onClick={() => onJump(from, shot.url)}>Back to the search</Jump>}
       </div>
     </article>
   );
@@ -350,9 +360,9 @@ function TabIcon({ shot, ink }) {
   return <span aria-hidden="true" style={{ display: "flex" }}><PixelStamp kind={STAMP[shot.kind]} size={16} /></span>;
 }
 
-function StatePill({ state, ink }) {
+function StatePill({ state, ink, short }) {
   const on = state === "live";
-  const text = { live: "Live", paused: "Paused here", done: "Finished" }[state];
+  const text = { live: "Live", paused: short ? "Paused" : "Paused here", done: short ? "Done" : "Finished" }[state];
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "3px 10px", borderRadius: RADIUS.pill,
       background: on ? ink.softer : WHITE, border: `1px solid ${on ? ink.soft : BORDER}`,
@@ -403,7 +413,18 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   const baseId = useId();
   const tabsMode = mode !== "doc";
 
-  const newest = shots.length ? shots[shots.length - 1] : null;
+  const latest = shots.length ? shots[shots.length - 1] : null;
+  // Following waits while the page is being scrolled (WAIT_MS after the last scroll).
+  const lastScroll = useRef(0);
+  const [liveId, setLiveId] = useState(null);
+  useEffect(() => {
+    if (!latest) { setLiveId(null); return undefined; }
+    const wait = lastScroll.current + WAIT_MS - Date.now();
+    if (wait <= 0) { setLiveId(latest.id); return undefined; }
+    const t = setTimeout(() => setLiveId(latest.id), wait);
+    return () => clearTimeout(t);
+  }, [latest?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const newest = (liveId && shots.find((s) => s.id === liveId)) || latest;
   const firstSeq = shots[0]?.seq;
   useEffect(() => { if (!shots.length || firstSeq === 1) { setPick(null); setSeenAt(0); } }, [shots.length === 0, firstSeq]); // eslint-disable-line react-hooks/exhaustive-deps
   const picked = pick && shots.find((s) => s.id === pick);
@@ -413,7 +434,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   const state = !running ? "done" : following ? "live" : "paused";
   const readTab = useMemo(() => {
     const map = new Map();
-    for (const s of shots) if (s.kind === "page" && s.status === "done") map.set(s.url, s.id);
+    for (const s of shots) if (s.kind === "page") map.set(s.url, { id: s.id, status: s.status });
     return map;
   }, [shots]);
   // The search that led to a page: the latest search before it that returned it.
@@ -434,7 +455,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   // moves to the selected tab instead of dropping to the page.
   useEffect(() => {
     if (!running && backRef.current === document.activeElement) {
-      requestAnimationFrame(() => { if (shown) tabRefs.current.get(shown.id)?.focus({ preventScroll: true }); });
+      later(() => { if (shown) tabRefs.current.get(shown.id)?.focus({ preventScroll: true }); });
     }
   }, [running]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -470,7 +491,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     if (returnTo.current && shown?.kind === "search") {
       const url = returnTo.current;
       returnTo.current = null;
-      requestAnimationFrame(() => {
+      later(() => {
         const btn = [...(panelRef.current?.querySelectorAll("[data-read]") || [])].find((b) => b.dataset.read === url);
         if (btn) { btn.scrollIntoView({ block: "nearest" }); btn.focus({ preventScroll: true }); }
       });
@@ -482,12 +503,17 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     }
   }, [shown?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const revealTab = () => {
+  const lastTouch = useRef(0);
+  const revealTab = (force = false) => {
+    if (!force && Date.now() - lastTouch.current < TOUCH_MS) {
+      setTimeout(() => revealTab(), TOUCH_MS);      // try again once the finger is gone
+      return;
+    }
     const id = shownRef.current;
     const el = id && tabRefs.current.get(id);
     const strip = stripRef.current;
     if (!el || !strip || touching.current) return;
-    const left = el.offsetLeft - 32;
+    const left = el.offsetLeft - 48;
     const right = el.offsetLeft + el.offsetWidth + 48;      // clear of the 40px "more tabs" arrow
     // Instant, not smooth: a smooth scroll can stall (a throttled or background
     // tab never runs it), and a strip that never catches up hides the live tab.
@@ -517,9 +543,9 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     sectionRef.current?.scrollIntoView({ block: "nearest" });
   };
   // Only a real scroll of the page pauses it: one the screen made itself doesn't.
-  const onPanelScroll = (e) => {
+  const onPanelScroll = () => {
     if (resetting.current) { resetting.current = false; return; }
-    if (!isMobile && e.currentTarget.scrollTop > 48) holdHere();   // well into the page, not a nudge
+    lastScroll.current = Date.now();         // following waits a moment; it never pauses for a scroll
   };
   // A mouse wheel over the tab strip scrolls it sideways (it has no scrollbar).
   const onStripWheel = (e) => {
@@ -529,8 +555,11 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   };
   const backToLive = () => {
     setPick(null);
+    lastTouch.current = 0;
+    hovering.current = false;
+    setTimeout(() => revealTab(true), 50);
     setSaid(running ? `Following ${name} again.` : "Showing the newest tab.");
-    requestAnimationFrame(() => { if (newest) tabRefs.current.get(newest.id)?.focus({ preventScroll: true }); });
+    setTimeout(() => { const id = shownRef.current; if (id) tabRefs.current.get(id)?.focus({ preventScroll: true }); }, 50);
   };
   const onKey = (e) => {
     const focused = shots.findIndex((s) => tabRefs.current.get(s.id) === document.activeElement);
@@ -546,8 +575,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
 
   const address = shown ? addressOf(shown, name) : { url: "", text: "" };
   const addressText = shown?.kind !== "search" ? address.text
-    : shown.status === "done" ? `Web search, ${shown.results.length} ${shown.results.length === 1 ? "result" : "results"}`
-      : shown.status === "failed" ? "Web search, didn't go through" : "Web search";
+    : shown.status === "failed" ? "Web search, didn't go through" : "Web search";
   const secure = shown?.kind === "page" && shown.status === "done" && address.url.startsWith("https:");
   const loading = shown?.status === "active";
   const working = newest ? (isMobile || newest.kind === "search" ? tabShort(newest, name) : tabSentence(newest, name))
@@ -555,7 +583,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   const missedNames = missed ? shots.filter((s) => s.seq > seenAt).map((s) => tabLabel(s, name)) : [];
   const status = state === "paused"
     ? `${name} is still working.${missed ? ` ${missed} new since you paused.` : ""}`
-    : state === "live" ? (isMobile && shots.length > 1 ? `${working} Tap a tab to stay on it.` : working)
+    : state === "live" ? (isMobile && shots.length > 1 ? `${working} Tap a tab to stay.` : working)
       : !shots.length ? ""
         : picked && missed
           ? `${name} finished. ${missed} new since you paused${isMobile ? "." : `: ${missedNames.slice(0, 2).join(", ")}${missedNames.length > 2 ? "…" : "."}`}`
@@ -572,7 +600,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
         {mascot && <Mascot agent={agent} state={running ? "thinking" : "idle"} size={28} title="" />}
         <span style={{ fontSize: "1rem", fontWeight: 800, color: TEXT, whiteSpace: "nowrap", overflow: "hidden",
           textOverflow: "ellipsis", minWidth: 0 }}>{isMobile ? name : `${name}'s screen`}</span>
-        {tabsMode && !(isMobile && state === "paused") && <StatePill state={state} ink={ink} />}
+        {tabsMode && <StatePill state={state} ink={ink} short={isMobile} />}
         <span style={{ flex: "1 1 0", minWidth: 0 }} />
         {(state === "paused" || (state === "done" && picked && missed > 0)) && (
           <Button kind="secondary" ref={backRef} onClick={backToLive} style={{ padding: "8px 14px", flexShrink: 0 }}
@@ -580,7 +608,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
             {running ? "Back to live" : "Show newest"}{missed ? ` (${missed})` : ""}
           </Button>
         )}
-        {tabsMode && (
+        {tabsMode && !(isMobile && (state === "paused" || (state === "done" && picked && missed > 0))) && (
           <Button kind="quiet" aria-expanded={help} aria-controls={`${baseId}-help`} onClick={() => setHelp((h) => !h)}
             aria-label={isMobile ? "What's this?" : undefined}
             style={{ padding: isMobile ? "8px 14px" : "8px 12px", flexShrink: 0 }}>
@@ -614,8 +642,8 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
       {tabsMode && shots.length > 0 && (
         <div style={{ position: "relative", background: SURFACE, borderBottom: `1px solid ${BORDER}` }}>
           <div ref={stripRef} role="tablist" aria-label={`What ${name} opened`} onKeyDown={onKey} className="as-tabs"
-            onPointerDown={() => { touching.current = true; }}
-            onPointerUp={() => { touching.current = false; requestAnimationFrame(revealTab); }}
+            onPointerDown={() => { touching.current = true; lastTouch.current = Date.now(); }}
+            onPointerUp={() => { touching.current = false; later(() => revealTab(true)); }}
             onPointerCancel={() => { touching.current = false; }}
             onPointerEnter={(e) => { if (e.pointerType === "mouse") hovering.current = true; }}
             onPointerLeave={() => { touching.current = false; hovering.current = false; }}
@@ -630,7 +658,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
               const label = tabLabel(s, name);
               return (
                 <button key={s.id} type="button" role="tab" id={`${baseId}-tab-${s.id}`} aria-selected={on}
-                  aria-controls={`${baseId}-panel`} tabIndex={on ? 0 : -1} title={label}
+                  aria-controls={`${baseId}-panel`} tabIndex={on ? 0 : -1} title={label.length > 22 ? label : undefined}
                   ref={(el) => { if (el) tabRefs.current.set(s.id, el); else tabRefs.current.delete(s.id); }}
                   onClick={() => pause(s.id)} className={`as-tab ${FOCUS_CLASS}`}
                   style={{ position: "relative", display: "flex", alignItems: "center", gap: 7, flexShrink: 0,
@@ -649,7 +677,15 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
               );
             })}
           </div>
-          {edges.left && <span aria-hidden="true" style={fade("left")} />}
+          {edges.left && (
+            <button type="button" tabIndex={-1} aria-hidden="true" title="Earlier tabs" onClick={() => stripRef.current?.scrollBy({
+              left: -stripRef.current.clientWidth * 0.7 })}
+              style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 40, border: "none", borderRight: `1px solid ${BORDER}`,
+                background: SURFACE, color: TEXT_MID, display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", padding: 0 }}>
+              <PixelArrow size={16} style={{ transform: "scaleX(-1)" }} />
+            </button>
+          )}
           {edges.right && (
             <button type="button" tabIndex={-1} aria-hidden="true" title="More tabs" onClick={() => stripRef.current?.scrollBy({
               left: stripRef.current.clientWidth * 0.7 })}
@@ -710,7 +746,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
         ) : (
           <div key={`${shown.id}-${shown.status}`} className={shown.status === "done" && animate ? "as-load" : undefined}>
             {shown.kind === "search" && <SearchView shot={shown} readTab={readTab} onJump={jump} ink={ink} name={name} animate={animate}
-              next={nextSearch} />}
+              next={nextSearch} isMobile={isMobile} />}
             {shown.kind === "page" && <PageView shot={shown} name={name} ink={ink} from={fromSearch} onJump={jump} />}
             {shown.kind === "notes" && <NotesView shot={shown} ink={ink} name={name} />}
             {shown.kind === "compose" && <ComposeView shot={shown} ink={ink} animate={animate} />}
