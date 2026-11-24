@@ -49,8 +49,9 @@ export default function ChatHandoffCard({ run, isMobile = false }) {
   // When Beaker finishes, the screen folds to its toggle so the next step ("Open the draft")
   // is in view, unless the student is working inside it, in which case it stays.
   const ended = !!run?.outcome;
+  const pointerIn = useRef(false);       // the student's pointer is on the screen: they're looking at it
   useEffect(() => {
-    if (ended && !screenRef.current?.contains(document.activeElement)) setWatching(false);
+    if (ended && !pointerIn.current && !screenRef.current?.contains(document.activeElement)) setWatching(false);
   }, [ended]);
   if (!run) return null;
   const outcome = run.outcome;
@@ -60,10 +61,11 @@ export default function ChatHandoffCard({ run, isMobile = false }) {
   const open = (e) => { e.preventDefault(); navigate(link); };
 
   return (
-    <div style={{ display: "grid", gap: 10, marginTop: 14, fontFamily: SANS }}>
+    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 10, marginTop: 14, fontFamily: SANS }}>
       {/* Live while Beaker works, and still there when it finishes so a tab being read never vanishes. */}
       {shots.length > 0 && watching && (
-        <div ref={screenRef}>
+        <div ref={screenRef} style={{ minWidth: 0 }} onPointerEnter={() => { pointerIn.current = true; }}
+          onPointerLeave={() => { pointerIn.current = false; }}>
           <AgentScreen shots={shots} agent="beaker" running={!outcome} isMobile={isMobile} height={isMobile ? 260 : 300} />
         </div>
       )}

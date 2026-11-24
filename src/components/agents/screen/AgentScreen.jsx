@@ -362,7 +362,8 @@ function TabIcon({ shot, ink }) {
 
 function StatePill({ state, ink, short }) {
   const on = state === "live";
-  const text = { live: "Live", paused: short ? "Paused" : "Paused here", done: short ? "Done" : "Finished" }[state];
+  const text = { live: "Live", waiting: "Waiting for you", paused: short ? "Paused" : "Paused here",
+    done: short ? "Done" : "Finished" }[state];
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "3px 10px", borderRadius: RADIUS.pill,
       background: on ? ink.softer : WHITE, border: `1px solid ${on ? ink.soft : BORDER}`,
@@ -431,7 +432,11 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     if (wait <= 0) { setLiveId(latestRef.current); return; }
     holdTimer.current = setTimeout(catchUp, wait);
   };
-  useEffect(() => { if (!latest) setLiveId(null); else catchUp(); }, [latest?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!latest) setLiveId(null);
+    else if (!liveId) setLiveId(latest.id);
+    else catchUp();
+  }, [latest?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => clearTimeout(holdTimer.current), []);
   const newest = (liveId && shots.find((s) => s.id === liveId)) || latest;
   const firstSeq = shots[0]?.seq;
@@ -441,6 +446,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   const following = !picked;
   const missed = following ? 0 : shots.filter((s) => s.seq > seenAt).length;
   const state = !running ? "done" : following ? "live" : "paused";
+  const pillState = state === "live" && liveId && latest && liveId !== latest.id ? "waiting" : state;
   const readTab = useMemo(() => {
     const map = new Map();
     for (const s of shots) if (s.kind === "page") map.set(s.url, { id: s.id, status: s.status });
@@ -614,7 +620,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
         {mascot && <Mascot agent={agent} state={running ? "thinking" : "idle"} size={28} title="" />}
         <span style={{ fontSize: "1rem", fontWeight: 800, color: TEXT, whiteSpace: "nowrap", overflow: "hidden",
           textOverflow: "ellipsis", minWidth: 0 }}>{isMobile ? name : `${name}'s screen`}</span>
-        {tabsMode && <StatePill state={state} ink={ink} short={isMobile} />}
+        {tabsMode && <StatePill state={pillState} ink={ink} short={isMobile} />}
         <span style={{ flex: "1 1 0", minWidth: 0 }} />
         {!isMobile && (state === "paused" || (state === "done" && picked && missed > 0)) && (
           <Button kind="secondary" ref={backRef} onClick={backToLive} style={{ padding: "8px 14px", flexShrink: 0 }}
@@ -624,9 +630,9 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
         )}
         {tabsMode && (
           <Button kind="quiet" aria-expanded={help} aria-controls={`${baseId}-help`} onClick={() => setHelp((h) => !h)}
-            aria-label={isMobile ? "What's this?" : undefined}
+            aria-label={isMobile && !help ? "What's this?" : undefined}
             style={{ padding: isMobile ? "8px 14px" : "8px 12px", flexShrink: 0 }}>
-            {isMobile ? <PixelStamp kind="question" size={16} /> : help ? "Hide help" : "What's this?"}
+            {isMobile ? (help ? "Hide" : "Help") : help ? "Hide help" : "What's this?"}
           </Button>
         )}
       </div>
@@ -728,8 +734,9 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
           </span>
         </div>
         {shown?.kind === "doc" && address.url && shown.status === "done" && (
-          <ExternalLink href={address.url} style={{ display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 12px",
-            color: ink.text, fontSize: "0.95rem", fontWeight: 800, whiteSpace: "nowrap" }}>
+          <ExternalLink href={address.url} mark style={{ display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 12px",
+            color: ink.text, fontSize: "0.95rem", fontWeight: 800, whiteSpace: "nowrap", textDecoration: "underline",
+            textUnderlineOffset: 3 }}>
             {isMobile ? "Open" : "Open in Google Docs"}
             {isMobile && <span style={SR_ONLY}> in Google Docs</span>}
           </ExternalLink>

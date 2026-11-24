@@ -78,8 +78,11 @@ export default function OpenDocSheet({ onClose, onUse, hasWords, openGoogleDoc, 
     e.preventDefault();
     const value = link.trim();
     if (!GOOGLE_LINK.test(value)) {
-      setError(/docs\.google\.com\/document/i.test(value)
+      const id = value.match(/\/document\/(?:u\/\d+\/)?d\/([A-Za-z0-9_-]*)/i)?.[1] || "";
+      setError(/docs\.google\.com\/document/i.test(value) && id.length < 20
         ? "That link looks cut off. In Google Docs, press Share, then Copy link, and paste it here again."
+        : /docs\.google\.com\/document/i.test(value)
+        ? "That link has extra characters at the start or end. In Google Docs, press Share, then Copy link, and paste it here again."
         : "That isn't a Google Docs link. In Google Docs, press Share, then Copy link, and paste it here.");
       linkRef.current?.focus();
       return;
