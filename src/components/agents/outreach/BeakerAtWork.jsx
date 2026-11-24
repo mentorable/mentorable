@@ -15,20 +15,31 @@ import { SANS, TEXT_MUTED } from "../agentUi.js";
 // until it is done, which would silence the checklist for the whole run.
 
 const EVERY_MS = 4500;
+// The researching line for what the screen shows now (BEAKER_LINES.researching, in order).
+const SAY_FOR = {
+  search: BEAKER_LINES.researching[0],
+  page: BEAKER_LINES.researching[1],
+  notes: BEAKER_LINES.researching[2],
+  compose: BEAKER_LINES.researching[4],
+};
 
 export default function BeakerAtWork({ lines, shots = [], isMobile = false, sayings = BEAKER_LINES.researching, note,
   checklistLabel }) {
   const [at, setAt] = useState(0);
+  // Once the screen has tabs, Beaker says what the screen is showing, so its
+  // line never contradicts the work under it. Before that, the lines rotate.
+  const latest = shots.length ? shots[shots.length - 1].kind : null;
+  const sayingFor = latest && sayings === BEAKER_LINES.researching ? SAY_FOR[latest] : null;
   useEffect(() => {
-    if (!sayings?.length || sayings.length < 2) return undefined;
+    if (sayingFor || !sayings?.length || sayings.length < 2) return undefined;
     const t = setInterval(() => setAt((i) => (i + 1) % sayings.length), EVERY_MS);
     return () => clearInterval(t);
-  }, [sayings]);
+  }, [sayings, sayingFor]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
       <MascotSays state="flying" size={isMobile ? 64 : 96} layout="auto">
-        {sayings?.[at % (sayings?.length || 1)] || ""}
+        {sayingFor || sayings?.[at % (sayings?.length || 1)] || ""}
       </MascotSays>
       <AgentScreen shots={shots} agent="beaker" running isMobile={isMobile} />
       <ProgressChecklist lines={lines} label={checklistLabel} />

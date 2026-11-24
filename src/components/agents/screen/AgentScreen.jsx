@@ -45,9 +45,12 @@ const CSS = `
 .as-bar { animation: as-bar 1.3s cubic-bezier(.65,0,.35,1) infinite; }
 .as-caret { animation: as-caret 1s steps(1) infinite; }
 .as-breathe { animation: as-breathe 2.4s ease-in-out infinite; }
-.as-view, .as-tabs { scrollbar-width: thin; scrollbar-color: ${BORDER} transparent; }
-.as-view::-webkit-scrollbar, .as-tabs::-webkit-scrollbar { width: 10px; height: 8px; }
-.as-view::-webkit-scrollbar-thumb, .as-tabs::-webkit-scrollbar-thumb { background: ${BORDER}; border-radius: ${RADIUS.pill}px; }
+.as-view { scrollbar-width: thin; scrollbar-color: ${BORDER} transparent; }
+.as-view::-webkit-scrollbar { width: 10px; }
+.as-view::-webkit-scrollbar-thumb { background: ${BORDER}; border-radius: ${RADIUS.pill}px; }
+.as-tabs { scrollbar-width: none; }
+.as-tabs::-webkit-scrollbar { display: none; }
+.as-tab.${FOCUS_CLASS}:focus-visible { outline-offset: -3px; }
 .as-tab:hover { background: ${WHITE}; color: ${TEXT}; }
 .as-link { text-decoration: none; }
 .as-link:hover, .as-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
@@ -69,7 +72,13 @@ const REDUCED = typeof window !== "undefined" && window.matchMedia
 const reduced = () => !!REDUCED?.matches;
 
 const STAMP = { search: "search", page: "page", notes: "check", compose: "letter", doc: "scroll" };
+const MEASURE = "36rem";        // about 70 characters of body text
 const AGENT_NAMES = { beaker: "Beaker", talon: "Talon", quill: "Quill", poise: "Poise" };
+// What each agent's tabs can be, for its help line.
+const TAB_KINDS = {
+  beaker: "a search it ran, a page it read, the facts it kept or the draft it wrote",
+  talon: "a search it ran or a page it read",
+};
 
 /** Reveals `text` a few characters at a time when `animate`, else all at once. */
 function useTyped(text, { animate, maxMs = 2600 }) {
@@ -87,11 +96,13 @@ function useTyped(text, { animate, maxMs = 2600 }) {
   return text.slice(0, n);
 }
 
-function ExternalLink({ href, children, style, className = "" }) {
+function ExternalLink({ href, children, style, className = "", mark = false }) {
   return (
     <a href={href} target="_blank" rel="noopener noreferrer" className={`as-link ${FOCUS_CLASS} ${className}`.trim()}
       style={{ borderRadius: RADIUS.control, ...style }}>
-      {children}<span style={SR_ONLY}> (opens in a new tab)</span>
+      {children}
+      {mark && <span aria-hidden="true" style={{ display: "inline-flex", marginLeft: 6, verticalAlign: "-2px" }}><PixelStamp kind="out" size={16} /></span>}
+      <span style={SR_ONLY}> (opens in a new tab)</span>
     </a>
   );
 }
@@ -107,14 +118,14 @@ function Caret({ ink }) {
 
 function Waiting({ stamp, children }) {
   return (
-    <div style={{ display: "flex", gap: 12, alignItems: "flex-start", maxWidth: "62ch" }}>
+    <div style={{ display: "flex", gap: 12, alignItems: "flex-start", maxWidth: MEASURE }}>
       {stamp && <span aria-hidden="true" style={{ color: TEXT_FAINT, display: "flex", paddingTop: 3 }}><PixelStamp kind={stamp} size={16} /></span>}
       <p style={{ margin: 0, fontSize: "1rem", fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.55 }}>{children}</p>
     </div>
   );
 }
 
-function SearchView({ shot, readTab, onJump, ink, name, animate }) {
+function SearchView({ shot, readTab, onJump, ink, name, animate, next }) {
   const typed = useTyped(shot.query, { animate, maxMs: 900 });
   const typing = typed.length < shot.query.length;
   return (
@@ -144,7 +155,17 @@ function SearchView({ shot, readTab, onJump, ink, name, animate }) {
             </div>
           </>
         ) : shot.status === "failed" ? (
-          <Waiting stamp="cross">That search didn't go through. {name} carried on with its other searches.</Waiting>
+          <div style={{ display: "grid", gap: 8 }}>
+            <Waiting stamp="cross">That search didn't go through. {name} carried on with its other searches.</Waiting>
+            {next && (
+              <button type="button" onClick={() => onJump(next)} className={`as-link ${FOCUS_CLASS}`}
+                style={{ justifySelf: "start", marginLeft: 28, minHeight: 44, padding: 0, border: "none", background: "transparent",
+                  color: ink.text, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 800, textDecoration: "underline",
+                  textUnderlineOffset: 3, cursor: "pointer", borderRadius: RADIUS.control }}>
+                Go to its next search
+              </button>
+            )}
+          </div>
         ) : shot.results.length === 0 ? (
           <Waiting stamp="search">Nothing came back for this one.</Waiting>
         ) : (
@@ -152,7 +173,7 @@ function SearchView({ shot, readTab, onJump, ink, name, animate }) {
             {shot.results.map((r) => {
               const tab = readTab.get(r.url);
               return (
-                <li key={r.url} style={{ minWidth: 0, maxWidth: "62ch" }}>
+                <li key={r.url} style={{ minWidth: 0, maxWidth: MEASURE }}>
                   <span aria-hidden="true" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.9rem", fontWeight: 700,
                     color: TEXT_MUTED, minWidth: 0 }}>
                     <span style={{ width: 20, height: 20, borderRadius: RADIUS.control / 2, background: ink.softer, color: ink.onSoft,
@@ -160,13 +181,13 @@ function SearchView({ shot, readTab, onJump, ink, name, animate }) {
                       flexShrink: 0 }}>{(r.domain || "?")[0].toUpperCase()}</span>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.domain}</span>
                   </span>
-                  <ExternalLink href={r.url} style={{ display: "inline-block", marginTop: 3, fontSize: "1.1rem", fontWeight: 800,
-                    color: ink.text, lineHeight: 1.35, overflowWrap: "anywhere", letterSpacing: "-0.01em" }}>
+                  <ExternalLink href={r.url} style={{ display: "flex", alignItems: "center", minHeight: 44, fontSize: "1.1rem",
+                    fontWeight: 800, color: ink.text, lineHeight: 1.35, overflowWrap: "anywhere", letterSpacing: "-0.01em" }}>
                     {r.title}
                     {tab && <span style={SR_ONLY}>. {name} read this page.</span>}
                   </ExternalLink>
                   {r.snippet && (
-                    <p style={{ margin: "3px 0 0", fontSize: "0.95rem", fontWeight: 500, color: TEXT_MID, lineHeight: 1.5 }}>{r.snippet}</p>
+                    <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 500, color: TEXT_MID, lineHeight: 1.5 }}>{r.snippet}</p>
                   )}
                   {tab && (
                     <button type="button" onClick={() => onJump(tab)} className={FOCUS_CLASS}
@@ -196,7 +217,7 @@ function PageView({ shot, name, ink, from, onJump }) {
         <Waiting stamp="cross">{shot.domain} wouldn't open, or had nothing to read. That happens, and {name} moved on to the next page.</Waiting>
         <p style={{ margin: "0 0 0 28px", fontSize: "0.95rem", fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.5 }}>
           <ExternalLink href={shot.url} style={{ color: ink.text, fontWeight: 800, textDecoration: "underline", textUnderlineOffset: 3,
-            display: "inline-flex", alignItems: "center", minHeight: 44 }}>Try opening it yourself</ExternalLink>
+            display: "inline-flex", alignItems: "center", minHeight: 44 }} mark>Try opening it yourself</ExternalLink>
         </p>
       </div>
     );
@@ -205,7 +226,7 @@ function PageView({ shot, name, ink, from, onJump }) {
   const link = { color: ink.text, fontWeight: 800, textDecoration: "underline", textUnderlineOffset: 3, display: "inline-flex",
     alignItems: "center", minHeight: 44 };
   return (
-    <article style={{ maxWidth: "62ch" }}>
+    <article style={{ maxWidth: MEASURE }}>
       <h3 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 800, color: TEXT, lineHeight: 1.3, letterSpacing: "-0.01em",
         overflowWrap: "anywhere" }}>{shot.title || shot.domain}</h3>
       <p style={{ margin: "4px 0 0", fontSize: "0.9rem", fontWeight: 700, color: TEXT_MUTED }}>{shot.domain}</p>
@@ -217,7 +238,7 @@ function PageView({ shot, name, ink, from, onJump }) {
         <span style={{ fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.5 }}>
           {cut ? `That's the start of what ${name} read.` : `That's what ${name} read.`}
         </span>
-        <ExternalLink href={shot.url} style={link}>Open the page</ExternalLink>
+        <ExternalLink href={shot.url} style={link} mark>Open the page</ExternalLink>
         {from && (
           <button type="button" onClick={() => onJump(from)} className={`as-link ${FOCUS_CLASS}`}
             style={{ ...link, padding: 0, border: "none", background: "transparent", fontFamily: SANS, fontSize: "0.95rem",
@@ -232,23 +253,24 @@ function PageView({ shot, name, ink, from, onJump }) {
 
 function NotesView({ shot, ink, name }) {
   return (
-    <div style={{ maxWidth: "62ch" }}>
+    <div style={{ maxWidth: MEASURE }}>
       <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: TEXT, lineHeight: 1.3 }}>{shot.title || "What checked out"}</h3>
       <p style={{ margin: "4px 0 14px", fontSize: "0.95rem", fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.5 }}>
         Each fact links to the page {name} found it on. Anything it couldn't find on a page was left out.
       </p>
-      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 14 }}>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 6 }}>
         {shot.notes.map((n, i) => (
           <li key={i} style={{ display: "grid", gridTemplateColumns: "24px minmax(0,1fr)", gap: 10, alignItems: "start" }}>
             <span aria-hidden="true" style={{ width: 24, height: 24, borderRadius: RADIUS.control / 2, background: ink.softer,
               color: ink.onSoft, display: "flex", alignItems: "center", justifyContent: "center" }}><PixelStamp kind="check" size={16} /></span>
-            <span style={{ fontSize: "1rem", fontWeight: 600, color: TEXT, lineHeight: 1.5 }}>
-              {n.text}
+            <span style={{ display: "grid", fontSize: "1rem", fontWeight: 600, color: TEXT, lineHeight: 1.5, minWidth: 0 }}>
+              <span>{n.text}</span>
               {n.url && (
-                <> <ExternalLink href={n.url} style={{ color: ink.text, fontSize: "0.9rem", fontWeight: 800, whiteSpace: "nowrap",
-                  textDecoration: "underline", textUnderlineOffset: 3 }}>
+                <ExternalLink href={n.url} mark style={{ justifySelf: "start", display: "inline-flex", alignItems: "center",
+                  minHeight: 44, color: ink.text, fontSize: "0.9rem", fontWeight: 800, textDecoration: "underline",
+                  textUnderlineOffset: 3, overflowWrap: "anywhere" }}>
                   <span style={SR_ONLY}>Source: </span>{n.domain}
-                </ExternalLink></>
+                </ExternalLink>
               )}
             </span>
           </li>
@@ -264,7 +286,7 @@ function ComposeView({ shot, ink, animate }) {
   const row = { display: "grid", gridTemplateColumns: "72px minmax(0,1fr)", gap: 8, padding: "9px 0",
     borderBottom: `1px solid ${BORDER}`, fontSize: "1rem", lineHeight: 1.4 };
   return (
-    <div style={{ maxWidth: "62ch" }}>
+    <div style={{ maxWidth: MEASURE }}>
       <div style={row}><span style={{ fontWeight: 700, color: TEXT_MUTED }}>To</span>
         <span style={{ fontWeight: 600, color: TEXT, overflowWrap: "anywhere" }}>{shot.to || "You'll add an address"}</span></div>
       <div style={row}><span style={{ fontWeight: 700, color: TEXT_MUTED }}>Subject</span>
@@ -284,13 +306,13 @@ function ComposeView({ shot, ink, animate }) {
   );
 }
 
-function DocView({ shot, name }) {
+function DocView({ shot, name, isMobile }) {
   if (shot.status === "active") return <Waiting stamp="scroll">Opening your doc. {name} only reads it; nothing in it changes.</Waiting>;
   if (shot.status === "failed") return <Waiting stamp="cross">{name} couldn't open that doc. What went wrong is just above.</Waiting>;
   const paras = shot.text.split(/\n+/).map((p) => p.trim()).filter(Boolean);
   return (
-    <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: RADIUS.control, maxWidth: 640, margin: "0 auto",
-      padding: "28px clamp(18px, 5vw, 40px)", boxSizing: "border-box" }}>
+    <div style={{ background: WHITE, border: isMobile ? "none" : `1px solid ${BORDER}`, borderRadius: RADIUS.control, maxWidth: 640,
+      margin: isMobile ? "-18px -20px" : "0 auto", padding: isMobile ? "20px" : "28px clamp(18px, 5vw, 40px)", boxSizing: "border-box" }}>
       {shot.title && (
         <h3 style={{ margin: "0 0 14px", fontSize: "1.3rem", fontWeight: 800, color: TEXT, lineHeight: 1.3, overflowWrap: "anywhere" }}>
           {shot.title}
@@ -298,7 +320,7 @@ function DocView({ shot, name }) {
       )}
       {paras.slice(0, 80).map((p, i) => (
         <p key={i} style={{ margin: i ? "12px 0 0" : 0, fontSize: "1rem", fontWeight: 500, color: TEXT, lineHeight: 1.7,
-          overflowWrap: "anywhere", maxWidth: "62ch" }}>{p}</p>
+          overflowWrap: "anywhere", maxWidth: MEASURE }}>{p}</p>
       ))}
     </div>
   );
@@ -314,7 +336,7 @@ function TabIcon({ shot, ink }) {
 
 function StatePill({ state, ink }) {
   const on = state === "live";
-  const text = { live: "Live", paused: "Paused", done: "Finished" }[state];
+  const text = { live: "Live", paused: "Paused here", done: "Finished" }[state];
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "3px 10px", borderRadius: RADIUS.pill,
       background: on ? ink.softer : WHITE, border: `1px solid ${on ? ink.soft : BORDER}`,
@@ -365,6 +387,8 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   const tabsMode = mode !== "doc";
 
   const newest = shots.length ? shots[shots.length - 1] : null;
+  const firstSeq = shots[0]?.seq;
+  useEffect(() => { if (!shots.length || firstSeq === 1) { setPick(null); setSeenAt(0); } }, [shots.length === 0, firstSeq]); // eslint-disable-line react-hooks/exhaustive-deps
   const picked = pick && shots.find((s) => s.id === pick);
   const shown = picked || newest;
   const following = !picked;
@@ -381,6 +405,10 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     const before = shots.filter((s) => s.seq < shown.seq && s.kind === "search" && s.results?.some((r) => r.url === shown.url));
     return before.length ? before[before.length - 1].id : null;
   }, [shots, shown]);
+  const nextSearch = useMemo(() => {
+    if (!shown || shown.kind !== "search" || shown.status !== "failed") return null;
+    return shots.find((s) => s.seq > shown.seq && s.kind === "search")?.id || null;
+  }, [shots, shown]);
   const edges = useOverflow(stripRef, [shots.length > 0, tabsMode]);
   const viewHeight = height || (isMobile ? 320 : 380);
   const dropped = shots.length && shots[0].seq > 1 ? shots[0].seq - 1 : 0;
@@ -391,9 +419,12 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     if (shown && shown.status === "done") animated.current.add(shown.id);
   }, [shown?.id, shown?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // A new tab opened while following: start it at the top, and keep it in view on the strip.
+  // Every tab starts at its top (a reset the screen makes is not the student
+  // scrolling, so it never pauses), and the shown tab stays in view on the strip.
+  const resetting = useRef(false);
   useEffect(() => {
-    if (following && panelRef.current) panelRef.current.scrollTop = 0;
+    const panel = panelRef.current;
+    if (panel && panel.scrollTop !== 0) { resetting.current = true; panel.scrollTop = 0; }
     const el = shown && tabRefs.current.get(shown.id);
     const strip = stripRef.current;
     if (!el || !strip) return;
@@ -412,7 +443,23 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   };
   // Anything the student does on a live screen pauses it where they are.
   const holdHere = () => { if (running && following && shown) pause(shown.id); };
-  const jump = (id) => { pause(id); panelRef.current?.focus({ preventScroll: true }); };
+  const sectionRef = useRef(null);
+  const jump = (id) => {
+    pause(id);
+    panelRef.current?.focus({ preventScroll: true });
+    sectionRef.current?.scrollIntoView({ block: "nearest", behavior: reduced() ? "auto" : "smooth" });
+  };
+  // Only a real scroll of the page pauses it: one the screen made itself doesn't.
+  const onPanelScroll = () => {
+    if (resetting.current) { resetting.current = false; return; }
+    holdHere();
+  };
+  // A mouse wheel over the tab strip scrolls it sideways (it has no scrollbar).
+  const onStripWheel = (e) => {
+    const el = stripRef.current;
+    if (!el || el.scrollWidth <= el.clientWidth || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    el.scrollLeft += e.deltaY;
+  };
   const backToLive = () => {
     setPick(null);
     requestAnimationFrame(() => { if (newest) tabRefs.current.get(newest.id)?.focus({ preventScroll: true }); });
@@ -447,19 +494,22 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     background: `linear-gradient(to ${side === "left" ? "right" : "left"}, ${SURFACE}, transparent)` });
 
   return (
-    <section aria-label={`${name}'s screen`} style={{ position: "relative", background: WHITE, border: `1px solid ${BORDER}`,
+    <section ref={sectionRef} aria-label={`${name}'s screen`} style={{ position: "relative", background: WHITE, border: `1px solid ${BORDER}`,
       borderRadius: RADIUS.card, overflow: "hidden", fontFamily: SANS, minWidth: 0, "--as-select": ink.soft, ...style }}>
       {/* Title bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 6px 6px 14px", minHeight: 56, boxSizing: "border-box",
         background: SURFACE, borderBottom: `1px solid ${BORDER}`, minWidth: 0 }}>
         {mascot && <Mascot agent={agent} state={running ? "thinking" : "idle"} size={28} title="" />}
-        <span style={{ fontSize: "1rem", fontWeight: 800, color: TEXT, whiteSpace: "nowrap", overflow: "hidden",
-          textOverflow: "ellipsis", minWidth: 0 }}>{name}'s screen</span>
+        {!(isMobile && state === "paused") && (
+          <span style={{ fontSize: "1rem", fontWeight: 800, color: TEXT, whiteSpace: "nowrap", overflow: "hidden",
+            textOverflow: "ellipsis", minWidth: 0 }}>{name}'s screen</span>
+        )}
         {tabsMode && <StatePill state={state} ink={ink} />}
         <span style={{ flex: "1 1 0", minWidth: 0 }} />
         {state === "paused" && (
-          <Button kind="secondary" onClick={backToLive} style={{ padding: "8px 14px", flexShrink: 0 }}>
-            {isMobile ? "Live" : "Back to live"}{missed ? ` (${missed} new)` : ""}
+          <Button kind="secondary" onClick={backToLive} style={{ padding: "8px 14px", flexShrink: 0 }}
+            aria-label={`Back to live${missed ? `, ${missed} new ${missed === 1 ? "tab" : "tabs"}` : ""}`}>
+            Back to live{missed ? ` (${missed})` : ""}
           </Button>
         )}
         {tabsMode && (
@@ -471,14 +521,21 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
         )}
       </div>
 
+      {state === "paused" && (
+        <p style={{ margin: 0, padding: "8px 16px", background: WHITE, borderBottom: `1px solid ${BORDER}`, fontSize: "0.9rem",
+          fontWeight: 700, color: TEXT_MID, lineHeight: 1.45 }}>
+          {name} is still working. You're looking back, so the screen is holding still for you.
+        </p>
+      )}
+
       {tabsMode && help && (
         <div id={`${baseId}-help`} style={{ padding: "12px 16px", background: ink.softer, borderBottom: `1px solid ${ink.soft}`,
           fontSize: "0.95rem", fontWeight: 600, color: TEXT, lineHeight: 1.55 }}>
-          <p style={{ margin: 0, maxWidth: "62ch" }}>
-            This is what {name} is really doing on its own. Each tab is a search it ran, a page it read, the facts it kept or
-            a draft it wrote, and nothing shows up here until it has happened.
+          <p style={{ margin: 0, maxWidth: MEASURE }}>
+            This is what {name} is really doing on its own. Each tab is {TAB_KINDS[agent] || "something it opened"}, and
+            nothing shows up here until it has happened.
           </p>
-          <p style={{ margin: "6px 0 0", maxWidth: "62ch" }}>
+          <p style={{ margin: "6px 0 0", maxWidth: MEASURE }}>
             While it works, the newest tab opens by itself. Pick a tab or scroll a page and the screen pauses right there;
             Back to live catches you up.
           </p>
@@ -489,7 +546,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
       {tabsMode && shots.length > 0 && (
         <div style={{ position: "relative", background: SURFACE, borderBottom: `1px solid ${BORDER}` }}>
           <div ref={stripRef} role="tablist" aria-label={`What ${name} opened`} onKeyDown={onKey} className="as-tabs"
-            onPointerDown={holdHere}
+            onPointerDown={holdHere} onWheel={onStripWheel}
             style={{ position: "relative", display: "flex", alignItems: "flex-end", gap: 4, padding: "8px 10px 0", overflowX: "auto" }}>
             {dropped > 0 && (
               <span style={{ flexShrink: 0, alignSelf: "center", padding: "0 8px 6px", fontSize: "0.9rem", fontWeight: 700,
@@ -537,7 +594,8 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
         {shown?.kind === "doc" && address.url && shown.status === "done" && (
           <ExternalLink href={address.url} style={{ display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 12px",
             color: ink.text, fontSize: "0.95rem", fontWeight: 800, whiteSpace: "nowrap" }}>
-            Open in Google Docs
+            {isMobile ? "Open" : "Open in Google Docs"}
+            {isMobile && <span style={SR_ONLY}> in Google Docs</span>}
           </ExternalLink>
         )}
         {loading && (
@@ -551,7 +609,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
       <div ref={panelRef} id={`${baseId}-panel`} role={tabsMode && shots.length ? "tabpanel" : "region"}
         aria-labelledby={tabsMode && shown ? `${baseId}-tab-${shown.id}` : undefined}
         aria-label={tabsMode && shown ? undefined : `${name}'s page`} tabIndex={0}
-        onWheel={holdHere} onTouchStart={holdHere} onFocus={(e) => { if (e.target === e.currentTarget || e.currentTarget.contains(e.target)) holdHere(); }}
+        onScroll={onPanelScroll} onFocus={holdHere}
         className={`as-view ${FOCUS_CLASS}`}
         style={{ height: viewHeight, overflowY: "auto", overscrollBehavior: overflows ? "contain" : "auto", padding: "18px 20px",
           boxSizing: "border-box", position: "relative",
@@ -566,11 +624,12 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
           </div>
         ) : (
           <div key={`${shown.id}-${shown.status}`} className={shown.status === "done" && animate ? "as-load" : undefined}>
-            {shown.kind === "search" && <SearchView shot={shown} readTab={readTab} onJump={jump} ink={ink} name={name} animate={animate} />}
+            {shown.kind === "search" && <SearchView shot={shown} readTab={readTab} onJump={jump} ink={ink} name={name} animate={animate}
+              next={nextSearch} />}
             {shown.kind === "page" && <PageView shot={shown} name={name} ink={ink} from={fromSearch} onJump={jump} />}
             {shown.kind === "notes" && <NotesView shot={shown} ink={ink} name={name} />}
             {shown.kind === "compose" && <ComposeView shot={shown} ink={ink} animate={animate} />}
-            {shown.kind === "doc" && <DocView shot={shown} name={name} />}
+            {shown.kind === "doc" && <DocView shot={shown} name={name} isMobile={isMobile} />}
           </div>
         )}
       </div>

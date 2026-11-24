@@ -290,6 +290,17 @@ const STAMPS = {
     "xxxxxxxx",
     "........",
   ],
+  // A link that leaves the app: an arrow out of a box.
+  out: [
+    "....xxxx",
+    ".....xxx",
+    "xxx.x.xx",
+    "x..x...x",
+    "x.x.....",
+    "x......x",
+    "x......x",
+    "xxxxxxxx",
+  ],
   question: [
     "..xxxx..",
     ".xx..xx.",
