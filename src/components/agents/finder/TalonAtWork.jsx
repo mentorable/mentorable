@@ -198,7 +198,7 @@ export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = fal
       {!(isMobile && shots.length > 0) && <Sky ink={ink} isMobile={isMobile} />}
 
       <section aria-label="What Talon is doing" style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+        {running && <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 14px", minWidth: 0,
             background: ink.softer, border: `1px solid ${ink.soft}`, borderRadius: RADIUS.control }}>
             <span className={shots.length ? undefined : PULSE_CLASS} aria-hidden="true" style={{ display: "flex", marginTop: 4, color: ink.onSoft }}>
@@ -232,7 +232,7 @@ export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = fal
               Talon: &ldquo;{saying}&rdquo;
             </p>
           )}
-        </div>
+        </div>}
 
         <AgentScreen shots={shots} agent="talon" running={running} isMobile={isMobile}
           idle="Talon's searches and the pages it reads open here as it scouts." />

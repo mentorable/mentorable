@@ -39,10 +39,10 @@ export default function BeakerAtWork({ lines, shots = [], isMobile = false, runn
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
       <MascotSays state="flying" size={isMobile ? 64 : 96} layout="auto">
-        {sayingFor || sayings?.[at % (sayings?.length || 1)] || ""}
+        {!running ? "All done. Everything I looked at is still on my screen." : sayingFor || sayings?.[at % (sayings?.length || 1)] || ""}
       </MascotSays>
       <AgentScreen shots={shots} agent="beaker" running={running} isMobile={isMobile} />
-      <ProgressChecklist lines={lines} label={checklistLabel} />
+      <ProgressChecklist lines={lines} label={checklistLabel || (running ? undefined : "What Beaker did")} />
       {note && (
         <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.55 }}>{note}</p>
       )}

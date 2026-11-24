@@ -16,8 +16,10 @@ import { addressOf, tabLabel, tabSentence } from "./screenModel.js";
 //
 // Following and pausing. While the agent works, the screen follows it to each
 // new tab. It pauses only when the student clearly means to look at something:
-// picking a tab (even the newest), moving along the tabs with the keys, or
-// scrolling well into a page. Passing over it, tabbing through it or a stray
+// picking a tab (even the newest), moving along the tabs with the keys,
+// focusing something inside the page (a link, a button), or, on a wide
+// screen, scrolling well into a page. On a phone the page scrolls past the
+// screen with a thumb, so scrolling there never pauses it. Passing over it, tabbing through it or a stray
 // wheel never pause it. Pausing moves nothing on screen (the status line at
 // the bottom always has its place), so a click always lands where it was
 // aimed. "Back to live" resumes, with a count of what opened meanwhile. The tabs are a real tablist (arrow keys from whichever tab has
@@ -51,7 +53,7 @@ const CSS = `
 .as-view::-webkit-scrollbar-thumb { background: ${BORDER}; border-radius: ${RADIUS.pill}px; }
 .as-tabs { scrollbar-width: none; }
 .as-tabs::-webkit-scrollbar { display: none; }
-.as-tab.${FOCUS_CLASS}:focus-visible { outline-offset: -3px; }
+.as-tab.${FOCUS_CLASS}:focus-visible, .as-view.${FOCUS_CLASS}:focus-visible { outline-offset: -3px; }
 .as-tab:hover { background: ${WHITE}; color: ${TEXT}; }
 .as-link { text-decoration: none; }
 .as-link:hover, .as-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
@@ -182,7 +184,7 @@ function SearchView({ shot, readTab, onJump, ink, name, animate, next }) {
                       flexShrink: 0 }}>{(r.domain || "?")[0].toUpperCase()}</span>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.domain}</span>
                   </span>
-                  <ExternalLink href={r.url} style={{ display: "flex", alignItems: "center", minHeight: 44, fontSize: "1.1rem",
+                  <ExternalLink href={r.url} mark style={{ display: "flex", alignItems: "center", minHeight: 44, fontSize: "1.1rem",
                     fontWeight: 800, color: ink.text, lineHeight: 1.35, overflowWrap: "anywhere", letterSpacing: "-0.01em" }}>
                     {r.title}
                     {tab && <span style={SR_ONLY}>. {name} read this page.</span>}
@@ -421,8 +423,16 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     return shots.find((s) => s.seq > shown.seq && s.kind === "search")?.id || null;
   }, [shots, shown]);
   const edges = useOverflow(stripRef, [shots.length > 0, tabsMode]);
-  const viewHeight = height || (isMobile ? 320 : 380);
+  const viewHeight = height || (isMobile ? "min(300px, 40vh)" : 380);
   const dropped = shots.length && shots[0].seq > 1 ? shots[0].seq - 1 : 0;
+
+  // The run finished while "Back to live" had focus: the button goes, so focus
+  // moves to the selected tab instead of dropping to the page.
+  useEffect(() => {
+    if (!running && backRef.current === document.activeElement) {
+      requestAnimationFrame(() => { if (shown) tabRefs.current.get(shown.id)?.focus({ preventScroll: true }); });
+    }
+  }, [running]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Typing plays once, the first time a tab is shown while the agent is live.
   const animate = !!shown && running && following && !animated.current.has(shown.id);
@@ -433,6 +443,16 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   // Every tab starts at its top (a reset the screen makes is not the student
   // scrolling, so it never pauses), and the shown tab stays in view on the strip.
   const resetting = useRef(false);
+  const backRef = useRef(null);
+  const lastFocus = useRef(null);          // the last thing focused inside the page
+  // The page under a focused link or button changed (a tab finished loading):
+  // the element is gone, so focus stays in the page instead of dropping out.
+  useEffect(() => {
+    const el = lastFocus.current;
+    if (el && !el.isConnected && (document.activeElement === document.body || !document.activeElement)) {
+      panelRef.current?.focus({ preventScroll: true });
+    }
+  }, [shown?.id, shown?.status]); // eslint-disable-line react-hooks/exhaustive-deps
   const touching = useRef(false);          // a pointer is down on the strip: don't slide it
   useEffect(() => {
     const panel = panelRef.current;
@@ -450,7 +470,8 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   /** Stop following and stay on `id` (the tab in view, when none is given). */
   const pause = (id = shown?.id) => {
     if (!id) return;
-    if (following) setSeenAt(newest?.seq || 0);
+    const seq = shots.find((s) => s.id === id)?.seq || 0;
+    setSeenAt((was) => Math.max(following ? (newest?.seq || 0) : was, seq));
     setPick(id);
   };
   // Anything the student does on a live screen pauses it where they are.
@@ -464,7 +485,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   // Only a real scroll of the page pauses it: one the screen made itself doesn't.
   const onPanelScroll = (e) => {
     if (resetting.current) { resetting.current = false; return; }
-    if (e.currentTarget.scrollTop > 48) holdHere();       // well into the page, not a nudge
+    if (!isMobile && e.currentTarget.scrollTop > 48) holdHere();   // well into the page, not a nudge
   };
   // A mouse wheel over the tab strip scrolls it sideways (it has no scrollbar).
   const onStripWheel = (e) => {
@@ -496,7 +517,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   const loading = shown?.status === "active";
   const working = newest ? tabSentence(newest, name) : `${name} is getting started.`;
   const status = state === "paused"
-    ? `Paused here. ${name} is still working${missed ? `, with ${missed} new ${missed === 1 ? "tab" : "tabs"} since` : ""}.`
+    ? `${name} is still working${missed ? `: ${missed} new ${missed === 1 ? "tab" : "tabs"} since you paused` : ""}. Back to live catches you up.`
     : state === "live" ? working
       : shots.length ? `${name} finished. Every tab stays here to look back through.` : "";
   const fade = (side) => ({ position: "absolute", top: 0, bottom: 0, [side]: 0, width: 28, pointerEvents: "none",
@@ -514,7 +535,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
         {tabsMode && !(isMobile && state === "paused") && <StatePill state={state} ink={ink} />}
         <span style={{ flex: "1 1 0", minWidth: 0 }} />
         {state === "paused" && (
-          <Button kind="secondary" onClick={backToLive} style={{ padding: "8px 14px", flexShrink: 0 }}
+          <Button kind="secondary" ref={backRef} onClick={backToLive} style={{ padding: "8px 14px", flexShrink: 0 }}
             aria-label={`Back to live${missed ? `, ${missed} new ${missed === 1 ? "tab" : "tabs"}` : ""}`}>
             Back to live{missed ? ` (${missed})` : ""}
           </Button>
@@ -522,7 +543,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
         {tabsMode && (
           <Button kind="quiet" aria-expanded={help} aria-controls={`${baseId}-help`} onClick={() => setHelp((h) => !h)}
             aria-label={isMobile ? (help ? "Hide help" : "What's this?") : undefined}
-            style={{ padding: isMobile ? "8px 12px" : "8px 12px", flexShrink: 0 }}>
+            style={{ padding: isMobile ? "8px 14px" : "8px 12px", flexShrink: 0 }}>
             {isMobile ? <PixelStamp kind="question" size={16} /> : help ? "Hide help" : "What's this?"}
           </Button>
         )}
@@ -551,7 +572,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
             style={{ position: "relative", display: "flex", alignItems: "flex-end", gap: 4, padding: "8px 10px 0", overflowX: "auto" }}>
             {dropped > 0 && (
               <span style={{ flexShrink: 0, alignSelf: "center", padding: "0 8px 6px", fontSize: "0.9rem", fontWeight: 700,
-                color: TEXT_MUTED, whiteSpace: "nowrap" }}>{dropped} earlier closed</span>
+                color: TEXT_MUTED, whiteSpace: "nowrap" }}>{dropped} older {dropped === 1 ? "tab" : "tabs"} closed</span>
             )}
             {shots.map((s) => {
               const on = s.id === shown?.id;
@@ -611,6 +632,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
         aria-labelledby={tabsMode && shown ? `${baseId}-tab-${shown.id}` : undefined}
         aria-label={tabsMode && shown ? undefined : `${name}'s page`} tabIndex={0}
         onScroll={onPanelScroll}
+        onFocus={(e) => { lastFocus.current = e.target; if (e.target !== e.currentTarget) holdHere(); }}
         className={`as-view ${FOCUS_CLASS}`}
         style={{ height: viewHeight, overflowY: "auto", padding: "18px 20px",
           boxSizing: "border-box", position: "relative",

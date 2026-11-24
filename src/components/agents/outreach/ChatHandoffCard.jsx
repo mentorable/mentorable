@@ -54,7 +54,19 @@ export default function ChatHandoffCard({ run, isMobile = false }) {
 
   return (
     <div style={{ display: "grid", gap: 10, marginTop: 14, fontFamily: SANS }}>
-      {/* Once Beaker is done, how it ended comes first, so the next step is never pushed down. */}
+      {/* Live while Beaker works, and still there when it finishes so a tab being read never vanishes. */}
+      {shots.length > 0 && watching && (
+        <AgentScreen shots={shots} agent="beaker" running={!outcome} isMobile={isMobile} height={isMobile ? 260 : 300} />
+      )}
+      {shots.length > 0 && (
+        <button type="button" onClick={() => setWatching((w) => !w)} aria-expanded={watching}
+          className={`${QUIET_CLASS} ${FOCUS_CLASS}`}
+          style={{ justifySelf: "start", minHeight: 44, padding: "10px 12px", border: "none", background: "transparent",
+            borderRadius: RADIUS.control, color: ink.text, fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: "pointer" }}>
+          {watching ? "Hide Beaker's screen" : `See what Beaker looked at (${shots.length} ${shots.length === 1 ? "tab" : "tabs"})`}
+        </button>
+      )}
+      {/* How it ended goes under the screen and its toggle, so nothing the student may be reading moves. */}
       {copy && (
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start", background: WHITE,
           border: `1px solid ${outcome.outcome === "error" ? BORDER : ink.ring}`, borderRadius: RADIUS.card,
@@ -73,18 +85,6 @@ export default function ChatHandoffCard({ run, isMobile = false }) {
             </a>
           </div>
         </div>
-      )}
-      {/* Live while Beaker works, and still there when it finishes so a tab being read never vanishes. */}
-      {shots.length > 0 && watching && (
-        <AgentScreen shots={shots} agent="beaker" running={!outcome} isMobile={isMobile} height={isMobile ? 260 : 300} />
-      )}
-      {shots.length > 0 && (
-        <button type="button" onClick={() => setWatching((w) => !w)} aria-expanded={watching}
-          className={`${QUIET_CLASS} ${FOCUS_CLASS}`}
-          style={{ justifySelf: "start", minHeight: 44, padding: "10px 12px", border: "none", background: "transparent",
-            borderRadius: RADIUS.control, color: ink.text, fontFamily: SANS, fontSize: "1rem", fontWeight: 700, cursor: "pointer" }}>
-          {watching ? "Hide Beaker's screen" : `See what Beaker looked at (${shots.length} ${shots.length === 1 ? "tab" : "tabs"})`}
-        </button>
       )}
       <ProgressChecklist lines={run.lines || []} label={outcome ? "What Beaker did" : "What Beaker is doing"} />
     </div>
