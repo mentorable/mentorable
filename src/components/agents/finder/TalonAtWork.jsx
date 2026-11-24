@@ -179,7 +179,9 @@ export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = fal
   const saying = (Array.isArray(sayings) && sayings[at % sayings.length]) || "";
 
   const finished = useFinished(list);
-  const said = useStepAnnouncer(list);
+  const stepSaid = useStepAnnouncer(list);
+  // The end of the run is news too: the announcer otherwise keeps its last step.
+  const said = running ? stepSaid : { text: "Talon finished scouting. Everything it opened is on its screen.", n: stepSaid.n + 1 };
 
   // The newest active line leads; searches run side by side, so any others
   // still going are listed under it rather than hidden.
@@ -199,7 +201,7 @@ export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = fal
 
       <section aria-label="What Talon is doing" style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
         {/* Always mounted and one size, so nothing below it moves as steps come and go or the run ends. */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0, minHeight: isMobile ? 136 : 84 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 14px", minWidth: 0,
             minHeight: isMobile ? 76 : 50, boxSizing: "border-box",
             background: ink.softer, border: `1px solid ${ink.soft}`, borderRadius: RADIUS.control }}>

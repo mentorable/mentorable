@@ -97,9 +97,9 @@ export function openedUrls(shots) {
 
 /** What a tab says on its strip. */
 export function tabLabel(shot, agentName = "The agent") {
-  if (shot.kind === "search") return shot.status === "failed" ? `${shot.query || "Search"}, didn't go through` : shot.query || "Search";
+  if (shot.kind === "search") return shot.status === "failed" ? `Didn't go through: ${shot.query || "search"}` : shot.query || "Search";
   if (shot.kind === "page") {
-    if (shot.status === "failed") return `${shot.domain || "Page"}, didn't open`;
+    if (shot.status === "failed") return `Didn't open: ${shot.domain || "page"}`;
     return shot.status === "done" && shot.title ? shot.title : shot.domain || "Page";
   }
   if (shot.kind === "notes") return "Notes";
@@ -130,6 +130,18 @@ export function tabSentence(shot, agentName = "The agent") {
     return `${who} opened ${shot.title ? `"${shot.title}"` : "your doc"}.`;
   }
   return "";
+}
+
+/** A short sentence for a narrow status line: what happened, without the query or title. */
+export function tabShort(shot, agentName = "The agent") {
+  const who = agentName;
+  const verb = { search: ["is searching", "searched", "search didn't go through"],
+    page: [`is opening ${shot.domain}`, `read ${shot.domain}`, `couldn't open ${shot.domain}`],
+    notes: ["is checking facts", "kept the facts that checked out", "kept no facts"],
+    compose: ["is writing", "wrote a draft. Nothing is sent", "couldn't write a draft"],
+    doc: ["is opening your doc", "opened your doc", "couldn't open your doc"] }[shot.kind] || ["is working", "did a step", "hit a snag"];
+  const v = verb[shot.status === "active" ? 0 : shot.status === "failed" ? 2 : 1];
+  return shot.status === "failed" && shot.kind === "search" ? `${who}'s ${v}.` : `${who} ${v}.`;
 }
 
 /** The address bar's text: a real URL, or a plain description where there is none. */
