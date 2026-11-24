@@ -97,8 +97,11 @@ export function openedUrls(shots) {
 
 /** What a tab says on its strip. */
 export function tabLabel(shot, agentName = "The agent") {
-  if (shot.kind === "search") return shot.query || "Search";
-  if (shot.kind === "page") return shot.status === "done" && shot.title ? shot.title : shot.domain || "Page";
+  if (shot.kind === "search") return shot.status === "failed" ? `${shot.query || "Search"}, didn't go through` : shot.query || "Search";
+  if (shot.kind === "page") {
+    if (shot.status === "failed") return `${shot.domain || "Page"}, didn't open`;
+    return shot.status === "done" && shot.title ? shot.title : shot.domain || "Page";
+  }
   if (shot.kind === "notes") return "Notes";
   if (shot.kind === "compose") return "Draft email";
   if (shot.kind === "doc") return shot.title || (shot.source === "word" ? "Word file" : "Your doc");

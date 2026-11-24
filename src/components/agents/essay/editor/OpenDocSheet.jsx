@@ -51,9 +51,10 @@ export default function OpenDocSheet({ onClose, onUse, hasWords, openGoogleDoc, 
   // Back to the form after "Open a different doc": focus its field or button.
   useEffect(() => {
     if (doc) {
-      const el = primaryRef.current;
-      el?.scrollIntoView({ block: "nearest", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-      el?.focus({ preventScroll: true });
+      // Focus goes to the doc itself (to read it), never to the button that
+      // replaces the draft, so a stray Enter can't. The button is brought into view.
+      primaryRef.current?.scrollIntoView({ block: "nearest", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      document.querySelector(`[data-doc-screen="${ids}"] [role=region]`)?.focus({ preventScroll: true });
     } else if (refocus.current) {
       refocus.current = false;
       (source === "google" ? linkRef.current : pickRef.current)?.focus();
@@ -108,7 +109,7 @@ export default function OpenDocSheet({ onClose, onUse, hasWords, openGoogleDoc, 
     }
   };
 
-  const again = () => { refocus.current = true; setShots([]); setError(null); setStatus(""); setLink(""); };
+  const again = () => { refocus.current = true; setShots([]); setError(null); setStatus(""); };   // the link stays, to fix or replace
 
   const use = async () => {
     if (!doc) return;
@@ -185,8 +186,10 @@ export default function OpenDocSheet({ onClose, onUse, hasWords, openGoogleDoc, 
       {error && <div role="alert" id={errorId} style={{ marginTop: 14 }}><Notice tone="error">{error}</Notice></div>}
 
       {shots.length > 0 && (
+        <div data-doc-screen={ids}>
         <AgentScreen shots={shots} agent="quill" mode="doc" mascot running={busy} isMobile={isMobile}
           height={isMobile ? 240 : 300} style={{ marginTop: 16 }} />
+        </div>
       )}
 
       <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>

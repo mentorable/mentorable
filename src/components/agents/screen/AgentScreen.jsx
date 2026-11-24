@@ -5,7 +5,7 @@ import { Button, SR_ONLY } from "../../ui/kit.jsx";
 import {
   BORDER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_FAINT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
 } from "../../ui/tokens.js";
-import { addressOf, tabLabel } from "./screenModel.js";
+import { addressOf, tabLabel, tabSentence } from "./screenModel.js";
 
 // The agent's screen: a browser window that shows what the agent is really
 // looking at while it works on its own. Each tab is one thing that happened
@@ -15,11 +15,12 @@ import { addressOf, tabLabel } from "./screenModel.js";
 // exists until its event arrives, and a page only shows text that was read.
 //
 // Following and pausing. While the agent works, the screen follows it to each
-// new tab. The moment the student does anything on the screen (picks a tab,
-// even the newest; touches the tab strip; scrolls or focuses the page) it
-// pauses and stays exactly where they are, so nothing is ever pulled out from
-// under someone reading. "Back to live" resumes, with a count of what opened
-// meanwhile. The tabs are a real tablist (arrow keys from whichever tab has
+// new tab. It pauses only when the student clearly means to look at something:
+// picking a tab (even the newest), moving along the tabs with the keys, or
+// scrolling well into a page. Passing over it, tabbing through it or a stray
+// wheel never pause it. Pausing moves nothing on screen (the status line at
+// the bottom always has its place), so a click always lands where it was
+// aimed. "Back to live" resumes, with a count of what opened meanwhile. The tabs are a real tablist (arrow keys from whichever tab has
 // focus, Home, End). A search result the agent went on to read has a button
 // that jumps to the tab where it read it.
 //
@@ -209,7 +210,18 @@ function SearchView({ shot, readTab, onJump, ink, name, animate, next }) {
 
 function PageView({ shot, name, ink, from, onJump }) {
   if (shot.status === "active") {
-    return <Waiting stamp="page">Opening {shot.domain}. {name} reads the page itself, not just the search result.</Waiting>;
+    return (
+      <div style={{ display: "grid", gap: 18 }}>
+        <Waiting stamp="page">Opening {shot.domain}. {name} reads the page itself, not just the search result.</Waiting>
+        <div aria-hidden="true" style={{ display: "grid", gap: 10, maxWidth: MEASURE }}>
+          <span style={{ width: "60%", height: 18, borderRadius: RADIUS.pill, background: ink.softer }} />
+          {[1, 0.94, 0.97, 0.7].map((w, i) => (
+            <span key={i} style={{ width: `${w * 100}%`, height: 11, borderRadius: RADIUS.pill, background: SURFACE,
+              border: `1px solid ${BORDER}` }} />
+          ))}
+        </div>
+      </div>
+    );
   }
   if (shot.status === "failed") {
     return (
@@ -311,8 +323,7 @@ function DocView({ shot, name, isMobile }) {
   if (shot.status === "failed") return <Waiting stamp="cross">{name} couldn't open that doc. What went wrong is just above.</Waiting>;
   const paras = shot.text.split(/\n+/).map((p) => p.trim()).filter(Boolean);
   return (
-    <div style={{ background: WHITE, border: isMobile ? "none" : `1px solid ${BORDER}`, borderRadius: RADIUS.control, maxWidth: 640,
-      margin: isMobile ? "-18px -20px" : "0 auto", padding: isMobile ? "20px" : "28px clamp(18px, 5vw, 40px)", boxSizing: "border-box" }}>
+    <div style={{ maxWidth: 640, margin: "0 auto", padding: isMobile ? "2px 0" : "8px clamp(0px, 3vw, 24px)", boxSizing: "border-box" }}>
       {shot.title && (
         <h3 style={{ margin: "0 0 14px", fontSize: "1.3rem", fontWeight: 800, color: TEXT, lineHeight: 1.3, overflowWrap: "anywhere" }}>
           {shot.title}
@@ -422,12 +433,13 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   // Every tab starts at its top (a reset the screen makes is not the student
   // scrolling, so it never pauses), and the shown tab stays in view on the strip.
   const resetting = useRef(false);
+  const touching = useRef(false);          // a pointer is down on the strip: don't slide it
   useEffect(() => {
     const panel = panelRef.current;
     if (panel && panel.scrollTop !== 0) { resetting.current = true; panel.scrollTop = 0; }
     const el = shown && tabRefs.current.get(shown.id);
     const strip = stripRef.current;
-    if (!el || !strip) return;
+    if (!el || !strip || touching.current) return;
     const left = el.offsetLeft - 24;
     const right = el.offsetLeft + el.offsetWidth + 24;
     const behavior = reduced() ? "auto" : "smooth";
@@ -450,9 +462,9 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     sectionRef.current?.scrollIntoView({ block: "nearest", behavior: reduced() ? "auto" : "smooth" });
   };
   // Only a real scroll of the page pauses it: one the screen made itself doesn't.
-  const onPanelScroll = () => {
+  const onPanelScroll = (e) => {
     if (resetting.current) { resetting.current = false; return; }
-    holdHere();
+    if (e.currentTarget.scrollTop > 48) holdHere();       // well into the page, not a nudge
   };
   // A mouse wheel over the tab strip scrolls it sideways (it has no scrollbar).
   const onStripWheel = (e) => {
@@ -476,20 +488,17 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     tabRefs.current.get(target.id)?.focus();
   };
 
-  // The panel only holds the scroll when it has something to scroll.
-  const [overflows, setOverflows] = useState(false);
-  useEffect(() => {
-    const el = panelRef.current;
-    if (!el) return;
-    setOverflows(el.scrollHeight > el.clientHeight + 1);
-  });
-
   const address = shown ? addressOf(shown, name) : { url: "", text: "" };
   const addressText = shown?.kind === "search" && shown.status === "done"
     ? `Web search, ${shown.results.length} ${shown.results.length === 1 ? "result" : "results"}`
     : address.text;
   const secure = shown?.kind === "page" && shown.status === "done" && address.url.startsWith("https:");
   const loading = shown?.status === "active";
+  const working = newest ? tabSentence(newest, name) : `${name} is getting started.`;
+  const status = state === "paused"
+    ? `Paused here. ${name} is still working${missed ? `, with ${missed} new ${missed === 1 ? "tab" : "tabs"} since` : ""}.`
+    : state === "live" ? working
+      : shots.length ? `${name} finished. Every tab stays here to look back through.` : "";
   const fade = (side) => ({ position: "absolute", top: 0, bottom: 0, [side]: 0, width: 28, pointerEvents: "none",
     background: `linear-gradient(to ${side === "left" ? "right" : "left"}, ${SURFACE}, transparent)` });
 
@@ -500,11 +509,9 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 6px 6px 14px", minHeight: 56, boxSizing: "border-box",
         background: SURFACE, borderBottom: `1px solid ${BORDER}`, minWidth: 0 }}>
         {mascot && <Mascot agent={agent} state={running ? "thinking" : "idle"} size={28} title="" />}
-        {!(isMobile && state === "paused") && (
-          <span style={{ fontSize: "1rem", fontWeight: 800, color: TEXT, whiteSpace: "nowrap", overflow: "hidden",
-            textOverflow: "ellipsis", minWidth: 0 }}>{name}'s screen</span>
-        )}
-        {tabsMode && <StatePill state={state} ink={ink} />}
+        <span style={{ fontSize: "1rem", fontWeight: 800, color: TEXT, whiteSpace: "nowrap", overflow: "hidden",
+          textOverflow: "ellipsis", minWidth: 0 }}>{name}'s screen</span>
+        {tabsMode && !(isMobile && state === "paused") && <StatePill state={state} ink={ink} />}
         <span style={{ flex: "1 1 0", minWidth: 0 }} />
         {state === "paused" && (
           <Button kind="secondary" onClick={backToLive} style={{ padding: "8px 14px", flexShrink: 0 }}
@@ -514,19 +521,12 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
         )}
         {tabsMode && (
           <Button kind="quiet" aria-expanded={help} aria-controls={`${baseId}-help`} onClick={() => setHelp((h) => !h)}
-            aria-label={isMobile ? "What's this?" : undefined}
+            aria-label={isMobile ? (help ? "Hide help" : "What's this?") : undefined}
             style={{ padding: isMobile ? "8px 12px" : "8px 12px", flexShrink: 0 }}>
-            {isMobile ? <PixelStamp kind="question" size={16} /> : "What's this?"}
+            {isMobile ? <PixelStamp kind="question" size={16} /> : help ? "Hide help" : "What's this?"}
           </Button>
         )}
       </div>
-
-      {state === "paused" && (
-        <p style={{ margin: 0, padding: "8px 16px", background: WHITE, borderBottom: `1px solid ${BORDER}`, fontSize: "0.9rem",
-          fontWeight: 700, color: TEXT_MID, lineHeight: 1.45 }}>
-          {name} is still working. You're looking back, so the screen is holding still for you.
-        </p>
-      )}
 
       {tabsMode && help && (
         <div id={`${baseId}-help`} style={{ padding: "12px 16px", background: ink.softer, borderBottom: `1px solid ${ink.soft}`,
@@ -546,7 +546,8 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
       {tabsMode && shots.length > 0 && (
         <div style={{ position: "relative", background: SURFACE, borderBottom: `1px solid ${BORDER}` }}>
           <div ref={stripRef} role="tablist" aria-label={`What ${name} opened`} onKeyDown={onKey} className="as-tabs"
-            onPointerDown={holdHere} onWheel={onStripWheel}
+            onPointerDown={() => { touching.current = true; }} onPointerUp={() => { touching.current = false; }}
+            onPointerLeave={() => { touching.current = false; }} onWheel={onStripWheel}
             style={{ position: "relative", display: "flex", alignItems: "flex-end", gap: 4, padding: "8px 10px 0", overflowX: "auto" }}>
             {dropped > 0 && (
               <span style={{ flexShrink: 0, alignSelf: "center", padding: "0 8px 6px", fontSize: "0.9rem", fontWeight: 700,
@@ -561,14 +562,14 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
                   ref={(el) => { if (el) tabRefs.current.set(s.id, el); else tabRefs.current.delete(s.id); }}
                   onClick={() => pause(s.id)} className={`as-tab ${FOCUS_CLASS}`}
                   style={{ position: "relative", display: "flex", alignItems: "center", gap: 7, flexShrink: 0,
-                    maxWidth: isMobile ? 160 : 220, minHeight: 44, padding: "0 12px", marginBottom: -1,
+                    maxWidth: on ? (isMobile ? 240 : 280) : (isMobile ? 150 : 200), minHeight: 44, padding: "0 12px", marginBottom: -1,
                     border: `1px solid ${on ? BORDER : "transparent"}`, borderBottom: `1px solid ${on ? WHITE : "transparent"}`,
                     borderRadius: `${RADIUS.control}px ${RADIUS.control}px 0 0`, background: on ? WHITE : "transparent",
                     color: on ? TEXT : TEXT_MUTED, fontFamily: SANS, fontSize: "0.9rem", fontWeight: on ? 800 : 700,
                     cursor: "pointer" }}>
                   <TabIcon shot={s} ink={ink} />
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
-                  <span style={SR_ONLY}>{s.status === "active" ? ", opening" : s.status === "failed" ? ", didn't work" : ""}</span>
+                  <span style={SR_ONLY}>{s.status === "active" ? ", opening" : ""}</span>
                 </button>
               );
             })}
@@ -609,11 +610,11 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
       <div ref={panelRef} id={`${baseId}-panel`} role={tabsMode && shots.length ? "tabpanel" : "region"}
         aria-labelledby={tabsMode && shown ? `${baseId}-tab-${shown.id}` : undefined}
         aria-label={tabsMode && shown ? undefined : `${name}'s page`} tabIndex={0}
-        onScroll={onPanelScroll} onFocus={holdHere}
+        onScroll={onPanelScroll}
         className={`as-view ${FOCUS_CLASS}`}
-        style={{ height: viewHeight, overflowY: "auto", overscrollBehavior: overflows ? "contain" : "auto", padding: "18px 20px",
+        style={{ height: viewHeight, overflowY: "auto", padding: "18px 20px",
           boxSizing: "border-box", position: "relative",
-          background: shown?.kind === "doc" && shown.status === "done" ? SURFACE : WHITE }}>
+          background: WHITE }}>
         {!shown ? (
           <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
             gap: 12, textAlign: "center" }}>
@@ -633,6 +634,15 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
           </div>
         )}
       </div>
+
+      {/* The status line: always here, so pausing or resuming never moves anything. */}
+      {tabsMode && (
+        <p style={{ margin: 0, minHeight: 44, boxSizing: "border-box", display: "flex", alignItems: "center", padding: "8px 16px",
+          borderTop: `1px solid ${BORDER}`, background: SURFACE, fontSize: "0.9rem", fontWeight: 700, color: TEXT_MID,
+          lineHeight: 1.4 }}>
+          <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{status}</span>
+        </p>
+      )}
     </section>
   );
 }
