@@ -161,7 +161,7 @@ export default function OpenDocSheet({ onClose, onUse, hasWords, openGoogleDoc, 
                   Quill has opened it you can set it back to Restricted; Quill doesn't keep a copy.
                 </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                  <input id={linkId} type="url" inputMode="url" autoComplete="off" spellCheck={false} value={link}
+                  <input id={linkId} type="url" data-autofocus inputMode="url" autoComplete="off" spellCheck={false} value={link}
                     ref={linkRef} aria-describedby={error ? `${hintId} ${errorId}` : hintId} aria-invalid={error ? true : undefined}
                     onChange={(e) => { setLink(e.target.value); if (error) setError(null); }}
                     placeholder="docs.google.com/document/d/..."

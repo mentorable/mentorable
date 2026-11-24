@@ -90,11 +90,6 @@ export function mergeScreen(shots, event) {
   return next;
 }
 
-/** The links in a search that the agent went on to open. */
-export function openedUrls(shots) {
-  return new Set(shots.filter((s) => s.kind === "page" && s.status !== "failed").map((s) => s.url));
-}
-
 /** What a tab says on its strip. */
 export function tabLabel(shot, agentName = "The agent") {
   if (shot.kind === "search") return shot.status === "failed" ? `Didn't go through: ${shot.query || "search"}` : shot.query || "Search";

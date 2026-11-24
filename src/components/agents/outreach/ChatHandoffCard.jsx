@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AgentScreen from "../screen/AgentScreen.jsx";
 import { PixelStamp } from "../PixelIcons.jsx";
@@ -45,6 +45,13 @@ export default function ChatHandoffCard({ run, isMobile = false }) {
   const ink = useAgentInk();
   const navigate = useNavigate();
   const [watching, setWatching] = useState(() => !run?.outcome);   // open while it runs; a finished run from history starts folded
+  const screenRef = useRef(null);
+  // When Beaker finishes, the screen folds to its toggle so the next step ("Open the draft")
+  // is in view, unless the student is working inside it, in which case it stays.
+  const ended = !!run?.outcome;
+  useEffect(() => {
+    if (ended && !screenRef.current?.contains(document.activeElement)) setWatching(false);
+  }, [ended]);
   if (!run) return null;
   const outcome = run.outcome;
   const shots = run.shots || [];
@@ -56,7 +63,9 @@ export default function ChatHandoffCard({ run, isMobile = false }) {
     <div style={{ display: "grid", gap: 10, marginTop: 14, fontFamily: SANS }}>
       {/* Live while Beaker works, and still there when it finishes so a tab being read never vanishes. */}
       {shots.length > 0 && watching && (
-        <AgentScreen shots={shots} agent="beaker" running={!outcome} isMobile={isMobile} height={isMobile ? 260 : 300} />
+        <div ref={screenRef}>
+          <AgentScreen shots={shots} agent="beaker" running={!outcome} isMobile={isMobile} height={isMobile ? 260 : 300} />
+        </div>
       )}
       {shots.length > 0 && (
         <button type="button" onClick={() => setWatching((w) => !w)} aria-expanded={watching}
