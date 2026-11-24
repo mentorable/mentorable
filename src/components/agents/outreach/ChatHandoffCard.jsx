@@ -44,7 +44,7 @@ const OUTCOME = {
 export default function ChatHandoffCard({ run, isMobile = false }) {
   const ink = useAgentInk();
   const navigate = useNavigate();
-  const [watching, setWatching] = useState(true);   // open while it runs; the student folds it away
+  const [watching, setWatching] = useState(() => !run?.outcome);   // open while it runs; a finished run from history starts folded
   if (!run) return null;
   const outcome = run.outcome;
   const shots = run.shots || [];
@@ -58,7 +58,6 @@ export default function ChatHandoffCard({ run, isMobile = false }) {
       {shots.length > 0 && watching && (
         <AgentScreen shots={shots} agent="beaker" running={!outcome} isMobile={isMobile} height={isMobile ? 260 : 300} />
       )}
-      <ProgressChecklist lines={run.lines || []} label={outcome ? "What Beaker did" : "What Beaker is doing"} />
       {shots.length > 0 && (
         <button type="button" onClick={() => setWatching((w) => !w)} aria-expanded={watching}
           className={`${QUIET_CLASS} ${FOCUS_CLASS}`}
@@ -67,6 +66,7 @@ export default function ChatHandoffCard({ run, isMobile = false }) {
           {watching ? "Hide Beaker's screen" : `See what Beaker looked at (${shots.length} ${shots.length === 1 ? "tab" : "tabs"})`}
         </button>
       )}
+      <ProgressChecklist lines={run.lines || []} label={outcome ? "What Beaker did" : "What Beaker is doing"} />
       {copy && (
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start", background: WHITE,
           border: `1px solid ${outcome.outcome === "error" ? BORDER : ink.ring}`, borderRadius: RADIUS.card,

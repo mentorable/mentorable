@@ -36,19 +36,28 @@ export default function OpenDocSheet({ onClose, onUse, hasWords, openGoogleDoc, 
   const [using, setUsing] = useState(false);
   const [status, setStatus] = useState("");
   const fileRef = useRef(null);
-  const choiceRef = useRef(null);
+  const primaryRef = useRef(null);         // the primary button once a doc is open
+  const linkRef = useRef(null);
+  const pickRef = useRef(null);
+  const refocus = useRef(false);        // "Open a different doc" was pressed: focus goes back to the form
   const ids = useId();
   const linkId = `${ids}-link`;
   const hintId = `${ids}-hint`;
+  const errorId = `${ids}-error`;
   const doc = shots[0]?.status === "done" ? shots[0] : null;
   const words = doc ? doc.text.split(/\s+/).filter(Boolean).length : 0;
 
-  // A doc that just opened: bring the choice into view and give it focus.
+  // A doc that just opened: bring the choice into view and focus its button.
+  // Back to the form after "Open a different doc": focus its field or button.
   useEffect(() => {
-    if (!doc) return;
-    const el = choiceRef.current;
-    el?.scrollIntoView({ block: "nearest", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-    el?.focus({ preventScroll: true });
+    if (doc) {
+      const el = primaryRef.current;
+      el?.scrollIntoView({ block: "nearest", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      el?.focus({ preventScroll: true });
+    } else if (refocus.current) {
+      refocus.current = false;
+      (source === "google" ? linkRef.current : pickRef.current)?.focus();
+    }
   }, [doc?.text]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const start = (shot) => { setError(null); setBusy(true); setStatus("Quill is opening your doc."); setShots([shot]); };
@@ -68,7 +77,10 @@ export default function OpenDocSheet({ onClose, onUse, hasWords, openGoogleDoc, 
     e.preventDefault();
     const value = link.trim();
     if (!GOOGLE_LINK.test(value)) {
-      setError("That doesn't look like a Google Docs link. Open the doc and copy the address from the top of the browser. It starts with docs.google.com/document.");
+      setError(/docs\.google\.com\/document/i.test(value)
+        ? "That link looks cut off. In Google Docs, press Share, then Copy link, and paste it here again."
+        : "That isn't a Google Docs link. Open your doc in Google Docs and copy the address from the top of the browser.");
+      linkRef.current?.focus();
       return;
     }
     start({ id: "doc", kind: "doc", status: "active", seq: 1, source: "google", title: "", text: "",
@@ -96,7 +108,7 @@ export default function OpenDocSheet({ onClose, onUse, hasWords, openGoogleDoc, 
     }
   };
 
-  const again = () => { setShots([]); setError(null); setStatus(""); setLink(""); };
+  const again = () => { refocus.current = true; setShots([]); setError(null); setStatus(""); setLink(""); };
 
   const use = async () => {
     if (!doc) return;
@@ -144,11 +156,12 @@ export default function OpenDocSheet({ onClose, onUse, hasWords, openGoogleDoc, 
                 </label>
                 <p id={hintId} style={{ margin: "0 0 4px", fontFamily: SANS, fontSize: "0.95rem", fontWeight: 500, color: TEXT_MUTED,
                   lineHeight: 1.5 }}>
-                  In Google Docs, press Share, set General access to &ldquo;Anyone with the link&rdquo;, then Copy link.
+                  In Google Docs, press Share, set General access to &ldquo;Anyone with the link&rdquo;, then Copy link. Once
+                  Quill has opened it you can set it back to Restricted; Quill doesn't keep a copy.
                 </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                   <input id={linkId} type="url" inputMode="url" autoComplete="off" spellCheck={false} value={link}
-                    aria-describedby={hintId} aria-invalid={error ? true : undefined}
+                    ref={linkRef} aria-describedby={error ? `${hintId} ${errorId}` : hintId} aria-invalid={error ? true : undefined}
                     onChange={(e) => { setLink(e.target.value); if (error) setError(null); }}
                     placeholder="docs.google.com/document/d/..."
                     className={INPUT_CLASS} style={{ ...inputStyle, flex: "1 1 260px", minWidth: 0 }} disabled={busy} />
@@ -162,21 +175,21 @@ export default function OpenDocSheet({ onClose, onUse, hasWords, openGoogleDoc, 
                 </p>
                 <input ref={fileRef} type="file" accept=".docx,.txt,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
                   onChange={openFile} style={{ display: "none" }} tabIndex={-1} aria-hidden="true" />
-                <Button kind="primary" busy={busy} onClick={() => fileRef.current?.click()}>Choose a file</Button>
+                <Button kind="primary" ref={pickRef} busy={busy} onClick={() => fileRef.current?.click()}>Choose a file</Button>
               </div>
             )}
           </div>
         </>
       )}
 
-      {error && <div role="alert" style={{ marginTop: 14 }}><Notice tone="error">{error}</Notice></div>}
+      {error && <div role="alert" id={errorId} style={{ marginTop: 14 }}><Notice tone="error">{error}</Notice></div>}
 
       {shots.length > 0 && (
         <AgentScreen shots={shots} agent="quill" mode="doc" mascot running={busy} isMobile={isMobile}
           height={isMobile ? 240 : 300} style={{ marginTop: 16 }} />
       )}
 
-      <div ref={choiceRef} tabIndex={-1} style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12, outline: "none" }}>
+      <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
         {doc && (
           <p style={{ margin: 0, fontFamily: SANS, fontSize: "1rem", fontWeight: 600, color: TEXT, lineHeight: 1.5, maxWidth: "62ch" }}>
             {plural(words, "word")}.{" "}
@@ -187,7 +200,7 @@ export default function OpenDocSheet({ onClose, onUse, hasWords, openGoogleDoc, 
         )}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
           {doc && (
-            <Button kind="primary" busy={using} onClick={use}>
+            <Button kind="primary" ref={primaryRef} busy={using} onClick={use}>
               {hasWords ? "Replace my draft with these words" : "Use these words"}
             </Button>
           )}

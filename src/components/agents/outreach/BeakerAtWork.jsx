@@ -27,7 +27,7 @@ export default function BeakerAtWork({ lines, shots = [], isMobile = false, sayi
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-      <MascotSays state="flying" size={96} layout="auto">
+      <MascotSays state="flying" size={isMobile ? 64 : 96} layout="auto">
         {sayings?.[at % (sayings?.length || 1)] || ""}
       </MascotSays>
       <AgentScreen shots={shots} agent="beaker" running isMobile={isMobile} />

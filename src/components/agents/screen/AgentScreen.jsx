@@ -1,11 +1,11 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Mascot from "../Mascot.jsx";
 import { PixelStamp } from "../../ui/PixelIcons.jsx";
-import { Button, QUIET_CLASS, SR_ONLY } from "../../ui/kit.jsx";
+import { Button, SR_ONLY } from "../../ui/kit.jsx";
 import {
   BORDER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_FAINT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
 } from "../../ui/tokens.js";
-import { addressOf, tabLabel, tabSentence } from "./screenModel.js";
+import { addressOf, tabLabel } from "./screenModel.js";
 
 // The agent's screen: a browser window that shows what the agent is really
 // looking at while it works on its own. Each tab is one thing that happened
@@ -14,11 +14,14 @@ import { addressOf, tabLabel, tabSentence } from "./screenModel.js";
 // wrote, or the doc a student opened in Quill. Nothing here is staged: no tab
 // exists until its event arrives, and a page only shows text that was read.
 //
-// Following along: the newest tab is shown as it opens. Picking any other
-// tab pauses that ("Looking back" in the title bar), and "Back to live"
-// resumes, with a count of what opened meanwhile. The tabs are a real
-// tablist (arrow keys, Home, End). A search result the agent went on to read
-// has a button that jumps to the tab where it read it.
+// Following and pausing. While the agent works, the screen follows it to each
+// new tab. The moment the student does anything on the screen (picks a tab,
+// even the newest; touches the tab strip; scrolls or focuses the page) it
+// pauses and stays exactly where they are, so nothing is ever pulled out from
+// under someone reading. "Back to live" resumes, with a count of what opened
+// meanwhile. The tabs are a real tablist (arrow keys from whichever tab has
+// focus, Home, End). A search result the agent went on to read has a button
+// that jumps to the tab where it read it.
 //
 // The checklist beside the screen stays the page's one live region, so this
 // never talks over it. Where there is no checklist (Quill's doc sheet) the
@@ -27,20 +30,21 @@ import { addressOf, tabLabel, tabSentence } from "./screenModel.js";
 // mode="doc" is the one-document view (Quill opening the student's own doc):
 // no tab strip, no live pill, just the window and the page.
 //
-// Motion: a page settles in as it loads, a search's query types itself into
-// the box, and a draft writes itself out. Off under reduced motion, where
-// everything simply appears. Content is visible at every frame of every
-// animation, so a throttled background tab never shows a blank page.
+// Motion: a search's query types itself into the box and a draft writes
+// itself out, once, the first time they are shown live; looking back at them
+// later shows them whole. A page settles in as it loads, and the loading bar
+// runs under the address. Every frame of every animation shows the content,
+// and all of it is off under reduced motion.
 
 const CSS = `
 @keyframes as-load { from { opacity: .55; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes as-bar { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
 @keyframes as-caret { 50% { opacity: 0; } }
-@keyframes as-live { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes as-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 .as-load { animation: as-load .38s cubic-bezier(.16,1,.3,1); }
 .as-bar { animation: as-bar 1.3s cubic-bezier(.65,0,.35,1) infinite; }
 .as-caret { animation: as-caret 1s steps(1) infinite; }
-.as-live { animation: as-live 1.2s steps(2, jump-none) infinite; }
+.as-breathe { animation: as-breathe 2.4s ease-in-out infinite; }
 .as-view, .as-tabs { scrollbar-width: thin; scrollbar-color: ${BORDER} transparent; }
 .as-view::-webkit-scrollbar, .as-tabs::-webkit-scrollbar { width: 10px; height: 8px; }
 .as-view::-webkit-scrollbar-thumb, .as-tabs::-webkit-scrollbar-thumb { background: ${BORDER}; border-radius: ${RADIUS.pill}px; }
@@ -49,7 +53,7 @@ const CSS = `
 .as-link:hover, .as-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
 .as-view ::selection { background: var(--as-select); }
 @media (prefers-reduced-motion: reduce) {
-  .as-load, .as-bar, .as-caret, .as-live { animation: none; }
+  .as-load, .as-bar, .as-caret, .as-breathe { animation: none; }
   .as-bar { transform: none; width: 100% !important; opacity: .35; }
 }
 `;
@@ -66,23 +70,20 @@ const reduced = () => !!REDUCED?.matches;
 
 const STAMP = { search: "search", page: "page", notes: "check", compose: "letter", doc: "scroll" };
 const AGENT_NAMES = { beaker: "Beaker", talon: "Talon", quill: "Quill", poise: "Poise" };
-// The student's own words (a draft, their essay) in Raleway with plain
-// lining figures, so a year or a number in them never looks emphasised.
-const PROSE = { fontFamily: "'Raleway', sans-serif", fontVariantNumeric: "lining-nums" };
 
-/** Reveals `text` a few characters at a time, once, unless motion is reduced. */
-function useTyped(text, { maxMs = 2600, key } = {}) {
-  const [n, setN] = useState(() => (reduced() ? text.length : 0));
+/** Reveals `text` a few characters at a time when `animate`, else all at once. */
+function useTyped(text, { animate, maxMs = 2600 }) {
+  const live = animate && !reduced() && !!text;
+  const [n, setN] = useState(() => (live ? 0 : text.length));
   useEffect(() => {
-    if (reduced() || !text) { setN(text.length); return undefined; }
-    setN(0);
+    if (!live) { setN(text.length); return undefined; }
     const step = Math.max(1, Math.ceil(text.length / Math.max(1, (maxMs / 1000) * 30)));
     const t = setInterval(() => setN((v) => {
       if (v + step >= text.length) { clearInterval(t); return text.length; }
       return v + step;
     }), 33);
     return () => clearInterval(t);
-  }, [key, text, maxMs]);
+  }, [text, live, maxMs]);
   return text.slice(0, n);
 }
 
@@ -113,17 +114,17 @@ function Waiting({ stamp, children }) {
   );
 }
 
-function SearchView({ shot, readTab, onJump, ink, name }) {
-  const typed = useTyped(shot.query, { key: shot.id, maxMs: 900 });
+function SearchView({ shot, readTab, onJump, ink, name, animate }) {
+  const typed = useTyped(shot.query, { animate, maxMs: 900 });
   const typing = typed.length < shot.query.length;
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 46, padding: "0 14px", boxSizing: "border-box",
         border: `1px solid ${BORDER}`, borderRadius: RADIUS.pill, background: WHITE, color: TEXT_FAINT, maxWidth: 620 }}>
         <PixelStamp kind="search" size={16} />
-        <span style={{ fontSize: "1rem", fontWeight: 600, color: TEXT, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis",
-          whiteSpace: "nowrap" }}>
-          <span style={SR_ONLY}>Searched for: </span>{typed}
+        <span style={{ fontSize: "1rem", fontWeight: 600, color: TEXT, minWidth: 0, overflowWrap: "anywhere", padding: "10px 0",
+          lineHeight: 1.35 }}>
+          <span style={SR_ONLY}>{name} searched for: </span>{typed}
           {(typing || shot.status === "active") && <Caret ink={ink} />}
         </span>
       </div>
@@ -151,7 +152,7 @@ function SearchView({ shot, readTab, onJump, ink, name }) {
             {shot.results.map((r) => {
               const tab = readTab.get(r.url);
               return (
-                <li key={r.url} style={{ minWidth: 0, maxWidth: 620 }}>
+                <li key={r.url} style={{ minWidth: 0, maxWidth: "62ch" }}>
                   <span aria-hidden="true" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.9rem", fontWeight: 700,
                     color: TEXT_MUTED, minWidth: 0 }}>
                     <span style={{ width: 20, height: 20, borderRadius: RADIUS.control / 2, background: ink.softer, color: ink.onSoft,
@@ -185,14 +186,24 @@ function SearchView({ shot, readTab, onJump, ink, name }) {
   );
 }
 
-function PageView({ shot, name, ink }) {
+function PageView({ shot, name, ink, from, onJump }) {
   if (shot.status === "active") {
     return <Waiting stamp="page">Opening {shot.domain}. {name} reads the page itself, not just the search result.</Waiting>;
   }
   if (shot.status === "failed") {
-    return <Waiting stamp="cross">{shot.domain} wouldn't open, or had nothing to read. That happens, and {name} moved on to the next page.</Waiting>;
+    return (
+      <div style={{ display: "grid", gap: 12 }}>
+        <Waiting stamp="cross">{shot.domain} wouldn't open, or had nothing to read. That happens, and {name} moved on to the next page.</Waiting>
+        <p style={{ margin: "0 0 0 28px", fontSize: "0.95rem", fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.5 }}>
+          <ExternalLink href={shot.url} style={{ color: ink.text, fontWeight: 800, textDecoration: "underline", textUnderlineOffset: 3,
+            display: "inline-flex", alignItems: "center", minHeight: 44 }}>Try opening it yourself</ExternalLink>
+        </p>
+      </div>
+    );
   }
   const cut = shot.excerpt && shot.excerpt.length >= 880;
+  const link = { color: ink.text, fontWeight: 800, textDecoration: "underline", textUnderlineOffset: 3, display: "inline-flex",
+    alignItems: "center", minHeight: 44 };
   return (
     <article style={{ maxWidth: "62ch" }}>
       <h3 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 800, color: TEXT, lineHeight: 1.3, letterSpacing: "-0.01em",
@@ -201,22 +212,30 @@ function PageView({ shot, name, ink }) {
       <p style={{ margin: "14px 0 0", fontSize: "1rem", fontWeight: 500, color: TEXT_MID, lineHeight: 1.7, overflowWrap: "anywhere" }}>
         {shot.excerpt || "This page had no text to show here."}{cut && "…"}
       </p>
-      <p style={{ margin: "16px 0 0", paddingTop: 12, borderTop: `1px solid ${BORDER}`, fontSize: "0.95rem", fontWeight: 600,
-        color: TEXT_MUTED, lineHeight: 1.5 }}>
-        {cut ? `That's the start of what ${name} read.` : `That's what ${name} read.`}{" "}
-        <ExternalLink href={shot.url} style={{ color: ink.text, fontWeight: 800, textDecoration: "underline",
-          textUnderlineOffset: 3 }}>Open the page</ExternalLink>
-      </p>
+      <div style={{ margin: "16px 0 0", paddingTop: 6, borderTop: `1px solid ${BORDER}`, display: "flex", flexWrap: "wrap",
+        alignItems: "center", gap: "0 18px", fontSize: "0.95rem" }}>
+        <span style={{ fontWeight: 600, color: TEXT_MUTED, lineHeight: 1.5 }}>
+          {cut ? `That's the start of what ${name} read.` : `That's what ${name} read.`}
+        </span>
+        <ExternalLink href={shot.url} style={link}>Open the page</ExternalLink>
+        {from && (
+          <button type="button" onClick={() => onJump(from)} className={`as-link ${FOCUS_CLASS}`}
+            style={{ ...link, padding: 0, border: "none", background: "transparent", fontFamily: SANS, fontSize: "0.95rem",
+              cursor: "pointer", borderRadius: RADIUS.control }}>
+            Back to the search
+          </button>
+        )}
+      </div>
     </article>
   );
 }
 
-function NotesView({ shot, ink }) {
+function NotesView({ shot, ink, name }) {
   return (
     <div style={{ maxWidth: "62ch" }}>
       <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: TEXT, lineHeight: 1.3 }}>{shot.title || "What checked out"}</h3>
       <p style={{ margin: "4px 0 14px", fontSize: "0.95rem", fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.5 }}>
-        Each fact was found on the page it links to. Anything that wasn't, was dropped.
+        Each fact links to the page {name} found it on. Anything it couldn't find on a page was left out.
       </p>
       <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 14 }}>
         {shot.notes.map((n, i) => (
@@ -239,20 +258,21 @@ function NotesView({ shot, ink }) {
   );
 }
 
-function ComposeView({ shot, ink }) {
-  const body = useTyped(shot.body, { key: shot.id, maxMs: 2600 });
+function ComposeView({ shot, ink, animate }) {
+  const body = useTyped(shot.body, { animate, maxMs: 2600 });
   const writing = body.length < shot.body.length;
   const row = { display: "grid", gridTemplateColumns: "72px minmax(0,1fr)", gap: 8, padding: "9px 0",
     borderBottom: `1px solid ${BORDER}`, fontSize: "1rem", lineHeight: 1.4 };
   return (
-    <div style={{ maxWidth: 640 }}>
+    <div style={{ maxWidth: "62ch" }}>
       <div style={row}><span style={{ fontWeight: 700, color: TEXT_MUTED }}>To</span>
         <span style={{ fontWeight: 600, color: TEXT, overflowWrap: "anywhere" }}>{shot.to || "You'll add an address"}</span></div>
       <div style={row}><span style={{ fontWeight: 700, color: TEXT_MUTED }}>Subject</span>
         <span style={{ fontWeight: 700, color: TEXT, overflowWrap: "anywhere" }}>{shot.subject}</span></div>
       <p style={{ margin: "14px 0 0", whiteSpace: "pre-wrap", fontSize: "1rem", fontWeight: 500, color: TEXT, lineHeight: 1.65,
-        overflowWrap: "anywhere", ...PROSE }}>
-        {body}
+        overflowWrap: "anywhere" }}>
+        {writing && <span style={SR_ONLY}>{shot.body}</span>}
+        <span aria-hidden={writing || undefined}>{body}</span>
         {writing && <Caret ink={ink} />}
       </p>
       <p style={{ margin: "16px 0 0", display: "flex", gap: 8, alignItems: "flex-start", fontSize: "0.95rem", fontWeight: 700,
@@ -278,7 +298,7 @@ function DocView({ shot, name }) {
       )}
       {paras.slice(0, 80).map((p, i) => (
         <p key={i} style={{ margin: i ? "12px 0 0" : 0, fontSize: "1rem", fontWeight: 500, color: TEXT, lineHeight: 1.7,
-          overflowWrap: "anywhere", ...PROSE }}>{p}</p>
+          overflowWrap: "anywhere", maxWidth: "62ch" }}>{p}</p>
       ))}
     </div>
   );
@@ -287,23 +307,19 @@ function DocView({ shot, name }) {
 // ── The window ───────────────────────────────────────────────────────────────
 
 function TabIcon({ shot, ink }) {
-  if (shot.status === "active") {
-    return <span aria-hidden="true" className="as-live" style={{ display: "flex", color: ink.text }}><PixelStamp kind="sparkle" size={16} /></span>;
-  }
-  if (shot.status === "failed") {
-    return <span aria-hidden="true" style={{ display: "flex", color: TEXT_FAINT }}><PixelStamp kind="cross" size={16} /></span>;
-  }
+  if (shot.status === "active") return <span aria-hidden="true" style={{ display: "flex", color: ink.text }}><PixelStamp kind="sparkle" size={16} /></span>;
+  if (shot.status === "failed") return <span aria-hidden="true" style={{ display: "flex", color: TEXT_FAINT }}><PixelStamp kind="cross" size={16} /></span>;
   return <span aria-hidden="true" style={{ display: "flex" }}><PixelStamp kind={STAMP[shot.kind]} size={16} /></span>;
 }
 
 function StatePill({ state, ink }) {
   const on = state === "live";
-  const text = { live: "Live", back: "Looking back", done: "Finished" }[state];
+  const text = { live: "Live", paused: "Paused", done: "Finished" }[state];
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "3px 10px", borderRadius: RADIUS.pill,
       background: on ? ink.softer : WHITE, border: `1px solid ${on ? ink.soft : BORDER}`,
       color: on ? ink.onSoft : TEXT_MID, fontSize: "0.9rem", fontWeight: 800, whiteSpace: "nowrap" }}>
-      <span aria-hidden="true" className={on ? "as-live" : undefined}
+      <span aria-hidden="true" className={on ? "as-breathe" : undefined}
         style={{ width: 8, height: 8, background: on ? ink.text : TEXT_FAINT }} />
       {text}
     </span>
@@ -344,6 +360,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   const tabRefs = useRef(new Map());
   const stripRef = useRef(null);
   const panelRef = useRef(null);
+  const animated = useRef(new Set());       // tabs already typed out once, live
   const baseId = useId();
   const tabsMode = mode !== "doc";
 
@@ -352,17 +369,31 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   const shown = picked || newest;
   const following = !picked;
   const missed = following ? 0 : shots.filter((s) => s.seq > seenAt).length;
+  const state = !running ? "done" : following ? "live" : "paused";
   const readTab = useMemo(() => {
     const map = new Map();
     for (const s of shots) if (s.kind === "page" && s.status === "done") map.set(s.url, s.id);
     return map;
   }, [shots]);
+  // The search that led to a page: the latest search before it that returned it.
+  const fromSearch = useMemo(() => {
+    if (!shown || shown.kind !== "page") return null;
+    const before = shots.filter((s) => s.seq < shown.seq && s.kind === "search" && s.results?.some((r) => r.url === shown.url));
+    return before.length ? before[before.length - 1].id : null;
+  }, [shots, shown]);
   const edges = useOverflow(stripRef, [shots.length > 0, tabsMode]);
   const viewHeight = height || (isMobile ? 320 : 380);
-  const state = running ? (following ? "live" : "back") : "done";
+  const dropped = shots.length && shots[0].seq > 1 ? shots[0].seq - 1 : 0;
 
-  // Keep the shown tab in view on the strip.
+  // Typing plays once, the first time a tab is shown while the agent is live.
+  const animate = !!shown && running && following && !animated.current.has(shown.id);
   useEffect(() => {
+    if (shown && shown.status === "done") animated.current.add(shown.id);
+  }, [shown?.id, shown?.status]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A new tab opened while following: start it at the top, and keep it in view on the strip.
+  useEffect(() => {
+    if (following && panelRef.current) panelRef.current.scrollTop = 0;
     const el = shown && tabRefs.current.get(shown.id);
     const strip = stripRef.current;
     if (!el || !strip) return;
@@ -373,31 +404,45 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     else if (right > strip.scrollLeft + strip.clientWidth) strip.scrollTo({ left: right - strip.clientWidth, behavior });
   }, [shown?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const choose = (id, { focus = false } = {}) => {
-    if (running && newest && id === newest.id) setPick(null);
-    else {
-      if (following) setSeenAt(newest?.seq || 0);
-      setPick(id);
-    }
-    if (focus) tabRefs.current.get(id)?.focus();
+  /** Stop following and stay on `id` (the tab in view, when none is given). */
+  const pause = (id = shown?.id) => {
+    if (!id) return;
+    if (following) setSeenAt(newest?.seq || 0);
+    setPick(id);
   };
-  const jump = (id) => { choose(id); panelRef.current?.focus({ preventScroll: true }); };
-  const backToLive = () => { setPick(null); if (newest) tabRefs.current.get(newest.id)?.focus(); };
+  // Anything the student does on a live screen pauses it where they are.
+  const holdHere = () => { if (running && following && shown) pause(shown.id); };
+  const jump = (id) => { pause(id); panelRef.current?.focus({ preventScroll: true }); };
+  const backToLive = () => {
+    setPick(null);
+    requestAnimationFrame(() => { if (newest) tabRefs.current.get(newest.id)?.focus({ preventScroll: true }); });
+  };
   const onKey = (e) => {
-    const at = shots.findIndex((s) => s.id === shown?.id);
+    const focused = shots.findIndex((s) => tabRefs.current.get(s.id) === document.activeElement);
+    const at = focused >= 0 ? focused : shots.findIndex((s) => s.id === shown?.id);
     const go = { ArrowRight: at + 1, ArrowLeft: at - 1, Home: 0, End: shots.length - 1 }[e.key];
     if (go === undefined) return;
     e.preventDefault();
     const target = shots[Math.max(0, Math.min(shots.length - 1, go))];
-    if (target) choose(target.id, { focus: true });
+    if (!target) return;
+    pause(target.id);
+    tabRefs.current.get(target.id)?.focus();
   };
 
+  // The panel only holds the scroll when it has something to scroll.
+  const [overflows, setOverflows] = useState(false);
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    setOverflows(el.scrollHeight > el.clientHeight + 1);
+  });
+
   const address = shown ? addressOf(shown, name) : { url: "", text: "" };
-  const secure = !!address.url && address.url.startsWith("https:") && shown?.status === "done";
+  const addressText = shown?.kind === "search" && shown.status === "done"
+    ? `Web search, ${shown.results.length} ${shown.results.length === 1 ? "result" : "results"}`
+    : address.text;
+  const secure = shown?.kind === "page" && shown.status === "done" && address.url.startsWith("https:");
   const loading = shown?.status === "active";
-  // The caption names a finished tab in a sentence. While a tab is loading or
-  // failed the page says it already, so the caption would only repeat it.
-  const caption = shown && shown.status === "done" && tabsMode ? tabSentence(shown, name) : "";
   const fade = (side) => ({ position: "absolute", top: 0, bottom: 0, [side]: 0, width: 28, pointerEvents: "none",
     background: `linear-gradient(to ${side === "left" ? "right" : "left"}, ${SURFACE}, transparent)` });
 
@@ -405,62 +450,67 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
     <section aria-label={`${name}'s screen`} style={{ position: "relative", background: WHITE, border: `1px solid ${BORDER}`,
       borderRadius: RADIUS.card, overflow: "hidden", fontFamily: SANS, minWidth: 0, "--as-select": ink.soft, ...style }}>
       {/* Title bar */}
-      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px 10px", padding: "8px 8px 8px 14px",
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 6px 6px 14px", minHeight: 56, boxSizing: "border-box",
         background: SURFACE, borderBottom: `1px solid ${BORDER}`, minWidth: 0 }}>
         {mascot && <Mascot agent={agent} state={running ? "thinking" : "idle"} size={28} title="" />}
-        <span style={{ fontSize: "1rem", fontWeight: 800, color: TEXT, whiteSpace: "nowrap" }}>{name}'s screen</span>
+        <span style={{ fontSize: "1rem", fontWeight: 800, color: TEXT, whiteSpace: "nowrap", overflow: "hidden",
+          textOverflow: "ellipsis", minWidth: 0 }}>{name}'s screen</span>
         {tabsMode && <StatePill state={state} ink={ink} />}
-        <span style={{ flex: 1 }} />
-        {state === "back" ? (
-          <Button kind="secondary" onClick={backToLive} style={{ padding: "8px 14px" }}>
-            Back to live{missed ? ` (${missed} new)` : ""}
+        <span style={{ flex: "1 1 0", minWidth: 0 }} />
+        {state === "paused" && (
+          <Button kind="secondary" onClick={backToLive} style={{ padding: "8px 14px", flexShrink: 0 }}>
+            {isMobile ? "Live" : "Back to live"}{missed ? ` (${missed} new)` : ""}
           </Button>
-        ) : (
-          <>
-            {tabsMode && shots.length > 0 && (
-              <span style={{ fontSize: "0.9rem", fontWeight: 700, color: TEXT_MUTED, whiteSpace: "nowrap" }}>
-                {shots.length} {shots.length === 1 ? "tab" : "tabs"}
-              </span>
-            )}
-            {tabsMode && (
-              <Button kind="quiet" aria-expanded={help} aria-controls={`${baseId}-help`} onClick={() => setHelp((h) => !h)}
-                style={{ padding: "8px 12px" }}>
-                {help ? "Got it" : "What's this?"}
-              </Button>
-            )}
-          </>
+        )}
+        {tabsMode && (
+          <Button kind="quiet" aria-expanded={help} aria-controls={`${baseId}-help`} onClick={() => setHelp((h) => !h)}
+            aria-label={isMobile ? "What's this?" : undefined}
+            style={{ padding: isMobile ? "8px 12px" : "8px 12px", flexShrink: 0 }}>
+            {isMobile ? <PixelStamp kind="question" size={16} /> : "What's this?"}
+          </Button>
         )}
       </div>
 
       {tabsMode && help && (
-        <p id={`${baseId}-help`} style={{ margin: 0, padding: "12px 16px", background: ink.softer, borderBottom: `1px solid ${ink.soft}`,
+        <div id={`${baseId}-help`} style={{ padding: "12px 16px", background: ink.softer, borderBottom: `1px solid ${ink.soft}`,
           fontSize: "0.95rem", fontWeight: 600, color: TEXT, lineHeight: 1.55 }}>
-          This is what {name} is really doing, as it happens. Each tab is a search it ran, a page it read or a note it kept,
-          and nothing shows up here until it has happened. The newest tab opens by itself. Pick any tab to look back, then
-          press Back to live.
-        </p>
+          <p style={{ margin: 0, maxWidth: "62ch" }}>
+            This is what {name} is really doing on its own. Each tab is a search it ran, a page it read, the facts it kept or
+            a draft it wrote, and nothing shows up here until it has happened.
+          </p>
+          <p style={{ margin: "6px 0 0", maxWidth: "62ch" }}>
+            While it works, the newest tab opens by itself. Pick a tab or scroll a page and the screen pauses right there;
+            Back to live catches you up.
+          </p>
+        </div>
       )}
 
       {/* Tabs */}
       {tabsMode && shots.length > 0 && (
         <div style={{ position: "relative", background: SURFACE, borderBottom: `1px solid ${BORDER}` }}>
           <div ref={stripRef} role="tablist" aria-label={`What ${name} opened`} onKeyDown={onKey} className="as-tabs"
-            style={{ position: "relative", display: "flex", gap: 4, padding: "8px 10px 0", overflowX: "auto" }}>
+            onPointerDown={holdHere}
+            style={{ position: "relative", display: "flex", alignItems: "flex-end", gap: 4, padding: "8px 10px 0", overflowX: "auto" }}>
+            {dropped > 0 && (
+              <span style={{ flexShrink: 0, alignSelf: "center", padding: "0 8px 6px", fontSize: "0.9rem", fontWeight: 700,
+                color: TEXT_MUTED, whiteSpace: "nowrap" }}>{dropped} earlier closed</span>
+            )}
             {shots.map((s) => {
               const on = s.id === shown?.id;
+              const label = tabLabel(s, name);
               return (
                 <button key={s.id} type="button" role="tab" id={`${baseId}-tab-${s.id}`} aria-selected={on}
-                  aria-controls={`${baseId}-panel`} tabIndex={on ? 0 : -1}
+                  aria-controls={`${baseId}-panel`} tabIndex={on ? 0 : -1} title={label}
                   ref={(el) => { if (el) tabRefs.current.set(s.id, el); else tabRefs.current.delete(s.id); }}
-                  onClick={() => choose(s.id)} className={`as-tab ${FOCUS_CLASS}`}
+                  onClick={() => pause(s.id)} className={`as-tab ${FOCUS_CLASS}`}
                   style={{ position: "relative", display: "flex", alignItems: "center", gap: 7, flexShrink: 0,
-                    maxWidth: isMobile ? 170 : 220, minHeight: 44, padding: "0 12px", marginBottom: -1,
+                    maxWidth: isMobile ? 160 : 220, minHeight: 44, padding: "0 12px", marginBottom: -1,
                     border: `1px solid ${on ? BORDER : "transparent"}`, borderBottom: `1px solid ${on ? WHITE : "transparent"}`,
                     borderRadius: `${RADIUS.control}px ${RADIUS.control}px 0 0`, background: on ? WHITE : "transparent",
                     color: on ? TEXT : TEXT_MUTED, fontFamily: SANS, fontSize: "0.9rem", fontWeight: on ? 800 : 700,
                     cursor: "pointer" }}>
                   <TabIcon shot={s} ink={ink} />
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tabLabel(s, name)}</span>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
                   <span style={SR_ONLY}>{s.status === "active" ? ", opening" : s.status === "failed" ? ", didn't work" : ""}</span>
                 </button>
               );
@@ -472,7 +522,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
       )}
 
       {/* Address bar */}
-      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 6, padding: "6px 8px 6px 12px",
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px",
         borderBottom: `1px solid ${BORDER}`, minWidth: 0 }}>
         <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, minHeight: 36, padding: "0 12px",
           borderRadius: RADIUS.pill, background: SURFACE, border: `1px solid ${BORDER}`, color: TEXT_FAINT }}>
@@ -481,15 +531,14 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
           </span>
           <span style={{ fontSize: "0.9rem", fontWeight: 700, color: TEXT_MID, minWidth: 0, overflow: "hidden",
             textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            <span style={SR_ONLY}>Address: </span>{address.text || `${name} hasn't opened anything yet`}
+            <span style={SR_ONLY}>{address.url ? "Address: " : "Showing: "}</span>{addressText || `${name} hasn't opened anything yet`}
           </span>
         </div>
-        {address.url && shown?.status === "done" && (
-          <a href={address.url} target="_blank" rel="noopener noreferrer" className={`${QUIET_CLASS} ${FOCUS_CLASS}`}
-            style={{ display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 12px", color: ink.text,
-              fontSize: "0.95rem", fontWeight: 800, whiteSpace: "nowrap", borderRadius: RADIUS.control, textDecoration: "none" }}>
-            Open<span style={SR_ONLY}> {shown.kind === "doc" ? "your doc" : "this page"} (opens in a new tab)</span>
-          </a>
+        {shown?.kind === "doc" && address.url && shown.status === "done" && (
+          <ExternalLink href={address.url} style={{ display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 12px",
+            color: ink.text, fontSize: "0.95rem", fontWeight: 800, whiteSpace: "nowrap" }}>
+            Open in Google Docs
+          </ExternalLink>
         )}
         {loading && (
           <span aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, bottom: -1, height: 2, overflow: "hidden" }}>
@@ -502,8 +551,10 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
       <div ref={panelRef} id={`${baseId}-panel`} role={tabsMode && shots.length ? "tabpanel" : "region"}
         aria-labelledby={tabsMode && shown ? `${baseId}-tab-${shown.id}` : undefined}
         aria-label={tabsMode && shown ? undefined : `${name}'s page`} tabIndex={0}
+        onWheel={holdHere} onTouchStart={holdHere} onFocus={(e) => { if (e.target === e.currentTarget || e.currentTarget.contains(e.target)) holdHere(); }}
         className={`as-view ${FOCUS_CLASS}`}
-        style={{ height: viewHeight, overflowY: "auto", padding: "18px 20px", boxSizing: "border-box", position: "relative",
+        style={{ height: viewHeight, overflowY: "auto", overscrollBehavior: overflows ? "contain" : "auto", padding: "18px 20px",
+          boxSizing: "border-box", position: "relative",
           background: shown?.kind === "doc" && shown.status === "done" ? SURFACE : WHITE }}>
         {!shown ? (
           <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
@@ -514,23 +565,15 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
             </p>
           </div>
         ) : (
-          <div key={`${shown.id}-${shown.status}`} className={shown.status === "done" ? "as-load" : undefined}>
-            {shown.kind === "search" && <SearchView shot={shown} readTab={readTab} onJump={jump} ink={ink} name={name} />}
-            {shown.kind === "page" && <PageView shot={shown} name={name} ink={ink} />}
-            {shown.kind === "notes" && <NotesView shot={shown} ink={ink} />}
-            {shown.kind === "compose" && <ComposeView shot={shown} ink={ink} />}
+          <div key={`${shown.id}-${shown.status}`} className={shown.status === "done" && animate ? "as-load" : undefined}>
+            {shown.kind === "search" && <SearchView shot={shown} readTab={readTab} onJump={jump} ink={ink} name={name} animate={animate} />}
+            {shown.kind === "page" && <PageView shot={shown} name={name} ink={ink} from={fromSearch} onJump={jump} />}
+            {shown.kind === "notes" && <NotesView shot={shown} ink={ink} name={name} />}
+            {shown.kind === "compose" && <ComposeView shot={shown} ink={ink} animate={animate} />}
             {shown.kind === "doc" && <DocView shot={shown} name={name} />}
           </div>
         )}
       </div>
-
-      {/* What this tab is, in a sentence */}
-      {caption && (
-        <p style={{ margin: 0, padding: "10px 16px", borderTop: `1px solid ${BORDER}`, background: SURFACE, fontSize: "0.95rem",
-          fontWeight: 600, color: TEXT_MID, lineHeight: 1.45, overflowWrap: "anywhere" }}>
-          {caption}
-        </p>
-      )}
     </section>
   );
 }

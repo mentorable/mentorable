@@ -201,7 +201,7 @@ export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = fal
         <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 14px", minWidth: 0,
             background: ink.softer, border: `1px solid ${ink.soft}`, borderRadius: RADIUS.control }}>
-            <span className={PULSE_CLASS} aria-hidden="true" style={{ display: "flex", marginTop: 4, color: ink.onSoft }}>
+            <span className={shots.length ? undefined : PULSE_CLASS} aria-hidden="true" style={{ display: "flex", marginTop: 4, color: ink.onSoft }}>
               <PixelStamp kind="sparkle" size={16} />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
