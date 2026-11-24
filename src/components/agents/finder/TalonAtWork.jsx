@@ -194,7 +194,8 @@ export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = fal
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0, fontFamily: SANS }}>
-      <Sky ink={ink} isMobile={isMobile} />
+      {/* On a phone the screen below already holds Talon's work, so the sky steps aside once it has tabs. */}
+      {!(isMobile && shots.length > 0) && <Sky ink={ink} isMobile={isMobile} />}
 
       <section aria-label="What Talon is doing" style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
@@ -226,7 +227,7 @@ export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = fal
               )}
             </div>
           </div>
-          {saying && (
+          {saying && shots.length === 0 && (
             <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.5, color: TEXT_MUTED }}>
               Talon: &ldquo;{saying}&rdquo;
             </p>
