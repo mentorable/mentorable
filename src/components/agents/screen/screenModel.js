@@ -139,7 +139,7 @@ export function addressOf(shot, agentName = "The agent") {
   if (shot.kind === "notes") return { url: "", text: `${agentName}'s notes` };
   if (shot.kind === "compose") return { url: "", text: "Draft email, not sent" };
   if (shot.kind === "doc") {
-    if (shot.url) return { url: shot.url, text: shot.url.replace(/^https?:\/\//, "") };
+    if (shot.url) return { url: shot.url, text: shot.title ? `Google Docs: ${shot.title}` : shot.url.replace(/^https?:\/\//, "") };
     return { url: "", text: shot.fileName ? `${shot.fileName}, on your computer` : "Your doc" };
   }
   return { url: "", text: "" };

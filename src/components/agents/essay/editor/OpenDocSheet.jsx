@@ -24,7 +24,7 @@ const SOURCES = [
   { key: "google", label: "Google Docs" },
   { key: "word", label: "Word file" },
 ];
-const GOOGLE_LINK = /^(https?:\/\/)?docs\.google\.com\/document\/(u\/\d+\/)?d\/[A-Za-z0-9_-]{20,}/i;
+const GOOGLE_LINK = /^(https?:\/\/)?docs\.google\.com\/document\/(u\/\d+\/)?d\/[A-Za-z0-9_-]{20,}([/?#]\S*)?$/i;
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 
 export default function OpenDocSheet({ onClose, onUse, hasWords, openGoogleDoc, isMobile }) {
@@ -80,7 +80,7 @@ export default function OpenDocSheet({ onClose, onUse, hasWords, openGoogleDoc, 
     if (!GOOGLE_LINK.test(value)) {
       setError(/docs\.google\.com\/document/i.test(value)
         ? "That link looks cut off. In Google Docs, press Share, then Copy link, and paste it here again."
-        : "That isn't a Google Docs link. Open your doc in Google Docs and copy the address from the top of the browser.");
+        : "That isn't a Google Docs link. In Google Docs, press Share, then Copy link, and paste it here.");
       linkRef.current?.focus();
       return;
     }

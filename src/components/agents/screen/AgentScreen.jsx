@@ -193,7 +193,7 @@ function SearchView({ shot, readTab, onJump, ink, name, animate, next }) {
                     <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 500, color: TEXT_MID, lineHeight: 1.5 }}>{r.snippet}</p>
                   )}
                   {tab && (
-                    <button type="button" onClick={() => onJump(tab)} className={FOCUS_CLASS}
+                    <button type="button" onClick={() => onJump(tab)} className={FOCUS_CLASS} data-read={r.url}
                       style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, minHeight: 44, padding: "0 14px",
                         borderRadius: RADIUS.pill, background: ink.softer, border: `1px solid ${ink.soft}`, color: ink.onSoft,
                         fontFamily: SANS, fontSize: "0.9rem", fontWeight: 800, cursor: "pointer" }}>
@@ -254,7 +254,7 @@ function PageView({ shot, name, ink, from, onJump }) {
         </span>
         <ExternalLink href={shot.url} style={link} mark>Open the page</ExternalLink>
         {from && (
-          <button type="button" onClick={() => onJump(from)} className={`as-link ${FOCUS_CLASS}`}
+          <button type="button" onClick={() => onJump(from, shot.url)} className={`as-link ${FOCUS_CLASS}`}
             style={{ ...link, padding: 0, border: "none", background: "transparent", fontFamily: SANS, fontSize: "0.95rem",
               cursor: "pointer", borderRadius: RADIUS.control }}>
             Back to the search
@@ -457,15 +457,34 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   useEffect(() => {
     const panel = panelRef.current;
     if (panel && panel.scrollTop !== 0) { resetting.current = true; panel.scrollTop = 0; }
+    // Back from a page to its search: land on the result the student came from.
+    if (returnTo.current && shown?.kind === "search") {
+      const url = returnTo.current;
+      returnTo.current = null;
+      requestAnimationFrame(() => {
+        const btn = [...(panelRef.current?.querySelectorAll("[data-read]") || [])].find((b) => b.dataset.read === url);
+        if (btn) { btn.scrollIntoView({ block: "nearest" }); btn.focus({ preventScroll: true }); }
+      });
+    }
+    // Following, with focus on the tab strip: focus moves with the selection, so
+    // the focused tab is always the one the arrow keys start from.
+    if (following && shown && stripRef.current?.contains(document.activeElement)) {
+      tabRefs.current.get(shown.id)?.focus({ preventScroll: true });
+    }
+  }, [shown?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const revealTab = () => {
     const el = shown && tabRefs.current.get(shown.id);
     const strip = stripRef.current;
     if (!el || !strip || touching.current) return;
     const left = el.offsetLeft - 24;
     const right = el.offsetLeft + el.offsetWidth + 24;
     const behavior = reduced() ? "auto" : "smooth";
-    if (left < strip.scrollLeft) strip.scrollTo({ left, behavior });
+    if (left < strip.scrollLeft) strip.scrollTo({ left: Math.max(0, left), behavior });
     else if (right > strip.scrollLeft + strip.clientWidth) strip.scrollTo({ left: right - strip.clientWidth, behavior });
-  }, [shown?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  };
+  // A tab's label grows when its page loads (the domain becomes the title), so this also runs on status.
+  useEffect(revealTab, [shown?.id, shown?.status, isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Stop following and stay on `id` (the tab in view, when none is given). */
   const pause = (id = shown?.id) => {
@@ -477,8 +496,10 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   // Anything the student does on a live screen pauses it where they are.
   const holdHere = () => { if (running && following && shown) pause(shown.id); };
   const sectionRef = useRef(null);
-  const jump = (id) => {
+  const returnTo = useRef(null);           // the result to land on after "Back to the search"
+  const jump = (id, fromUrl) => {
     pause(id);
+    returnTo.current = fromUrl || null;
     panelRef.current?.focus({ preventScroll: true });
     sectionRef.current?.scrollIntoView({ block: "nearest", behavior: reduced() ? "auto" : "smooth" });
   };
@@ -517,8 +538,8 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
   const loading = shown?.status === "active";
   const working = newest ? tabSentence(newest, name) : `${name} is getting started.`;
   const status = state === "paused"
-    ? `${name} is still working${missed ? `: ${missed} new ${missed === 1 ? "tab" : "tabs"} since you paused` : ""}. Back to live catches you up.`
-    : state === "live" ? working
+    ? `${name} is still working.${missed ? ` ${missed} new since you paused.` : ""}`
+    : state === "live" ? (isMobile && shots.length > 1 ? `${working} Tap a tab to stay on it.` : working)
       : shots.length ? `${name} finished. Every tab stays here to look back through.` : "";
   const fade = (side) => ({ position: "absolute", top: 0, bottom: 0, [side]: 0, width: 28, pointerEvents: "none",
     background: `linear-gradient(to ${side === "left" ? "right" : "left"}, ${SURFACE}, transparent)` });
@@ -531,7 +552,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
         background: SURFACE, borderBottom: `1px solid ${BORDER}`, minWidth: 0 }}>
         {mascot && <Mascot agent={agent} state={running ? "thinking" : "idle"} size={28} title="" />}
         <span style={{ fontSize: "1rem", fontWeight: 800, color: TEXT, whiteSpace: "nowrap", overflow: "hidden",
-          textOverflow: "ellipsis", minWidth: 0 }}>{name}'s screen</span>
+          textOverflow: "ellipsis", minWidth: 0 }}>{isMobile ? name : `${name}'s screen`}</span>
         {tabsMode && !(isMobile && state === "paused") && <StatePill state={state} ink={ink} />}
         <span style={{ flex: "1 1 0", minWidth: 0 }} />
         {state === "paused" && (
@@ -557,8 +578,11 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
             nothing shows up here until it has happened.
           </p>
           <p style={{ margin: "6px 0 0", maxWidth: MEASURE }}>
-            While it works, the newest tab opens by itself. Pick a tab or scroll a page and the screen pauses right there;
-            Back to live catches you up.
+            {state === "done"
+              ? "It has finished, and every tab stays here: pick any of them to look back."
+              : isMobile
+                ? "While it works, the newest tab opens by itself. Tap a tab and the screen stays on it; Back to live catches you up."
+                : "While it works, the newest tab opens by itself. Pick a tab, or scroll well into a page, and the screen stays right there; Back to live catches you up."}
           </p>
         </div>
       )}
@@ -567,8 +591,10 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
       {tabsMode && shots.length > 0 && (
         <div style={{ position: "relative", background: SURFACE, borderBottom: `1px solid ${BORDER}` }}>
           <div ref={stripRef} role="tablist" aria-label={`What ${name} opened`} onKeyDown={onKey} className="as-tabs"
-            onPointerDown={() => { touching.current = true; }} onPointerUp={() => { touching.current = false; }}
-            onPointerLeave={() => { touching.current = false; }} onWheel={onStripWheel}
+            onPointerDown={() => { touching.current = true; }}
+            onPointerUp={() => { touching.current = false; requestAnimationFrame(revealTab); }}
+            onPointerCancel={() => { touching.current = false; }} onPointerLeave={() => { touching.current = false; }}
+            onWheel={onStripWheel}
             style={{ position: "relative", display: "flex", alignItems: "flex-end", gap: 4, padding: "8px 10px 0", overflowX: "auto" }}>
             {dropped > 0 && (
               <span style={{ flexShrink: 0, alignSelf: "center", padding: "0 8px 6px", fontSize: "0.9rem", fontWeight: 700,
@@ -659,7 +685,7 @@ export default function AgentScreen({ shots, agent = "beaker", running = false, 
 
       {/* The status line: always here, so pausing or resuming never moves anything. */}
       {tabsMode && (
-        <p style={{ margin: 0, minHeight: 44, boxSizing: "border-box", display: "flex", alignItems: "center", padding: "8px 16px",
+        <p style={{ margin: 0, minHeight: isMobile ? 64 : 44, boxSizing: "border-box", display: "flex", alignItems: "center", padding: "8px 16px",
           borderTop: `1px solid ${BORDER}`, background: SURFACE, fontSize: "0.9rem", fontWeight: 700, color: TEXT_MID,
           lineHeight: 1.4 }}>
           <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{status}</span>

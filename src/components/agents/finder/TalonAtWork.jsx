@@ -194,15 +194,17 @@ export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = fal
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0, fontFamily: SANS }}>
-      {/* On a phone the screen below already holds Talon's work, so the sky steps aside once it has tabs. */}
-      {!(isMobile && shots.length > 0) && <Sky ink={ink} isMobile={isMobile} />}
+      {/* On a phone the screen below holds Talon's work, so the sky is left out from the start (never mid-run). */}
+      {!isMobile && <Sky ink={ink} isMobile={isMobile} />}
 
       <section aria-label="What Talon is doing" style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
-        {running && <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+        {/* Always mounted and one size, so nothing below it moves as steps come and go or the run ends. */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 14px", minWidth: 0,
+            minHeight: isMobile ? 76 : 50, boxSizing: "border-box",
             background: ink.softer, border: `1px solid ${ink.soft}`, borderRadius: RADIUS.control }}>
-            <span className={shots.length ? undefined : PULSE_CLASS} aria-hidden="true" style={{ display: "flex", marginTop: 4, color: ink.onSoft }}>
-              <PixelStamp kind="sparkle" size={16} />
+            <span className={shots.length || !running ? undefined : PULSE_CLASS} aria-hidden="true" style={{ display: "flex", marginTop: 4, color: ink.onSoft }}>
+              <PixelStamp kind={running ? "sparkle" : "check"} size={16} />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, lineHeight: 1.45, color: TEXT,
@@ -210,12 +212,13 @@ export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = fal
                 <span style={{ display: "inline-block", marginRight: 8, padding: "1px 7px", verticalAlign: 1,
                   background: ink.button.bg, color: ink.button.fg, fontSize: "0.9rem", fontWeight: 800, lineHeight: 1.4,
                   letterSpacing: "0.06em", textTransform: "uppercase", borderRadius: 6 }}>
-                  Now
+                  {running ? "Now" : "Done"}
                 </span>
                 <span style={SR_ONLY}>: </span>
-                {nowLabel}
+                {running ? nowLabel : "Talon finished scouting. Everything it opened is on its screen below."}
               </p>
-              {also.length > 0 && (
+              {/* With a screen, the parallel work shows there as tabs; listing it here too only changed this box's height. */}
+              {running && also.length > 0 && shots.length === 0 && (
                 <ul style={{ listStyle: "none", margin: "4px 0 0", padding: 0, display: "grid", gap: 2 }}>
                   {also.map((l) => (
                     <li key={l.id} style={{ fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.45, color: TEXT_MID,
@@ -232,7 +235,7 @@ export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = fal
               Talon: &ldquo;{saying}&rdquo;
             </p>
           )}
-        </div>}
+        </div>
 
         <AgentScreen shots={shots} agent="talon" running={running} isMobile={isMobile}
           idle="Talon's searches and the pages it reads open here as it scouts." />
