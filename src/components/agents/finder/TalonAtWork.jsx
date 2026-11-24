@@ -165,7 +165,7 @@ function Stamp({ line, ink }) {
 
 /** lines: the merged progress lines. onLeave(): back to the board.
  *  isMobile: the smaller sky and bird for a phone. */
-export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = false }) {
+export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = false, running = true }) {
   const ink = useAgentInk();
   const list = Array.isArray(lines) ? lines : EMPTY;
 
@@ -234,7 +234,7 @@ export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = fal
           )}
         </div>
 
-        <AgentScreen shots={shots} agent="talon" running isMobile={isMobile}
+        <AgentScreen shots={shots} agent="talon" running={running} isMobile={isMobile}
           idle="Talon's searches and the pages it reads open here as it scouts." />
 
         {finished.length > 0 && (

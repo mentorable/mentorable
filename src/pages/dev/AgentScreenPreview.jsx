@@ -125,9 +125,9 @@ export default function AgentScreenPreview() {
         </PageHeader>
         <ChoiceChips label="Agent" options={VIEWS} value={view} onChange={setView} isMobile={isMobile} />
         <div style={{ marginTop: 20 }}>
-          {view === "beaker" && <BeakerAtWork lines={beaker.lines} shots={beaker.shots} isMobile={isMobile}
+          {view === "beaker" && <BeakerAtWork lines={beaker.lines} shots={beaker.shots} isMobile={isMobile} running={!beaker.done}
             note="This usually takes under a minute. You can leave this page: Beaker keeps working, and the draft lands on your board." />}
-          {view === "talon" && <TalonAtWork lines={talon.lines} shots={talon.shots} isMobile={isMobile} onLeave={() => {}} />}
+          {view === "talon" && <TalonAtWork lines={talon.lines} shots={talon.shots} isMobile={isMobile} running={!talon.done} onLeave={() => {}} />}
           {view === "chat" && (
             <ChatHandoffCard isMobile={isMobile} run={{ lines: beaker.lines, shots: beaker.shots,
               outcome: beaker.done ? { outcome: "draft", link: "/agents/outreach", name: "Dr. Maria Lee",

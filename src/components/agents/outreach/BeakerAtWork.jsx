@@ -23,7 +23,7 @@ const SAY_FOR = {
   compose: BEAKER_LINES.researching[4],
 };
 
-export default function BeakerAtWork({ lines, shots = [], isMobile = false, sayings = BEAKER_LINES.researching, note,
+export default function BeakerAtWork({ lines, shots = [], isMobile = false, running = true, sayings = BEAKER_LINES.researching, note,
   checklistLabel }) {
   const [at, setAt] = useState(0);
   // Once the screen has tabs, Beaker says what the screen is showing, so its
@@ -41,7 +41,7 @@ export default function BeakerAtWork({ lines, shots = [], isMobile = false, sayi
       <MascotSays state="flying" size={isMobile ? 64 : 96} layout="auto">
         {sayingFor || sayings?.[at % (sayings?.length || 1)] || ""}
       </MascotSays>
-      <AgentScreen shots={shots} agent="beaker" running isMobile={isMobile} />
+      <AgentScreen shots={shots} agent="beaker" running={running} isMobile={isMobile} />
       <ProgressChecklist lines={lines} label={checklistLabel} />
       {note && (
         <p style={{ margin: 0, fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.55 }}>{note}</p>
