@@ -57,6 +57,7 @@ function writeTab(key) {
 const GMAIL_NOTES = {
   connected: { message: "Gmail is connected. Beaker can send the emails you approve, and nothing else.", tone: "info" },
   denied: { message: "Gmail wasn't connected. You can still copy any email and send it yourself.", tone: "info" },
+  no_send: { message: "Gmail wasn't connected: the \u201cSend email on your behalf\u201d box was left unticked. Connect again from a draft and tick it.", tone: "info" },
   error: { message: "Couldn't connect Gmail just now. Try again from a draft.", tone: "error" },
 };
 

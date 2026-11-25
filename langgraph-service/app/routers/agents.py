@@ -411,8 +411,9 @@ async def google_callback(raw: Request, code: str = "", state: str = "", error: 
         got = await google.exchange_code(code, google.redirect_uri(str(raw.base_url)))
         held = google.hold_pending(user_id, got["email"], got["scope"], got["refresh_token"])
     except GoogleError as exc:
-        # scope_missing: they unticked "send email on your behalf".
-        return _back_to_app(return_to, "denied" if exc.code == "scope_missing" else "error")
+        # scope_missing: they left "Send email on your behalf" unticked. Its own
+        # outcome, so the page can say which box to tick rather than "cancelled".
+        return _back_to_app(return_to, "no_send" if exc.code == "scope_missing" else "error")
     except Exception as exc:
         logger.error(f"[agents] saving the Gmail connection failed for {user_id}: {type(exc).__name__}")
         return _back_to_app(return_to, "error")

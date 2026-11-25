@@ -90,6 +90,11 @@ export default function GmailConnectSheet({
             <li>Nothing goes out until you read the email and press Send.</li>
             <li>You can disconnect any time in Profile.</li>
           </ul>
+          {/* Google's consent screen lists the send permission as its own
+              checkbox, and a student who skips it comes back unconnected. */}
+          <p style={{ margin: "12px 0 0", fontFamily: SANS, fontSize: "0.98rem", color: TEXT, lineHeight: 1.55 }}>
+            On Google's screen, tick <strong>Send email on your behalf</strong>. Without it, Gmail can't connect.
+          </p>
           <p style={{ margin: "10px 0 0", fontFamily: SANS, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.55 }}>
             Google may warn that Mentorable isn't verified yet while its review is underway. School Google accounts
             sometimes block apps like this. Either way, you can copy the email or open it in your mail app instead.

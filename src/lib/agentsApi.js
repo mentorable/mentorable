@@ -296,19 +296,20 @@ const COPY = {
 
 // ── Back from Google ──────────────────────────────────────────────────────────
 // Google returns the browser with ?gmail=confirm&code=... when the student
-// granted access, or ?gmail=denied|error. A confirm is finished here, as the
+// granted access, ?gmail=no_send when they left the send permission unticked,
+// or ?gmail=denied|error. A confirm is finished here, as the
 // signed-in student: the server only saves it if they are the one who started
 // it. One call per code, even if the page mounts twice.
 
 const finishing = new Map();
 
-/** "connected" | "denied" | "error" | "expired" | "wrong_account", or "" when
+/** "connected" | "denied" | "no_send" | "error" | "expired" | "wrong_account", or "" when
  *  the page was not opened by Google's redirect. */
 export async function finishGmailReturn(search, api = agentsApi) {
   let q;
   try { q = new URLSearchParams(search || ""); } catch { return ""; }
   const g = q.get("gmail") || "";
-  if (g === "denied" || g === "error") return g;
+  if (g === "denied" || g === "no_send" || g === "error") return g;
   if (g !== "confirm") return "";
   const code = (q.get("code") || "").slice(0, 200);
   if (!code) return "error";

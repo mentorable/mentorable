@@ -30,7 +30,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 // Query: ?goal= or ?name=&org=&url= prefill the Who step (the board's
 // examples and "Draft with Beaker"), ?try=<id> resumes the open try from
 // status (a pick or Beaker's question still waiting), ?gmail=connected|
-// denied|error is Google sending the student back.
+// denied|no_send|error is Google sending the student back.
 
 // The real calls. The page takes them as one object so it can be driven with
 // made-up data when checking it by hand (see CollegeListPage).
@@ -44,6 +44,7 @@ const FLOW_KEY = (uid) => `mentorable.outreachFlow.${uid}`;
 const GMAIL_RETURN = {
   connected: { tone: "success", text: (email) => `Gmail is connected${email ? ` as ${email}` : ""}. Beaker only sends an email when you press Send.` },
   denied: { tone: "warn", text: () => "Gmail wasn't connected. That's okay: you can copy each email or open it in your mail app. To send from here later, connect again and leave the send box ticked." },
+  no_send: { tone: "warn", text: () => "Gmail wasn't connected because the \u201cSend email on your behalf\u201d box was left unticked on Google's screen. Connect again and tick it. Until then, you can copy each email or open it in your mail app." },
   error: { tone: "warn", text: () => "Google didn't finish connecting your Gmail. You can try again when you send, or copy the email instead." },
   expired: { tone: "warn", text: () => "That Gmail connection took too long to finish. Connect again when you're ready to send." },
   wrong_account: { tone: "warn", text: () => "That Gmail connection was started from a different Mentorable account, so it wasn't saved. Connect Gmail again from your own account." },

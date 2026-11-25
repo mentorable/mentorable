@@ -1496,7 +1496,7 @@ def test_connect_builds_googles_url_from_the_request(w, b, client, monkeypatch):
 @pytest.mark.parametrize("query, exchange, outcome, path", [
     ("code=abc&state=good", None, "confirm", "/agents/outreach/new"),
     ("error=access_denied&state=good", None, "denied", "/agents/outreach/new"),
-    ("code=abc&state=good", GoogleError("scope_missing"), "denied", "/agents/outreach/new"),
+    ("code=abc&state=good", GoogleError("scope_missing"), "no_send", "/agents/outreach/new"),
     ("code=abc&state=good", GoogleError("exchange_failed"), "error", "/agents/outreach/new"),
     ("code=abc&state=bad", None, "error", "/agents/outreach"),
     ("code=abc", None, "error", "/agents/outreach"),

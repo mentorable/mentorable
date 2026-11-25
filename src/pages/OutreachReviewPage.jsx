@@ -69,6 +69,7 @@ const GMAIL_UNKNOWN = { configured: null, connected: null, email: null };
 const GMAIL_RETURN = {
   connected: { tone: "success", text: (email) => `Gmail is connected${email ? ` as ${email}` : ""}. Press Send when your email is ready.` },
   denied: { tone: "warn", text: () => "Gmail wasn't connected. That's okay: copy the email or open it in your mail app. To send from here, connect again and leave the send box ticked." },
+  no_send: { tone: "warn", text: () => "Gmail wasn't connected because the \u201cSend email on your behalf\u201d box was left unticked on Google's screen. Connect again and tick it, or copy the email or open it in your mail app." },
   error: { tone: "warn", text: () => "Google didn't finish connecting your Gmail. Try again, or copy the email instead." },
   expired: { tone: "warn", text: () => "That Gmail connection took too long to finish. Connect again when you're ready to send." },
   wrong_account: { tone: "warn", text: () => "That Gmail connection was started from a different Mentorable account, so it wasn't saved. Connect Gmail again from your own account." },
