@@ -89,17 +89,16 @@ QUEST_TALK_MODEL    = SONNET
 # cheap tier, the same as Quest resources (each search is $0.01 on top of
 # tokens). The draft and the tone rewrites are what a professor reads, so they
 # get the stronger model. A follow-up is two or three sentences.
-OUTREACH_RESEARCH_MODEL = HAIKU
-# The three reading jobs (turn a goal into queries, pick people from search
-# results, pull facts and an address from a page) are mechanical extraction, so
-# they run on OpenAI's small models through app.llm.json_completion: several
-# times cheaper than Haiku. They fall back to OUTREACH_RESEARCH_MODEL (Haiku)
-# when there is no OpenAI key or a call fails. Nothing they return is trusted as
-# sent (links, addresses and claims are all checked in code), and the writing
-# stays on Sonnet. Raise these to GPT_MINI/HAIKU if extraction quality slips.
-OUTREACH_QUERIES_MODEL  = GPT_NANO
-OUTREACH_PEOPLE_MODEL   = GPT_MINI
-OUTREACH_FACTS_MODEL    = GPT_MINI
+# The research is an agent loop (outreach/graph.py): the model decides what to
+# search, which page to open and when it has enough, so it needs the stronger
+# model's judgement about whether a page really is the right person. It is
+# capped (searches, opens, turns) per run, and a student has two tries.
+# Nothing it submits is trusted as sent: links, facts, addresses and minors are
+# all checked in code.
+OUTREACH_AGENT_MODEL    = SONNET
+# The second reader of a draft (outreach/graph.py's critique): checks each
+# sentence about the recipient against its fact, the ask, the voice.
+OUTREACH_REVIEW_MODEL   = SONNET
 OUTREACH_DRAFT_MODEL    = SONNET
 OUTREACH_REWRITE_MODEL  = SONNET
 OUTREACH_FOLLOWUP_MODEL = HAIKU

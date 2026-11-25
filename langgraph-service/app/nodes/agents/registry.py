@@ -37,8 +37,11 @@ AGENTS: dict[str, AgentSpec] = {
     # (given back when the model's answer is unusable) cannot bound the spend.
     # A write is taken before the call and never given back, so a failure
     # cannot be repeated for free. Two agent cards need at most 12.
+    # Since the research became an agent loop (outreach/graph.py), one search
+    # unit pays for a whole run of up to five searches, five page opens and
+    # eight Sonnet turns, with one look again when the first answer falls short.
     "outreach": AgentSpec("outreach", "Beaker", True,
-                          {"try": ("total", 2), "search": ("total", 8), "write": ("total", 20),
+                          {"try": ("total", 2), "search": ("total", 10), "write": ("total", 20),
                            "send": ("day", 5)}),
     # Talon the hawk: finds real scholarships and activities, checks each one
     # against its own page, and keeps the ones the student wants on a board.

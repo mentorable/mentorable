@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Routes, Route, useNavigate, useParams, useLocation } from "react-router-dom";
 import { supabase } from "./lib/supabase.js";
 import { ThemeProvider } from "./lib/ThemeContext.jsx";
@@ -40,6 +40,9 @@ import { HOME_PATH, isEnabled } from "./lib/features.js";
 import { getValidUser } from "./lib/auth.js";
 import { rememberJoinCode } from "./lib/counselor.js";
 import { dropAllDrafts } from "./components/agents/essay/editor/useAutosave.js";
+
+// Dev only: the agent screens fed a recorded run, to look at without signing in.
+const AgentScreenPreview = import.meta.env.DEV ? lazy(() => import("./pages/dev/AgentScreenPreview.jsx")) : null;
 
 // Routes that show the persistent sidebar
 const SIDEBAR_ROUTES = ["/scorecard", "/chat", "/profile", "/quest", "/college-list", "/roadmap", "/portfolio", "/agents"];
@@ -373,6 +376,9 @@ export default function App() {
         <Route path="/counselor/students/:studentId/record" element={<ErrorBoundary><CounselorRecordRoute /></ErrorBoundary>} />
         <Route path="/privacy" element={<PrivacyPolicyRoute />} />
         <Route path="/terms" element={<TermsOfServiceRoute />} />
+        {AgentScreenPreview && (
+          <Route path="/dev/agent-screen" element={<Suspense fallback={null}><AgentScreenPreview /></Suspense>} />
+        )}
         <Route path="/" element={<RootRoute />} />
         <Route path="*" element={<LandingPage />} />
       </Routes>

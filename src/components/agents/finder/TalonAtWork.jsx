@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Mascot from "../Mascot.jsx";
+import AgentScreen from "../screen/AgentScreen.jsx";
 import { PixelStamp } from "../PixelIcons.jsx";
 import { RADIUS, SANS, TEXT, TEXT_FAINT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk } from "../agentUi.js";
 import { Button, PULSE_CLASS, SR_ONLY } from "../outreach/flowUi.jsx";
@@ -164,7 +165,7 @@ function Stamp({ line, ink }) {
 
 /** lines: the merged progress lines. onLeave(): back to the board.
  *  isMobile: the smaller sky and bird for a phone. */
-export default function TalonAtWork({ lines, onLeave, isMobile = false }) {
+export default function TalonAtWork({ lines, shots = [], onLeave, isMobile = false, running = true }) {
   const ink = useAgentInk();
   const list = Array.isArray(lines) ? lines : EMPTY;
 
@@ -178,7 +179,9 @@ export default function TalonAtWork({ lines, onLeave, isMobile = false }) {
   const saying = (Array.isArray(sayings) && sayings[at % sayings.length]) || "";
 
   const finished = useFinished(list);
-  const said = useStepAnnouncer(list);
+  const stepSaid = useStepAnnouncer(list);
+  // The end of the run is news too: the announcer otherwise keeps its last step.
+  const said = running ? stepSaid : { text: "Talon finished scouting. Everything it opened is on its screen.", n: stepSaid.n + 1 };
 
   // The newest active line leads; searches run side by side, so any others
   // still going are listed under it rather than hidden.
@@ -193,14 +196,17 @@ export default function TalonAtWork({ lines, onLeave, isMobile = false }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0, fontFamily: SANS }}>
-      <Sky ink={ink} isMobile={isMobile} />
+      {/* On a phone the screen below holds Talon's work, so the sky is left out from the start (never mid-run). */}
+      {!isMobile && <Sky ink={ink} isMobile={isMobile} />}
 
       <section aria-label="What Talon is doing" style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+        {/* Always mounted and one size, so nothing below it moves as steps come and go or the run ends. */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0, minHeight: isMobile ? 136 : 84 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 14px", minWidth: 0,
+            minHeight: isMobile ? 76 : 50, boxSizing: "border-box",
             background: ink.softer, border: `1px solid ${ink.soft}`, borderRadius: RADIUS.control }}>
-            <span className={PULSE_CLASS} aria-hidden="true" style={{ display: "flex", marginTop: 4, color: ink.onSoft }}>
-              <PixelStamp kind="sparkle" size={16} />
+            <span className={shots.length || !running ? undefined : PULSE_CLASS} aria-hidden="true" style={{ display: "flex", marginTop: 4, color: ink.onSoft }}>
+              <PixelStamp kind={running ? "sparkle" : "check"} size={16} />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, lineHeight: 1.45, color: TEXT,
@@ -208,12 +214,13 @@ export default function TalonAtWork({ lines, onLeave, isMobile = false }) {
                 <span style={{ display: "inline-block", marginRight: 8, padding: "1px 7px", verticalAlign: 1,
                   background: ink.button.bg, color: ink.button.fg, fontSize: "0.9rem", fontWeight: 800, lineHeight: 1.4,
                   letterSpacing: "0.06em", textTransform: "uppercase", borderRadius: 6 }}>
-                  Now
+                  {running ? "Now" : "Done"}
                 </span>
                 <span style={SR_ONLY}>: </span>
-                {nowLabel}
+                {running ? nowLabel : "Talon finished scouting. Everything it opened is on its screen below."}
               </p>
-              {also.length > 0 && (
+              {/* With a screen, the parallel work shows there as tabs; listing it here too only changed this box's height. */}
+              {running && also.length > 0 && shots.length === 0 && (
                 <ul style={{ listStyle: "none", margin: "4px 0 0", padding: 0, display: "grid", gap: 2 }}>
                   {also.map((l) => (
                     <li key={l.id} style={{ fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.45, color: TEXT_MID,
@@ -225,12 +232,15 @@ export default function TalonAtWork({ lines, onLeave, isMobile = false }) {
               )}
             </div>
           </div>
-          {saying && (
+          {saying && shots.length === 0 && (
             <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.5, color: TEXT_MUTED }}>
               Talon: &ldquo;{saying}&rdquo;
             </p>
           )}
         </div>
+
+        <AgentScreen shots={shots} agent="talon" running={running} isMobile={isMobile}
+          idle="Talon's searches and the pages it reads open here as it scouts." />
 
         {finished.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
@@ -249,10 +259,10 @@ export default function TalonAtWork({ lines, onLeave, isMobile = false }) {
         {said.text && <span key={said.n}>{said.text}</span>}
       </p>
 
-      <p style={{ margin: 0, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.55 }}>
+      {running && <p style={{ margin: 0, fontSize: "0.95rem", color: TEXT_MUTED, lineHeight: 1.55 }}>
         This usually takes a minute or two. You can leave this page: Talon keeps going, and what it finds lands on
         your board.
-      </p>
+      </p>}
       {onLeave && (
         <div>
           <Button kind="secondary" onClick={onLeave}>Go to your board</Button>

@@ -38,6 +38,7 @@ from fastapi.responses import RedirectResponse, StreamingResponse
 from app import config
 from app.auth import verify_jwt
 from app.nodes.agents import google
+from app.nodes.agents.essay import imports as essay_imports
 from app.nodes.agents.essay import service as essay
 from app.nodes.agents.finder import service as finder
 from app.nodes.agents.google import GoogleError
@@ -314,6 +315,14 @@ async def essay_talk(raw: Request, user_id: str = Depends(verify_jwt)):
     result = await _run(user_id, "essay_talk", lambda: essay.talk(user_id, body), private=True)
     if not result.get("handoff"):
         _track(user_id, "essay_talk_turn", done=bool(result.get("done")))
+    return result
+
+
+@router.post("/essay/import/google")
+async def essay_import_google(raw: Request, user_id: str = Depends(verify_jwt)):
+    body = await _body(raw)
+    result = await _run(user_id, "essay_import", lambda: essay_imports.open_google_doc(user_id, body), private=True)
+    _track(user_id, "essay_doc_opened", source="google")
     return result
 
 

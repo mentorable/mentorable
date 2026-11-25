@@ -572,10 +572,11 @@ _HANDLERS = {
 
 def tools_for(profile: dict) -> list[dict]:
     """The chat tools for this student: all of them, minus recall_memory when
-    memory is off or unavailable."""
-    if memory_available(profile):
-        return CHAT_TOOLS
-    return [t for t in CHAT_TOOLS if t["name"] != "recall_memory"]
+    memory is off or unavailable, plus the hand-offs to other agents
+    (app/nodes/chat/handoff.py), which the graph routes to their own node."""
+    from app.nodes.chat.handoff import handoff_tools
+    tools = CHAT_TOOLS if memory_available(profile) else [t for t in CHAT_TOOLS if t["name"] != "recall_memory"]
+    return tools + handoff_tools()
 
 # Which tools changed something the student should see a confirmation for.
 WRITE_TOOLS = {"add_portfolio_item", "update_portfolio_item", "delete_portfolio_item", "update_gpa"}

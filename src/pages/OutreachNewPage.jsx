@@ -15,6 +15,7 @@ import ResearchStep from "../components/agents/outreach/ResearchStep.jsx";
 import BeakerAtWork from "../components/agents/outreach/BeakerAtWork.jsx";
 import GmailConnectSheet from "../components/agents/outreach/GmailConnectSheet.jsx";
 import { mergeProgress } from "../components/agents/outreach/ProgressChecklist.jsx";
+import { mergeScreen } from "../components/agents/screen/screenModel.js";
 import {
   DEFAULT_LENGTH, DEFAULT_VOICE, GOAL_MAX, NAME_MAX, ORG_MAX, URL_MAX, budgetOf, researchBlock,
 } from "../components/agents/outreach/options.js";
@@ -106,6 +107,7 @@ export default function OutreachNewPage({ navigate, api = REAL_API, search }) {
 
   const [running, setRunning] = useState(null);     // null | "shortlist" | "draft"
   const [lines, setLines] = useState([]);
+  const [shots, setShots] = useState([]);       // what Beaker opened, for its screen
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [answerError, setAnswerError] = useState(null);
@@ -131,7 +133,7 @@ export default function OutreachNewPage({ navigate, api = REAL_API, search }) {
     setTryId(open.id);
     setMode(open.mode === "goal" ? "goal" : "person");
     if (open.goal) setGoal(open.goal);
-    setFailure(null); setStepError(null); setLines([]); setPick(null);
+    setFailure(null); setStepError(null); setLines([]); setShots([]); setPick(null);
     if (open.pending_question) {
       setQuestion(open.pending_question); setAnswer(""); setAnswerError(null);
       setStep("research");
@@ -241,7 +243,10 @@ export default function OutreachNewPage({ navigate, api = REAL_API, search }) {
 
   // ── Streams ────────────────────────────────────────────────────────────────
 
-  const onEvent = useCallback((ev) => setLines((prev) => mergeProgress(prev, ev)), []);
+  const onEvent = useCallback((ev) => {
+    setLines((prev) => mergeProgress(prev, ev));
+    setShots((prev) => mergeScreen(prev, ev));
+  }, []);
 
   const listen = () => {
     abortRef.current?.abort();
@@ -253,7 +258,7 @@ export default function OutreachNewPage({ navigate, api = REAL_API, search }) {
   const runShortlist = async () => {
     if (running) return;
     const ctl = listen();
-    setStepError(null); setFailure(null); setLines([]); setCandidates([]); setTryId(null); setPick(null);
+    setStepError(null); setFailure(null); setLines([]); setShots([]); setCandidates([]); setTryId(null); setPick(null);
     setListKind("shortlist");
     setStep("shortlist");
     setRunning("shortlist");
@@ -283,7 +288,7 @@ export default function OutreachNewPage({ navigate, api = REAL_API, search }) {
   const runDraft = async (body, from) => {
     if (running) return;
     const ctl = listen();
-    setStepError(null); setFailure(null); setAnswerError(null); setLines([]);
+    setStepError(null); setFailure(null); setAnswerError(null); setLines([]); setShots([]);
     setStep("research");
     setRunning("draft");
     try {
@@ -369,7 +374,7 @@ export default function OutreachNewPage({ navigate, api = REAL_API, search }) {
   const startOver = () => {
     abortRef.current?.abort();
     setRunning(null);
-    setTryId(null); setCandidates([]); setPick(null); setQuestion(""); setFailure(null); setStepError(null); setLines([]);
+    setTryId(null); setCandidates([]); setPick(null); setQuestion(""); setFailure(null); setStepError(null); setLines([]); setShots([]);
     setStep("who");
   };
 
@@ -486,10 +491,10 @@ export default function OutreachNewPage({ navigate, api = REAL_API, search }) {
 
           {step === "shortlist" && (
             running === "shortlist" ? (
-              <BeakerAtWork lines={lines} sayings={SHORTLIST_SAYINGS}
+              <BeakerAtWork lines={lines} shots={shots} isMobile={isMobile} sayings={SHORTLIST_SAYINGS}
                 note="Finding real people usually takes under a minute. If you leave, the shortlist waits for you here." />
             ) : failure ? (
-              <ResearchStep view="error" failure={failure} lines={lines} actions={failureActions()} />
+              <ResearchStep view="error" failure={failure} lines={lines} shots={shots} isMobile={isMobile} actions={failureActions()} />
             ) : (
               <>
                 {stepError && <Notice tone="error" style={{ marginBottom: 14 }}>{stepError}</Notice>}
@@ -519,7 +524,7 @@ export default function OutreachNewPage({ navigate, api = REAL_API, search }) {
           {step === "research" && (
             <ResearchStep
               view={running === "draft" ? "running" : failure ? "error" : question ? "question" : "running"}
-              lines={lines} question={question} answer={answer} onAnswer={setAnswer}
+              lines={lines} shots={shots} isMobile={isMobile} question={question} answer={answer} onAnswer={setAnswer}
               onSubmitAnswer={() => submitAnswer(false)} onSkip={() => submitAnswer(true)}
               busy={!!running} failure={failure} actions={failureActions()}
               answerError={answerError ? <Notice tone="error">{answerError}</Notice> : null} />

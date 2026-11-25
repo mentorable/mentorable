@@ -169,9 +169,10 @@ def test_json_fallback_is_one_forced_tool_call(monkeypatch, rows):
 
 
 def test_a_caller_with_its_own_fallback_pays_for_one_anthropic_call(monkeypatch, rows):
-    """Beaker's reading jobs: OpenAI fails, Haiku answers once through the
-    caller's own forced tool, never a plain Haiku call first."""
-    from app.nodes.agents.outreach import research
+    """Talon's reading jobs (Beaker's research is an agent loop now): OpenAI
+    fails, Haiku answers once through the caller's own forced tool, never a
+    plain Haiku call first."""
+    from app.nodes.agents.finder import research
 
     async def openai_fails(**kw):
         raise RuntimeError("openai down")
@@ -179,9 +180,10 @@ def test_a_caller_with_its_own_fallback_pays_for_one_anthropic_call(monkeypatch,
     monkeypatch.setattr(research, "openai_enabled", lambda: True)
     calls = Calls(reply=_tool_reply("submit_queries", {"queries": ["a", "b"]}))
     monkeypatch.setattr(llm, "_anthropic", NS(messages=NS(create=calls.create)))
-    got = run(research._extract(label="outreach_queries", prompt="p", max_tokens=100, openai_model="gpt-5-nano",
-                                tool={"name": "submit_queries", "input_schema": {
-                                    "type": "object", "properties": {"queries": {"type": "array", "items": {"type": "string"}}}}}))
+    got = run(research._ask(label="finder_queries", prompt="p", max_tokens=100, openai_model="gpt-5-nano",
+                            expect="queries",
+                            tool={"name": "submit_queries", "input_schema": {
+                                "type": "object", "properties": {"queries": {"type": "array", "items": {"type": "string"}}}}}))
     assert got == {"queries": ["a", "b"]}
     assert calls.n == 1
 

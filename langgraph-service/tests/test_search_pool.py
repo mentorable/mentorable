@@ -1,8 +1,8 @@
 """
 The search pool (app/search_pool.py): key failover, cooldowns, the cache and the
-results the model reads; and the two paths that use it: Beaker's research on
-Tavily and Quest's resources on Brave, each falling back to Anthropic's search
-tool when its pool cannot answer. No network: httpx.MockTransport and fakes.
+results the model reads; and Quest's resources on Brave, falling back to
+Anthropic's search tool when its pool cannot answer. (Beaker's research on
+Tavily is in test_outreach_graph.py.) No network: httpx.MockTransport and fakes.
 """
 import asyncio
 import os
@@ -161,77 +161,6 @@ def test_the_results_block_gives_the_model_only_what_was_found():
     assert "found no pages" in search_pool.results_block([])
 
 
-# ── Beaker on Tavily ──────────────────────────────────────────────────────────
-
-class Events:
-    async def __call__(self, event):
-        pass
-
-
-def test_the_shortlist_searches_through_tavily_with_no_anthropic_search(monkeypatch):
-    monkeypatch.setattr(config, "TAVILY_API_KEYS", ["k1"])
-    urls = ["https://usf.edu/marine/lee", "https://mote.org/staff/okafor"]
-
-    async def fake_web_search(query, *, blocked=None, count=10, client=None):
-        return [{"title": "Lee", "url": urls[0], "snippet": "Marine science professor"},
-                {"title": "Okafor", "url": urls[1], "snippet": "Coral nursery"}]
-
-    async def fake_tool(*, model, prompt, tool, max_tokens, label, system=None):
-        if tool["name"] == "submit_queries":
-            return {"queries": ["marine biology professor Florida", "coastal ecology lab outreach"]}
-        assert "SEARCH RESULTS" in prompt and urls[0] in prompt
-        return {"people": [
-            {"name": "Dr. Maria Lee", "title": "Professor", "organization": "USF", "why": "Runs a seagrass lab.",
-             "source_url": urls[0], "source_title": "Lee"},
-            {"name": "Invented Person", "title": "X", "organization": "Y", "why": "z",
-             "source_url": "https://not-returned.example/p", "source_title": "n"}]}
-
-    async def no_anthropic_search(**kw):
-        raise AssertionError("Anthropic's search tool must not run when Tavily answers")
-
-    monkeypatch.setattr(search_pool.tavily, "web_search", fake_web_search)
-    monkeypatch.setattr(research, "tool_completion", fake_tool)
-    monkeypatch.setattr(research, "search_completion", no_anthropic_search)
-    people = run(research.find_people("a marine biology professor in Florida", record_text="Name: Ada", emit=Events()))
-    assert [p["name"] for p in people] == ["Dr. Maria Lee"]                    # a link the search never returned is dropped
-
-
-def test_when_tavily_cannot_answer_beaker_falls_back_to_anthropics_search(monkeypatch):
-    monkeypatch.setattr(config, "TAVILY_API_KEYS", ["k1"])
-    calls = []
-
-    async def down(query, *, blocked=None, count=10, client=None):
-        raise search_pool.SearchUnavailable("all keys out")
-
-    async def fake_tool(**kw):
-        return {"queries": ["a professor near me"]}
-
-    async def fallback(**kw):
-        calls.append(kw["label"])
-        return ({"people": [{"name": "Dr. Alice Moreno", "title": "Associate Professor of Biology", "organization": "State University",
-                             "why": "Runs a lab on coastal ecology.", "source_url": "https://u.edu/a", "source_title": "Moreno lab"}]},
-                {"https://u.edu/a"}, {"searches": 1, "errors": 0})
-
-    monkeypatch.setattr(search_pool.tavily, "web_search", down)
-    monkeypatch.setattr(research, "tool_completion", fake_tool)
-    monkeypatch.setattr(research, "search_completion", fallback)
-    people = run(research.find_people("a professor near me", record_text="", emit=Events()))
-    assert calls == ["outreach_people"] and [p["name"] for p in people] == ["Dr. Alice Moreno"]
-
-
-def test_with_no_tavily_key_beaker_uses_anthropics_search_as_before(monkeypatch):
-    monkeypatch.setattr(config, "TAVILY_API_KEYS", [])
-    seen = []
-
-    async def fallback(**kw):
-        seen.append(kw["max_searches"])
-        return {"people": []}, {"https://u.edu/a"}, {"searches": 1, "errors": 0}
-
-    monkeypatch.setattr(research, "search_completion", fallback)
-    assert run(research.find_people("a goal here", record_text="", emit=Events())) == []
-    assert seen == [research.SHORTLIST_SEARCHES]
-
-
 # ── Quest's resources on Brave ────────────────────────────────────────────────
 
 def test_quest_resources_search_through_brave_and_keep_only_returned_links(monkeypatch):
@@ -272,32 +201,6 @@ def test_quest_resources_fall_back_when_brave_cannot_answer(monkeypatch):
     monkeypatch.setattr(resources, "search_completion", fallback)
     got = run(resources.find_resources(quest={"title": "q", "summary": ""}, task={"title": "t", "detail": ""}, grade=""))
     assert [r["url"] for r in got] == ["https://www.khanacademy.org/x"]
-
-
-# ── The reading jobs run on OpenAI's small models, with Haiku behind them ────
-
-def test_the_reading_jobs_use_openai_first_and_haiku_when_it_gives_nothing(monkeypatch):
-    seen = []
-
-    async def fake_json(**kw):
-        seen.append((kw["schema_name"], kw["openai_model"], kw["schema"]["additionalProperties"]))
-        return seen and {"queries": ["marine biology professor Florida"]}
-
-    async def haiku(**kw):
-        seen.append(("haiku", kw["label"]))
-        return {"queries": ["from haiku"]}
-
-    monkeypatch.setattr(research, "openai_enabled", lambda: True)
-    monkeypatch.setattr(research, "json_completion", fake_json)
-    monkeypatch.setattr(research, "tool_completion", haiku)
-    from app.models import OUTREACH_QUERIES_MODEL
-    assert run(research._write_queries("a marine biology professor")) == ["marine biology professor Florida"]
-    assert seen == [("outreach_queries", OUTREACH_QUERIES_MODEL, False)]
-
-    async def nothing(**kw):
-        return None
-    monkeypatch.setattr(research, "json_completion", nothing)
-    assert run(research._write_queries("a marine biology professor")) == ["from haiku"]
 
 
 def test_the_strict_schema_requires_every_property_all_the_way_down():

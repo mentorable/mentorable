@@ -64,9 +64,11 @@ from typing import Optional
 from zoneinfo import ZoneInfo
 
 from app.db.supabase import get_supabase
+from app.nodes.agents import screen
 from app.nodes.agents import google, usage
 from app.nodes.agents.google import GoogleError
 from app.nodes.agents.outreach import draft as writer
+from app.nodes.agents.outreach import graph as beaker_graph
 from app.nodes.agents.outreach import research, voices
 from app.nodes.agents.outreach.draft import DraftFailed
 from app.nodes.agents.outreach.research import Emit, progress_line
@@ -810,7 +812,8 @@ async def _write(user_id: str, try_row: dict, found: dict, choice: dict, *, why:
     # At most one question per try: once asked, the try carries the card it saved.
     allow_question = not try_row.get("contact_id")
     try:
-        result = await writer.write_draft(
+        # Drafted, then read back once by a second reader and revised at most once.
+        result = await beaker_graph.write_reviewed_draft(
             research=found, record_text=record_text, student_name=profile.get("full_name") or "",
             # The raw grade: the prompt turns "11" into "a junior (11th grade) in high school".
             grade=str(profile.get("grade_level") or ""),
@@ -849,6 +852,8 @@ async def _write(user_id: str, try_row: dict, found: dict, choice: dict, *, why:
         return await _give_back(user_id, try_id, "draft_failed", COULD_NOT_SAVE,
                                 drop_card=card["id"] if card else None)
     tz = await asyncio.to_thread(_stored_zone, user_id)
+    await screen.compose(emit, "compose", to=saved.get("email") or saved.get("name") or "",
+                         subject=written["subject"], body=written["body"])
     return {"type": "draft", "contact": contact_payload(saved, tz)}
 
 
@@ -875,7 +880,10 @@ async def _research_and_draft(user_id: str, try_row: dict, target: dict, choice:
             return await _give_back(user_id, try_id, "search_failed", COULD_NOT_SAVE)
         return {"type": "ambiguous", "try_id": try_id, "candidates": candidates}
     if state != "found":
-        return await _give_back(user_id, try_id, "not_found", NOT_FOUND.format(name=target["name"]))
+        # A refusal (a school student, a private person) says so in its own words.
+        message = found.get("message") if isinstance(found.get("message"), str) and found.get("reason") else None
+        return await _give_back(user_id, try_id, "not_found", message or NOT_FOUND.format(name=target["name"]))
+    await screen.notes(emit, "notes", found.get("facts"), title=f"What checked out about {target['name']}")
     return await _write(user_id, try_row, found, choice, why=why, record_text=record_text, record=record,
                         emit=emit)
 

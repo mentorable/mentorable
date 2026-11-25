@@ -1,12 +1,13 @@
 """
 Beaker's research: who to write to, and what their work is about.
 
-Two calls, both Haiku 4.5, each submitting its answer through a tool. The web
-search behind them is a search API (Tavily, through search_pool.py) when a key is set: the
-searches run here, and the model reads a short list of results in one plain
-call, which is what keeps a try cheap. With no key, or when no key can answer,
-they use Anthropic's web search tool (llm.search_completion), which costs many
-times more:
+Each job is an agent run (graph.run_research): Sonnet with a search tool, an
+open-page tool and a submit tool decides what to search for, which results to
+read and when it has enough, within caps on searches, page opens and turns.
+The searches are a search API (Tavily, through search_pool.py) when a key is
+set, and Anthropic's own web search tool otherwise. This module holds the rules
+the run is judged by, and a judgement that something was missing sends the
+model back for one more look:
 - find_people: a goal becomes a shortlist of three to five real people.
 - research_person: a named person becomes a few facts about their work, each
   with the page that states it, plus an email address if one is published.
@@ -30,15 +31,14 @@ what came back), pick for the people chosen, email for the address check.
 """
 import logging
 import re
+import time
 import unicodedata
 from typing import Awaitable, Callable, Optional
 
-import asyncio
-
-from app.llm import ModelUnavailable, json_completion, openai_enabled, search_completion, tool_completion
-from app.models import OUTREACH_FACTS_MODEL, OUTREACH_PEOPLE_MODEL, OUTREACH_QUERIES_MODEL, OUTREACH_RESEARCH_MODEL
-from app import search_pool
+from app.llm import ModelUnavailable
+from app.models import OUTREACH_AGENT_MODEL
 from app.nodes.agents.names import research_record
+from app.nodes.agents.outreach import graph as agent
 from app.nodes.agents.outreach import pages, prompts
 from app.nodes.quest.common import clean_text
 from app.nodes.quest.resources import BLOCKED_DOMAINS
@@ -47,15 +47,19 @@ logger = logging.getLogger(__name__)
 
 Emit = Callable[[dict], Awaitable[None]]
 
-# Every search costs $0.01 and feeds its results back through the model, which
-# costs more than the search itself, so the counts are as low as still finds
-# someone: the shortlist needs breadth (2), a named person needs their page and
-# one piece of work (3), and with their page already read (a shortlist pick, or
-# a link the student gave) one more search is enough (1).
-SHORTLIST_SEARCHES = 2
-PERSON_SEARCHES = 3
-PERSON_SEARCHES_PAGE_READ = 1
-MAX_SEARCHES = SHORTLIST_SEARCHES      # kept for the tests that import it
+# Every search costs $0.01 and every turn re-reads the conversation, so the caps
+# are as low as still lets the model look again when the first angle misses.
+# The shortlist needs breadth more than depth; a named person needs their page,
+# a piece of their work and maybe a contact page. With their page already read
+# (a shortlist pick, or a link the student gave) fewer searches are needed.
+SHORTLIST_SEARCHES = 4
+SHORTLIST_OPENS = 3
+SHORTLIST_ROUNDS = 7
+PERSON_SEARCHES = 5
+PERSON_SEARCHES_PAGE_READ = 3
+PERSON_OPENS = 5
+PERSON_ROUNDS = 8
+RESEARCH_SECONDS = 120.0           # the service stops the whole run at 150 s; this leaves room to draft
 MAX_CANDIDATES = 5
 MAX_AMBIGUOUS = 3
 MAX_FACTS = 6
@@ -160,31 +164,9 @@ class _SearchLines:
         self.open = []
 
 
-# ── Searching ────────────────────────────────────────────────────────────────
-
-QUERIES_TOOL = {
-    "name": "submit_queries",
-    "description": "Submit the web search queries.",
-    "input_schema": {
-        "type": "object",
-        "properties": {"queries": {"type": "array", "items": {"type": "string"},
-                                   "description": "Two queries, four to ten words each, from different angles."}},
-        "required": ["queries"],
-    },
-}
-
-QUERIES_PROMPT = """A US high school student wants to email someone who could help with a goal. Write two short web search queries (four to ten words each) that would find official pages of the right people: faculty profiles, lab pages, university outreach programs, or a professional's work bio. Use different angles: one on the field and the kind of person, one on the kind of page (a lab, a program, a directory). Keep the student's own name and personal details out.
-
-THE GOAL, IN THEIR WORDS:
-{goal}"""
-
-READ_PAGES = 2                  # pages read in full when researching a named person
-READ_PAGE_CHARS = 3500
-
-
 def _strict(schema):
     """A tool's input schema as OpenAI's strict mode wants it: every property
-    required and no extras, all the way down."""
+    required and no extras, all the way down. (Talon's research uses it.)"""
     if isinstance(schema, dict):
         out = {k: _strict(v) for k, v in schema.items()}
         if out.get("type") == "object" and isinstance(out.get("properties"), dict):
@@ -196,107 +178,50 @@ def _strict(schema):
     return schema
 
 
-async def _extract(*, label: str, prompt: str, tool: dict, max_tokens: int, openai_model: str) -> Optional[dict]:
-    """One reading job: the model's answer as a dict, or None. OpenAI's small
-    model first (strict JSON schema, several times cheaper), and Haiku through
-    a forced tool when there is no OpenAI key or that call gave nothing.
-    Raises ModelUnavailable only when Haiku cannot be reached either."""
-    if openai_enabled():
-        out = await json_completion(prompt=prompt, schema=_strict(tool["input_schema"]), schema_name=label,
-                                    openai_model=openai_model, anthropic_model=OUTREACH_RESEARCH_MODEL,
-                                    max_tokens=max_tokens, anthropic_fallback=False)
-        if isinstance(out, dict):
-            return out
-        logger.warning(f"[{label}] {openai_model} gave no usable answer; asking Haiku")
-    return await tool_completion(model=OUTREACH_RESEARCH_MODEL, prompt=prompt, tool=tool, max_tokens=max_tokens,
-                                 label=label)
+# ── Facts against the pages that state them ─────────────────────────────────
+
+_STOPWORDS = frozenset("""
+about above after again also among and are around been before being between both but can could did does
+during each from further had has have having her here hers him his how into its itself just more most other our
+ours over same she should some such than that the their theirs them then there these they this those through
+under until very was were what when where which while who whom why will with would you your yours work works
+working research researches studies study using used uses lab labs professor university
+""".split())
+SUPPORT_TEXT_MIN = 200             # shorter than this (a bare result title) says too little to check against
 
 
-async def _write_queries(goal: str) -> list[str]:
-    """Two search queries for a goal, from a tiny model call. The goal itself
-    is the fallback: a student's own words search well enough."""
-    try:
-        got = await _extract(label="outreach_queries", prompt=QUERIES_PROMPT.format(goal=goal), tool=QUERIES_TOOL,
-                             max_tokens=300, openai_model=OUTREACH_QUERIES_MODEL)
-    except ModelUnavailable:
-        got = None
-    queries = []
-    for q in (got or {}).get("queries", []) if isinstance(got, dict) else []:
-        q = clean_text(q, 120)
-        if 3 <= len(q) and q.lower() not in [x.lower() for x in queries]:
-            queries.append(q)
-    return queries[:2] or [clean_text(goal, 200)]
+def _content_words(text: str) -> set[str]:
+    words = re.findall(r"[a-z0-9]+", (text or "").lower())
+    return {w for w in words if len(w) >= 4 and w not in _STOPWORDS}
 
 
-async def _search_answer(*, label: str, prompt: str, tool: dict, max_tokens: int, queries, lines: "_SearchLines",
-                         anthropic_searches: int, extract_model: str, read_pages: int = 0,
-                         fetched: Optional[dict] = None, emit: Optional[Emit] = None):
-    """(what the model submitted, the URLs the search returned, {"searches", "errors"}).
-
-    With Tavily: run the queries, optionally read the top pages, and put the
-    results in front of the model in one plain call. If no Tavily key can
-    answer, or none is set, the model searches with Anthropic's own tool."""
-    if search_pool.tavily.configured():
-        try:
-            return await _pooled_answer(label=label, prompt=prompt, tool=tool, max_tokens=max_tokens,
-                                       queries=list(queries), lines=lines, read_pages=read_pages,
-                                       fetched=fetched if fetched is not None else {}, emit=emit,
-                                       extract_model=extract_model)
-        except search_pool.SearchUnavailable:
-            logger.warning(f"[{label}] Tavily could not answer; using Anthropic's web search instead")
-    return await search_completion(
-        model=OUTREACH_RESEARCH_MODEL, prompt=prompt, submit_tool=tool, max_tokens=max_tokens, label=label,
-        max_searches=anthropic_searches, blocked_domains=OUTREACH_BLOCKED, on_event=lines.on_event)
+def fact_supported(fact_text: str, source_text: str, *, share: float = 0.5) -> bool:
+    """Whether a fact is borne out by the text of the page (or the search
+    snippet) it cites: at least half of its content words appear there. A
+    model reading a page can still embroider it (a result the page never
+    states, a title it guessed); this catches the plain cases in code, and the
+    second reader of the draft catches the rest."""
+    words = _content_words(fact_text)
+    if not words:
+        return True
+    have = _content_words(source_text)
+    return len(words & have) / len(words) >= share
 
 
-async def _pooled_answer(*, label, prompt, tool, max_tokens, queries, lines, read_pages, fetched, emit,
-                         extract_model):
-    results: list[dict] = []
-    seen: set[str] = set()
-    ran = errors = 0
-    for query in queries:
-        await lines.on_event({"type": "search", "query": query})
-        try:
-            got = await search_pool.tavily.web_search(query, blocked=OUTREACH_BLOCKED)
-        except search_pool.SearchUnavailable:
-            await lines.on_event({"type": "search_error"})
-            if not ran:
-                raise                                   # nothing worked: let the caller fall back
-            errors += 1
+def supported_facts(raw, texts: dict) -> list:
+    """The submitted facts, less those the text seen at their URL does not
+    bear out. A fact whose page was never read (only its title came back) is
+    left to the URL check, as before."""
+    out = []
+    for item in (raw if isinstance(raw, list) else []):
+        if not isinstance(item, dict):
             continue
-        ran += 1
-        await lines.on_event({"type": "results", "count": len(got), "domains": _domains_of(got)})
-        for r in got:
-            if r["url"] not in seen and len(results) < 12:
-                seen.add(r["url"])
-                results.append(r)
-
-    texts: dict[str, str] = {}
-    extra: set[str] = set()
-    if read_pages and results:
-        picks = results[:read_pages]
-        await progress_line(emit, "read", f"Reading their page on {pages.domain_of(picks[0]['url'])}", "active")
-        got_pages = await asyncio.gather(*[_fetch_cached(r["url"], fetched) for r in picks])
-        for r, page in zip(picks, got_pages):
-            if page is not None and page.text:
-                texts[r["url"]] = page.text[:READ_PAGE_CHARS]
-                extra |= {r["url"], page.final_url}
-        await progress_line(emit, "read", f"Read {len(texts)} page{'s' if len(texts) != 1 else ''}" if texts
-                            else "Could not open their pages, using the search results", "done" if texts else "failed")
-
-    raw = await _extract(label=label, prompt=prompt + "\n\n" + search_pool.results_block(results, texts), tool=tool,
-                         max_tokens=max_tokens, openai_model=extract_model)
-    return raw, {r["url"] for r in results} | extra, {"searches": ran, "errors": errors}
-
-
-def _domains_of(results: list[dict], limit: int = 4) -> list[str]:
-    out: list[str] = []
-    for r in results:
-        host = pages.domain_of(r["url"])
-        if host and host not in out:
-            out.append(host)
-        if len(out) == limit:
-            break
+        source = texts.get(item.get("url")) if isinstance(item.get("url"), str) else None
+        if isinstance(source, str) and len(source) >= SUPPORT_TEXT_MIN and not fact_supported(
+                str(item.get("text") or ""), source):
+            logger.info("[outreach_research] dropped a fact its page does not bear out")
+            continue
+        out.append(item)
     return out
 
 
@@ -469,31 +394,51 @@ def clean_candidates(raw, allowed: set[str], limit: int) -> list[dict]:
 
 # ── The shortlist ────────────────────────────────────────────────────────────
 
+NO_PEOPLE_KEPT = ("None of the people you submitted could be kept. Each one needs the exact URL of a search result "
+                  "or page that shows them, from an official site, and nobody who is a school student.")
+NO_PEOPLE_YET = ("Nobody suitable yet. Try another angle: the field plus a lab or a faculty directory, a university "
+                 "outreach or pre-college program, or a nearby institution.")
+
+
+def _fetcher(fetched: dict):
+    async def fetch(url: str):
+        return await _fetch_cached(url, fetched)
+    return fetch
+
+
 async def find_people(goal: str, *, record_text: str, emit: Emit) -> Optional[list[dict]]:
     """Three to five real people for a goal. None when the search failed (the
     caller refunds); [] when it ran and nobody suitable turned up."""
     lines = _SearchLines(emit)
     await lines.start()
     prompt = prompts.find_people_prompt(goal=goal, record_text=research_record(record_text))
+
+    async def judge(raw: dict, returned: set, stats: dict, texts: dict, final: bool):
+        await lines.finish()                 # the searches so far are done; a second look opens new lines
+        if not _searched(returned, stats) or not isinstance(raw.get("people"), list):
+            logger.warning(f"[outreach_people] no usable search or submission: {stats}")
+            return None, None
+        people = clean_candidates(raw["people"], returned, MAX_CANDIDATES)
+        if not people and not final:
+            return (NO_PEOPLE_KEPT if raw["people"] else NO_PEOPLE_YET), None
+        if people:
+            word = "person" if len(people) == 1 else "people"
+            await progress_line(emit, "pick", f"Picked {len(people)} {word} for you to choose from", "done")
+        else:
+            await progress_line(emit, "pick", "Nobody on those pages was a good fit", "failed")
+        return None, people
+
     try:
-        queries = await _write_queries(goal) if search_pool.tavily.configured() else []
-        raw, returned, stats = await _search_answer(
-            label="outreach_people", prompt=prompt, tool=prompts.PEOPLE_TOOL, max_tokens=4000, queries=queries,
-            lines=lines, anthropic_searches=SHORTLIST_SEARCHES, emit=emit, extract_model=OUTREACH_PEOPLE_MODEL)
+        people = await agent.run_research(
+            label="outreach_people", model=OUTREACH_AGENT_MODEL, prompt=prompt, submit_tool=prompts.PEOPLE_TOOL,
+            judge=judge, max_searches=SHORTLIST_SEARCHES, max_opens=SHORTLIST_OPENS, max_rounds=SHORTLIST_ROUNDS,
+            max_tokens=4000, blocked_domains=OUTREACH_BLOCKED, lines=lines, emit=emit, progress=progress_line,
+            fetch=_fetcher({}), deadline=time.monotonic() + RESEARCH_SECONDS)
     except ModelUnavailable as exc:
         logger.warning(f"[outreach_people] search unavailable: {exc}")
         await lines.finish()
         return None
     await lines.finish()
-    if not _searched(returned, stats) or not isinstance(raw, dict) or not isinstance(raw.get("people"), list):
-        logger.warning(f"[outreach_people] no usable search or submission: {stats}")
-        return None
-    people = clean_candidates(raw["people"], returned, MAX_CANDIDATES)
-    if people:
-        word = "person" if len(people) == 1 else "people"
-        await progress_line(emit, "pick", f"Picked {len(people)} {word} for you to choose from", "done")
-    else:
-        await progress_line(emit, "pick", "Nobody on those pages was a good fit", "failed")
     return people
 
 
@@ -691,6 +636,18 @@ async def _found(raw: dict, *, wanted_name: str, wanted_org: str, searched: set[
     }
 
 
+NO_FACTS = ("None of the facts could be checked against a page. Each fact must say only what a page you read "
+            "(or a result's snippet) says, with that page's exact URL. Open their official profile or lab page and "
+            "take the facts from its text.")
+NOT_FOUND_YET = ("Not found yet. Try other angles: their name with their department or lab, the organization's "
+                 "faculty or staff directory, or a different spelling of the name.")
+
+
+def _other_name(found_name: str, wanted: str) -> str:
+    return (f"The person you found is named {found_name}, but the student means {wanted}. If that is someone else, "
+            f"search again for {wanted}. If it is the same person under another spelling, submit them again.")
+
+
 async def research_person(target: dict, *, emit: Emit) -> Optional[dict]:
     """What a named person works on, with sources, and their address if it is
     published. target is {"name", "organization", "url"}, plus "url_source":
@@ -713,18 +670,20 @@ async def research_person(target: dict, *, emit: Emit) -> Optional[dict]:
     titles: dict[str, str] = {}
     fetched: dict = {}
     given = target.get("url").strip() if isinstance(target.get("url"), str) else ""
+    given_texts: dict[str, str] = {}
     page = None
     first_line = 1
     if given:
         # The link that came with the person (typed by the student, or the
-        # source of a shortlist pick) is read here, not searched: the model
-        # sees its text, so facts from it stand on a page really fetched.
+        # source of a shortlist pick) is read here first: the model sees its
+        # text, so facts from it stand on a page really fetched.
         first_line = 2
         domain = pages.domain_of(given) or "that link"
         await progress_line(emit, "search-1", f"Reading their page on {domain}", "active")
         page = None if _blocked(given) else await _fetch_cached(given, fetched)
         if page and page.text:
             allowed_extra |= {given, page.final_url}
+            given_texts = {given: page.text, page.final_url: page.text}
             if page.title:
                 titles.setdefault(given, clean_text(page.title, 160))
                 titles.setdefault(page.final_url, clean_text(page.title, 160))
@@ -739,56 +698,64 @@ async def research_person(target: dict, *, emit: Emit) -> Optional[dict]:
         name=name, organization=organization, given_url=given if given and not _blocked(given) else "",
         page_title=page.title if page else "", page_text=page.text[:PAGE_PROMPT_CHARS] if page else "",
     )
-    who = f"{name} {organization}".strip()
-    queries = ([f"{who} publications OR research OR project"] if page
-               else [f'"{name}" {organization}'.strip(), f"{who} faculty OR lab OR profile"])
+
+    async def judge(raw: dict, returned: set, stats: dict, texts: dict, final: bool):
+        await lines.finish()                 # the searches so far are done; a second look opens new lines
+        searched = _searched(returned, stats)
+        allowed = set(returned) | allowed_extra
+        status = raw.get("status")
+        # A shortlist pick's page came from a search too; a typed link did not.
+        if target.get("url_source") == SOURCE_SEARCH:
+            from_search, from_student = set(returned) | allowed_extra, set()
+        else:
+            from_search, from_student = set(returned), set(allowed_extra)
+
+        # Someone Beaker does not write to: a school student, or a private person
+        # with no work page. Said plainly, whatever else came back.
+        kind = raw.get("recipient_kind")
+        if kind in ("minor", "private"):
+            await progress_line(emit, "pick", REFUSAL_LINE, "failed")
+            return None, refusal(REFUSE_MINOR if kind == "minor" else REFUSE_PRIVATE)
+
+        if status == "found":
+            checked = {**raw, "facts": supported_facts(raw.get("facts"), texts)}
+            result = await _found(checked, wanted_name=name, wanted_org=organization, searched=from_search,
+                                  given=from_student, titles=titles, fetched=fetched, emit=emit)
+            if result is None and not final:
+                return NO_FACTS, None
+            if (result is not None and result.get("status") == "ambiguous" and not final
+                    and result.get("candidates")):
+                return _other_name(result["candidates"][0]["name"], name), None
+            # Facts can stand on the student's own page even when a search failed.
+            if result is not None:
+                return None, result
+
+        if not searched:
+            logger.warning(f"[outreach_research] search did not run cleanly: {stats}")
+            return None, None
+
+        if status == "ambiguous":
+            candidates = clean_candidates(raw.get("candidates"), allowed, MAX_AMBIGUOUS)
+            if candidates:
+                matches = "1 possible match" if len(candidates) == 1 else f"{len(candidates)} possible matches"
+                await progress_line(emit, "pick", f"Found {matches} for {name}", "done")
+                return None, {"status": "ambiguous", "candidates": candidates}
+
+        if not final:
+            return NOT_FOUND_YET, None
+        await progress_line(emit, "pick", f"Could not find enough about {name}", "failed")
+        return None, {"status": "not_found"}
+
     try:
-        raw, returned, stats = await _search_answer(
-            label="outreach_research", prompt=prompt, tool=prompts.RESEARCH_TOOL, max_tokens=4500, queries=queries,
-            lines=lines, anthropic_searches=PERSON_SEARCHES_PAGE_READ if page else PERSON_SEARCHES,
-            read_pages=0 if page else READ_PAGES, fetched=fetched, emit=emit, extract_model=OUTREACH_FACTS_MODEL)
+        found = await agent.run_research(
+            label="outreach_research", model=OUTREACH_AGENT_MODEL, prompt=prompt, submit_tool=prompts.RESEARCH_TOOL,
+            judge=judge, max_searches=PERSON_SEARCHES_PAGE_READ if page else PERSON_SEARCHES,
+            max_opens=PERSON_OPENS, max_rounds=PERSON_ROUNDS, max_tokens=4500, blocked_domains=OUTREACH_BLOCKED,
+            lines=lines, emit=emit, progress=progress_line, fetch=_fetcher(fetched), given=given_texts,
+            deadline=time.monotonic() + RESEARCH_SECONDS)
     except ModelUnavailable as exc:
         logger.warning(f"[outreach_research] search unavailable: {exc}")
         await lines.finish()
         return None
     await lines.finish()
-    if not isinstance(raw, dict):
-        logger.warning(f"[outreach_research] no submission: {stats}")
-        return None
-
-    searched = _searched(returned, stats)
-    allowed = set(returned) | allowed_extra
-    status = raw.get("status")
-    # A shortlist pick's page came from a search too; a typed link did not.
-    if target.get("url_source") == SOURCE_SEARCH:
-        from_search, from_student = set(returned) | allowed_extra, set()
-    else:
-        from_search, from_student = set(returned), allowed_extra
-
-    # Someone Beaker does not write to: a school student, or a private person
-    # with no work page. Said plainly, whatever else came back.
-    kind = raw.get("recipient_kind")
-    if kind in ("minor", "private"):
-        await progress_line(emit, "pick", REFUSAL_LINE, "failed")
-        return refusal(REFUSE_MINOR if kind == "minor" else REFUSE_PRIVATE)
-
-    if status == "found":
-        result = await _found(raw, wanted_name=name, wanted_org=organization, searched=from_search,
-                              given=from_student, titles=titles, fetched=fetched, emit=emit)
-        # Facts can stand on the student's own page even when a search failed.
-        if result is not None:
-            return result
-
-    if not searched:
-        logger.warning(f"[outreach_research] search did not run cleanly: {stats}")
-        return None
-
-    if status == "ambiguous":
-        candidates = clean_candidates(raw.get("candidates"), allowed, MAX_AMBIGUOUS)
-        if candidates:
-            matches = "1 possible match" if len(candidates) == 1 else f"{len(candidates)} possible matches"
-            await progress_line(emit, "pick", f"Found {matches} for {name}", "done")
-            return {"status": "ambiguous", "candidates": candidates}
-
-    await progress_line(emit, "pick", f"Could not find enough about {name}", "failed")
-    return {"status": "not_found"}
+    return found

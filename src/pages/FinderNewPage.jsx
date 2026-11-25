@@ -8,6 +8,7 @@ import { PixelArrow } from "../components/agents/PixelIcons.jsx";
 import { BG, SANS, TEXT, TEXT_MUTED, ringVar, useAgentInk } from "../components/agents/agentUi.js";
 import { Button, Card, SR_ONLY, textOnPage } from "../components/agents/outreach/flowUi.jsx";
 import { mergeProgress } from "../components/agents/outreach/ProgressChecklist.jsx";
+import { mergeScreen } from "../components/agents/screen/screenModel.js";
 import BoardToast from "../components/agents/outreach/BoardToast.jsx";
 import StepRail from "../components/agents/StepRail.jsx";
 import LaneStep from "../components/agents/finder/LaneStep.jsx";
@@ -117,6 +118,7 @@ export default function FinderNewPage({ navigate, api = REAL_API, search }) {
 
   const [searching, setSearching] = useState(false);
   const [lines, setLines] = useState([]);
+  const [shots, setShots] = useState([]);       // what Talon opened, for its screen
   const [outcome, setOutcome] = useState(null);     // { search, items, dropped, already }
   const [failure, setFailure] = useState(null);     // { code, message, refunded }
   const [stepError, setStepError] = useState(null); // { message, signIn }
@@ -229,7 +231,7 @@ export default function FinderNewPage({ navigate, api = REAL_API, search }) {
 
   /** Back to one field of the brief ("lane" is step 1). */
   const goEdit = (field) => {
-    setStepError(null); setFailure(null); setOutcome(null); setLines([]);
+    setStepError(null); setFailure(null); setOutcome(null); setLines([]); setShots([]);
     if (field === "lane") { setFocusField(null); setStep("what"); return; }
     setFocusField(field);
     setStep("details");
@@ -243,14 +245,17 @@ export default function FinderNewPage({ navigate, api = REAL_API, search }) {
 
   // ── The search ─────────────────────────────────────────────────────────────
 
-  const onEvent = useCallback((ev) => setLines((prev) => mergeProgress(prev, ev)), []);
+  const onEvent = useCallback((ev) => {
+    setLines((prev) => mergeProgress(prev, ev));
+    setShots((prev) => mergeScreen(prev, ev));
+  }, []);
 
   const runFind = async () => {
     if (searching || !brief.lane) return;
     abortRef.current?.abort();
     const ctl = new AbortController();
     abortRef.current = ctl;
-    setStepError(null); setFailure(null); setOutcome(null); setLines([]);
+    setStepError(null); setFailure(null); setOutcome(null); setLines([]); setShots([]);
     setStep("search");
     setSearching(true);
     const body = {
@@ -330,7 +335,7 @@ export default function FinderNewPage({ navigate, api = REAL_API, search }) {
   };
 
   const findMore = () => {
-    setOutcome(null); setLines([]); setFailure(null); setStepError(null);
+    setOutcome(null); setLines([]); setShots([]); setFailure(null); setStepError(null);
     setFocusField("want");
     setStep("details");
   };
@@ -479,7 +484,7 @@ export default function FinderNewPage({ navigate, api = REAL_API, search }) {
                 ) : !searching && failure ? (
                   <SearchFailure failure={failure} lines={lines} actions={failureActions()} />
                 ) : (
-                  <TalonAtWork lines={lines} isMobile={isMobile} onLeave={() => navigate?.(BOARD_PATH)} />
+                  <TalonAtWork lines={lines} shots={shots} isMobile={isMobile} onLeave={() => navigate?.(BOARD_PATH)} />
                 )
               )}
             </>

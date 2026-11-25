@@ -30,7 +30,7 @@ import httpx  # noqa: E402
 import pytest  # noqa: E402
 
 from app.llm import ModelUnavailable  # noqa: E402
-from app.models import OUTREACH_DRAFT_MODEL, OUTREACH_FOLLOWUP_MODEL, OUTREACH_RESEARCH_MODEL, OUTREACH_REWRITE_MODEL  # noqa: E402
+from app.models import OUTREACH_AGENT_MODEL, OUTREACH_DRAFT_MODEL, OUTREACH_FOLLOWUP_MODEL, OUTREACH_REWRITE_MODEL  # noqa: E402
 from app.nodes.agents.outreach import draft, pages, prompts, research, voices  # noqa: E402
 
 EM, EN = "\u2014", "\u2013"
@@ -543,7 +543,11 @@ CONTACT = "https://www.usf.edu/marine-science/contact.html"
 DIRECTORY = "https://www.usf.edu/marine-science/directory.html"
 
 
-def scripted_search(monkeypatch, submission, returned, stats=None, events=(), raises=None):
+def scripted_search(monkeypatch, submission, returned, stats=None, events=(), raises=None, texts=None,
+                    final=True):
+    """Stands in for the agent loop (graph.run_research): replays the search
+    events, then judges `submission` as the loop would on its last look.
+    The loop itself is tested in test_outreach_graph.py."""
     calls = []
 
     async def fake(**kwargs):
@@ -551,10 +555,15 @@ def scripted_search(monkeypatch, submission, returned, stats=None, events=(), ra
         if raises:
             raise raises
         for event in events:
-            await kwargs["on_event"](event)
-        return submission, set(returned), stats or {"searches": 1, "errors": 0}
+            await kwargs["lines"].on_event(event)
+        if submission is None:
+            return None
+        feedback, result = await kwargs["judge"](submission, set(returned), stats or {"searches": 1, "errors": 0},
+                                                 dict(texts or {}), final)
+        calls[-1]["feedback"] = feedback
+        return result
 
-    monkeypatch.setattr(research, "search_completion", fake)
+    monkeypatch.setattr(research.agent, "run_research", fake)
     return calls
 
 
@@ -688,7 +697,7 @@ def test_the_search_never_sees_the_students_name(monkeypatch):
     run(research.find_people("coral reefs", record_text=record, emit=Events()))
     call = calls[0]
     assert "Samira" not in call["prompt"] and "Marine Science Club" in call["prompt"]
-    assert call["model"] == OUTREACH_RESEARCH_MODEL and call["max_searches"] == 2
+    assert call["model"] == OUTREACH_AGENT_MODEL and call["max_searches"] == research.SHORTLIST_SEARCHES
     assert "reddit.com" in call["blocked_domains"] and "rocketreach.co" in call["blocked_domains"]
     assert call["submit_tool"]["name"] == "submit_people"
 
@@ -1417,6 +1426,6 @@ def test_the_drafting_prompt_keeps_its_core_rules():
         assert rule in system, rule
 
 
-def test_a_person_whose_page_was_read_needs_only_one_search():
+def test_a_person_whose_page_was_read_gets_fewer_searches():
     from app.nodes.agents.outreach import research as r
-    assert r.SHORTLIST_SEARCHES == 2 and r.PERSON_SEARCHES == 3 and r.PERSON_SEARCHES_PAGE_READ == 1
+    assert r.SHORTLIST_SEARCHES == 4 and r.PERSON_SEARCHES == 5 and r.PERSON_SEARCHES_PAGE_READ == 3
