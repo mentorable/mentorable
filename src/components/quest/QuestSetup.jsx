@@ -1,17 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { questApi, formatDay } from "../../lib/quest.js";
 import Spinner from "../common/Spinner.jsx";
 import { BORDER, FOCUS_CLASS, RADIUS, TEXT_MID } from "../ui/tokens.js";
 import { Button, Card, ChoiceChips, Heading, INPUT_CLASS, PageHeader, SR_ONLY, StampTile, Tip, inputStyle } from "../ui/kit.jsx";
 import { Glyph } from "../ui/Icons.jsx";
-import { darken } from "../../lib/theme.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import {
   SANS, WHITE, INK, MID, MUTED, LINE,
-  Chunky, DayToggles, ErrorLine, useQuestColors,
+  Chunky, DayToggles, ErrorLine, Flame, FLAME_GROWS_AT, useQuestColors,
 } from "./questUi.jsx";
-import { QuestStone } from "./QuestStone.jsx";
 import { MINUTE_OPTIONS } from "./QuestPanels.jsx";
 
 const STARTERS = ["Start a passion project", "Prep for a competition", "Start a research project"];
@@ -49,31 +47,68 @@ function Choice({ selected, onClick, stamp, bare, children }) {
   );
 }
 
-// The one orchestrated moment: the map's own stones laying themselves down,
-// done days first and today's ringed stone last, while the plan is drawn.
-function Mapping({ isMobile }) {
+// The one orchestrated moment: while the plan is drawn (about 20 seconds),
+// the streak's campfire burns in a ring that fills, with the quest's title
+// and what the planner is doing now. The stages are paced to the call, not
+// reported by it, so the ring eases toward the end and never claims to be
+// done; the last stage holds until the plan arrives.
+const MAPPING_STAGES = (minutes) => [
+  [0, "Reading your goal and your answers"],
+  [5, "Splitting it into milestones"],
+  [11, `Sizing each day to ${minutes} minutes`],
+  [16, "Writing your first day"],
+  [28, "Almost there"],
+];
+const RING_R = 92;
+const RING_BOX = 220;
+
+export function Mapping({ isMobile, title, minutes }) {
   const c = useQuestColors();
   const reduce = useReducedMotion();
-  const done = { fill: c.accent, edge: darken(c.accent, 0.28), ink: WHITE, picture: "sparkle" };
-  const today = { fill: WHITE, edge: darken(c.accent, 0.28), ink: c.accent, picture: "star", ring: "solid", ringColor: c.accent };
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const start = Date.now();
+    const id = setInterval(() => setElapsed((Date.now() - start) / 1000), 250);
+    return () => clearInterval(id);
+  }, []);
+  const stages = MAPPING_STAGES(minutes);
+  const stage = stages.reduce((at, [from], i) => (elapsed >= from ? i : at), 0);
+  const filled = 0.92 * (1 - Math.exp(-elapsed / 8));
+  const around = 2 * Math.PI * RING_R;
+  const box = isMobile ? 180 : RING_BOX;
   return (
-    <div role="status" aria-live="polite">
-      {/* The same page frame as the steps before and after it, so the screen
-          does not re-lay out while the plan is drawn. */}
-      <PageHeader title="Mapping your quest" isMobile={isMobile}>
-        Breaking it into milestones sized to your pace. This takes about 20 seconds.
-      </PageHeader>
-      <div aria-hidden="true" style={{ display: "flex", flexDirection: "column-reverse", alignItems: "center", gap: 10, padding: "16px 0 32px" }}>
-        {[0, 1, 2, 3, 4].map((i) => (
-          <motion.span key={i}
-            initial={reduce ? false : { scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: reduce ? 0 : i * 0.35, repeat: reduce ? 0 : Infinity, repeatDelay: 1.4, duration: 0.35 }}
-            style={{ display: "block", x: Math.round(Math.sin(i * 0.9) * 62) }}>
-            <QuestStone size={i === 4 ? 64 : 48} {...(i === 4 ? today : done)} />
-          </motion.span>
-        ))}
+    <div role="status" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center",
+      padding: isMobile ? "12px 0 32px" : "40px 0 48px" }}>
+      <div aria-hidden="true" style={{ position: "relative", width: box, height: box, marginBottom: 26 }}>
+        <svg width={box} height={box} viewBox={`0 0 ${RING_BOX} ${RING_BOX}`}
+          style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+          <circle cx={RING_BOX / 2} cy={RING_BOX / 2} r={RING_R} fill="none" stroke={LINE} strokeWidth={10} />
+          <circle cx={RING_BOX / 2} cy={RING_BOX / 2} r={RING_R} fill="none" stroke={c.button.bg} strokeWidth={10}
+            strokeLinecap="round" strokeDasharray={around} strokeDashoffset={around * (1 - filled)}
+            style={{ transition: reduce ? "none" : "stroke-dashoffset 0.4s ease-out" }} />
+        </svg>
+        <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
+          <Flame size={isMobile ? 96 : 120} lit animate={!reduce} streak={FLAME_GROWS_AT} />
+        </div>
       </div>
+      <h1 style={{ fontFamily: SANS, fontWeight: 800, fontSize: isMobile ? "2.1rem" : "2.5rem", color: c.title,
+        letterSpacing: "-0.03em", margin: "0 0 0.5rem", lineHeight: 1.1 }}>
+        Lighting your quest
+      </h1>
+      {title && (
+        <p style={{ fontFamily: SANS, fontSize: isMobile ? "1.05rem" : "1.15rem", color: MUTED, lineHeight: 1.6,
+          margin: "0 0 18px", maxWidth: 520, overflowWrap: "anywhere" }}>
+          {title}
+        </p>
+      )}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.p key={stage} initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }} transition={{ duration: 0.3 }}
+          style={{ margin: 0, fontFamily: SANS, fontWeight: 700, color: c.text, fontSize: "1.1rem" }}>
+          {stages[stage][1]}
+        </motion.p>
+      </AnimatePresence>
+      <span style={SR_ONLY}>This takes about 20 seconds.</span>
     </div>
   );
 }
@@ -259,7 +294,7 @@ export function QuestSetup({ onPlanned, onCancel, canCancel, today }) {
     }
   };
 
-  if (step === "mapping") return <Mapping isMobile={isMobile} />;
+  if (step === "mapping") return <Mapping isMobile={isMobile} title={chosen ? chosen.title : own.trim()} minutes={minutes} />;
 
   if (step === "talk") {
     return (
