@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { formatWhen } from "../../lib/counselor.js";
-import { PixelArrow, PixelStamp } from "../ui/PixelIcons.jsx";
+import { ArrowGlyph, Glyph } from "../ui/Icons.jsx";
 import { Button, SR_ONLY, StampTile } from "../ui/kit.jsx";
 import {
   AMBER_BG, AMBER_TEXT, BORDER, FOCUS_CLASS, RADIUS, SANS, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
@@ -52,7 +52,7 @@ function TimesNote({ request, now }) {
       <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 10px", borderRadius: RADIUS.pill,
         background: AMBER_BG, border: `1px solid ${AMBER_LINE}`, color: AMBER_TEXT, fontSize: "0.9rem", fontWeight: 700,
         lineHeight: 1.4 }}>
-        <PixelStamp kind="clock" size={16} />
+        <Glyph kind="clock" size={16} />
         {times.length === 1 ? "The time they offered has passed" : "The times they offered have passed"}
       </span>
     );
@@ -78,7 +78,7 @@ function OfferedLine({ request, time, byDay, shown, unit, onShowTime }) {
       {note ? (
         <span style={{ display: "flex", alignItems: "flex-start", gap: 6, marginTop: 1, fontSize: "0.92rem",
           fontWeight: note.warn ? 700 : 600, color: note.warn ? AMBER_TEXT : TEXT_MUTED, lineHeight: 1.4 }}>
-          {note.warn && <span style={{ display: "flex", flexShrink: 0, marginTop: 2 }}><PixelStamp kind="clock" size={16} /></span>}
+          {note.warn && <span style={{ display: "flex", flexShrink: 0, marginTop: 2 }}><Glyph kind="clock" size={16} /></span>}
           <span style={{ minWidth: 0 }}>{note.text}</span>
         </span>
       ) : (
@@ -162,7 +162,7 @@ function RequestCard({ request, on, now, onPick, onOpen, byDay, shownKeys, unit,
             )}
             <Button kind="primary" onClick={() => onOpen(request)} style={{ width: "100%", marginTop: 10 }}>
               Answer this request
-              <PixelArrow size={16} />
+              <ArrowGlyph size={16} />
             </Button>
           </div>
         )}
@@ -278,7 +278,7 @@ export function ClosedRequests({ requests, now, onOpen }) {
                     {statusText(request.status)}{ago ? `, asked ${ago}` : ""}
                   </span>
                 </span>
-                <PixelArrow size={16} style={{ color: TEXT_MUTED }} />
+                <ArrowGlyph size={16} style={{ color: TEXT_MUTED }} />
               </button>
             </li>
           );

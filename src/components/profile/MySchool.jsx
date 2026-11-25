@@ -10,7 +10,7 @@ import {
   useAgentInk,
 } from "../ui/tokens.js";
 import { Button, FieldLabel, Heading, INPUT_CLASS, Notice, SR_ONLY, inputStyle } from "../ui/kit.jsx";
-import { PixelStamp } from "../ui/PixelIcons.jsx";
+import { Glyph } from "../ui/Icons.jsx";
 import SchoolShareStep, { JoinSteps, NEVER_SHARED, choiceOwed, forgetChoice, oweChoice } from "./SchoolShareStep.jsx";
 
 // "My school": the body of a Profile card, and the only place a student meets
@@ -161,7 +161,7 @@ function Tag({ tone, stamp, children }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: RADIUS.pill,
       fontFamily: SANS, fontSize: "0.9rem", fontWeight: 700, lineHeight: 1.3, ...look }}>
-      {stamp && <PixelStamp kind={stamp} size={16} />}
+      {stamp && <Glyph kind={stamp} size={16} />}
       {children}
     </span>
   );

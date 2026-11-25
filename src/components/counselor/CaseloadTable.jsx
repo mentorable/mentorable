@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { formatWhen } from "../../lib/counselor.js";
-import { PixelStamp } from "../ui/PixelIcons.jsx";
+import { Glyph } from "../ui/Icons.jsx";
 import { Card, LINK_CLASS, SR_ONLY } from "../ui/kit.jsx";
 import {
   AMBER_BG, AMBER_TEXT, BORDER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, useAgentInk,
@@ -98,7 +98,7 @@ function MeetingLine({ row, style }) {
   if (!meeting) return null;
   return (
     <span style={{ ...MEETING, ...style }}>
-      <PixelStamp kind="check" size={16} />
+      <Glyph kind="check" size={16} />
       <span style={{ minWidth: 0 }}>Meeting {meeting.when}</span>
     </span>
   );
@@ -224,7 +224,7 @@ function ShortMarks({ marks }) {
       {marks.map((m) => (
         <span key={m.key} style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: "0.92rem",
           fontWeight: 700, color: AMBER_TEXT, lineHeight: 1.3 }}>
-          <PixelStamp kind={Object.prototype.hasOwnProperty.call(MARK_STAMP, m.key) ? MARK_STAMP[m.key] : "clock"} size={16} />
+          <Glyph kind={Object.prototype.hasOwnProperty.call(MARK_STAMP, m.key) ? MARK_STAMP[m.key] : "clock"} size={16} />
           <span aria-hidden="true" style={{ minWidth: 0, overflowWrap: "anywhere" }}>{shortMark(m)}</span>
           <span style={SR_ONLY}>{m.label}.</span>
         </span>
@@ -237,7 +237,7 @@ function ShortMarks({ marks }) {
 function NothingShared() {
   return (
     <span style={{ ...QUIET, fontSize: "0.95rem", display: "inline-flex", alignItems: "center", gap: 8 }}>
-      <PixelStamp kind="lock" size={16} />
+      <Glyph kind="lock" size={16} />
       Has not shared a section yet
     </span>
   );
@@ -357,7 +357,7 @@ export default function CaseloadTable({ rows, marksFor, sort, onSort, navigate, 
                     </span>
                     {meeting && (
                       <span aria-hidden="true" style={{ ...MEETING, maxWidth: "100%" }}>
-                        <PixelStamp kind="check" size={16} />
+                        <Glyph kind="check" size={16} />
                         <span style={{ minWidth: 0 }}>Meeting {shortDay(meeting.d)}</span>
                       </span>
                     )}

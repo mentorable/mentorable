@@ -1,11 +1,11 @@
 import { Fragment, forwardRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { formatDay, relativeDay } from "../../lib/quest.js";
-import { PixelStamp } from "../ui/PixelIcons.jsx";
+import { Glyph } from "../ui/Icons.jsx";
 import { RADIUS, SURFACE } from "../ui/tokens.js";
 import { darken, lighten } from "../../lib/theme.js";
 import { Button, StampTile } from "../ui/kit.jsx";
-import { PixelStone, UNIT, pictureFor } from "./PixelStone.jsx";
+import { QuestStone, LIP, pictureFor } from "./QuestStone.jsx";
 import {
   SANS, WHITE, INK, MID, MUTED, FAINT, LINE, STONE, STONE_EDGE, AMBER, AMBER_EDGE, AMBER_WASH,
   Chunky, Flame, useQuestColors,
@@ -15,7 +15,7 @@ import {
 // top, one stone per scheduled day and a plate for each milestone. The page
 // scrolls today's stone into view, so the direction never costs a student a
 // scroll to find where they are. The stones are raised, with a solid bottom
-// edge; the plates and the rest are flat and pixel-marked like the rest of the app.
+// edge; the plates and the rest are flat and line-marked like the rest of the app.
 
 const ZIG = 0.9;
 
@@ -36,9 +36,9 @@ function padTopFor(slot, amp, size) {
   return Math.max(GAP, Math.round(rise - size - GAP));
 }
 
-/** A pixel mark, in the colour given. */
+/** A line mark, in the colour given. */
 function Mark({ kind, color, size = 24 }) {
-  return <PixelStamp kind={kind} size={size} style={{ color }} />;
+  return <Glyph kind={kind} size={size} style={{ color }} />;
 }
 
 // ─── A stone ──────────────────────────────────────────────────────────────────
@@ -49,7 +49,7 @@ const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, a
   const { state, doable } = stone;
   const isToday = state === "today" || (todayState === "done" && stone.isTodaySlot);
   const cells = isToday ? 18 : state === "future" ? 12 : 14;
-  const size = cells * UNIT;
+  const size = cells * 4;
   // The raised stones' own colours, from the accent: a solid bottom edge, not the kit's flat tints.
   const c = { accent: ink.accent, edge: darken(ink.accent, 0.28), soft: lighten(ink.accent, 0.55) };
 
@@ -91,10 +91,10 @@ const Stone = forwardRef(function Stone({ stone, todayState, onOpen, justDone, a
           initial={pop ? { scale: 0.55 } : false}
           animate={pop ? { scale: [0.55, 1.15, 1] } : { scale: 1 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          style={{ width: size, height: size + UNIT, cursor, background: "none", border: "none",
+          style={{ width: size, height: size + LIP, cursor, background: "none", border: "none",
             borderRadius: "50%", display: "block", padding: 0 }}
         >
-          <PixelStone cells={cells} {...look} />
+          <QuestStone size={size} {...look} />
         </Tag>
       </div>
     </div>

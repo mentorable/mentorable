@@ -1,4 +1,4 @@
-import { PixelArrow } from "../ui/PixelIcons.jsx";
+import { ArrowGlyph } from "../ui/Icons.jsx";
 import {
   AMBER_BG, AMBER_TEXT, BORDER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
 } from "../ui/tokens.js";
@@ -158,7 +158,7 @@ export function MeetingButton({ entry, now, onOpen, compact = false }) {
           </span>
         )}
       </span>
-      <PixelArrow size={16} style={{ color: TEXT_MUTED }} />
+      <ArrowGlyph size={16} style={{ color: TEXT_MUTED }} />
     </button>
   );
 }
@@ -208,7 +208,7 @@ export function OfferedButton({ entry, onOpen, compact = false }) {
         <span style={{ display: "block", fontSize: "1rem", fontWeight: 700, lineHeight: 1.35, overflowWrap: "anywhere" }}>{name}</span>
         <span style={{ display: "block", fontSize: "0.9rem", fontWeight: 700, lineHeight: 1.35 }}>Offered, not booked yet</span>
       </span>
-      <PixelArrow size={16} />
+      <ArrowGlyph size={16} />
     </button>
   );
 }

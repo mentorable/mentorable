@@ -13,7 +13,7 @@ import {
   ringVar, subtitleStyle, titleStyle, useIntakeInk,
 } from "../components/onboarding/intakeTheme.js";
 import { Button, Notice, StampTile } from "../components/ui/kit.jsx";
-import { PixelStamp } from "../components/ui/PixelIcons.jsx";
+import { Glyph } from "../components/ui/Icons.jsx";
 import { HOME_PATH, POST_ONBOARDING_PATH } from "../lib/features.js";
 import {
   saveIntakeForm, fetchIntakeContext, extractIntake, commitIntake, fetchActivities,
@@ -26,7 +26,7 @@ const SPEAKING_VOLUME_THRESHOLD = 0.02; // mic input above this = user is active
 
 // The look comes from the shared kit (src/components/ui): the calm shell's
 // grey page, white cards, flat buttons, and the student's accent only through
-// useIntakeInk. Character comes from the pixel stamps, never from louder
+// useIntakeInk. Character comes from the line marks, never from louder
 // chrome.
 
 const ERROR_TILE = { background: "#fdf1f0", border: "1px solid #f4c7c2", color: DANGER };
@@ -407,7 +407,7 @@ function ActivePhase({ transcript, elapsed, isSpeaking, onEnd, getInputLevel }) 
                     <>
                       <span aria-hidden="true" style={{ flexShrink:0, width:40, height:40, marginTop:4, borderRadius:RADIUS.control,
                         background:ink.soft, color:ink.onSoft, display:"inline-flex", alignItems:"center", justifyContent:"center" }}>
-                        <PixelStamp kind="chat" size={24} />
+                        <Glyph kind="chat" size={24} />
                       </span>
                       <div style={{
                         maxWidth:"76%", padding:"0.8rem 1.1rem",
@@ -510,7 +510,7 @@ function ProcessingPhase() {
         position:"relative", zIndex:1,
       }}
     >
-      {/* A pixel scroll being written up, on the accent's soft tile */}
+      {/* A scroll being written up, on the accent's soft tile */}
       <div style={{ marginBottom:"2rem" }}>
         <StampTile kind="scroll" size={56} />
       </div>
@@ -551,7 +551,7 @@ function ProcessingPhase() {
 function ErrorPhase({ error, onRetry }) {
   return (
     <StatusScreen phaseKey="error" title="Something went wrong"
-      mark={<StatusTile tone={ERROR_TILE}><PixelStamp kind="question" size={24} /></StatusTile>}
+      mark={<StatusTile tone={ERROR_TILE}><Glyph kind="question" size={24} /></StatusTile>}
       actions={<Button kind="primary" onClick={onRetry} style={{ padding:"10px 26px" }}>Try again</Button>}>
       <p style={{ fontFamily:SANS, color:TEXT_MUTED, fontSize:"1.1rem", lineHeight:1.65, margin:0 }}>
         {error || "An unexpected error occurred. Please try again."}

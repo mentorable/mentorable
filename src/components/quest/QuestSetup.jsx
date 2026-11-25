@@ -4,19 +4,19 @@ import { questApi, formatDay } from "../../lib/quest.js";
 import Spinner from "../common/Spinner.jsx";
 import { BORDER, FOCUS_CLASS, RADIUS, TEXT_MID } from "../ui/tokens.js";
 import { Button, Card, ChoiceChips, Heading, INPUT_CLASS, PageHeader, SR_ONLY, StampTile, Tip, inputStyle } from "../ui/kit.jsx";
-import { PixelStamp } from "../ui/PixelIcons.jsx";
+import { Glyph } from "../ui/Icons.jsx";
 import { darken } from "../../lib/theme.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import {
   SANS, WHITE, INK, MID, MUTED, LINE,
   Chunky, DayToggles, ErrorLine, useQuestColors,
 } from "./questUi.jsx";
-import { PixelStone } from "./PixelStone.jsx";
+import { QuestStone } from "./QuestStone.jsx";
 import { MINUTE_OPTIONS } from "./QuestPanels.jsx";
 
 const STARTERS = ["Start a passion project", "Prep for a competition", "Start a research project"];
 
-// Each kind of quest gets the pixel mark its card is known by.
+// Each kind of quest gets the mark its card is known by.
 const KIND_STAMP = { passion_project: "rocket", competition_prep: "trophy", research: "notebook" };
 
 function Question({ children, hint, id }) {
@@ -28,7 +28,7 @@ function Question({ children, hint, id }) {
   );
 }
 
-/** A pickable card: a pixel mark, the content, and a check once chosen.
+/** A pickable card: a mark, the content, and a check once chosen.
  *  `bare`: the card's frame is drawn by a wrapper (Write your own, which
  *  opens a text box under it). */
 function Choice({ selected, onClick, stamp, bare, children }) {
@@ -43,7 +43,7 @@ function Choice({ selected, onClick, stamp, bare, children }) {
       <span style={{ flex: 1, minWidth: 0 }}>{children}</span>
       <span aria-hidden="true" style={{ flexShrink: 0, width: 24, height: 24, marginTop: 8, color: c.text,
         visibility: selected ? "visible" : "hidden" }}>
-        <PixelStamp kind="check" size={24} />
+        <Glyph kind="check" size={24} />
       </span>
     </button>
   );
@@ -54,7 +54,7 @@ function Choice({ selected, onClick, stamp, bare, children }) {
 function Mapping({ isMobile }) {
   const c = useQuestColors();
   const reduce = useReducedMotion();
-  const done = { fill: c.accent, edge: darken(c.accent, 0.28), ink: WHITE, picture: "spark" };
+  const done = { fill: c.accent, edge: darken(c.accent, 0.28), ink: WHITE, picture: "sparkle" };
   const today = { fill: WHITE, edge: darken(c.accent, 0.28), ink: c.accent, picture: "star", ring: "solid", ringColor: c.accent };
   return (
     <div role="status" aria-live="polite">
@@ -70,7 +70,7 @@ function Mapping({ isMobile }) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: reduce ? 0 : i * 0.35, repeat: reduce ? 0 : Infinity, repeatDelay: 1.4, duration: 0.35 }}
             style={{ display: "block", x: Math.round(Math.sin(i * 0.9) * 62) }}>
-            <PixelStone cells={i === 4 ? 16 : 12} {...(i === 4 ? today : done)} />
+            <QuestStone size={i === 4 ? 64 : 48} {...(i === 4 ? today : done)} />
           </motion.span>
         ))}
       </div>
@@ -434,7 +434,7 @@ export function DraftReview({ state, onStart, onDiscard, busy, error }) {
         {q.summary || null}
       </PageHeader>
       {/* The house list pattern (Portfolio's sections, College List's
-          groups): a pixel mark, the heading and its count, one line of
+          groups): a mark, the heading and its count, one line of
           guidance, then the item cards. */}
       <section aria-labelledby="quest-draft-milestones">
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>

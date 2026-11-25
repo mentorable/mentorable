@@ -18,11 +18,11 @@ import {
   Button, Card, ChoiceChips, FieldLabel, Heading, INPUT_CLASS, LINK_CLASS, Notice, PageHeader, RemoveButton, SR_ONLY, Sheet,
   StampTile, Tag, Toast, inputStyle, pageStyle, tabPanelProps, textOnPage,
 } from "../components/ui/kit.jsx";
-import { PixelStamp } from "../components/ui/PixelIcons.jsx";
+import { Glyph } from "../components/ui/Icons.jsx";
 
 // The Portfolio: the student's record (grades, scores, classes, activities,
 // awards) and the resume export. Built on the shared kit: white cards with a
-// warm 1px border, flat buttons, a pixel mark per section, and the guide
+// warm 1px border, flat buttons, a line mark per section, and the guide
 // line for nudges and empty sections.
 //
 // Every edit saves itself. Each section's header says when it is saving and
@@ -266,7 +266,7 @@ function SaveStatus({ state, announce = true }) {
       {state && (
         <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS,
           fontSize: "0.95rem", fontWeight: 600, color: state === "error" ? DANGER : TEXT_MUTED, whiteSpace: "nowrap" }}>
-          {state === "saved" && <PixelStamp kind="check" size={16} />}
+          {state === "saved" && <Glyph kind="check" size={16} />}
           {SAVE_TEXT[state]}
         </span>
       )}
@@ -280,7 +280,7 @@ function SaveStatus({ state, announce = true }) {
 const hintText = { fontFamily: SANS, fontSize: "1rem", fontWeight: 500, color: TEXT_MUTED, lineHeight: 1.55, maxWidth: "62ch",
   textWrap: "pretty" };
 
-/** A record section: the kit card with a pixel mark, the title, count and
+/** A record section: the kit card with a line mark, the title, count and
  *  save status, and a line of guidance under it. Its action sits on the
  *  right on a wide screen; on a phone it goes full width at the bottom of
  *  the card, in thumb reach and right under the row it adds. */

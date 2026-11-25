@@ -1,6 +1,8 @@
 import { useEffect, useId } from "react";
 import Spinner from "../common/Spinner.jsx";
 import { readableOn } from "../../lib/theme.js";
+import { useInRouterContext, useLocation } from "react-router-dom";
+import { Glyph } from "./Icons.jsx";
 import { PixelStamp, stampWidth } from "./PixelIcons.jsx";
 import {
   AMBER_BG, AMBER_EDGE, AMBER_LINE, AMBER_TEXT, BG, BORDER, DANGER, DANGER_BG, DANGER_LINE, FOCUS_CLASS, PRESS_CLASS, RADIUS, SANS,
@@ -13,7 +15,8 @@ export { default as Sheet } from "./Sheet.jsx";
 // The shared kit every page builds from: the calm shell's buttons, cards,
 // fields, notices and headings (first made for the Agents pages), plus the
 // page header, the Tip guide line, choice chips and the toast. Character
-// comes from the pixel stamps here, never louder chrome. The pixel speech box
+// comes from the marks here (pixel stamps on the agents' pages, line icons
+// elsewhere), never louder chrome. The pixel speech box
 // belongs to the agents' mascots alone (MascotSays).
 
 export const INPUT_CLASS = "oa-input";
@@ -238,7 +241,28 @@ export function pageStyle({ isMobile, sidebar = "0px", ink }) {
 
 // ─── Character ───────────────────────────────────────────────────────────────
 
-/** A pixel stamp sitting on a soft tile of the accent: the small badge each
+// The agents keep their pixel art, so a mark on an /agents page is a pixel
+// stamp; everywhere else it is a line icon (ui/Icons.jsx).
+function useOnAgentPage() {
+  const inRouter = useInRouterContext();
+  // The router context never comes or goes under a mounted component, so the
+  // hook order is stable.
+  const path = inRouter ? useLocation().pathname : "";
+  return path === "/agents" || path.startsWith("/agents/");
+}
+
+/** A page's mark at about `size` px: pixel on the agents' pages, a line icon elsewhere. */
+function Mark({ kind, size }) {
+  const pixel = useOnAgentPage();
+  if (pixel) {
+    // A 16-pixel stamp draws at 2 CSS px a pixel on a full tile, an 8-pixel one at 3.
+    const px = size >= 40 ? (stampWidth(kind) === 16 ? 32 : 24) : 16;
+    return <PixelStamp kind={kind} size={px} />;
+  }
+  return <Glyph kind={kind} size={size >= 40 ? 22 : 16} />;
+}
+
+/** A page's mark sitting on a soft tile of the accent: the small badge each
  *  page uses for its marks (a College List group, a Quest milestone). */
 export function StampTile({ kind, size = 40, lit = true, title }) {
   const ink = useAgentInk();
@@ -248,13 +272,12 @@ export function StampTile({ kind, size = 40, lit = true, title }) {
         alignItems: "center", justifyContent: "center", boxSizing: "border-box",
         background: lit ? ink.softer : "#efedf3", border: `1px solid ${lit ? ink.soft : BORDER}`,
         color: lit ? ink.onSoft : TEXT_MUTED }}>
-      {/* A 16-pixel stamp draws at 2 CSS px a pixel on a full tile, an 8-pixel one at 3. */}
-      <PixelStamp kind={kind} size={stampWidth(kind) === 16 ? (size >= 40 ? 32 : 16) : (size >= 40 ? 24 : 16)} />
+      <Mark kind={kind} size={size} />
     </span>
   );
 }
 
-/** A guide line: a pixel stamp beside a plain card. For tips, next steps and
+/** A guide line: a mark beside a plain card. For tips, next steps and
  *  empty states on every page. `name` says whose line it is, to screen
  *  readers only. `maxWidth`: the card's cap (640 by default, a comfortable
  *  measure); "none" lets a read-out line run the column beside full-width cards.
@@ -381,15 +404,15 @@ export function ChoiceChips({ label, options, value, onChange, isMobile, hideLab
 }
 
 /** A small label pill (an item's kind, "Needs detail"): the accent tint with
- *  its readable ink, at the 0.9rem caption step, with an optional 16px pixel
- *  stamp before the words. Not a control: for a choice use ChoiceChips. */
+ *  its readable ink, at the 0.9rem caption step, with an optional 16px
+ *  mark before the words. Not a control: for a choice use ChoiceChips. */
 export function Tag({ children, stamp, style }) {
   const ink = useAgentInk();
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: "0.9rem",
       fontWeight: 700, lineHeight: 1.3, color: ink.onSoft, background: ink.softer, border: `1px solid ${ink.soft}`,
       borderRadius: RADIUS.pill, padding: "3px 10px", boxSizing: "border-box", maxWidth: "100%", ...style }}>
-      {stamp && <PixelStamp kind={stamp} size={16} />}
+      {stamp && <Mark kind={stamp} size={16} />}
       {children}
     </span>
   );

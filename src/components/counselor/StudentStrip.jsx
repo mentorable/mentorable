@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { lighten } from "../../lib/theme.js";
-import { PixelStamp } from "../ui/PixelIcons.jsx";
+import { Glyph } from "../ui/Icons.jsx";
 import { SR_ONLY } from "../ui/kit.jsx";
 import {
   BORDER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
@@ -215,7 +215,7 @@ function TileFace({ section, summary, on, who, compact, why = true }) {
     <>
       <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.95rem", fontWeight: 800, lineHeight: 1.3,
         color: on ? ink.onSoft : TEXT_MID, overflowWrap: "anywhere" }}>
-        <PixelStamp kind={section.stamp} size={16} />
+        <Glyph kind={section.stamp} size={16} />
         {section.title}
       </span>
       {summary ? (
@@ -232,7 +232,7 @@ function TileFace({ section, summary, on, who, compact, why = true }) {
         <>
           <span style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, fontSize: compact ? "1.05rem" : "1.1rem",
             fontWeight: 800, lineHeight: 1.25, color: TEXT_MID }}>
-            <PixelStamp kind="lock" size={16} />
+            <Glyph kind="lock" size={16} />
             Not shared
           </span>
           {why && <span style={small}>{who} chooses what you see, and can change it at any time.</span>}

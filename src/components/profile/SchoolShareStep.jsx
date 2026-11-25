@@ -1,7 +1,7 @@
 import { ALWAYS_SHARED } from "../../lib/counselor.js";
 import { BORDER, FOCUS_CLASS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, useAgentInk } from "../ui/tokens.js";
 import { Button, Notice, SR_ONLY } from "../ui/kit.jsx";
-import { PixelStamp } from "../ui/PixelIcons.jsx";
+import { Glyph } from "../ui/Icons.jsx";
 
 // The one question the My school card asks right after a student joins: is
 // there anything else they want their counselor to see? Joining has already
@@ -87,7 +87,7 @@ export function JoinSteps({ at }) {
               background: here ? ink.button.bg : done ? ink.softer : SURFACE,
               color: here ? ink.button.fg : done ? ink.onSoft : TEXT_MUTED,
               border: `1.5px solid ${here ? ink.button.bg : done ? ink.soft : BORDER}` }}>
-              {done ? <PixelStamp kind="check" size={16} /> : n}
+              {done ? <Glyph kind="check" size={16} /> : n}
             </span>
             <span style={{ fontFamily: SANS, fontSize: "0.95rem", fontWeight: here ? 800 : 700, lineHeight: 1.3,
               color: here ? TEXT : TEXT_MUTED, whiteSpace: "nowrap" }}>

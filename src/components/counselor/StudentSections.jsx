@@ -1,5 +1,5 @@
 import { formatWhen, listNote } from "../../lib/counselor.js";
-import { PixelStamp } from "../ui/PixelIcons.jsx";
+import { Glyph } from "../ui/Icons.jsx";
 import { Card, Heading, LinkButton, SR_ONLY, StampTile } from "../ui/kit.jsx";
 import {
   AMBER_BG, BORDER, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
@@ -166,7 +166,7 @@ function ListGroups({ groups, who }) {
         <div key={g.key}>
           <Heading level={3} style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span aria-hidden="true" style={{ display: "flex", color: g.schools.length ? ink.text : TEXT_MUTED }}>
-              <PixelStamp kind={g.stamp} size={16} />
+              <Glyph kind={g.stamp} size={16} />
             </span>
             {g.label}
             <span style={{ fontWeight: 600, color: TEXT_MUTED, fontVariantNumeric: "tabular-nums" }}>{g.schools.length}</span>
@@ -256,7 +256,7 @@ function Milestones({ milestones, active }) {
               fontWeight: 800, fontVariantNumeric: "tabular-nums",
               background: done ? ink.softer : here ? WHITE : SURFACE, color: done ? ink.onSoft : here ? ink.text : TEXT_MUTED,
               border: `1.5px solid ${done ? ink.soft : here ? ink.text : BORDER}` }}>
-              {done ? <PixelStamp kind="check" size={16} /> : i + 1}
+              {done ? <Glyph kind="check" size={16} /> : i + 1}
             </span>
             <span style={{ minWidth: 0, paddingTop: 2 }}>
               <span style={{ display: "block", fontFamily: SANS, fontSize: "1rem", fontWeight: here ? 800 : 600,

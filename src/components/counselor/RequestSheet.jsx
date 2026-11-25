@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import Sheet from "../agents/outreach/Sheet.jsx";
 import { formatWhen } from "../../lib/counselor.js";
-import { PixelArrow, PixelStamp } from "../ui/PixelIcons.jsx";
+import { ArrowGlyph, Glyph } from "../ui/Icons.jsx";
 import { Button, FieldLabel, INPUT_CLASS, LinkButton, Notice, inputStyle } from "../ui/kit.jsx";
 import {
   AMBER_BG, AMBER_TEXT, BORDER, DANGER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE,
@@ -224,7 +224,7 @@ export default function RequestSheet({ request, now, busy = false, draft, onAnsw
               onClick={() => { if (blocked) return; setChoice(on ? null : t.key); setError(null); }}
               style={timeButton(on, blocked)}>
               <span aria-hidden="true" style={{ display: "flex", width: 16, flexShrink: 0, color: ink.onSoft }}>
-                {on && <PixelStamp kind="check" size={16} />}
+                {on && <Glyph kind="check" size={16} />}
               </span>
               <span style={{ flex: 1, minWidth: 0, textDecoration: t.passed && !current ? "line-through" : "none" }}>
                 {formatWhen(t.at)}
@@ -238,7 +238,7 @@ export default function RequestSheet({ request, now, busy = false, draft, onAnsw
           onClick={() => { setShowOther(true); setChoice(OTHER); setError(null); focusNext.current = "other"; }}
           style={timeButton(choice === OTHER, false)}>
           <span aria-hidden="true" style={{ display: "flex", width: 16, flexShrink: 0, color: ink.onSoft }}>
-            {choice === OTHER && <PixelStamp kind="check" size={16} />}
+            {choice === OTHER && <Glyph kind="check" size={16} />}
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>Pick another time</span>
         </button>
@@ -288,7 +288,7 @@ export default function RequestSheet({ request, now, busy = false, draft, onAnsw
 
         <p style={{ display: "inline-flex", alignItems: "center", gap: 8, margin: "12px 0 0", padding: "5px 12px",
           borderRadius: RADIUS.control, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, lineHeight: 1.4, ...statusLook }}>
-          {status.stamp && <PixelStamp kind={status.stamp} size={16} />}
+          {status.stamp && <Glyph kind={status.stamp} size={16} />}
           <span>{status.text}</span>
         </p>
 
@@ -395,13 +395,13 @@ export default function RequestSheet({ request, now, busy = false, draft, onAnsw
               <LinkButton href={studentPath(request.student_id)} onClick={follow(studentPath(request.student_id))}
                 style={{ flex: "1 1 200px" }}>
                 Open their page
-                <PixelArrow size={16} />
+                <ArrowGlyph size={16} />
               </LinkButton>
               {request.shares_portfolio === true && (
                 <LinkButton href={recordPath(request.student_id)}
                   onClick={follow(recordPath(request.student_id))} style={{ flex: "1 1 200px" }}>
                   Open their printable record
-                  <PixelArrow size={16} />
+                  <ArrowGlyph size={16} />
                 </LinkButton>
               )}
             </div>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import Spinner from "../common/Spinner.jsx";
 import Sheet from "../agents/outreach/Sheet.jsx";
-import { PixelArrow, PixelStamp } from "../ui/PixelIcons.jsx";
+import { ArrowGlyph, Glyph } from "../ui/Icons.jsx";
 import { Button, Card, Heading, Notice, SR_ONLY, StampTile } from "../ui/kit.jsx";
 import {
   AMBER_BG, AMBER_TEXT, BORDER, FOCUS_CLASS, RADIUS, SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
@@ -236,7 +236,7 @@ export function AttentionMarks({ marks, style }) {
         <li key={m.key} style={{ display: "flex", alignItems: "flex-start", gap: 6, fontFamily: SANS, fontSize: "0.92rem",
           fontWeight: 700, color: AMBER_TEXT, lineHeight: 1.35 }}>
           <span aria-hidden="true" style={{ display: "flex", marginTop: 2 }}>
-            <PixelStamp kind={Object.prototype.hasOwnProperty.call(MARK_STAMP, m.key) ? MARK_STAMP[m.key] : "clock"} size={16} />
+            <Glyph kind={Object.prototype.hasOwnProperty.call(MARK_STAMP, m.key) ? MARK_STAMP[m.key] : "clock"} size={16} />
           </span>
           <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{m.label}</span>
         </li>
@@ -252,7 +252,7 @@ export function NotShared({ who = "This student", style }) {
     <div style={{ display: "flex", alignItems: "flex-start", gap: 12, background: SURFACE, border: `1px solid ${BORDER}`,
       borderRadius: RADIUS.control, padding: "12px 14px", fontFamily: SANS, ...style }}>
       <span aria-hidden="true" style={{ display: "flex", marginTop: 4, color: TEXT_MUTED }}>
-        <PixelStamp kind="lock" size={16} />
+        <Glyph kind="lock" size={16} />
       </span>
       <div style={{ minWidth: 0 }}>
         <p style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: TEXT_MID, lineHeight: 1.4 }}>Not shared</p>
@@ -270,13 +270,13 @@ export function BackLink({ navigate, to, children }) {
     <a {...linkProps(navigate, to)} className={`${FOCUS_CLASS} ${NO_PRINT}`}
       style={{ minHeight: 44, display: "inline-flex", alignItems: "center", gap: 8, margin: "0 0 4px -8px", padding: "0 8px",
         borderRadius: 10, fontFamily: SANS, fontSize: "0.95rem", fontWeight: 700, color: TEXT_MUTED, textDecoration: "none" }}>
-      <PixelArrow size={16} style={{ transform: "scaleX(-1)" }} />
+      <ArrowGlyph size={16} style={{ transform: "scaleX(-1)" }} />
       {children}
     </a>
   );
 }
 
-/** One section of a student's page: a card with its pixel mark and heading. */
+/** One section of a student's page: a card with its line mark and heading. */
 export function SectionCard({ id, title, stamp, aside, children, style, accent = true }) {
   const ink = useAgentInk();
   return (

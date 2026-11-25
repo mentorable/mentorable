@@ -55,9 +55,9 @@ function hidePage() {
 
 function Chevron({ up }) {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false" shapeRendering="crispEdges"
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"
       style={{ flexShrink: 0, transform: up ? "rotate(180deg)" : "none" }}>
-      <path d="M2 4h2v2H2zM4 6h2v2H4zM6 6h2v2H6zM8 4h2v2H8z" fill="currentColor" />
+      <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

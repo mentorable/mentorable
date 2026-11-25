@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useId, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { formatDay, relativeDay } from "../../lib/quest.js";
-import { PixelStamp } from "../ui/PixelIcons.jsx";
+import { Glyph } from "../ui/Icons.jsx";
 import { FOCUS_CLASS, RADIUS, SURFACE, TEXT } from "../ui/tokens.js";
 import { Button, ChoiceChips, FieldLabel, Heading, INPUT_CLASS, Notice, Sheet as Dialog, StampTile, Tip, inputStyle } from "../ui/kit.jsx";
 import {
@@ -342,7 +342,7 @@ export function MilestoneCard({ milestone, next, onClose }) {
           style={{ width: 76, height: 76, borderRadius: RADIUS.card, margin: "0 auto 14px", background: c.softer,
             border: `1px solid ${c.soft}`, color: c.onSoft, boxSizing: "border-box",
             display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <PixelStamp kind="flag" size={40} />
+          <Glyph kind="flag" size={40} />
         </motion.div>
         <p style={{ margin: 0, fontFamily: SANS, fontWeight: 800, fontSize: "1rem", color: c.text }}>
           Milestone {milestone.position} complete, +50 XP

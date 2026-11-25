@@ -15,11 +15,11 @@ import {
   BG, BORDER, DANGER, RADIUS, SANS, TEXT, TEXT_MID, TEXT_MUTED, WHITE, useAgentInk,
 } from "../components/ui/tokens.js";
 import { Button, Notice, PageHeader, RemoveButton, StampTile } from "../components/ui/kit.jsx";
-import { PixelStamp } from "../components/ui/PixelIcons.jsx";
+import { Glyph } from "../components/ui/Icons.jsx";
 
 // College List: the schools a student is applying to, grouped reach, target
 // and likely. Built on the app's shared kit (the calm shell the Agents pages
-// started), with its character in pixel stamps and the guide line: each
+// started), with its character in line marks and the guide line: each
 // group fills toward a goal.
 
 const INK = TEXT;
@@ -154,9 +154,9 @@ function useAccentInk() {
 }
 // ─── Small pieces ─────────────────────────────────────────────────────────────
 
-/** Each group's mark, in pixels: a peak for reach, a target, a check for likely. */
+/** Each group's mark: a peak for reach, a target, a check for likely. */
 function GroupIcon({ group, size = 16 }) {
-  return <PixelStamp kind={STAMP[group]} size={size} />;
+  return <Glyph kind={STAMP[group]} size={size} />;
 }
 
 function Icon({ name, color = "currentColor", size = 18 }) {
@@ -177,7 +177,7 @@ function Icon({ name, color = "currentColor", size = 18 }) {
   return null;
 }
 
-/** A group's pixel mark on a soft tile: lit once the group has a school,
+/** A group's mark on a soft tile: lit once the group has a school,
  *  grey before. It pops when it lights, the list's small reward. */
 function GroupStone({ group, lit = true, size = 44 }) {
   const reduce = useReducedMotion();
@@ -310,10 +310,10 @@ function Scoreboard({ counts, isMobile, reduce }) {
                 <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: isMobile ? "1.05rem" : "1.15rem", color: INK, lineHeight: 1.2 }}>
                   <span style={{ fontVariantNumeric: "tabular-nums" }}>{n}</span> {s.label}
                 </span>
-                {/* One pixel per school toward the goal; extras show as +n. */}
+                {/* One dot per school toward the goal; extras show as +n. */}
                 <span aria-hidden="true" style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
                   {Array.from({ length: goal }, (_, i) => (
-                    <span key={i} style={{ width: isMobile ? 10 : 12, height: isMobile ? 10 : 12,
+                    <span key={i} style={{ width: isMobile ? 10 : 12, height: isMobile ? 10 : 12, borderRadius: "50%",
                       background: i < n ? ink.button.bg : STONE }} />
                   ))}
                   {n > goal && (
