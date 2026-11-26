@@ -101,7 +101,7 @@ function Streak({ collapsed, onClick }) {
         </span>
         {!collapsed && (
           <span style={{ fontSize: 13, fontWeight: 700, color: INK_2, marginTop: 4, whiteSpace: "nowrap" }}>
-            {open ? "day streak, today's open" : "day streak"}
+            day streak
           </span>
         )}
       </span>
