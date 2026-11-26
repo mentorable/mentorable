@@ -238,12 +238,6 @@ export function agoWords(iso, now) {
   return at.toLocaleDateString(LOCALE, { month: "short", day: "numeric" });
 }
 
-/** "Asked today", "Asked 3 days ago", "Asked Sep 28". */
-export function askedAgo(iso, now) {
-  const words = agoWords(iso, now);
-  return words ? `Asked ${words}` : "";
-}
-
 // ─── Offered times on the calendar ────────────────────────────────────────────
 // Choosing a waiting request draws the times that student offered on the
 // calendar beside what is already booked, so a clash shows before a time is

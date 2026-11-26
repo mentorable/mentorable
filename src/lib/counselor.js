@@ -413,55 +413,6 @@ export function listNote(collegeList) {
   return balance(items).note || "";
 }
 
-const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-
-/** "2 reach, 3 target, 1 likely", "No schools yet", or "Not shared". */
-export function listLine(collegeList) {
-  if (!isObject(collegeList)) return NOT_SHARED;
-  const reach = count(collegeList.reach);
-  const target = count(collegeList.target);
-  const likely = count(collegeList.likely);
-  if (reach + target + likely === 0) return "No schools yet";
-  return `${reach} reach, ${target} target, ${likely} likely`;
-}
-
-const QUEST_WORDS = { active: "Active", paused: "Paused", completed: "Finished", done: "Finished" };
-
-/** "Active, 1 of 5 milestones, 4 day streak", "Paused, 2 of 4 milestones",
- *  "Finished", "No quest yet", or "Not shared". */
-export function questLine(quest) {
-  if (!isObject(quest)) return NOT_SHARED;
-  const word = QUEST_WORDS[quest.status];
-  if (!word) return "No quest yet";
-  const parts = [word];
-  const total = count(quest.milestones_total);
-  if (total > 0 && word !== "Finished") parts.push(`${Math.min(count(quest.milestones_done), total)} of ${plural(total, "milestone", "milestones")}`);
-  const streak = count(quest.streak);
-  if (quest.status === "active" && streak > 0) parts.push(`${streak} day streak`);
-  return parts.join(", ");
-}
-
-const ESSAY_STAGE = { idea: "idea stage", drafting: "drafting", revising: "revising", done: "done" };
-
-/** "Personal statement: revising, 412 words. Supplements: 1 of 3 done",
- *  "No essays yet", or "Not shared". Stage and length only. */
-export function essayLine(essays) {
-  if (!isObject(essays)) return NOT_SHARED;
-  const parts = [];
-  const ps = essays.personal_statement;
-  if (isObject(ps)) {
-    const stage = ESSAY_STAGE[ps.status] || "started";
-    parts.push(`Personal statement: ${stage}, ${plural(count(ps.word_count), "word", "words")}`);
-  }
-  const supplements = count(essays.supplements);
-  if (supplements > 0) {
-    parts.push(`Supplements: ${Math.min(count(essays.supplements_done), supplements)} of ${supplements} done`);
-  }
-  if (!parts.length) return "No essays yet";
-  if (!isObject(ps)) parts.unshift("No personal statement yet");
-  return parts.join(". ");
-}
-
 // ─── Dates ────────────────────────────────────────────────────────────────────
 
 /** "Tue, Oct 20 at 2:30 PM" in the viewer's own time zone (with the year when

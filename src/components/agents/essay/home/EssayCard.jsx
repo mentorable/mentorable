@@ -18,7 +18,7 @@ import { STONE, dayPhrase } from "./homeUi.js";
 // does the same for a mouse. Over the limit is amber, never red, and always
 // said in words as well as shown on the bar.
 
-export function Tag({ children, style }) {
+function Tag({ children, style }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: RADIUS.pill,
       fontFamily: SANS, fontSize: "0.9rem", fontWeight: 800, lineHeight: 1.35, maxWidth: "100%", boxSizing: "border-box",
@@ -50,7 +50,7 @@ if (typeof document !== "undefined" && !document.querySelector("style[data-essay
 
 /** The essay's length against its limit: the words, then a bar. A personal
  *  statement's bar also marks where its minimum sits. */
-export function WordMeter({ essay }) {
+function WordMeter({ essay }) {
   const ink = useAgentInk();
   const words = Math.max(0, Math.trunc(Number(essay?.word_count) || 0));
   const { min, max } = wordBounds(essay);
@@ -87,7 +87,7 @@ export function WordMeter({ essay }) {
 
 /** What an essay answers, in a line: the school for a supplement, or the
  *  Common App prompt by number and its short name. "" when none is picked. */
-export function answersOf(essay) {
+function answersOf(essay) {
   const what = promptLabel(essay);
   if (essay.kind === "supplement") return what;
   const picked = COMMON_APP_PROMPTS.find((p) => p.key === essay.prompt_key) || null;
@@ -96,7 +96,7 @@ export function answersOf(essay) {
 
 /** "Last read by Quill today", or that it has not read it. Nothing at all
  *  when the page could not find out (undefined: loadHome's read failed). */
-export function readLineOf(essay, today = new Date()) {
+function readLineOf(essay, today = new Date()) {
   if (essay.last_review_at === undefined) return "";
   if (!essay.last_review_at) return "Not read by Quill yet";
   return `Last read by Quill ${dayPhrase(essay.last_review_at, today)}`.trim();

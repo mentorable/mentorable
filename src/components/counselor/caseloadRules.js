@@ -93,23 +93,6 @@ export function sortRows(rows, sort, marksFor = () => []) {
 }
 
 const count = (v) => (Number.isFinite(Number(v)) ? Math.max(0, Math.trunc(Number(v))) : 0);
-const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-
-/** A shared portfolio's size: "6 activities, 2 awards, 8 courses". */
-export function portfolioLine(portfolio) {
-  if (!portfolio || typeof portfolio !== "object") return "";
-  return [
-    plural(count(portfolio.activities), "activity", "activities"),
-    plural(count(portfolio.awards), "award", "awards"),
-    plural(count(portfolio.courses), "course", "courses"),
-  ].join(", ");
-}
-
-/** Whether a shared portfolio has anything in it yet. */
-export function portfolioEmpty(portfolio) {
-  if (!portfolio || typeof portfolio !== "object") return true;
-  return count(portfolio.activities) + count(portfolio.awards) + count(portfolio.courses) === 0 && !portfolio.has_gpa;
-}
 
 // ─── The grid's cells ─────────────────────────────────────────────────────────
 // The caseload is one line per student, so each section is a short value: a

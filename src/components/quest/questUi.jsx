@@ -5,7 +5,7 @@ import {
   AMBER_BG, AMBER_EDGE as UI_AMBER_EDGE, AMBER_LINE as UI_AMBER_LINE, AMBER_TEXT, BG as UI_BG, BORDER, DANGER as UI_DANGER, FOCUS_CLASS, RADIUS,
   SANS as UI_SANS, SURFACE, TEXT, TEXT_MID, TEXT_MUTED, TEXT_FAINT, WHITE as UI_WHITE, useAgentInk,
 } from "../ui/tokens.js";
-import { Button, ChoiceChips, Tip, inputStyle, textOnPage } from "../ui/kit.jsx";
+import { Button, textOnPage } from "../ui/kit.jsx";
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 // Quest sits on the app's shared kit (src/components/ui): a calm shell of white
@@ -183,19 +183,6 @@ export function Chunky({ children, onClick, disabled, tone = "accent", full, sma
   );
 }
 
-/** Older name for a short aside: now the kit Tip in its default tone, with
- *  the chat stamp. Quest itself uses Tip directly. */
-export function QuietNote({ children, style }) {
-  return <Tip tone="default" stamp="chat" style={style}>{children}</Tip>;
-}
-
-/** Older name for a secondary text action: now the kit's quiet Button
- *  (1rem, page-safe accent, 44px). `color` is ignored on purpose: a grey
- *  text button read as disabled. */
-export function TextButton({ color, ...rest }) {
-  return <Button kind="quiet" {...rest} />;
-}
-
 // ─── Level ────────────────────────────────────────────────────────────────────
 
 export function LevelChip({ stats, compact, onDark = false }) {
@@ -230,9 +217,7 @@ export function LevelChip({ stats, compact, onDark = false }) {
 
 // Quest's dialogs are the kit Sheet (src/components/ui/Sheet.jsx): a bottom
 // sheet on a phone, a centred 20px card above that, with focus trapped and
-// returned. The old names stay for any caller still using them; both props
-// sets (onClose, locked, label, width) are the Sheet's.
-export { default as Sheet, default as Modal } from "../ui/Sheet.jsx";
+// returned. Import it from there.
 
 // ─── Inputs ───────────────────────────────────────────────────────────────────
 
@@ -243,15 +228,6 @@ export function choiceLook(c, on) {
     minHeight: 44, borderRadius: RADIUS.pill, border: `1.5px solid ${on ? c.text : BORDER}`,
     background: on ? c.softer : WHITE, color: on ? c.onSoft : TEXT_MID,
   };
-}
-
-/** Older one-of-several picker (options as { value, label }): now the kit
- *  ChoiceChips. Quest uses ChoiceChips directly. */
-export function Segmented({ options, value, onChange, label, isMobile }) {
-  return (
-    <ChoiceChips label={label} hideLabel isMobile={isMobile} value={value} onChange={onChange}
-      options={options.map((o) => ({ key: o.value, label: o.label }))} />
-  );
 }
 
 export function DayToggles({ value, onChange }) {
@@ -282,9 +258,6 @@ export function DayToggles({ value, onChange }) {
     </div>
   );
 }
-
-/** The kit's field look. Pair it with the kit's INPUT_CLASS for the focus ring. */
-export const fieldStyle = { ...inputStyle };
 
 export function ErrorLine({ children }) {
   if (!children) return null;

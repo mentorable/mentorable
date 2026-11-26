@@ -17,18 +17,3 @@ export async function fetchUsage(supabase) {
     .maybeSingle()
   return data ?? { chat_messages_used: 0, research_queries_used: 0, quest_generations_used: 0, axis_boosts_used: 0, roadmap_generations_used: 0, phase_generations_used: 0, node_expansions_used: 0, roadmap_reevals_used: 0, portfolio_uploads_used: 0, resume_exports_used: 0 }
 }
-
-export function remaining(usage, feature) {
-  const map = {
-    chat: 'chat_messages_used',
-    research: 'research_queries_used',
-    axis_boost: 'axis_boosts_used',
-    roadmap_gen: 'roadmap_generations_used',
-    phase_gen: 'phase_generations_used',
-    node_expand: 'node_expansions_used',
-    roadmap_reeval: 'roadmap_reevals_used',
-    portfolio_upload: 'portfolio_uploads_used',
-    resume_export: 'resume_exports_used',
-  }
-  return Math.max(0, LIMITS[feature] - (usage?.[map[feature]] ?? 0))
-}

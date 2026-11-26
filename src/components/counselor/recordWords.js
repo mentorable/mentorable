@@ -180,15 +180,6 @@ export function schoolFacts(school) {
   return out;
 }
 
-const SOURCE_WORDS = {
-  student: "Sorted here by the student",
-  suggested: "Sorted here by their scores and the school's admit rate",
-  rough: "A rough guess, with no test score to compare",
-};
-
-/** How a school came to be in its group, or "". */
-export const sourceLine = (school) => own(SOURCE_WORDS, text(school?.category_source)) || "";
-
 /** How many schools sit in each group, for the balance note. */
 export function listCounts(schools) {
   const n = { reach: 0, target: 0, likely: 0 };
