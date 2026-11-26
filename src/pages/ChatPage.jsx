@@ -590,7 +590,7 @@ function BarMenu({ ariaLabel, value, options, onChange, disabled, align = "right
             return (
               <div key={o.key}>
                 {heading && (
-                  <div style={{ fontSize: 12, fontWeight: 700, color: BAR_MUTED, padding: i === 0 ? "6px 10px 4px" : "10px 10px 4px" }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: BAR_INK, padding: i === 0 ? "6px 10px 4px" : "10px 10px 4px" }}>
                     {heading}
                   </div>
                 )}
@@ -603,7 +603,7 @@ function BarMenu({ ariaLabel, value, options, onChange, disabled, align = "right
                     cursor: o.disabled ? "not-allowed" : "pointer", opacity: o.disabled ? 0.5 : 1, fontFamily: SG,
                   }}>
                   <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 14.5, fontWeight: 650, color: BAR_INK }}>{o.label}</span>
+                    <span style={{ display: "block", fontSize: 14.5, fontWeight: o.group ? 500 : 650, color: BAR_INK }}>{o.label}</span>
                     {o.hint && <span style={{ display: "block", fontSize: 13, fontWeight: 500, color: BAR_MUTED, marginTop: 2, lineHeight: 1.4 }}>{o.hint}</span>}
                   </span>
                   <span style={{ width: 16, flexShrink: 0, color: "var(--chatbar-ring)", display: "flex" }}>
