@@ -86,7 +86,11 @@ export default function Sheet({ children, onClose, locked = false, labelledBy, l
         style={{ width: "100%", maxWidth: mobile ? "100%" : width, maxHeight: mobile ? "92vh" : "88vh", overflowY: "auto",
           outline: "none", background: WHITE, boxSizing: "border-box", fontFamily: SANS, color: TEXT,
           borderRadius: mobile ? `${RADIUS.dialog}px ${RADIUS.dialog}px 0 0` : RADIUS.dialog, border: mobile ? "none" : `1px solid ${BORDER}`,
-          padding: mobile ? "10px 18px 24px" : "1.6rem", paddingBottom: mobile ? "calc(24px + env(safe-area-inset-bottom, 0px))" : undefined,
+          // Four longhands, never the shorthand plus an `undefined` longhand:
+          // React clears a longhand set to undefined, which once wiped the
+          // desktop card's bottom padding and left its last button on the edge.
+          paddingTop: mobile ? 10 : "1.6rem", paddingLeft: mobile ? 18 : "1.6rem", paddingRight: mobile ? 18 : "1.6rem",
+          paddingBottom: mobile ? "calc(24px + env(safe-area-inset-bottom, 0px))" : "1.6rem",
           boxShadow: "0 30px 80px rgba(0,0,0,0.25)" }}>
         {mobile && <div aria-hidden="true" style={{ width: 44, height: 5, borderRadius: 99, background: BORDER, margin: "0 auto 14px" }} />}
         {children}
