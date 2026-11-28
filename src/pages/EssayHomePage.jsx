@@ -14,7 +14,7 @@ import IdeasSection from "../components/agents/essay/home/IdeasSection.jsx";
 import EssaysSection, { NewEssayButton } from "../components/agents/essay/home/EssaysSection.jsx";
 import NightScene from "../components/agents/essay/home/NightScene.jsx";
 import DeskTabs, { panelId, tabId } from "../components/agents/essay/home/DeskTabs.jsx";
-import { DeskInvitation } from "../components/agents/essay/home/DeskResume.jsx";
+import { DeskInvitation } from "../components/agents/essay/home/DeskInvitation.jsx";
 import BrainstormSheet from "../components/agents/essay/home/BrainstormSheet.jsx";
 import NewEssaySheet from "../components/agents/essay/home/NewEssaySheet.jsx";
 import { DeskSkeleton, QuillLine, QuillSays } from "../components/agents/essay/home/homeParts.jsx";
